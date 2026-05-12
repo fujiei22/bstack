@@ -6,13 +6,13 @@
 .DESCRIPTION
   動作（idempotent；偵測已裝者跳過）：
     1. Pre-flight：claude CLI / git / bash / jq 檢查；pwsh 缺則 warn
-    2. Sync 本 repo → global（**直接覆蓋，不備份**）：
-         CLAUDE.md
-         .claude/hooks/branch-safety.ps1
-         statusline.sh
-         db-access/SKILL.md      → skills/db-access/SKILL.md
-         git-workflow/SKILL.md   → skills/git-workflow/SKILL.md
-         .claude/settings.json   → global settings.json（純覆蓋；轉 `${CLAUDE_PROJECT_DIR}` 為絕對路徑）
+    2. Sync 本 repo → global（**直接覆蓋，不備份**）。repo 結構 1:1 鏡像 ~/.claude/：
+         CLAUDE.md                       → CLAUDE.md
+         settings.json                   → settings.json（轉 `${CLAUDE_PROJECT_DIR}` 為絕對路徑）
+         statusline.sh                   → statusline.sh
+         hooks/branch-safety.ps1         → hooks/branch-safety.ps1
+         skills/db-access/SKILL.md       → skills/db-access/SKILL.md
+         skills/git-workflow/SKILL.md    → skills/git-workflow/SKILL.md
     3. Superpowers marketplace add：
          git clone obra/superpowers-marketplace → ~/.claude/plugins/marketplaces/superpowers-marketplace
          寫 known_marketplaces.json
@@ -175,12 +175,13 @@ function Invoke-SyncRepoFiles {
 
     Write-Section "Step 1: Sync repo files → global（直接覆蓋）"
 
+    # repo 結構鏡像 ~/.claude/，路徑 1:1 對應
     $fileMap = @(
-        @{ Src = 'CLAUDE.md';                       Dst = 'CLAUDE.md' }
-        @{ Src = '.claude/hooks/branch-safety.ps1'; Dst = 'hooks/branch-safety.ps1' }
-        @{ Src = 'statusline.sh';                   Dst = 'statusline.sh' }
-        @{ Src = 'db-access/SKILL.md';              Dst = 'skills/db-access/SKILL.md' }
-        @{ Src = 'git-workflow/SKILL.md';           Dst = 'skills/git-workflow/SKILL.md' }
+        @{ Src = 'CLAUDE.md';                  Dst = 'CLAUDE.md' }
+        @{ Src = 'hooks/branch-safety.ps1';    Dst = 'hooks/branch-safety.ps1' }
+        @{ Src = 'statusline.sh';              Dst = 'statusline.sh' }
+        @{ Src = 'skills/db-access/SKILL.md';  Dst = 'skills/db-access/SKILL.md' }
+        @{ Src = 'skills/git-workflow/SKILL.md'; Dst = 'skills/git-workflow/SKILL.md' }
     )
 
     foreach ($pair in $fileMap) {
@@ -190,11 +191,11 @@ function Invoke-SyncRepoFiles {
     }
 
     # settings.json：純覆蓋（不 merge），但轉路徑
-    $repoSettingsPath   = Join-Path $RepoRoot '.claude/settings.json'
+    $repoSettingsPath   = Join-Path $RepoRoot 'settings.json'
     $globalSettingsPath = Join-Path $GlobalDir 'settings.json'
 
     if (-not (Test-Path $repoSettingsPath)) {
-        Write-Warning "  [skip ] repo 無 .claude/settings.json，settings sync 略過"
+        Write-Warning "  [skip ] repo 無 settings.json，settings sync 略過"
         return
     }
 
