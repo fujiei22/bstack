@@ -23,7 +23,7 @@
          claude mcp add playwright -s user -- npx -y `@playwright/mcp@latest
          （mysql MCP 含 DB 密碼，不入腳本；結尾印手動指令）
     6. gstack 安裝：
-         git clone obra/gstack → ~/.claude/skills/gstack
+         git clone garrytan/gstack → ~/.claude/skills/gstack
          bash ./setup --prefix
 
   plugin install（superpowers / caveman）由 user 在 claude REPL 內手動執行
@@ -321,7 +321,7 @@ function Invoke-GstackInstall {
 
     $skillsDir  = Join-Path $GlobalDir 'skills'
     $gstackDir  = Join-Path $skillsDir 'gstack'
-    $gstackRepo = 'https://github.com/obra/gstack.git'
+    $gstackRepo = 'https://github.com/garrytan/gstack.git'
 
     if (-not (Test-Path $skillsDir)) {
         New-Item -ItemType Directory -Force -Path $skillsDir | Out-Null
