@@ -162,6 +162,27 @@ function Invoke-Preflight {
         Write-Warning "未偵測到 pwsh（PowerShell 7+）。repo hook command 用 pwsh，"
         Write-Warning "若想保穩，sync 後手動把 global settings.json 內 hook 的 'pwsh' 改 'powershell'。"
     }
+
+    # bun + node（gstack setup 需）。缺則設旗，後續 Step 5 跳過，不阻擋其他 step
+    $script:GstackBunOk  = Test-CommandExists 'bun'
+    $script:GstackNodeOk = Test-CommandExists 'node'
+    if ($script:GstackBunOk) {
+        Write-Host "  bun      : $(bun --version)"
+    } else {
+        Write-Warning "未偵測到 bun（gstack setup 必要）。Step 5 gstack 將跳過。"
+        Write-Warning "  安裝（任一）："
+        Write-Warning "    powershell -c `"irm bun.sh/install.ps1 | iex`""
+        Write-Warning "    npm install -g bun"
+        Write-Warning "    scoop install bun"
+    }
+    if ($script:GstackNodeOk) {
+        Write-Host "  node     : $(node --version)"
+    } else {
+        Write-Warning "未偵測到 node（Windows 上 gstack browse binary build 需要）。Step 5 gstack 將跳過。"
+        Write-Warning "  安裝（任一）："
+        Write-Warning "    winget install OpenJS.NodeJS"
+        Write-Warning "    scoop install nodejs"
+    }
 }
 
 # === Step 1: Sync repo files ===
@@ -398,7 +419,15 @@ Invoke-MarketplaceAdd -GlobalDir $globalDir `
                       -DisplayName 'Caveman'
 
 Invoke-PlaywrightMcpInstall
-Invoke-GstackInstall -GlobalDir $globalDir
+
+# Step 5: gstack — 僅 bun + node 都裝才跑，避免裝到一半才炸
+if ($script:GstackBunOk -and $script:GstackNodeOk) {
+    Invoke-GstackInstall -GlobalDir $globalDir
+} else {
+    Write-Section "Step 5: gstack install (--prefix)"
+    Write-Warning "  [skip] 缺 bun 或 node（見 pre-flight 警告）。裝齊後重跑 install.ps1。"
+    $script:GstackSkipped = $true
+}
 
 # === Summary ===
 Write-Section "Done"
@@ -407,7 +436,11 @@ Write-Host "✔ Repo 設定已覆蓋至 $globalDir"
 Write-Host "✔ Superpowers marketplace 已註冊（obra/superpowers-marketplace）"
 Write-Host "✔ Caveman marketplace 已註冊（JuliusBrussee/caveman）"
 Write-Host "✔ Playwright MCP 已註冊（user scope）"
-Write-Host "✔ gstack 已 clone + setup --prefix 完成"
+if ($script:GstackSkipped) {
+    Write-Host "⚠ gstack 跳過（缺 bun 或 node；裝齊後重跑）" -ForegroundColor Yellow
+} else {
+    Write-Host "✔ gstack 已 clone + setup --prefix 完成"
+}
 Write-Host ""
 Write-Host "後續手動步驟（在 Claude Code REPL 內跑）：" -ForegroundColor Yellow
 Write-Host "  1. claude" -ForegroundColor Yellow
