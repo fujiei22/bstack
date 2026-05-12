@@ -125,7 +125,7 @@ function Invoke-Preflight {
         Write-Error "找不到 claude CLI。請先裝 Claude Code：npm install -g @anthropic-ai/claude-code"
         exit 1
     }
-    $claudeVer = (claude --version 2>&1) -join ''
+    $claudeVer = (cmd /c "claude --version 2>&1") -join ''
     Write-Host "  claude   : $claudeVer"
 
     # git
@@ -252,7 +252,7 @@ function Invoke-MarketplaceAdd {
             New-Item -ItemType Directory -Force -Path $parent | Out-Null
         }
         Write-Host "  [clone] $repoUrl → $marketplaceDir"
-        git clone --depth 1 $repoUrl $marketplaceDir 2>&1 | ForEach-Object { Write-Host "    $_" }
+        cmd /c "git clone --depth 1 `"$repoUrl`" `"$marketplaceDir`" 2>&1" | ForEach-Object { Write-Host "    $_" }
         if ($LASTEXITCODE -ne 0) {
             Write-Error "git clone 失敗：$repoUrl"
             exit 1
@@ -332,7 +332,7 @@ function Invoke-GstackInstall {
     }
     else {
         Write-Host "  [clone] $gstackRepo → $gstackDir"
-        git clone --single-branch --depth 1 $gstackRepo $gstackDir 2>&1 | ForEach-Object { Write-Host "    $_" }
+        cmd /c "git clone --single-branch --depth 1 `"$gstackRepo`" `"$gstackDir`" 2>&1" | ForEach-Object { Write-Host "    $_" }
         if ($LASTEXITCODE -ne 0) {
             Write-Error "git clone 失敗：$gstackRepo"
             exit 1
@@ -346,7 +346,7 @@ function Invoke-GstackInstall {
             exit 1
         }
         Write-Host "  [run  ] bash ./setup --prefix"
-        bash ./setup --prefix 2>&1 | ForEach-Object { Write-Host "    $_" }
+        cmd /c "bash ./setup --prefix 2>&1" | ForEach-Object { Write-Host "    $_" }
         if ($LASTEXITCODE -ne 0) {
             Write-Error "gstack setup 失敗（exit $LASTEXITCODE）"
             exit 1
