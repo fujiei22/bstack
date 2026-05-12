@@ -10,6 +10,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"caveman lite: drop articles + filler. keep sentences.\"}}'",
+            "shell": "bash"
+          }
+        ]
+      }
     ]
   }
 }
