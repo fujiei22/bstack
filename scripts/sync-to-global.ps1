@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
   將此 repo 的 Claude Code 設定一鍵同步至 global `~/.claude/`。
