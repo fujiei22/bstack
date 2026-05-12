@@ -107,8 +107,7 @@ function Convert-HookCommandPath {
     )
 
     $globalDirEsc = $GlobalDir.Replace('\', '/')
-    return $Command -replace '\$\{CLAUDE_PROJECT_DIR\}/?\.claude', $globalDirEsc `
-                    -replace '\$\{CLAUDE_PROJECT_DIR\}', $globalDirEsc
+    return $Command -replace '\$\{CLAUDE_PROJECT_DIR\}', $globalDirEsc
 }
 
 function Test-CommandExists {
