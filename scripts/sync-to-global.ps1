@@ -30,6 +30,26 @@
 
 $ErrorActionPreference = 'Stop'
 
+# 修中文 console 亂碼（PowerShell 預設 codepage 非 UTF-8）
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+
+function Get-GlobalClaudeDir {
+    <#
+    .SYNOPSIS
+      回傳 ~/.claude 絕對路徑；USERPROFILE 不存在則 fallback $HOME。
+    .DESCRIPTION
+      原因：腳本後段多處用 $globalDir，先前曾遇單一 $globalDir 變數被
+      意外清空導致 Join-Path null 錯。改用 func 每次重算保證非 null。
+    #>
+    $userHome = $env:USERPROFILE
+    if ([string]::IsNullOrWhiteSpace($userHome)) { $userHome = $HOME }
+    if ([string]::IsNullOrWhiteSpace($userHome)) {
+        Write-Error "無法判定 user home（USERPROFILE / HOME 皆空）"
+        exit 1
+    }
+    return (Join-Path $userHome '.claude')
+}
+
 # === 路徑 ===
 $repoRoot = (git rev-parse --show-toplevel 2>$null)
 if ([string]::IsNullOrWhiteSpace($repoRoot)) {
@@ -38,7 +58,7 @@ if ([string]::IsNullOrWhiteSpace($repoRoot)) {
 }
 $repoRoot = $repoRoot.Trim()
 
-$globalDir = Join-Path $env:USERPROFILE '.claude'
+$script:globalDir = Get-GlobalClaudeDir
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 
 if (-not (Test-Path $globalDir)) {
@@ -182,7 +202,12 @@ else {
 # repo 同步進 global 的 hook 檔白名單（檔名）。
 # 白名單外的 hook 檔視為「settings.json 已不參照」的孤兒 → 備份後刪。
 $repoHookWhitelist = @('branch-safety.ps1')
-$globalHooksDir = Join-Path $globalDir 'hooks'
+
+# 防禦：若 $script:globalDir 被前段意外清空，重算一次保證非 null。
+if ([string]::IsNullOrWhiteSpace($script:globalDir)) {
+    $script:globalDir = Get-GlobalClaudeDir
+}
+$globalHooksDir = Join-Path $script:globalDir 'hooks'
 
 if (Test-Path $globalHooksDir) {
     Get-ChildItem -File $globalHooksDir | ForEach-Object {
