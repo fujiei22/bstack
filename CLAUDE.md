@@ -36,7 +36,7 @@
 
 ### Branch safety
 
-寫入動作（Write / Edit / NotebookEdit）由 PreToolUse hook 自動檢查（`.claude/hooks/branch-safety.ps1`）。
+寫入動作（Write / Edit / NotebookEdit）由 PreToolUse hook 自動檢查（`~/.claude/hooks/branch-safety.ps1`）。
 
 - 命中 `main / master / production / prod / release` → block
 - 處置：走 §決策點選單 取 branch 名 → `git checkout -b <name>` → retry

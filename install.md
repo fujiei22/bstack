@@ -226,7 +226,7 @@ claude
 
 ## 5. 建立 Branch safety hook
 
-你的 CLAUDE.md 寫到 `.claude/hooks/branch-safety.ps1`，需要實際建出這個檔案。
+你的 CLAUDE.md 寫到 `~/.claude/hooks/branch-safety.ps1`，需要實際建出這個檔案。
 
 ### 5.1 建目錄
 
