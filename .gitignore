@@ -3,3 +3,6 @@ superpowers
 
 # Claude Code per-cwd 權限白名單（per-machine，不入 repo）
 **/.claude/settings.local.json
+
+# Repo root 的 .claude/（EnterWorktree 容器與 per-cwd meta，不入 repo）
+/.claude/
