@@ -7,6 +7,7 @@
   覆蓋項目（含備份）：
     - CLAUDE.md
     - .claude/hooks/branch-safety.ps1
+    - statusline.sh
     - db-access/SKILL.md          -> ~/.claude/skills/db-access/SKILL.md
     - git-workflow/SKILL.md       -> ~/.claude/skills/git-workflow/SKILL.md
 
@@ -109,6 +110,7 @@ function Convert-HookCommandPath {
 $fileMap = @(
     @{ Src = 'CLAUDE.md';                          Dst = 'CLAUDE.md' }
     @{ Src = '.claude/hooks/branch-safety.ps1';    Dst = 'hooks/branch-safety.ps1' }
+    @{ Src = 'statusline.sh';                      Dst = 'statusline.sh' }
     @{ Src = 'db-access/SKILL.md';                 Dst = 'skills/db-access/SKILL.md' }
     @{ Src = 'git-workflow/SKILL.md';              Dst = 'skills/git-workflow/SKILL.md' }
 )
