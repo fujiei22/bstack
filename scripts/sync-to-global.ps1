@@ -17,6 +17,10 @@
       * 其餘 key（statusLine / enabledPlugins / theme / tui / 通知 等）：保留 global 原值
       * hook command 內 `${CLAUDE_PROJECT_DIR}` 轉成絕對路徑（global 環境無 PROJECT_DIR）
 
+  清理項目：
+    - ~/.claude/hooks/ 內非 repo 同步來源的孤兒檔（settings.json 已不參照）→ 備份後刪
+    - skills/ 與 runtime data（projects / sessions / history / cache 等）不動
+
   原檔備份字尾：`.bak.<yyyyMMdd-HHmmss>`，與目標檔同層。
 
 .NOTES
@@ -172,6 +176,25 @@ else {
     # 寫回。Depth 10 足以覆蓋 hook 巢狀層級。
     $globalSettings | ConvertTo-Json -Depth 10 | Set-Content $globalSettingsPath -Encoding UTF8
     Write-Host "  [merge] $globalSettingsPath（hooks 覆蓋；其餘 key 保留）"
+}
+
+# === 6. 清理 hooks/ 孤兒檔 ===
+# repo 同步進 global 的 hook 檔白名單（檔名）。
+# 白名單外的 hook 檔視為「settings.json 已不參照」的孤兒 → 備份後刪。
+$repoHookWhitelist = @('branch-safety.ps1')
+$globalHooksDir = Join-Path $globalDir 'hooks'
+
+if (Test-Path $globalHooksDir) {
+    Get-ChildItem -File $globalHooksDir | ForEach-Object {
+        # 跳過備份檔本身（避免循環產生 .bak.bak）
+        if ($_.Name -match '\.bak\.') { return }
+
+        if ($_.Name -notin $repoHookWhitelist) {
+            Backup-IfExists $_.FullName
+            Remove-Item $_.FullName -Force
+            Write-Host "  [clean] $($_.FullName)"
+        }
+    }
 }
 
 Write-Host ""
