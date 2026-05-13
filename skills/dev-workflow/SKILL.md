@@ -80,7 +80,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ↓
 4. verify-done
    ├─ T2+ = 多輪 verify（test + lint + build）
-   └─ T3 + UI 改動 = browser e2e 補
+   └─ T3 + UI 改動 = 載 frontend-test（Playwright MCP 跑 e2e）
    ↓
 5. request-review
    ├─ T1 = self review
@@ -227,6 +227,7 @@ Task fail / verify fail / review 嚴重打槍時：
 | `dispatch-parallel` | execute-plan 遇 parallel-group >1 task |
 | `lang-reviewer` | request-review 階段、依改動副檔名動態 dispatch（python / typescript / sql / golang / ...）|
 | `db-reviewer` | T3 + DB 改動，security 階段內 |
+| `frontend-test` | verify-done 偵測前端檔改動（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）；T3 UI 改動必載、T2 可選；user 顯式呼叫 e2e 也載 |
 | `write-skill` | user 要加 / 改 / 評 skill 本身 |
 
 ---

@@ -190,7 +190,7 @@ Task fail / verify fail / review 嚴重打槍時：
 完整 skill 清單與 routing 細節見 `dev-workflow` skill：
 
 - **Phase 階段 skill**：brainstorm、write-plan、review-plan、execute-plan、tdd-cycle、verify-done、request-review、receive-review、security-audit、security-checklist、finish-branch、pr-explain、weekly-retro
-- **跨流程 skill**：debug-systematic、incident-investigate、lock-files、cmd-guard、safety-guard、context-snapshot、context-resume
+- **跨流程 skill**：debug-systematic、incident-investigate、lock-files、cmd-guard、safety-guard、context-snapshot、context-resume、frontend-test
 - **Meta skill**：write-skill、dispatch-parallel
 - **既有 skill**：db-access、git-workflow
 - **Agents**：db-reviewer、lang-reviewer（python-reviewer / typescript-reviewer / sql-reviewer / golang-reviewer / ... 動態 dispatch）
