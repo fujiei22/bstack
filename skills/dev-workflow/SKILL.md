@@ -93,7 +93,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ├─ T2 = 涉認證 / 資料層 / API 邊界才用
    └─ T3 = 必用 + security-checklist + db-reviewer（DB 改動）
    ↓
-7. finish-branch（含 git-workflow + branch-safety）
+7. finish-branch（含 git workflow 細則 + branch-safety）
    ↓
 8. pr-explain → docs/reviews/<pr-id>.md（依檔分 section）
    ↓
