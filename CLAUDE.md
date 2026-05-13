@@ -193,7 +193,7 @@ Task fail / verify fail / review 嚴重打槍時：
 - **跨流程 skill**：debug-systematic、incident-investigate、lock-files、cmd-guard、safety-guard、context-snapshot、context-resume、frontend-test
 - **Meta skill**：write-skill、dispatch-parallel
 - **既有 skill**：db-access
-- **Agents**：db-reviewer、lang-reviewer（python-reviewer / typescript-reviewer / sql-reviewer / golang-reviewer / ... 動態 dispatch）
+- **Agents**：db-reviewer、lang-reviewer（單一 agent、語言透過 prompt `language: <python/typescript/sql/golang/...>` tag 動態 dispatch、依 §語言檢查焦點 套對應 idiom / pitfall）、security-auditor、pr-explainer、hypothesis-tester、frontend-e2e-runner
 
 ---
 

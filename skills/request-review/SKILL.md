@@ -86,21 +86,25 @@ Verify 全綠: <yes/no>
 
 ### lang-reviewer dispatch
 
-依改動副檔名自動選對應 reviewer agent：
+依改動副檔名選 language tag、spawn 單一 `lang-reviewer` agent、language 透過 prompt 動態 dispatch（**不是**為每語言開一個 agent 檔）：
 
-| 副檔名 | reviewer agent |
+| 副檔名 | language tag |
 |---|---|
-| `.py` | python-reviewer |
-| `.ts / .tsx / .js / .jsx` | typescript-reviewer |
-| `.sql` | sql-reviewer |
-| `.go` | golang-reviewer |
-| `.rs` | rust-reviewer |
-| `.java` | java-reviewer |
-| `.cs` | csharp-reviewer |
-| `.cpp / .c / .h` | cpp-reviewer |
-| 其他 | 跳，列「無對應 lang-reviewer」 |
+| `.py` | python |
+| `.ts / .tsx / .js / .jsx` | typescript |
+| `.sql` | sql |
+| `.go` | golang |
+| `.rs` | rust |
+| `.java` | java |
+| `.cs` | csharp |
+| `.cpp / .c / .h` | cpp |
+| 其他 | 跳、列「lang-reviewer 無對應 language section」 |
 
-對每個命中的副檔名類，spawn `Agent` with `subagent_type=<lang>-reviewer`（或 general-purpose + lang-specific prompt）。
+對每個命中的語言、spawn `Agent` with `subagent_type: lang-reviewer` + prompt body 內帶 `language: <tag>`，agent 依該 tag 套對應「§語言檢查焦點」段。
+
+> 為何不每語言一個 agent 檔：agent 多會分散 maintenance、且大部分通用框架（正確性 / error handling / safety / testing / CLAUDE.md 一致）跨語言相同。動態 dispatch 一個 agent 處理全部、語言特化在 §語言檢查焦點 內分段。
+
+> 注意：SQL 改動同時涉 DB schema / migration 時、`security-audit` phase 會另派 `db-reviewer`（有 mysql MCP 存取、做深度 review）；lang-reviewer SQL 是 surface 層、db-reviewer 是 deep 層、互補不重複。
 
 prompt：
 ```
@@ -171,14 +175,14 @@ T2 全部 + **再 spawn 一個 subagent**：
 # Review 整合結果
 
 > Tier: <T1-T3>
-> Reviewers: <self | main + python-reviewer | main + ts-reviewer + 架構 + 除錯>
+> Reviewers: <self | main + lang-reviewer(python) | main + lang-reviewer(typescript) + 架構 + 除錯>
 
 ## Critical 共識
 - <多 reviewer 同提的>
 
 ## Critical 各自獨見
 - 主 reviewer: ...
-- lang-reviewer (<lang>): ...
+- lang-reviewer(<lang>): ...
 - 架構視角 (T3): ...
 - 除錯視角 (T3): ...
 
@@ -222,5 +226,6 @@ state:
 |---|---|
 | 「T1 跳 self review 直接 finish」 | 哪怕 T1 也要 self review |
 | 「T3 雙視角只跑一個」 | 雙視角缺一就退化成 T2 |
-| 「lang-reviewer 找不到對的、跳過」 | 沒對應 → 跳這項；但主 reviewer 必跑 |
+| 「lang-reviewer 找不到對應 language section、跳過」 | 跳此 lang-reviewer 即可；但主 reviewer 必跑 |
+| 「subagent_type 用 python-reviewer / sql-reviewer 等具體名稱」 | **錯**；只有 `lang-reviewer` 一個 agent；具體 language 用 prompt body `language: <tag>` 傳 |
 | 「subagent 結果我自己判」 | 結果整合可以，但別自己 override critical |
