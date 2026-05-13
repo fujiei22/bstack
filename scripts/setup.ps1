@@ -133,13 +133,14 @@ function Show-BackupWarning {
     Write-Host "  建議結束後手動清理 ~/.claude/skills 與 ~/.claude/plugins 內非本 repo 內容。" -ForegroundColor Yellow
     Write-Host ""
     if ($Yes) {
-        Write-Host "  -Yes flag 已帶、跳備份提醒。" -ForegroundColor Yellow
+        Write-Host "  -Yes flag 已帶、跳備份提醒確認。" -ForegroundColor Yellow
     } else {
-        Write-Host "  10 秒後自動繼續；要中斷請 Ctrl+C。" -ForegroundColor Yellow
-        for ($i = 10; $i -gt 0; $i--) {
-            Write-Host "    $i ..." -NoNewline
-            Start-Sleep -Seconds 1
+        Write-Host "  繼續執行 setup？[y/N]: " -ForegroundColor Yellow -NoNewline
+        $reply = (Read-Host).Trim().ToLower()
+        if ($reply -ne 'y' -and $reply -ne 'yes') {
             Write-Host ""
+            Write-Host "  使用者中斷、不執行 setup。" -ForegroundColor Yellow
+            exit 0
         }
     }
     Write-Host ""
