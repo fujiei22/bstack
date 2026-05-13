@@ -306,19 +306,8 @@ Write-Section "Done"
 Write-Host ""
 Write-Host "✔ CLAUDE.md / statusline.sh / 2 hooks 已覆蓋至 $globalDir"
 Write-Host "✔ skills/ 全套已 sync"
-Write-Host "✔ agents/ 全套已 sync"
 Write-Host "✔ settings.json 已覆蓋（hook 路徑已轉絕對）"
 Write-Host ""
-Write-Host "後續手動步驟：" -ForegroundColor Yellow
-Write-Host "  1. 開新 claude session（既有 session 不會載新 skill）" -ForegroundColor Yellow
-Write-Host "  2. 跑 /help 應見 /dev-workflow / brainstorm / write-plan ... 等指令" -ForegroundColor Yellow
-Write-Host "  3. 試「我想加個小功能」確認 dev-workflow 自動載入" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "選用：MySQL MCP（含 DB 密碼、不入腳本）。如需 mysql MCP，貼下行並改 <your_password>：" -ForegroundColor Yellow
-Write-Host '  claude mcp add mysql -s user -e MYSQL_HOST=127.0.0.1 -e MYSQL_PORT=3306 -e MYSQL_USER=mcp_readonly -e MYSQL_PASS=<your_password> -e ALLOW_INSERT_OPERATION=false -e ALLOW_UPDATE_OPERATION=false -e ALLOW_DELETE_OPERATION=false -- npx -y `@benborla29/mcp-server-mysql' -ForegroundColor Yellow
-Write-Host ""
-Write-Host "提醒：若 ~/.claude/skills 或 ~/.claude/plugins 內有舊 plugin（superpowers / gstack / ECC）" -ForegroundColor Yellow
-Write-Host "  建議手動清，避免與本 repo skill 衝突：" -ForegroundColor Yellow
-Write-Host "    Remove-Item -Recurse ~/.claude/plugins/marketplaces/superpowers-marketplace" -ForegroundColor Yellow
-Write-Host "    Remove-Item -Recurse ~/.claude/skills/<plugin 殘留>" -ForegroundColor Yellow
+Write-Host "【提醒】" -ForegroundColor Yellow
+Write-Host "   開新 claude session 才能開始使用（既有 session 不會載入新 skill）" -ForegroundColor Yellow
 Write-Host ""
