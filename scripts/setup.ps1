@@ -306,6 +306,7 @@ Write-Section "Done"
 Write-Host ""
 Write-Host "✔ CLAUDE.md / statusline.sh / 2 hooks 已覆蓋至 $globalDir"
 Write-Host "✔ skills/ 全套已 sync"
+Write-Host "✔ agents/ 全套已 sync"
 Write-Host "✔ settings.json 已覆蓋（hook 路徑已轉絕對）"
 Write-Host ""
 Write-Host "【提醒】" -ForegroundColor Yellow
