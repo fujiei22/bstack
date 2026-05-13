@@ -5,7 +5,7 @@ description: |
   diff 解釋 / 詳細寫 / 落檔 review。
   涵蓋：依檔分 section、每檔含改動意圖 + 每行 code 在做什麼 + 跟其他檔的關聯、
   落 docs/reviews/<pr-id>.md、commit、貼到 PR 為 comment（選用）。
-  上游：finish-branch（PR 已開）。下游：weekly-retro（不綁定）。
+  上游：finish-branch（PR 已開）。下游：retro（不綁定）。
 ---
 
 # pr-explain
@@ -174,7 +174,7 @@ state:
   current_phase: pr-explain-done
 ```
 
-**下一 phase**：→ 通常結束（不自動進 weekly-retro；user 主動觸發）
+**下一 phase**：→ 通常結束（不自動進 retro；user 主動觸發）
 
 ---
 
