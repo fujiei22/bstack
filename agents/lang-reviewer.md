@@ -72,6 +72,8 @@ model: sonnet
 
 ### SQL
 
+**這段是 surface 層 review**（不查 DB、無 mcp__mysql__mysql_query 存取）。**深度 DB review**（schema 設計合理性、index plan、migration 大表估算、可逆性、cascade、實際 row count）由 `db-reviewer` 在 `security-audit` phase 對 T3 DB schema 改動跑、兩者互補不重複。
+
 - 參數化（無字串接 user input）
 - 索引（EXPLAIN 顯示 plan 合理）
 - N+1 / 全表掃避免
