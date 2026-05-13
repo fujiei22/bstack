@@ -310,5 +310,5 @@ Write-Host "✔ agents/ 全套已 sync"
 Write-Host "✔ settings.json 已覆蓋（hook 路徑已轉絕對）"
 Write-Host ""
 Write-Host "【提醒】" -ForegroundColor Yellow
-Write-Host "   開新 claude session 才能開始使用（既有 session 不會載入新 skill）" -ForegroundColor Yellow
+Write-Host " 開新 claude session 才能開始使用（既有 session 不會載入新 skill）" -ForegroundColor Yellow
 Write-Host ""
