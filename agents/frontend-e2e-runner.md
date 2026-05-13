@@ -150,6 +150,10 @@ caller 會傳：
 - Console errors: <count>
 - Network errors（>=400）: <count>
 - Failure cause: <若 FAIL / INCONCLUSIVE、根因一句>
+- Failure detail: <FAIL 時必填；INCONCLUSIVE / PASS 可省>
+  - 若 selector 失效：列**預期 selector** + **實際 DOM 片段**（snapshot 內找到的最接近元素），方便 user 決定改 spec 還是改 code
+  - 若 assertion 失敗：列預期值 vs 實際值
+  - 若 console / network error 為主因：列前 3 條最相關 error
 - Evidence:
   - screenshots/<scenario-id>-*.png
   - console-<scenario-id>.txt
