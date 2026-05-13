@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <title>repo b：dev-workflow flowchart explorer</title>
+
+  <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('dev-workflow-theme'); // 'auto' | 'light' | 'dark' | null
+        var mode = saved === 'light' || saved === 'dark' ? saved : 'auto';
+        var resolved = mode === 'auto'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : mode;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', mode);
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute('data-theme-mode', 'auto');
+      }
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles.css" />
+
+  <!-- vendor libs：本地 classic script，file:// 與離線均可用 -->
+  <script src="./js/vendor/d3.min.js"></script>
+  <script src="./js/vendor/dagre.min.js"></script>
+  <script src="./js/vendor/marked.min.js"></script>
+
+  <!-- layout helpers + FLOW_DATA + references bundle：classic script，file:// 相容 -->
+  <script src="./js/layout.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/references-data.js"></script>
+</head>
+<body>
+  <div id="root">
+    <aside id="legend-side" class="legend-side"></aside>
+    <div class="flow-area">
+      <svg id="flow-svg"></svg>
+    </div>
+    <aside id="detail-panel" class="detail-panel hidden"></aside>
+  </div>
+
+  <!-- doc drawer -->
+  <div id="doc-drawer-backdrop" class="doc-drawer-backdrop"></div>
+  <aside id="doc-drawer" class="doc-drawer">
+    <div class="doc-drawer-topbar">
+      <span class="doc-drawer-breadcrumb" id="doc-drawer-breadcrumb"></span>
+      <button class="doc-drawer-close" id="doc-drawer-close" title="關閉" aria-label="關閉">×</button>
+    </div>
+    <div class="doc-drawer-header" id="doc-drawer-header"></div>
+    <div class="doc-drawer-body" id="doc-drawer-body"></div>
+  </aside>
+
+  <!-- 主程式：純 d3 + dagre，無 React；classic script，file:// 相容 -->
+  <script src="./js/app.js"></script>
+</body>
+</html>

@@ -10,3 +10,6 @@ gstack
 
 # Playwright MCP server 的 local artifact（snapshot / console log）
 .playwright-mcp/
+
+# frontend-e2e-runner verify 留下的截圖與報告（agent 的 cwd artifact，不入 repo）
+scripts/test-reports/
