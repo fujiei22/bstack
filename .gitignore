@@ -7,3 +7,6 @@ gstack
 
 # Repo root 的 .claude/（EnterWorktree 容器與 per-cwd meta，不入 repo）
 /.claude/
+
+# Playwright MCP server 的 local artifact（snapshot / console log）
+.playwright-mcp/
