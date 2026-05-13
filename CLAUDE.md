@@ -127,7 +127,7 @@ T0 在 0d 後直接跳到實作；T1+ 帶 Track + Tier 進階段 2-9。
    + security-checklist + db-reviewer  （T3 DB 改動時）
 7. finish-branch     （含 git-workflow + branch-safety）
 8. pr-explain        （PR 開好後，依檔分 section、解釋意圖 + 每行 code + 關聯，落 docs/reviews/<pr-id>.md）
-9. weekly-retro      （手動觸發；Memory hook 補）
+9. retro             （手動觸發；任意期間；Memory hook 補）
 ```
 
 ### §Trace 標籤
@@ -168,10 +168,10 @@ Task fail / verify fail / review 嚴重打槍時：
 
 ### §Memory hook
 
-`brainstorm` 與 `weekly-retro` 兩個 phase 與 memory 系統互動：
+`brainstorm` 與 `retro` 兩個 phase 與 memory 系統互動：
 
 - **brainstorm 0a** — **讀** memory：user 偏好 / 領域背景 / 過去關鍵決策。讀進來作為 context，影響 0b / 0c / 0d 判定
-- **weekly-retro** — **補** memory：分析本週 git log / PR / TaskList 抽反覆出現的模式（user 偏好 / AI 犯錯 / 領域 lesson） → 產 memory 更新 proposal → user review 後寫入
+- **retro** — **補** memory：分析期間（user 選）git log / PR / TaskList 抽反覆出現的模式（user 偏好 / AI 犯錯 / 領域 lesson） → 產 memory 更新 proposal → user review 後寫入
 
 其他 phase 預設**不**主動 hook memory（避免雜訊）。
 
@@ -189,7 +189,7 @@ Task fail / verify fail / review 嚴重打槍時：
 
 完整 skill 清單與 routing 細節見 `dev-workflow` skill：
 
-- **Phase 階段 skill**：brainstorm、write-plan、review-plan、execute-plan、tdd-cycle、verify-done、request-review、receive-review、security-audit、security-checklist、finish-branch、pr-explain、weekly-retro
+- **Phase 階段 skill**：brainstorm、write-plan、review-plan、execute-plan、tdd-cycle、verify-done、request-review、receive-review、security-audit、security-checklist、finish-branch、pr-explain、retro
 - **跨流程 skill**：debug-systematic、incident-investigate、lock-files、cmd-guard、safety-guard、context-snapshot、context-resume、frontend-test
 - **Meta skill**：write-skill、dispatch-parallel
 - **既有 skill**：db-access、git-workflow

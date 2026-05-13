@@ -97,7 +97,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ↓
 8. pr-explain → docs/reviews/<pr-id>.md（依檔分 section）
    ↓
-9. weekly-retro（手動觸發、不綁 tier；Memory hook 補）
+9. retro（手動觸發、不綁 tier；任意期間；Memory hook 補）
 ```
 
 ### Bug track 完整路徑
@@ -113,7 +113,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ↓
 5-8 同 Dev track
    ↓
-9. weekly-retro
+9. retro
 ```
 
 **Bug track 不跑 write-plan / review-plan**：fix 內容由 debug-systematic 直接導出。
@@ -206,7 +206,7 @@ Task fail / verify fail / review 嚴重打槍時：
 | Phase | 動作 |
 |---|---|
 | brainstorm 0a | **讀** memory：user 偏好 / 領域背景 / 過去關鍵決策 |
-| weekly-retro | **補** memory：本週 git log + PR + TaskList 分析模式 → 產 proposal → user review → 寫入 |
+| retro | **補** memory：期間（user 選）git log + PR + TaskList 分析模式 → 產 proposal → user review → 寫入 |
 
 其他 phase 不主動 hook。
 
