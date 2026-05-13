@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-  Superpowers + Caveman + Playwright MCP + gstack + 本 repo 設定 一鍵安裝至 global `~/.claude/`。
+  Superpowers + Playwright MCP + gstack + 本 repo 設定 一鍵安裝至 global `~/.claude/`。
 
 .DESCRIPTION
   動作（idempotent；偵測已裝者跳過）：
@@ -16,17 +16,14 @@
     3. Superpowers marketplace add：
          git clone obra/superpowers-marketplace → ~/.claude/plugins/marketplaces/superpowers-marketplace
          寫 known_marketplaces.json
-    4. Caveman marketplace add：
-         git clone JuliusBrussee/caveman → ~/.claude/plugins/marketplaces/caveman
-         寫 known_marketplaces.json
-    5. Playwright MCP（user scope）：
+    4. Playwright MCP（user scope）：
          claude mcp add playwright -s user -- npx -y `@playwright/mcp@latest
          （mysql MCP 含 DB 密碼，不入腳本；結尾印手動指令）
-    6. gstack 安裝：
+    5. gstack 安裝：
          git clone garrytan/gstack → ~/.claude/skills/gstack
          bash ./setup --prefix
 
-  plugin install（superpowers / caveman）由 user 在 claude REPL 內手動執行
+  plugin install（superpowers）由 user 在 claude REPL 內手動執行
   （`/plugin install` 涉版本/commit 解析，REPL 處理較穩）。
 
 .NOTES
@@ -163,13 +160,13 @@ function Invoke-Preflight {
         Write-Warning "若想保穩，sync 後手動把 global settings.json 內 hook 的 'pwsh' 改 'powershell'。"
     }
 
-    # bun + node（gstack setup 需）。缺則設旗，後續 Step 5 跳過，不阻擋其他 step
+    # bun + node（gstack setup 需）。缺則設旗，後續 Step 4 跳過，不阻擋其他 step
     $script:GstackBunOk  = Test-CommandExists 'bun'
     $script:GstackNodeOk = Test-CommandExists 'node'
     if ($script:GstackBunOk) {
         Write-Host "  bun      : $(bun --version)"
     } else {
-        Write-Warning "未偵測到 bun（gstack setup 必要）。Step 5 gstack 將跳過。"
+        Write-Warning "未偵測到 bun（gstack setup 必要）。Step 4 gstack 將跳過。"
         Write-Warning "  安裝（任一）："
         Write-Warning "    powershell -c `"irm bun.sh/install.ps1 | iex`""
         Write-Warning "    npm install -g bun"
@@ -178,7 +175,7 @@ function Invoke-Preflight {
     if ($script:GstackNodeOk) {
         Write-Host "  node     : $(node --version)"
     } else {
-        Write-Warning "未偵測到 node（Windows 上 gstack browse binary build 需要）。Step 5 gstack 將跳過。"
+        Write-Warning "未偵測到 node（Windows 上 gstack browse binary build 需要）。Step 4 gstack 將跳過。"
         Write-Warning "  安裝（任一）："
         Write-Warning "    winget install OpenJS.NodeJS"
         Write-Warning "    scoop install nodejs"
@@ -243,7 +240,7 @@ function Invoke-SyncRepoFiles {
     Write-Host "  [over ] $globalSettingsPath（純覆蓋；路徑已轉絕對）"
 }
 
-# === Step 2/3: Marketplace add（通用） ===
+# === Step 2: Marketplace add（通用） ===
 
 function Invoke-MarketplaceAdd {
     <#
@@ -254,7 +251,7 @@ function Invoke-MarketplaceAdd {
     #>
     param(
         [Parameter(Mandatory)][string]$GlobalDir,
-        [Parameter(Mandatory)][string]$Key,           # marketplace key（e.g. superpowers-marketplace / caveman）
+        [Parameter(Mandatory)][string]$Key,           # marketplace key（e.g. superpowers-marketplace）
         [Parameter(Mandatory)][string]$RepoSlug,      # github owner/repo
         [Parameter(Mandatory)][string]$DisplayName    # log 顯示名
     )
@@ -311,10 +308,10 @@ function Invoke-MarketplaceAdd {
     }
 }
 
-# === Step 4: Playwright MCP ===
+# === Step 3: Playwright MCP ===
 
 function Invoke-PlaywrightMcpInstall {
-    Write-Section "Step 4: Playwright MCP install (user scope)"
+    Write-Section "Step 3: Playwright MCP install (user scope)"
 
     # idempotent 偵測
     & claude mcp get playwright *>$null
@@ -331,14 +328,14 @@ function Invoke-PlaywrightMcpInstall {
     }
 }
 
-# === Step 5: gstack ===
+# === Step 4: gstack ===
 
 function Invoke-GstackInstall {
     param(
         [Parameter(Mandatory)][string]$GlobalDir
     )
 
-    Write-Section "Step 5: gstack install (--prefix)"
+    Write-Section "Step 4: gstack install (--prefix)"
 
     $skillsDir  = Join-Path $GlobalDir 'skills'
     $gstackDir  = Join-Path $skillsDir 'gstack'
@@ -394,7 +391,7 @@ if (-not (Test-Path $globalDir)) {
 
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Green
-Write-Host " Superpowers + Caveman + Playwright + gstack" -ForegroundColor Green
+Write-Host " Superpowers + Playwright + gstack" -ForegroundColor Green
 Write-Host " 一鍵安裝（純覆蓋，不備份）" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
 Write-Host "  Repo  : $repoRoot"
@@ -412,19 +409,13 @@ Invoke-MarketplaceAdd -GlobalDir $globalDir `
                       -RepoSlug 'obra/superpowers-marketplace' `
                       -DisplayName 'Superpowers'
 
-Write-Section "Step 3: Caveman marketplace add"
-Invoke-MarketplaceAdd -GlobalDir $globalDir `
-                      -Key 'caveman' `
-                      -RepoSlug 'JuliusBrussee/caveman' `
-                      -DisplayName 'Caveman'
-
 Invoke-PlaywrightMcpInstall
 
-# Step 5: gstack — 僅 bun + node 都裝才跑，避免裝到一半才炸
+# Step 4: gstack — 僅 bun + node 都裝才跑，避免裝到一半才炸
 if ($script:GstackBunOk -and $script:GstackNodeOk) {
     Invoke-GstackInstall -GlobalDir $globalDir
 } else {
-    Write-Section "Step 5: gstack install (--prefix)"
+    Write-Section "Step 4: gstack install (--prefix)"
     Write-Warning "  [skip] 缺 bun 或 node（見 pre-flight 警告）。裝齊後重跑 install.ps1。"
     $script:GstackSkipped = $true
 }
@@ -434,7 +425,6 @@ Write-Section "Done"
 Write-Host ""
 Write-Host "✔ Repo 設定已覆蓋至 $globalDir"
 Write-Host "✔ Superpowers marketplace 已註冊（obra/superpowers-marketplace）"
-Write-Host "✔ Caveman marketplace 已註冊（JuliusBrussee/caveman）"
 Write-Host "✔ Playwright MCP 已註冊（user scope）"
 if ($script:GstackSkipped) {
     Write-Host "⚠ gstack 跳過（缺 bun 或 node；裝齊後重跑）" -ForegroundColor Yellow
@@ -445,8 +435,7 @@ Write-Host ""
 Write-Host "後續手動步驟（在 Claude Code REPL 內跑）：" -ForegroundColor Yellow
 Write-Host "  1. claude" -ForegroundColor Yellow
 Write-Host "  2. /plugin install superpowers@superpowers-marketplace" -ForegroundColor Yellow
-Write-Host "  3. /plugin install caveman@caveman" -ForegroundColor Yellow
-Write-Host "  4. /exit 後重開 claude（讓 plugin 完全載入）" -ForegroundColor Yellow
+Write-Host "  3. /exit 後重開 claude（讓 plugin 完全載入）" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "選用：MySQL MCP（含 DB 密碼，不入腳本）。如需用 mysql MCP，貼下行並改 <your_password>：" -ForegroundColor Yellow
 Write-Host '  claude mcp add mysql -s user -e MYSQL_HOST=127.0.0.1 -e MYSQL_PORT=3306 -e MYSQL_USER=mcp_readonly -e MYSQL_PASS=<your_password> -e ALLOW_INSERT_OPERATION=false -e ALLOW_UPDATE_OPERATION=false -e ALLOW_DELETE_OPERATION=false -- npx -y `@benborla29/mcp-server-mysql' -ForegroundColor Yellow
