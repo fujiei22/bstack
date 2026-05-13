@@ -3,7 +3,6 @@
 ## 對話風格
 
 - 語言：繁中台灣用語
-- 風格：`caveman:caveman` skill（lite 級）
 
 ---
 
