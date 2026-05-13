@@ -98,7 +98,7 @@ Track 判定在 brainstorm Phase 0c 完成、輸出進 dev-workflow state。
 | Tier | 量體 | brainstorm | plan | plan review | TDD | subagent | code review | 安全 |
 |---|---|---|---|---|---|---|---|---|
 | **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
-| **T1** | <3 檔 / 單模組小改 | 對話釐清 | 跳 | 跳 | 1-2 個關鍵測試 | 跳 | self | 跳 |
+| **T1** | \<3 檔 / 單模組小改 | 對話釐清 | 跳 | 跳 | 1-2 個關鍵測試 | 跳 | self | 跳 |
 | **T2** | 3-10 檔 / 單模組 feature | 完整 | 用 | review-plan (Eng-only) | 紅綠循環 | 可選 | request-review + lang-reviewer | 涉認證 / 資料層才 security-audit |
 | **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | 用 | review-plan (4 視角) | 紅綠循環、80% 目標 | 用 | 雙視角 + lang-reviewer | security-audit + security-checklist + db-reviewer |
 
