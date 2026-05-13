@@ -112,6 +112,43 @@ function Test-CommandExists {
     $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Find-GitBash {
+    <#
+    .SYNOPSIS
+      回傳真 POSIX bash（Git Bash）全路徑；找不到回 $null。
+    .DESCRIPTION
+      Windows 上 `C:\Windows\System32\bash.exe` 與 `WindowsApps\bash.exe`
+      皆為 WSL launcher，未裝發行版時跑會印 "Linux 子系統未安裝發行版"
+      並 exit 1。gstack setup 是 POSIX shell script，必須走真 bash。
+
+      解析順序：
+        1. Git for Windows 常見安裝路徑（最穩；不依賴 PATH）
+        2. `where.exe bash` 全列舉，過濾 System32 / WindowsApps 後取首筆
+    #>
+    $candidates = @(
+        "$env:ProgramFiles\Git\bin\bash.exe",
+        "$env:ProgramFiles\Git\usr\bin\bash.exe",
+        "${env:ProgramFiles(x86)}\Git\bin\bash.exe",
+        "${env:ProgramFiles(x86)}\Git\usr\bin\bash.exe"
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path $p)) { return $p }
+    }
+
+    # fallback：where.exe 全列舉，過濾 WSL launcher
+    $found = & where.exe bash 2>$null
+    if ($LASTEXITCODE -eq 0 -and $found) {
+        foreach ($line in @($found)) {
+            $line = $line.Trim()
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            if ($line -match '\\System32\\bash\.exe$') { continue }
+            if ($line -match '\\WindowsApps\\bash\.exe$') { continue }
+            if (Test-Path $line) { return $line }
+        }
+    }
+    return $null
+}
+
 # === Pre-flight ===
 
 function Invoke-Preflight {
@@ -132,12 +169,20 @@ function Invoke-Preflight {
     }
     Write-Host "  git      : $(git --version)"
 
-    # bash（gstack setup 需）
-    if (-not (Test-CommandExists 'bash')) {
-        Write-Error "找不到 bash（gstack setup 為 shell script，需 Git Bash）。請裝 Git for Windows 並重開 PowerShell。"
+    # bash（gstack setup 需）— 必須真 Git Bash，**不能**是 System32\bash.exe（WSL launcher）
+    $script:GitBash = Find-GitBash
+    if (-not $script:GitBash) {
+        Write-Error @"
+找不到 Git Bash（gstack setup 為 POSIX shell script，需真 bash）。
+注意：C:\Windows\System32\bash.exe 是 WSL launcher，不是 Git Bash。
+請裝 Git for Windows：https://git-scm.com/download/win
+裝完重開 PowerShell 再跑本腳本。
+"@
         exit 1
     }
-    Write-Host "  bash     : $((bash --version | Select-Object -First 1))"
+    $bashVer = (& $script:GitBash --version | Select-Object -First 1)
+    Write-Host "  bash     : $script:GitBash"
+    Write-Host "             $bashVer"
 
     # jq（statusline.sh 重度依賴）
     if (-not (Test-CommandExists 'jq')) {
@@ -363,8 +408,13 @@ function Invoke-GstackInstall {
             Write-Error "gstack repo 內找不到 setup 腳本：$gstackDir/setup"
             exit 1
         }
-        Write-Host "  [run  ] bash ./setup --prefix"
-        cmd /c "bash ./setup --prefix 2>&1" | ForEach-Object { Write-Host "    $_" }
+        # 用 pre-flight 找到的 Git Bash 全路徑，避免 PATH 解析時抓到 System32\bash.exe（WSL launcher）
+        if (-not $script:GitBash) {
+            Write-Error "內部錯誤：\$script:GitBash 未設定（pre-flight 應已偵測過）。"
+            exit 1
+        }
+        Write-Host "  [run  ] $script:GitBash ./setup --prefix"
+        & $script:GitBash './setup' --prefix 2>&1 | ForEach-Object { Write-Host "    $_" }
         if ($LASTEXITCODE -ne 0) {
             Write-Error "gstack setup 失敗（exit $LASTEXITCODE）"
             exit 1
