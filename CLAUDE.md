@@ -125,7 +125,7 @@ T0 在 0d 後直接跳到實作；T1+ 帶 Track + Tier 進階段 2-9。
    └→ receive-review
 6. security-audit    （T2 涉認證 / 資料層才用；T3 必用）
    + security-checklist + db-reviewer  （T3 DB 改動時）
-7. finish-branch     （含 git-workflow + branch-safety）
+7. finish-branch     （含 git workflow 細則 + branch-safety）
 8. pr-explain        （PR 開好後，依檔分 section、解釋意圖 + 每行 code + 關聯，落 docs/reviews/<pr-id>.md）
 9. retro             （手動觸發；任意期間；Memory hook 補）
 ```
@@ -192,7 +192,7 @@ Task fail / verify fail / review 嚴重打槍時：
 - **Phase 階段 skill**：brainstorm、write-plan、review-plan、execute-plan、tdd-cycle、verify-done、request-review、receive-review、security-audit、security-checklist、finish-branch、pr-explain、retro
 - **跨流程 skill**：debug-systematic、incident-investigate、lock-files、cmd-guard、safety-guard、context-snapshot、context-resume、frontend-test
 - **Meta skill**：write-skill、dispatch-parallel
-- **既有 skill**：db-access、git-workflow
+- **既有 skill**：db-access
 - **Agents**：db-reviewer、lang-reviewer（python-reviewer / typescript-reviewer / sql-reviewer / golang-reviewer / ... 動態 dispatch）
 
 ---
@@ -253,4 +253,4 @@ Breaking-Change: <說明>
 
 ### 細則指向
 
-commit 範例、PR title / body 模板、squash 細節、rebase 操作 → 載入 `git-workflow` skill 展開
+commit 範例、PR title / body 模板、squash 細節、rebase 操作 → 載入 `finish-branch` skill 展開（已合 git workflow 細則於一處）
