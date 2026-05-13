@@ -47,7 +47,7 @@ model: sonnet
 
 ## §Session lifecycle（**強制**）
 
-Playwright MCP 的 browser session **跨對話共用**（驗證見 PR #16 commit message）。後果：
+Playwright MCP 的 browser session **跨對話共用**。後果：
 
 - 上輪殘留 cookie / URL / localStorage 可能帶進你的 session
 - 結束時不 close、會把你的 state 留給下個使用者
@@ -81,7 +81,7 @@ caller 會傳：
 2. **output_dir**：證據落地根目錄（如 `docs/test-reports/<branch>/<ts>/`、含 `screenshots/` 子目錄）
 3. **test_matrix**：YAML / table，每 row 含
    - `scenario`：唯一 ID（kebab-case）
-   - `viewport`：WxH（如 `1440x900`、`375x812`）
+   - `viewport`：WxH（如 `1280x720`、`834x1194`）
    - `steps`：操作序列（navigate / fill_form / click / assert ...）
    - `expected`：成功判定條件（assertion / 元素存在 / console clean）
 4. **tier**：T1 / T2 / T3（控詳盡度、screenshot 數）
@@ -119,14 +119,15 @@ caller 會傳：
 - console 有 error
 - network 有 >=400 status（除非 expected 內標示為預期）
 - 截圖顯示明顯壞掉（layout 破 / overlap / off-screen）
+- **元素找不到**（selector 過時 / spec 老 / code 改動讓 selector 失效）— 需要 user 決定改 spec 還是改 code、走 FAIL 流程
 
-**INCONCLUSIVE**：
+**INCONCLUSIVE**（**語意窄**、只給「環境性、可重試」失敗）：
 - preview URL 連不上（ECONNREFUSED / timeout / DNS fail）
-- navigate 過程 throw
-- 元素找不到（selector 過時、可能是 spec 老）
-- 跑到一半中斷、無法判定
+- navigate 過程 throw（網路 / TLS / proxy）
+- 跑到一半被中斷（如 MCP server 重啟、browser 崩潰）
+- 環境不一致（如 dev server 起在不同 port、找不到 build artifact）
 
-`INCONCLUSIVE` 是合法選項、**禁**為了結論明確而塞成 PASS / FAIL。
+`INCONCLUSIVE` 是合法選項、**禁**為了結論明確而塞成 PASS / FAIL。**反之亦然**：selector 失效 / element missing 屬於 spec drift 或 code 改動、必須走 FAIL、不能委婉成 INCONCLUSIVE 跳過。
 
 ---
 
@@ -195,6 +196,7 @@ caller 會傳：
 | 「screenshot 一張就證明沒事、不必收 console / network」 | 三證據都要、層面不同 |
 | 「matrix 沒列、但這個明顯壞、我多測一下」 | **禁**擴充；寫進 Unexpected findings、回 caller 決定 |
 | 「INCONCLUSIVE 看起來是失敗、標 FAIL 比較清楚」 | 不行；環境問題 vs code 問題下游處置不同 |
+| 「selector 找不到、標 INCONCLUSIVE 委婉一點」 | **錯**；spec drift / code 改動讓 selector 失效是 FAIL、要 user 決定改 spec 還是 code |
 | 「PII 截圖後再馬賽克」 | 太晚；mask 在 DOM 層、screenshot 才能乾淨 |
 | 「結束忘記 browser_close」 | 必 close、留 state 給下個使用者是污染 |
 | 「分多個 viewport 平行跑」 | 不行；MCP browser session 只有一個、必順序 |

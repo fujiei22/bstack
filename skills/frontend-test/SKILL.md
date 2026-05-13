@@ -93,9 +93,9 @@ Agent:
 
 | 名稱 | 寬 x 高 |
 |---|---|
-| desktop | 1280 x 800 |
-| tablet | 768 x 1024 |
-| mobile | 375 x 812 |
+| desktop | 1280 x 720 |
+| tablet | 834 x 1194 |
+| mobile | 390 x 844 |
 
 排版類 case 跑三組 viewport、功能類預設只跑 desktop（除非改動明確涉 responsive）。
 
@@ -109,15 +109,17 @@ Agent:
 
 ## §Result handling（8a-8d 完整分支）
 
+**前提**：agent 端 INCONCLUSIVE **語意窄** — 只給「環境性、可重試」失敗（connection / navigate timeout / 中斷 / port 不對）。selector 失效 / element missing 是 spec drift 或 code 改動、agent 端判 **FAIL**、不會落到 INCONCLUSIVE。所以 8c 不必處理 code 層問題。
+
 ```
 8a. 全 PASS（無 FAIL / INCONCLUSIVE）→ 直接 hand-off
-8b. 有 FAIL（不論 INCONCLUSIVE）→ AskUserQuestion：
+8b. 有 FAIL（不論是否同時有 INCONCLUSIVE）→ AskUserQuestion：
       1. retry（單純偶發 / async race、補 wait 條件重跑）
-      2. adjust + retry（AI 提具體 fix：補 selector / wait / viewport）
+      2. adjust + retry（AI 提具體 fix：補 selector / wait / viewport / 改 spec）
       3. rollback（回前一 commit、放棄此次前端改動）
       4. 回 execute-plan 改實作
       5. escalate（user 接手）
-8c. 僅 INCONCLUSIVE（無 FAIL）→ AskUserQuestion（環境問題處置）：
+8c. 僅 INCONCLUSIVE（無 FAIL）→ AskUserQuestion（**純環境問題**處置）：
       1. retry（等 dev server 起 / 重跑）
       2. 跳該 scenario、其餘照常 hand-off
       3. 暫停整批、user 修環境後再來
