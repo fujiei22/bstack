@@ -1,5 +1,6 @@
 everything-claude-code
 superpowers
+gstack
 
 # Claude Code per-cwd 權限白名單（per-machine，不入 repo）
 **/.claude/settings.local.json
