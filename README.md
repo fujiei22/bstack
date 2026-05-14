@@ -160,4 +160,4 @@ playwright: npx -y @playwright/mcp@latest - ✓ Connected
 
 ## License
 
-無（個人 dotfiles，自取自用）。
+[MIT License](LICENSE) © 2026 Tommy Sian
