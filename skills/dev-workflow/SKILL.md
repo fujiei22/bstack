@@ -201,7 +201,7 @@ Task fail / verify fail / review 嚴重打槍時：
 
 ## §Memory hook 點
 
-依 CLAUDE.md「§Memory hook」執行：
+Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 
 | Phase | 動作 |
 |---|---|

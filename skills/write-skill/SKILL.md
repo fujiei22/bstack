@@ -182,9 +182,8 @@ task fail 處置、blocker 升級。
 
 新 skill 若要嵌進 dev-workflow 9 階段流程：
 
-1. **改 CLAUDE.md「§Skill index」** — 加 skill name
-2. **改 `skills/dev-workflow/SKILL.md`** — 加 routing / hand-off state 規則
-3. **註明上下游 phase**：description 寫清楚、body 對齊
+1. **改 `skills/dev-workflow/SKILL.md`** — 加 routing / hand-off state 規則（§Track × Tier × Phase 路徑 / §跨流程 skill 觸發 表）
+2. **註明上下游 phase**：description 寫清楚、body 對齊
 
 若 skill 是**橫向觸發**（非 phase 序列）：
 
