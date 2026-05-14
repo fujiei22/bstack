@@ -1,4 +1,4 @@
-# b
+# bstack
 
 繁中台灣用語、零 marketplace 依賴的 Claude Code 開發流程包。
 
