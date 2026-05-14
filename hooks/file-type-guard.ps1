@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
   PreToolUse hook — 攔截敏感檔案類型的寫入 / 編輯。

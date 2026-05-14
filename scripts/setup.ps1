@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
   將本 repo 的 skill / hook / agent / settings 全套 sync 至 global `~/.claude/`。
