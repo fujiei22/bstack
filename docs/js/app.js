@@ -631,6 +631,42 @@ function panToNode(nodeId) {
     .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
 }
 
+/**
+ * 渲染 ambient（圖外規則 / 跨流程 skill）區塊 HTML。
+ * 這些之前畫成孤島 node，現移到 sidebar 明示「不在主線」。
+ *
+ * @returns {string} HTML 片段；FLOW.ambient 缺值時回空字串
+ */
+function renderAmbientHtml() {
+  const groups = FLOW.ambient;
+  if (!Array.isArray(groups) || groups.length === 0) return '';
+  return groups.map(g => {
+    const items = (g.items || []).map(it => {
+      // skill 群組的 item 是可點 button（開 doc drawer）；policy 群組是純文字 div
+      const isSkill = g.kind === 'skill' && it.docKey && NODE_DOCS[it.docKey];
+      const tag = isSkill ? 'button' : 'div';
+      const typeAttr = g.kind === 'skill' ? 'skill' : 'policy';
+      const dataAttr = isSkill ? ` data-doc-key="${esc(it.docKey)}"` : '';
+      const typeBtnAttr = isSkill ? ' type="button"' : '';
+      return `
+        <${tag} class="ambient-item ambient-item-${esc(g.kind)}"${typeBtnAttr}${dataAttr}
+          title="${esc(it.desc || it.name)}">
+          <span class="swatch" data-type="${typeAttr}"></span>
+          <span class="ambient-item-text">
+            <span class="ambient-item-name">${esc(it.name)}</span>
+            ${it.desc ? `<span class="ambient-item-desc">${esc(it.desc)}</span>` : ''}
+          </span>
+        </${tag}>
+      `;
+    }).join('');
+    return `
+      <div class="phase-section-title ambient-section-title">${esc(g.title)}</div>
+      ${g.desc ? `<div class="ambient-group-desc">${esc(g.desc)}</div>` : ''}
+      <div class="ambient-items">${items}</div>
+    `;
+  }).join('');
+}
+
 /** 依目前 selection 重繪圖例側欄（含 type filter 與 Phase 快速傳送）。 */
 function renderLegend() {
   const activeType   = selection?.kind === 'type' ? selection.type   : null;
@@ -690,6 +726,7 @@ function renderLegend() {
     }).join('')}
     <div class="phase-section-title">Phase 快速傳送</div>
     ${phasesHtml}
+    ${renderAmbientHtml()}
     <div class="legend-hint">
       ${activeType ? '再點同項清除 / ESC 清除' : activeNodeId ? '再點同節點 / ESC 清除' : '點 type 或 phase 快速導覽'}
     </div>
@@ -707,6 +744,14 @@ function renderLegend() {
       const nodeId = btn.dataset.node;
       setSelection({ kind: 'node', id: nodeId });
       panToNode(nodeId);
+    };
+  });
+
+  // ambient skill item → 開 doc drawer（NODE_DOCS 查 path）
+  legendSideEl.querySelectorAll('.ambient-item-skill[data-doc-key]').forEach(btn => {
+    btn.onclick = () => {
+      const docEntry = NODE_DOCS[btn.dataset.docKey];
+      if (docEntry) openDocDrawer(docEntry.path, docEntry.name);
     };
   });
 }
