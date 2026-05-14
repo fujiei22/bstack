@@ -157,8 +157,8 @@ foreach ($w in $warnPatterns) {
         Write-Err "[FILE-TYPE-GUARD] WARN：命中敏感類檔案（$($w.tag)）：$filePath"
         Write-Err "處置（依序執行）："
         Write-Err "  1) 向 user 說明動機 + 預期影響，走 AskUserQuestion 取得確認。"
-        Write-Err "  2) user 確認後，AI 建立 confirm token："
-        Write-Err "       New-Item -ItemType File -Path '$tokenPath' -Force | Out-Null"
+        Write-Err "  2) user 確認後，AI 建立 confirm token（從 Bash / PowerShell tool 跑皆可）："
+        Write-Err "       pwsh -NoProfile -Command `"New-Item -ItemType File -Path '$tokenPath' -Force | Out-Null`""
         Write-Err "  3) retry 此 tool call；hook 偵測 token 即放行（single-use，TTL ${tokenTtlSec}s）。"
         Write-Err "備註：token 路徑由 normalized 檔案路徑 hash 決定、跨檔案不共用；勿手動產 token 繞 AskUserQuestion。"
         exit 2
