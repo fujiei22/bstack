@@ -99,8 +99,8 @@
 ### Step 1 — Clone
 
 ```bash
-git clone https://github.com/fujiei22/b.git
-cd b
+git clone https://github.com/fujiei22/bstack.git
+cd bstack
 ```
 
 ### Step 2 — Sync skill pack → `~/.claude/`
