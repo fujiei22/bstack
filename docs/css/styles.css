@@ -365,8 +365,6 @@ html, body, #root {
 /* ── Ambient（圖外規則 / 跨流程 skill）sidebar 區塊 ────────────────────────── */
 /* 之前畫成主圖孤島 node、無 edge 連接造成困惑；改放這裡明示非流程步驟 */
 
-.ambient-section-title { /* 共用 phase-section-title 的 border-top / 字體，無需重設 */ }
-
 .ambient-group-desc {
   font-size: 11px;
   color: var(--text-soft);
