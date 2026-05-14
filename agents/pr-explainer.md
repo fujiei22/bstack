@@ -51,7 +51,7 @@ model: sonnet
 
 ## 整體脈絡
 
-<3-5 句總結：本 PR 想解決什麼、整體做法、改了多少 files、有沒有 follow-up>
+<總結（3-5 句）：本 PR 想解決什麼、整體做法、改了多少 files、有沒有 follow-up>
 
 ## 檔案改動清單
 

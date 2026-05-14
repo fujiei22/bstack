@@ -54,7 +54,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 | 量體訊號 | 預判 Tier |
 |---|---|
 | 改 1 行 / 純設定值 / typo | T0 |
-| 改 <3 個檔 / 單模組局部 / 小 helper | T1 |
+| 改 ≤2 個檔 / 單模組局部 / 小 helper | T1 |
 | 改 3-10 檔 / 單模組 feature / 中型 refactor | T2 |
 | >10 檔 / 跨模組 / 新建 module / DB schema / API 介面 / 架構決策 | T3 |
 
