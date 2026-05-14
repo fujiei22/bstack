@@ -89,7 +89,7 @@ T0 / T1 / T2 / T3。Heuristic：
 | 量體訊號 | Tier |
 |---|---|
 | 1 行 / 純設定值 / typo / 註解 | T0 |
-| <3 個檔 / 單模組局部 / 小 helper / 簡單 bug fix | T1 |
+| ≤2 個檔 / 單模組局部 / 小 helper / 簡單 bug fix | T1 |
 | 3-10 個檔 / 單模組 feature / 中型 refactor / 多步 bug fix | T2 |
 | >10 個檔 / 跨模組 / 新建 module / DB schema 改動 / API 介面 / 架構決策 / 含 migration | T3 |
 
