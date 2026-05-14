@@ -362,6 +362,87 @@ html, body, #root {
   font-weight: 500;
 }
 
+/* ── Ambient（圖外規則 / 跨流程 skill）sidebar 區塊 ────────────────────────── */
+/* 之前畫成主圖孤島 node、無 edge 連接造成困惑；改放這裡明示非流程步驟 */
+
+.ambient-section-title { /* 共用 phase-section-title 的 border-top / 字體，無需重設 */ }
+
+.ambient-group-desc {
+  font-size: 11px;
+  color: var(--text-soft);
+  font-family: 'Space Mono', monospace;
+  letter-spacing: .02em;
+  line-height: 1.5;
+  margin: 4px 0 6px;
+  padding: 0 2px;
+}
+
+.ambient-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ambient-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  font-family: inherit;
+  letter-spacing: .01em;
+  width: 100%;
+}
+
+.ambient-item-skill {
+  cursor: pointer;
+  transition: background .1s ease, border-color .1s ease;
+}
+.ambient-item-skill:hover {
+  background: var(--blue-50);
+  border-color: var(--border);
+}
+
+.ambient-item-policy {
+  cursor: default;
+}
+
+.ambient-item .swatch {
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  border: 1.5px solid rgba(64, 64, 196, 0.28);
+  margin-top: 3px;
+}
+
+.ambient-item-text {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ambient-item-name {
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.ambient-item-desc {
+  font-size: 10.5px;
+  color: var(--text-soft);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 /* ── detail panel（右） ─────────────────────────────────────────────────────── */
 
 .detail-panel {

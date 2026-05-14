@@ -38,8 +38,6 @@ const FLOW_DATA = {
     { id: 'phase_finish', label: 'Phase 7：finish-branch',              order: 7  },
     { id: 'phase_pr',     label: 'Phase 8：pr-explain',                 order: 8  },
     { id: 'phase_retro',  label: 'Phase 9：retro（手動）',              order: 9  },
-    { id: 'crosscut',     label: '跨流程 skill（用時載入）',            order: 98 },
-    { id: 'policy',       label: 'CLAUDE.md 強制守則',                  order: 99 },
   ],
 
   /**
@@ -147,21 +145,6 @@ const FLOW_DATA = {
     RetroAnalyze: { phase: 'phase_retro', type: 'impl',   shape: 'rect', label: '分析 git log + PR + TaskList\n抽反覆模式' },
     MemUpdate:    { phase: 'phase_retro', type: 'policy', shape: 'rect', label: '§Memory hook（補）\n產 memory proposal → user review' },
 
-    // ───────── 跨流程 skill ─────────
-    LoadLock:     { phase: 'crosscut', type: 'skill', shape: 'rect', label: '載入 skill：lock-files\n（user 鎖檔禁改）' },
-    LoadCmdG:     { phase: 'crosscut', type: 'skill', shape: 'rect', label: '載入 skill：cmd-guard\n（rm -rf / drop / force push 前）' },
-    LoadCtxS:     { phase: 'crosscut', type: 'skill', shape: 'rect', label: '載入 skill：context-snapshot\n（中斷 / 跨 session 暫停）' },
-    LoadCtxR:     { phase: 'crosscut', type: 'skill', shape: 'rect', label: '載入 skill：context-resume\n（接續上次進度）' },
-    LoadWS:       { phase: 'crosscut', type: 'skill', shape: 'rect', label: '載入 skill：write-skill\n（meta：新增 / 改 skill）' },
-
-    // ───────── CLAUDE.md 強制守則（policies） ─────────
-    PolTask:      { phase: 'policy', type: 'policy', shape: 'rect', label: '§Task 追蹤\nTaskCreate / TaskUpdate' },
-    PolAsk:       { phase: 'policy', type: 'policy', shape: 'rect', label: '§決策點選單\nAskUserQuestion 取代自由文字 gate' },
-    PolPII:       { phase: 'policy', type: 'policy', shape: 'rect', label: '§PII 安全底線\nemail / phone / 身分證 / 信用卡' },
-    PolDB:        { phase: 'policy', type: 'policy', shape: 'rect', label: '§DB 操作\nmcp__mysql 唯讀 / DDL 交 user 跑' },
-    PolTrace:     { phase: 'policy', type: 'policy', shape: 'rect', label: '§Trace 標籤\n每輪結尾 Phase / Tier / Track / Skill' },
-    PolFail:      { phase: 'policy', type: 'policy', shape: 'rect', label: '§Fail handling\n不靜默重試 → AskUserQuestion 4 選' },
-    PolAutoFix:   { phase: 'policy', type: 'policy', shape: 'rect', label: '§Auto-fix\n不危險自動修 / 危險問 user' },
   },
 
   /**
@@ -279,6 +262,48 @@ const FLOW_DATA = {
     ['LoadRetro',    'RetroPeriod',  '',                            'solid'],
     ['RetroPeriod',  'RetroAnalyze', '',                            'solid'],
     ['RetroAnalyze', 'MemUpdate',    '',                            'solid'],
+  ],
+
+  /**
+   * Ambient（圖外）規則 / skill：環境性、非流程步驟。
+   * 之前畫在主圖卻無 edge 連接，造成「孤島 node」。
+   * 改放 sidebar 區塊，明示這些不在主線、但全程適用 / 按需載入。
+   *
+   * 結構：每組 { id, title, desc, kind, items[] }
+   * - kind='policy' → items 不可點（CLAUDE.md 章節，無獨立 doc）
+   * - kind='skill'  → items 有 docKey，可點開 doc drawer（對應 NODE_DOCS / REFERENCE_DOCS）
+   */
+  ambient: [
+    {
+      id: 'policy',
+      title: 'CLAUDE.md 強制守則',
+      desc: '優先於任何 skill；環境規則，全程適用、非流程步驟',
+      kind: 'policy',
+      items: [
+        { name: '§Task 追蹤',     desc: 'TaskCreate / TaskUpdate' },
+        { name: '§決策點選單',   desc: 'AskUserQuestion 取代自由文字 gate' },
+        { name: '§Branch safety', desc: 'PreToolUse hook 擋 protected branch' },
+        { name: '§File-type 硬規則', desc: '密鑰 / migration / lockfile / CI / infra' },
+        { name: '§PII 安全底線',  desc: 'email / phone / 身分證 / 信用卡' },
+        { name: '§DB 操作',       desc: 'mcp__mysql 唯讀 / DDL 交 user 跑' },
+        { name: '§Trace 標籤',    desc: '每輪結尾 Phase / Tier / Track / Skill' },
+        { name: '§Auto-fix',      desc: '不危險自動修 / 危險問 user' },
+        { name: '§Fail handling', desc: '不靜默重試 → AskUserQuestion 4 選' },
+      ],
+    },
+    {
+      id: 'crosscut',
+      title: '跨流程 skill（按需載入）',
+      desc: 'user 顯式觸發或特定情境載入；不在主線、無固定銜接點',
+      kind: 'skill',
+      items: [
+        { name: 'lock-files',       docKey: 'LoadLock',  desc: 'user 顯式鎖檔禁改' },
+        { name: 'cmd-guard',        docKey: 'LoadCmdG',  desc: 'rm -rf / drop / force push 前防呆' },
+        { name: 'context-snapshot', docKey: 'LoadCtxS',  desc: '中斷 / 跨 session 暫停存進度' },
+        { name: 'context-resume',   docKey: 'LoadCtxR',  desc: '接續上次進度' },
+        { name: 'write-skill',      docKey: 'LoadWS',    desc: 'meta：新增 / 改 skill' },
+      ],
+    },
   ],
 
   /**
