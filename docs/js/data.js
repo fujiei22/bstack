@@ -1,5 +1,5 @@
 /**
- * repo b — dev-workflow flowchart 結構化資料
+ * bstack — dev-workflow flowchart 結構化資料
  *
  * 來源：CLAUDE.md 強制守則 + 9 階段流程 + skills/* + agents/*
  *

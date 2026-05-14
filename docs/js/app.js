@@ -694,7 +694,7 @@ function renderLegend() {
 
   legendSideEl.innerHTML = `
     <div class="app-header">
-      <div class="app-name">repo b</div>
+      <div class="app-name">bastck</div>
       <div class="app-sub">dev-workflow flowchart explorer</div>
       <div class="version-toggle" role="group" aria-label="Theme">
         <button type="button" id="theme-toggle" class="theme-toggle" title="切換主題（auto / light / dark）" aria-label="切換主題">
