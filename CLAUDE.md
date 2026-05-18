@@ -8,6 +8,32 @@
 
 > 本段所有規則**優先於**任何 skill 行為。衝突時本段勝、skill 須讓位。
 
+### §事實核實（規劃 / 結論前雙重驗證、無例外）
+
+> **本守則為最高指導原則、跨 repo / 語言 / framework 一律適用**。判斷資料模型 / 欄位 / 結構用途、schema 設計、資料分類、廢棄判定、任何規劃 / spec / plan / migration / 重構前，**必須**並行驗 **資料儲存實際內容** + **codebase 使用點**、兩 source 雙重驗證、**缺一不可**。
+
+- **資料儲存驗證**（DB / cache / KV / blob / state file / API 回應 — 凡是 source of truth）
+  - 抽樣實際資料看欄位真實內容（SQL `SELECT * LIMIT N` / API GET / 讀檔）— **別只看 schema、type、註解、文件**
+  - 看資料量、但**「量少」≠「廢」** — 可能是新功能、條件式可見、特定使用者 / 角色 / 環境才用、種子資料未上
+  - 看關聯方向（外鍵 / parent_id / 跨集合 reference / cascade 路徑）
+  - **禁憑欄位名 / 表名 / 型別 / 註解假設語意** — 名稱常騙人（`title` 可能裝「規格值」、`images` 可能不是純圖、`captions` 可能不是 caption）
+- **Codebase 驗證**（grep / Explore agent / IDE 搜尋）
+  - 搜模型 / 型別 / 常數 / 表名在整個 codebase 全部用法（含 test、含設定檔）
+  - 找**寫入點**（save / insert / update / mutation / handler / migration seed）— 寫入時機 + 欄位來源
+  - 找**讀取點**（query / select / fetch / loader / resolver）— 讀取頁面 + 條件
+  - 找**UI / 對外介面**使用點（view / template / component / route / endpoint / CLI）— 哪裡實際在曝光
+  - 找 **cascade / event / hook / job / signal** — 跟誰連動、改動波及面
+  - 確認「儲存層沒資料」是「功能未上線」/「沒人填 / 沒觸發」/「真死」中的哪一種
+- **下結論條件**
+  - 兩 source 都查過、才能判定欄位歸屬 / 是否廢棄 / 業務語意
+  - 兩邊查都不貴（MCP 抽樣 + Explore agent grep 都很快）、**沒有理由跳過任一邊**
+  - 規劃 / spec / plan / migration 前必跑、**不能等到 user 抓錯才補**
+  - 跨多表 / 大規模重構事前調查 → 雙 source 紀律更嚴、每個結論在 spec / plan 都引用「樣本 + 使用點」雙依據
+
+**Why:** 過去多次踩「單 source 推測錯」— 憑名稱推語意（看似圖檔表其實藏翻譯欄）、憑資料量推廢棄（0 筆但 codebase 在用、是 UI 子元件 / 條件式功能）、憑 codebase 推結構（沒抽樣不知是多層階層、子欄位語意完全不同）。User 抓誤判才補查 = 信任成本。
+
+**How to apply:** brainstorm Phase 0b（看 codebase）就**並聯**啟動資料抽樣；write-plan / review-plan 涉資料 / 欄位的決策每一點都要附「樣本 + 使用點」雙引用；db-reviewer / lang-reviewer 收到 plan 也以此標準退件。
+
 ### §Task 追蹤
 
 任務前先 `TaskCreate`；中途加新補進；start → `in_progress`；done → `completed`。skill 產的 task 走同一系統、不另開 tracking。
