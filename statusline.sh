@@ -3,7 +3,10 @@ input=$(cat)
 
 # ── Parse JSON ────────────────────────────────────────────────
 MODEL=$(echo "$input" | jq -r '.model.display_name // "Claude"' | sed -e 's/^Claude //' -e 's/ *([^)]*context[^)]*)//')
-DIR=$(echo "$input" | jq -r '.workspace.current_dir')
+DIR=$(echo "$input" | jq -r '.workspace.current_dir' | tr '\\' '/')
+# Windows 路徑 \ → /：
+# 1) ${DIR##*/} 才能正確取 basename
+# 2) 避免下游 echo -e 把 \t \n \b 等當成跳脫字元（如 \tommy_sian → <TAB>ommy_sian）
 PCT=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
 CTX_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
 AGENT=$(echo "$input" | jq -r '.agent.name // empty')
