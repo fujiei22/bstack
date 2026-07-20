@@ -8,7 +8,7 @@
   依 CLAUDE.md §File-type 硬規則：
     - 密鑰 / secret 類（.env, *.key, *.pem, credentials.*, id_rsa* 等）
       → exit 2 hard block，無 confirm 機制。
-    - 敏感配置類（.gitignore, CI config, migration, lock 檔, Dockerfile,
+    - 敏感配置類（CI config, migration, lock 檔, Dockerfile,
       terraform, shell config 等）→ exit 2 block；user 經 AskUserQuestion
       二次確認後，AI 建 confirm token 即可放行（single-use, 5 min TTL）。
   非命中檔案 → exit 0 放行。解析 stdin 失敗或非目標 tool → exit 0 放行。
@@ -123,7 +123,6 @@ foreach ($b in $blockPatterns) {
 
 # === WARN 類：敏感配置（confirm token 機制）===
 $warnPatterns = @(
-    @{ p = '/\.gitignore$';                       tag = 'gitignore' },
     @{ p = '/\.dockerignore$';                    tag = 'dockerignore' },
     @{ p = '/\.github/workflows/.+\.ya?ml$';      tag = 'GitHub Actions CI' },
     @{ p = '/\.gitlab-ci\.ya?ml$';                tag = 'GitLab CI' },
