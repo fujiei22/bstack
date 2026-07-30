@@ -48,8 +48,8 @@ task_id: <slug>
 track: <Bug|Dev>
 tier: <T0-T3>
 current_phase: <phase>
-spec_path: docs/plans/<topic>/spec.md
-plan_path: docs/plans/<topic>/plan.md
+spec_path: docs/work/<branch-name>/spec.md
+plan_path: docs/work/<branch-name>/plan.md
 tasks_completed: <N>/<M>
 parallel_groups_done: [...]
 review_summary_path: <path>
@@ -122,7 +122,7 @@ Resume 流程：
 
 `docs/snapshots/<topic-slug>-<ISO-ts>.md`
 
-- `topic-slug`：對齊 `docs/plans/<topic-slug>/` 的 slug
+- `topic-slug`：對齊 `docs/work/<branch-name>/` 的 slug
 - ISO-ts：`2026-05-13T14-30-00`（檔名禁`:`，用 `-`）
 
 可選：`docs/snapshots/index.md` 維 list（每 entry 1 行）— 但這需 user 啟動才做、不自動。
@@ -178,6 +178,6 @@ state:
 | 想法 | 真相 |
 |---|---|
 | 「snapshot 含 code 比較完整」 | 不存 code；git 已有 |
-| 「全部 review output 都存」 | 摘要即可；details 留 git diff / docs/reviews |
+| 「全部 review output 都存」 | 摘要即可；details 留 git diff / docs/work |
 | 「snapshot 自動 commit」 | 預設不；user 顯式同意才 commit |
 | 「snapshot 取代 memory」 | 不能；snapshot 是 transient、memory 是 persistent |

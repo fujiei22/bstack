@@ -69,7 +69,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 ```
 1. brainstorm（Phase 0 內建）
    ↓
-2. write-plan ─→ docs/plans/<plan-name>.md（含並行性分析 parallel-group）
+2. write-plan ─→ docs/work/<branch-name>/plan.md（含並行性分析 parallel-group）
    ↓
    review-plan
      ├─ T2 = Eng-only 視角
@@ -95,7 +95,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ↓
 7. finish-branch（含 git workflow 細則 + branch-safety）
    ↓
-8. pr-explain → docs/reviews/<pr-id>.md（依檔分 section）
+8. pr-explain → docs/work/<branch-name>/pr-review.md（依檔分 section）
    ↓
 9. retro（手動觸發、不綁 tier；任意期間；Memory hook 補）
 ```
@@ -135,7 +135,7 @@ state:
     modules: [...]
     db_involved: <bool>
   memory_loaded: <bool>       # 0a 是否讀過 memory
-  plan_path: docs/plans/<...>.md  # write-plan 完寫入
+  plan_path: docs/work/<branch-name>/plan.md  # write-plan 完寫入
   parallel_groups: [...]      # write-plan 內 task 並行 grouping
   current_phase: <名稱>
   trace_chain: [phase1, phase2, ...]  # 歷經 phase

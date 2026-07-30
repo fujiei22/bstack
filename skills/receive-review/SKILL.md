@@ -103,7 +103,7 @@ T3 / 本次 review fix 共改 <N> 個 finding。請看 diff：
 
 選 1 → 主 agent 寫 fix、commit、印 diff
 選 2 → 等 user 給細節 → 主 agent 寫 → commit
-選 3 → 加入 `docs/plans/<topic>/TODO.md`、不修
+選 3 → 加入 `docs/work/<branch-name>/TODO.md`、不修
 選 4 → 退 execute-plan、`state.fail_history` 記錄 review trigger
 
 ---
@@ -136,7 +136,7 @@ state:
     user_decided: [...]
     deferred_to_todo: [...]
     triggered_rollback: bool
-  review_summary_path: docs/reviews/_temp/<task-slug>.md  # 已更新
+  review_summary_path: docs/work/<branch-name>/_temp/<task-slug>.md  # 已更新
   current_phase: receive-review-done
 ```
 

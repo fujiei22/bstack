@@ -38,11 +38,11 @@ verify-done 的「UI / browser e2e」子流程。**Mode A 架構**：skill 留�
 1. **讀 hand-off state** 取 `tier`、`codebase_impact.files`、`track`、`plan_path`。
 2. **抽測試範圍**：依改動檔對應 §測試矩陣 找哪些 page / route / component / flow 需驗。
 3. **確認 preview URL**：state 有 → 用；沒有 → `AskUserQuestion` 問 user。
-4. **解析 `<branch-slug>`**（§branch-slug fallback 鏈）、建 `docs/test-reports/<branch-slug>/<YYYYMMDD-HHmm>/screenshots/`。
+4. **解析 `<branch-name>`**（§branch-name fallback 鏈）、建 `docs/work/<branch-name>/test-reports/<YYYYMMDD-HHmm>/screenshots/`。
 5. **規劃測試矩陣 table**（含 scenario / viewport / steps / expected 4 欄）。
 6. **Spawn `frontend-e2e-runner` agent**（見 §Dispatch）。
 7. **收 agent summary**（M PASS / F FAIL / I INCONCLUSIVE + report.md path）。
-8. **Path 展開**：agent 回的相對路徑（如 `screenshots/login-step3.png`）→ repo-relative（如 `docs/test-reports/<branch>/<ts>/screenshots/login-step3.png`），寫進 hand-off state。
+8. **Path 展開**：agent 回的相對路徑（如 `screenshots/login-step3.png`）→ repo-relative（如 `docs/work/<branch-name>/test-reports/<ts>/screenshots/login-step3.png`），寫進 hand-off state。
 9. **處置 §Result handling**（8a-8d 分支）。
 10. 寫 hand-off state、交回 verify-done。
 
@@ -54,7 +54,7 @@ Agent:
   subagent_type: frontend-e2e-runner
   prompt: |
     preview_url: <url>
-    output_dir: docs/test-reports/<branch-slug>/<ts>/
+    output_dir: docs/work/<branch-name>/test-reports/<ts>/
     tier: <T1/T2/T3>
 
     test_matrix:
@@ -99,13 +99,16 @@ Agent:
 
 排版類 case 跑三組 viewport、功能類預設只跑 desktop（除非改動明確涉 responsive）。
 
-## §branch-slug fallback 鏈
+## §branch-name fallback 鏈
 
-依序試：
+決定 `docs/work/<branch-name>/` 那一段。依序試：
 
-1. feature branch（`git rev-parse --abbrev-ref HEAD`）→ branch 名 `/` 轉 `-`（`feat/user-auth-jwt` → `feat-user-auth-jwt`）
+1. feature branch（`git rev-parse --abbrev-ref HEAD`）→ **branch 名照原樣當路徑**、`/` 保留為目錄層
+   （`feat/user-auth-jwt` → `docs/work/feat/user-auth-jwt/`）
 2. 不在 feature + state 有 `task_id` → `task-<task-id>`
 3. 兩者皆無（user 手動呼叫、無流程 state）→ `manual-<git-short-sha>`
+
+`/` 保留而非轉 `-`：測試報告要跟同一支 branch 的 spec / plan / review 落在同一夾，merge 後整夾一起搬進 archive。
 
 ## §Result handling（8a-8d 完整分支）
 
@@ -140,8 +143,8 @@ Agent:
 state:
   frontend_test:
     ran: <bool>
-    branch_slug: <branch with / replaced by ->
-    report_dir: docs/test-reports/<branch-slug>/<YYYYMMDD-HHmm>/
+    branch_name: <branch 名照原樣、/ 保留為目錄層>
+    report_dir: docs/work/<branch-name>/test-reports/<YYYYMMDD-HHmm>/
     report_path: <report_dir>/report.md
     pass_count: <n>
     fail_count: <n>
@@ -181,8 +184,8 @@ user 直接呼叫：
 | 「console error 不影響功能可忽略」 | regression 訊號；必抓、必回報、原則必修 |
 | 「Playwright MCP browser session 只能主 context 跑、不能 spawn subagent」 | **錯**（PR #16 驗過）；session 跨對話共用、agent 內可正常呼叫 browser tool。**但**必加 lifecycle 管理 |
 | 「production URL 也能跑」 | 禁；只在 local / preview / ephemeral；正式環境寫入類會污染 |
-| 「screenshot 直接貼對話」 | 對話貼 path、檔案落 docs/test-reports/；含 user 資料先 mask |
+| 「screenshot 直接貼對話」 | 對話貼 path、檔案落 docs/work/<branch-name>/test-reports/；含 user 資料先 mask |
 | 「跑一次過就算過」 | flaky 至少 retry 確認；連續 3 次仍 flaky 標 flaky_tests |
 | 「Playwright MCP 沒在就跳過」 | 必告知 user、不能跳；T3 UI 改動沒 e2e 不能 ship |
-| 「branch 名含 / 就直接當目錄名」 | filesystem `/` = 分隔；必轉 `-` |
+| 「branch 名含 / 要轉成 `-` 才能當目錄」 | 不轉；`/` 保留為目錄層，報告才會跟同 branch 的 spec / plan 落同一夾 |
 | 「INCONCLUSIVE 看起來像失敗、當 FAIL 處」 | 環境問題 vs code 問題下游處置不同、必分流 |

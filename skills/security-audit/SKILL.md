@@ -53,7 +53,7 @@ Agent:
     <貼 git diff 或指引 agent 用 git diff origin/main..HEAD 自取>
 
     ## Spec / Plan（可選）
-    <若有 docs/plans/<topic>/spec.md 或 plan.md 一併附上>
+    <若有 docs/work/<branch-name>/spec.md 或 plan.md 一併附上>
 
     ## 你的任務
     依 agent SKILL.md「§檢查焦點」做：

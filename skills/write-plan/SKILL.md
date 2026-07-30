@@ -4,7 +4,7 @@ description: |
   從 spec 寫實作 plan（繁中）。觸發：write plan / 規劃 / 拆 task / implementation plan /
   寫計畫 / 拆步驟 / 任務分解 / TDD plan / 寫做法 / 拆解 / breakdown。
   涵蓋：bite-sized task / 紅綠循環 / 並行性分析（parallel-group） /
-  spec → plan 對齊檢查 / 落檔 docs/plans/&lt;topic&gt;/plan.md。
+  spec → plan 對齊檢查 / 落檔 docs/work/&lt;branch-name&gt;/plan.md。
   上游：brainstorm（產出 spec）。下游：review-plan → execute-plan。
 ---
 
@@ -22,7 +22,7 @@ description: |
 4. **拆 task**：每 task 5 個 bite-sized step（紅 → 跑紅 → 綠 → 跑綠 → commit）。
 5. **並行性分析**：標 `parallel-group: <N>`（同 N 可並行）。
 6. **self-review**：對齊 spec / 找 placeholder / 型別一致。
-7. **落檔 + commit**：寫到 `docs/plans/<topic-slug>/plan.md`，commit。
+7. **落檔 + commit**：寫到 `docs/work/<branch-name>/plan.md`，commit。
 8. **交棒** review-plan。
 
 **前提**：必須有 spec_path。沒 spec → 退回 brainstorm。
@@ -130,7 +130,7 @@ Group 1 三 task（無依賴）可並行 → 主 agent spawn 2 subagent + 自己
 ```markdown
 # <Feature 名> Implementation Plan
 
-> 對應 spec: `docs/plans/<topic-slug>/spec.md`
+> 對應 spec: `docs/work/<branch-name>/spec.md`
 > Track: <Bug/Dev> | Tier: <T0-T3>
 > 建立: <YYYY-MM-DD>
 > 並行最大 group: <N>
@@ -180,17 +180,17 @@ Group 1 三 task（無依賴）可並行 → 主 agent spawn 2 subagent + 自己
 
 ## §落檔 + 交棒
 
-寫至 `docs/plans/<topic-slug>/plan.md`，commit：
+寫至 `docs/work/<branch-name>/plan.md`，commit：
 
 ```bash
-git add docs/plans/<topic-slug>/plan.md
+git add docs/work/<branch-name>/plan.md
 git commit -m "docs: 加 <feature> implementation plan"
 ```
 
 **hand-off state**：
 ```yaml
 state:
-  plan_path: docs/plans/<topic-slug>/plan.md
+  plan_path: docs/work/<branch-name>/plan.md
   parallel_groups: [1, 2, 3, ...]   # 出現過的 group 號
   task_count: <N>
   current_phase: write-plan-done

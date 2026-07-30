@@ -201,7 +201,7 @@ T2 全部 + **再 spawn 一個 subagent**：
 
 ```yaml
 state:
-  review_summary_path: docs/reviews/_temp/<task-slug>.md  # 暫存
+  review_summary_path: docs/work/<branch-name>/_temp/<task-slug>.md  # 暫存
   reviewers_used: [...]
   critical_count: <N>
   major_count: <N>

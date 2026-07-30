@@ -26,6 +26,7 @@ Phase 7：把 feature branch 收尾、開 PR。本 skill **合 git workflow 細�
 4. **push**：`git push -u origin <branch>`；rebase 過要 `--force-with-lease`，**禁裸 `--force`**（見 §Push）。
 5. **開 PR**：用 `gh pr create`，套 §PR title 規範 + §PR body 模板。
 6. **印 PR URL** + 交棒 pr-explain。**禁順手 `gh pr merge`**（除非 session 級明授權；見 §Squash merge / WHO / WHEN）。
+7. **merge 之後**（同 session 內 user 觸發 merge 時）把 `docs/work/<branch-name>/` 搬進 `docs/archive/<年>/`（見 §Merge 後：docs 歸檔）。
 
 **禁**：
 - 直接 push 到 `main / master / production / prod / release`（Branch safety hook 會擋；見 §Branch safety 雙保險）
@@ -213,9 +214,9 @@ EOF
 
 ## 相關 / Refs
 
-- spec: docs/plans/<topic>/spec.md
-- plan: docs/plans/<topic>/plan.md
-- review: docs/plans/<topic>/review.md
+- spec: docs/work/<branch-name>/spec.md
+- plan: docs/work/<branch-name>/plan.md
+- review: docs/work/<branch-name>/review.md
 - (issue) #<N>
 ```
 
@@ -245,6 +246,27 @@ main ← (PR + squash merge) ← feat/xxx
 - merge 後立即刪 remote feature branch（GitHub 設定 auto-delete head branches）
 - local feature branch 由 `git fetch --prune` 同步清
 - **禁** force push 到 `main / master`
+
+---
+
+## §Merge 後：docs 歸檔
+
+merge 完成後把該 branch 的施工文件從 `work/` 移進 `archive/`，否則 `work/` 會累積成
+分不出死活的雜物堆（見 CLAUDE.md §Docs 落檔）。
+
+```bash
+mkdir -p docs/archive/<年>
+mv docs/work/<branch-name> docs/archive/<年>/<主題>
+```
+
+- `<主題>` = branch 的 short-desc，**不帶 `<type>/` prefix**：merge 之後「這是 feat 還是
+  fix」已無資訊量，找文件是用主題找
+- **單檔主題平放**：只剩一個檔就不開夾，直接 `docs/archive/<年>/<主題>.md`
+- **抽長期價值**：搬之前先問這批裡有沒有「規則」性質的（別支 branch 會回頭查的），有就
+  挑出來放 `docs/reference/`；一次性調查 / 量測報告的**結論寫進 memory**、報告本體照樣進
+  archive
+- **docs 有進版控的專案**：這個搬移是 `git mv` + 一支 `chore:` commit，可併進下一支 branch；
+  docs 被 `.gitignore` 排除的專案直接本機 `mv`，不需 commit
 
 ---
 
@@ -311,3 +333,4 @@ state:
 | 「PR 開好順手 `gh pr merge`」 | **禁**；merge 由 user 觸發、past PR 授權不延續；session 級明授權才能 auto |
 | 「Branch 名隨意」 | 必照 `<type>/<short-desc>` 格式；kebab-case、3-5 字 |
 | 「commit subject 寫長一點清楚」 | 50 字內、超過進 body |
+| 「merge 完就結束、docs 留在 work 沒差」 | 沒搬 archive 的話 `work/` 會變成死活不分的雜物堆；見 §Merge 後：docs 歸檔 |
