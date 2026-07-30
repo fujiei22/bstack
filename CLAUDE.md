@@ -51,6 +51,7 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 |---|---|---|
 | `docs/work/<branch-name>/` | 施工中的 spec / plan / review / pr-review / 測試報告 | 到 merge |
 | `docs/archive/<年>/<主題>/` | merge 後從 work 搬進來，備查 | 長期 |
+| `docs/paused/<主題>/` | 有 spec / plan 但查無實作 commit（丟 archive 會被誤認做過了） | 到解凍 |
 | `docs/reference/` | 跨 branch 有效、明年還會打開的參考 | 長期 |
 | `docs/incidents/<id>/` | 事故調查（不綁 branch） | 長期 |
 | `docs/snapshots/`、`docs/retros/` | context 快照 / 回顧 | 暫存 |
