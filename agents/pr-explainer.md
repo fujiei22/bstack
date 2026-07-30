@@ -2,7 +2,7 @@
 name: pr-explainer
 description: |
   PR diff 詳盡解釋特化 reviewer（繁中）。在獨立 context 重讀 diff、寫
-  「為何 + 怎做 + 關聯」三層解釋落檔到 docs/reviews/<pr>.md。給 reviewer /
+  「為何 + 怎做 + 關聯」三層解釋落檔到 docs/work/<branch-name>/pr-review.md。給 reviewer /
   未來看 PR 的人讀。避免改動者主 context 的「我知道為何這樣寫」偏誤。
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
 model: sonnet
@@ -46,8 +46,8 @@ model: sonnet
 > Branch: <head_branch> → <base_branch>
 > Track: <Bug/Dev> | Tier: <T0-T3>
 > 建立: <YYYY-MM-DD>
-> 對應 spec: <docs/plans/.../spec.md 或 N/A>
-> 對應 plan: <docs/plans/.../plan.md 或 N/A>
+> 對應 spec: <docs/work/<branch-name>/spec.md 或 N/A>
+> 對應 plan: <docs/work/<branch-name>/plan.md 或 N/A>
 
 ## 整體脈絡
 
@@ -124,7 +124,7 @@ model: sonnet
 - `gh pr view <N>` — PR metadata（title / body / branch / base / url）
 - `gh pr diff <N>` — 完整 diff
 - `gh pr view <N> --json commits` — commit log（邏輯演進）
-- `Read` `docs/plans/<topic>/spec.md` / `plan.md` — spec / plan context
+- `Read` `docs/work/<branch-name>/spec.md` / `plan.md` — spec / plan context
 - `Grep` 找 caller / callee 關聯
 
 ---
@@ -132,7 +132,7 @@ model: sonnet
 ## §使用 tool 範圍
 
 - `Read` / `Glob` / `Grep`: 讀 spec / plan / 找關聯
-- `Write` / `Edit`: 落檔 `docs/reviews/<pr_number>.md`
+- `Write` / `Edit`: 落檔 `docs/work/<branch-name>/pr-review.md`
 - `Bash`: `gh pr view / diff / comment`、`git add / commit / push`
 
 **禁**：

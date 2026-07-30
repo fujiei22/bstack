@@ -78,7 +78,7 @@ Playwright MCP 的 browser session **跨對話共用**。後果：
 caller 會傳：
 
 1. **preview_url**：dev / preview server URL
-2. **output_dir**：證據落地根目錄（如 `docs/test-reports/<branch>/<ts>/`、含 `screenshots/` 子目錄）
+2. **output_dir**：證據落地根目錄（如 `docs/work/<branch-name>/test-reports/<ts>/`、含 `screenshots/` 子目錄）
 3. **test_matrix**：YAML / table，每 row 含
    - `scenario`：唯一 ID（kebab-case）
    - `viewport`：WxH（如 `1280x720`、`834x1194`）

@@ -147,7 +147,7 @@ description: |
 ```markdown
 # Plan review 總結
 
-> Plan: docs/plans/<topic>/plan.md
+> Plan: docs/work/<branch-name>/plan.md
 > Tier: <T2/T3>
 > 視角: <Eng | CEO + Design + Eng + DX>
 
@@ -206,7 +206,7 @@ description: |
 
 ```yaml
 state:
-  review_summary_path: docs/plans/<topic>/review.md  # 整合結果寫一份保存
+  review_summary_path: docs/work/<branch-name>/review.md  # 整合結果寫一份保存
   review_perspectives: [CEO, Design, Eng, DX]  # T3 / 或 [Eng] T2
   review_critical_count: <N>
   review_user_action: <accept|adjust|reject_to_writeplan|reject_to_brainstorm>

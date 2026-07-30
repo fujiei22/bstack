@@ -5,7 +5,7 @@ description: |
   開發 / 想做 / 規劃 / build / feature / fix / refactor / 改造 / 拆 / 整合 /
   spec / 釐清 / brainstorm / 想想 / 怎麼做 / 怎麼設計 / 探索 / proposal。
   涵蓋：0a 對話釐清（+ 讀 memory）、0b 看 codebase、0c Track 判定（Bug/Dev）、
-  0d Tier 判定（T0-T3）、spec 落檔 docs/plans/&lt;topic&gt;/spec.md。
+  0d Tier 判定（T0-T3）、spec 落檔 docs/work/&lt;branch-name&gt;/spec.md。
   終態 → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
 ---
 
@@ -19,7 +19,7 @@ description: |
 
 1. 進 Phase 0 四子步驟（0a → 0b → 0c → 0d），不跳過。
 2. 子步驟之間以 `AskUserQuestion` 取 user 確認；**禁文字 token NLP 判斷**。
-3. 完成後 spec 落檔 `docs/plans/<topic-slug>/spec.md`、commit。
+3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
 4. T0 → user 點頭後直接交實作；T1+ → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
 
 **硬規定**：任何實作動作（寫 code / 改檔 / 跑 build / 安裝套件）一律等 spec 與 tier 敲完。**包括 trivial 看起來「一行就好」的 task** — 由 Tier 判定，不是你決定。
@@ -101,7 +101,7 @@ T0 / T1 / T2 / T3。Heuristic：
 
 ## §spec 文件結構與落檔
 
-**T0** 不寫 spec。其餘按下面結構寫至 `docs/plans/<topic-slug>/spec.md`：
+**T0** 不寫 spec。其餘按下面結構寫至 `docs/work/<branch-name>/spec.md`：
 
 ```markdown
 # <task 短標題>
@@ -157,7 +157,7 @@ T0 / T1 / T2 / T3。Heuristic：
 self-review 完 → user 看 spec：
 
 ```
-spec 已寫至 docs/plans/<topic-slug>/spec.md。
+spec 已寫至 docs/work/<branch-name>/spec.md。
 請 review，若需修改告知；否則直接進 <write-plan|debug-systematic>。
 ```
 
@@ -172,7 +172,7 @@ state:
   task_id: <topic-slug>
   track: <Bug|Dev>
   tier: <T0|T1|T2|T3>
-  spec_path: docs/plans/<topic-slug>/spec.md
+  spec_path: docs/work/<branch-name>/spec.md
   codebase_impact:
     files: [...]
     modules: [...]
@@ -206,5 +206,5 @@ T0 task 不貼。
 | 「memory 太雜不用讀」 | 必讀；user 偏好若漏會走錯路 |
 | 「typo fix 跳 Phase 0 直接做」 | T0 由 0d 判，不是你 |
 | 「我猜 tier 算了不問」 | tier 必經 `AskUserQuestion` |
-| 「spec 短到不用落檔」 | T1+ 都要落 docs/plans/ |
+| 「spec 短到不用落檔」 | T1+ 都要落 docs/work/ |
 | 「設計這麼簡單還要 spec」 | spec 短也要、user approval 不可省 |

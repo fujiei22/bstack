@@ -4,7 +4,7 @@ description: |
   PR diff 詳盡解釋落檔（繁中）。觸發：PR 開好後自動 / PR 解釋 / explain pr /
   diff 解釋 / 詳細寫 / 落檔 review。
   涵蓋：fork pr-explainer agent 獨立 context 重讀 diff、依檔分 section 寫
-  「為何 + 怎做 + 關聯」、落 docs/reviews/<pr>.md、commit、貼到 PR comment。
+  「為何 + 怎做 + 關聯」、落 docs/work/<branch-name>/pr-review.md、commit、貼到 PR comment。
   上游：finish-branch（PR 已開）。下游：retro（不綁定）。
 context: fork
 agent: pr-explainer
@@ -13,7 +13,7 @@ argument-hint: "[pr-number]（可選；省略則自動取當前 branch 的 PR）
 
 # pr-explain task
 
-對指定 PR 寫詳盡 diff 解釋、落檔到 `docs/reviews/<pr_number>.md`、commit、貼到 PR comment。
+對指定 PR 寫詳盡 diff 解釋、落檔到 `docs/work/<branch-name>/pr-review.md`、commit、貼到 PR comment。
 
 ## 1. 取 PR number
 
@@ -34,18 +34,18 @@ gh pr diff <N>
 
 - **Tier**：找 `[Trace] Tier=Tx` 或 branch 名線索；找不到預設 T2
 - **Track**：找 `[Trace] Track=Bug/Dev`；找不到從 commit prefix 推（`feat/` `refactor/` → Dev、`fix/` `hotfix/` → Bug）
-- **spec / plan**：PR body 或 commit message 提到 `docs/plans/<topic>/` → Read 對應 `spec.md` / `plan.md` 作為 context
+- **spec / plan**：PR body 或 commit message 提到 `docs/work/<branch-name>/` → Read 對應 `spec.md` / `plan.md` 作為 context
 
 ## 3. 寫詳解檔
 
-依 system prompt **§文件結構標準** 把詳解寫到 `docs/reviews/<N>.md`（已存在則覆蓋）。
+依 system prompt **§文件結構標準** 把詳解寫到 `docs/work/<branch-name>/pr-review.md`（已存在則覆蓋）。
 
 詳盡度依 Tier 控（T1 簡 / T2 標準 / T3 詳盡），見 system prompt **§Tier 控詳盡度**。
 
 ## 4. Commit + push 到 PR branch
 
 ```bash
-git add docs/reviews/<N>.md
+git add docs/work/<branch-name>/pr-review.md
 git commit -m "docs: 加 PR #<N> diff 詳解"
 git push
 ```
@@ -55,7 +55,7 @@ git push
 ## 5. 貼到 PR comment
 
 ```bash
-gh pr comment <N> --body-file docs/reviews/<N>.md
+gh pr comment <N> --body-file docs/work/<branch-name>/pr-review.md
 ```
 
 這步驟**預設執行**（不問 user）。reviewer 滑 PR 頁面就看到詳解、不用切 repo 翻檔。
@@ -65,7 +65,7 @@ gh pr comment <N> --body-file docs/reviews/<N>.md
 回單一摘要訊息：
 
 ```
-✔ PR #<N> 詳解已落檔: docs/reviews/<N>.md
+✔ PR #<N> 詳解已落檔: docs/work/<branch-name>/pr-review.md
 ✔ Commit: <hash>
 ✔ 已貼 PR comment
 

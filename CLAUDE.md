@@ -43,13 +43,26 @@ PII（email / phone / 身分證 / 信用卡 / 地址 / id_number）原值**禁�
 - **量限** 預設 `LIMIT 100`；重 query 先 `EXPLAIN`；**PII** SELECT mask、WHERE 可原值
 - **觸發** DB 詞 / brainstorm 0b / write-plan / execute-plan / review 需查 schema → 直接用 MCP；細則 → `db-access`
 
-### §Docs 落檔（一 branch 一目錄）
-dev-workflow 產出文件**全落** `docs/<branch-name>/`；不再用 `docs/plans/<topic>/` 或 `docs/reviews/<pr>.md`。
-- **目錄**：`docs/<branch-name>/`（含 `<type>/` prefix，例 `docs/feat/user-auth-jwt/`）
+### §Docs 落檔（按壽命分，不按文件類型分）
+dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs/plans/<topic>/`、`docs/reviews/<pr>.md`、`docs/test-reports/<branch>/`。
+按 feat / fix / refactor 分類在 merge 之後沒有資訊量——找文件用主題找，不用類型找。
+
+| 目錄 | 放什麼 | 壽命 |
+|---|---|---|
+| `docs/work/<branch-name>/` | 施工中的 spec / plan / review / pr-review / 測試報告 | 到 merge |
+| `docs/archive/<年>/<主題>/` | merge 後從 work 搬進來，備查 | 長期 |
+| `docs/reference/` | 跨 branch 有效、明年還會打開的參考 | 長期 |
+| `docs/incidents/<id>/` | 事故調查（不綁 branch） | 長期 |
+| `docs/snapshots/`、`docs/retros/` | context 快照 / 回顧 | 暫存 |
+
+- **目錄**：`docs/work/<branch-name>/`（含 `<type>/` prefix，例 `docs/work/feat/user-auth-jwt/`）
 - **檔名固定**：`spec.md`（brainstorm）/ `plan.md`（write-plan）/ `review.md`（review-plan）/ `pr-review.md`（pr-explain 覆寫；T0-T1 簡、T2-T3 詳）
 - **時機**：T1+ brainstorm Phase 0 完成後**先 `git checkout -b <branch>` 再寫 spec**（branch-safety 雙保險）
 - **覆寫**：plan / review / pr-review 同 branch 迭代覆寫；spec 修改靠 git history
-- **不在此**：`docs/snapshots/`、`docs/incidents/<id>/` 維持原路徑
+- **merge 後搬檔**：finish-branch 把 `docs/work/<branch-name>/` 移到 `docs/archive/<年>/<主題>/`
+- **進 reference 的門檻**：這份寫的是「規則」還是「做過一次的紀錄」？規則才進。一次性調查 / 量測 / 事故報告的**結論寫進 memory**，報告本體進 archive
+- **檔名不放日期**：目錄已表達時序，日期放檔名會讓同一主題散在多處
+- **commit 與否看專案**：docs 被 `.gitignore` 排除的專案就不 commit，別硬 `git add`（會直接報錯）
 - **遷移**：本規則生效後新 branch 用新路徑；舊 PR 不主動搬
 
 ## 開發流程（dev-workflow 為骨幹）
