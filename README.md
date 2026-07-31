@@ -109,13 +109,25 @@ cd bstack
 pwsh -File scripts/setup.ps1
 ```
 
-動作（**直接覆蓋、不備份**；先手動備份既有 `~/.claude/` 內容再跑）：
+動作（檔案**直接覆蓋、不備份**；先手動備份既有 `~/.claude/` 內容再跑）：
 
-- `CLAUDE.md`、`statusline.sh`、`settings.json` → `~/.claude/`
+- `CLAUDE.md`、`statusline.sh` → `~/.claude/`
 - `hooks/*.ps1` → `~/.claude/hooks/`
 - `skills/<name>/SKILL.md`（及附屬檔）→ `~/.claude/skills/<name>/`
 - `agents/*.md` → `~/.claude/agents/`
+- `settings.json` → `~/.claude/settings.json`（**merge、非覆蓋**，見下）
 - `settings.json` 內 `${CLAUDE_PROJECT_DIR}` 自動轉 global 絕對路徑
+
+`settings.json` 的 merge 語意（**本機優先**，避免洗掉 `/config` 寫的設定）：
+
+| 區塊 | 誰為準 |
+|---|---|
+| `hooks`、`statusLine` | repo（同步 hook 路徑正是本腳本目的） |
+| `permissions.*`（含 `allow` / `deny` / `ask` 陣列） | 本機既有值原封保留 |
+| 其他所有 key（`model` / `theme` / `defaultMode` / …） | 本機既有值原封保留 |
+| 本機沒有的 key | 補上 repo 的值（新機器仍拿到完整設定） |
+
+含意：改 repo 的 `permissions.allow` **不會**再同步到已裝過的機器；要更新請手動編 `~/.claude/settings.json`（或刪掉該區塊後重跑）。單機臨時權限建議寫 `~/.claude/settings.local.json`——本腳本完全不碰該檔。
 
 ### Step 3 — 裝兩個 MCP
 

@@ -4,7 +4,7 @@
   將本 repo 的 skill / hook / agent / settings 全套 sync 至 global `~/.claude/`。
 
 .DESCRIPTION
-  動作（idempotent；直接覆蓋既有檔、不備份）：
+  動作（idempotent；除 settings.json 外直接覆蓋既有檔、不備份）：
     1. 開頭印備份提醒（不強制等按鍵；user 自行決定中斷與否）
     2. Pre-flight：claude CLI / git / pwsh / jq（缺則錯誤）
     3. Sync repo → global：
@@ -14,7 +14,13 @@
          hooks/file-type-guard.ps1       → hooks/file-type-guard.ps1
          skills/<name>/SKILL.md          → skills/<name>/SKILL.md     （遞迴整個 skills/）
          agents/<name>.md                → agents/<name>.md
-         settings.json                   → settings.json（轉 ${CLAUDE_PROJECT_DIR} 為絕對路徑）
+         settings.json                   → settings.json（**merge、非覆蓋**；轉 ${CLAUDE_PROJECT_DIR} 為絕對路徑）
+
+  settings.json merge 語意（本機優先）：
+    hooks / statusLine        → 以 repo 為準（更新 hook 路徑正是本腳本目的）
+    其餘所有 key（permissions.allow / defaultMode / model / theme / ...）
+                              → 本機既有值原封保留；本機沒有的 key 才補 repo 值
+  原因：`/config` 寫的設定存在 ~/.claude/settings.json，整檔覆蓋會把它們全洗掉。
 
   全 standalone：不裝 marketplace / plugin、不裝 playwright MCP、不跑 bun。
   mysql MCP 由 user 手動裝（結尾印指令範例）。
@@ -109,6 +115,74 @@ function Convert-HookCommandPath {
     return $Command -replace '\$\{CLAUDE_PROJECT_DIR\}', $globalDirEsc
 }
 
+function Test-JsonObject {
+    <#
+    .SYNOPSIS
+      判斷值是否為 JSON object（可再往下 merge），排除 array / 純量 / null。
+    .DESCRIPTION
+      ConvertFrom-Json 的 object 會是 PSCustomObject；array 是 Object[]、
+      純量是 string / int / bool。只有兩邊都是 object 才遞迴。
+    #>
+    param($Value)
+
+    if ($null -eq $Value) { return $false }
+    return ($Value -is [System.Management.Automation.PSCustomObject])
+}
+
+function Merge-LocalFirst {
+    <#
+    .SYNOPSIS
+      深層 merge：本機值優先，repo 值只補本機缺的 key。
+    .DESCRIPTION
+      兩邊都是 object → 逐 key 遞迴。
+      任一邊非 object（array / 純量）→ 本機值直接勝，不做聯集。
+      原因：permissions.allow 之類的陣列做聯集會讓「移除規則」永遠失效。
+    #>
+    param($Local, $Repo)
+
+    if ($null -eq $Local) { return $Repo }
+    if ($null -eq $Repo) { return $Local }
+    if (-not (Test-JsonObject $Local) -or -not (Test-JsonObject $Repo)) { return $Local }
+
+    $merged = [ordered]@{}
+    foreach ($p in $Local.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+    foreach ($p in $Repo.PSObject.Properties) {
+        if ($merged.Contains($p.Name)) {
+            $merged[$p.Name] = Merge-LocalFirst -Local $merged[$p.Name] -Repo $p.Value
+        } else {
+            $merged[$p.Name] = $p.Value
+        }
+    }
+    return [pscustomobject]$merged
+}
+
+function Merge-GlobalSettings {
+    <#
+    .SYNOPSIS
+      算出要寫回 global settings.json 的內容：本機優先 merge + repo 權威區塊強制覆蓋。
+    .PARAMETER RepoOwned
+      無論本機有什麼、一律以 repo 為準的 top-level key（hooks / statusLine）。
+      這兩塊是 setup 的核心用途（同步 hook 路徑），本機優先會讓腳本失去意義。
+    #>
+    param(
+        $Local,
+        [Parameter(Mandatory)]$Repo,
+        [string[]]$RepoOwned = @('$schema', 'hooks', 'statusLine')
+    )
+
+    if ($null -eq $Local) { return $Repo }
+
+    $merged = Merge-LocalFirst -Local $Local -Repo $Repo
+
+    $dict = [ordered]@{}
+    foreach ($p in $merged.PSObject.Properties) { $dict[$p.Name] = $p.Value }
+    foreach ($key in $RepoOwned) {
+        $repoProp = $Repo.PSObject.Properties[$key]
+        if ($repoProp) { $dict[$key] = $repoProp.Value }
+    }
+    return [pscustomobject]$dict
+}
+
 # === 備份提醒 ===
 
 function Show-BackupWarning {
@@ -119,7 +193,6 @@ function Show-BackupWarning {
     Write-Host ""
     Write-Host "  ~/.claude/CLAUDE.md"
     Write-Host "  ~/.claude/statusline.sh"
-    Write-Host "  ~/.claude/settings.json"
     Write-Host "  ~/.claude/hooks/branch-safety.ps1"
     Write-Host "  ~/.claude/hooks/file-type-guard.ps1"
     Write-Host "  ~/.claude/skills/<本 repo 列出的 skill 全部>"
@@ -127,6 +200,10 @@ function Show-BackupWarning {
     Write-Host ""
     Write-Host "  覆蓋是**直接覆蓋、不備份**。" -ForegroundColor Yellow
     Write-Host "  若 ~/.claude/ 內有手動加的內容、請先備份後再執行。" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  例外 — ~/.claude/settings.json 是**merge、不覆蓋**：" -ForegroundColor Yellow
+    Write-Host "    hooks / statusLine 取 repo 版；其餘 key（permissions、/config 寫的"
+    Write-Host "    model / theme / defaultMode 等）維持本機現值、本機沒有的才補上。"
     Write-Host ""
     Write-Host "  注意：本 repo 列出範圍**之外**的檔案不會動 — " -ForegroundColor Yellow
     Write-Host "  舊 plugin / 舊 skill 若仍存在仍會生效、可能與本 repo skill 衝突。" -ForegroundColor Yellow
@@ -267,8 +344,28 @@ function Invoke-SyncRepoFiles {
         $repoSettings.statusLine.command = Convert-HookCommandPath -Command $repoSettings.statusLine.command -GlobalDir $GlobalDir
     }
 
-    $repoSettings | ConvertTo-Json -Depth 10 | Set-Content $globalSettingsPath -Encoding UTF8
-    Write-Host "  [over ] $globalSettingsPath（純覆蓋；路徑已轉絕對）"
+    # 既有 global settings 讀進來當底（本機優先）；讀不到 / 壞掉才退回純寫入
+    $localSettings = $null
+    if (Test-Path $globalSettingsPath) {
+        try {
+            $raw = Get-Content $globalSettingsPath -Raw
+            if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                $localSettings = $raw | ConvertFrom-Json
+            }
+        } catch {
+            Write-Warning "  既有 $globalSettingsPath 不是合法 JSON，改為直接寫入 repo 版（本機內容將遺失）"
+            $localSettings = $null
+        }
+    }
+
+    $finalSettings = Merge-GlobalSettings -Local $localSettings -Repo $repoSettings
+
+    $finalSettings | ConvertTo-Json -Depth 10 | Set-Content $globalSettingsPath -Encoding UTF8
+    if ($localSettings) {
+        Write-Host "  [merge] $globalSettingsPath（hooks / statusLine 取 repo；其餘本機設定保留）"
+    } else {
+        Write-Host "  [new  ] $globalSettingsPath（本機原無設定；寫入 repo 版）"
+    }
 }
 
 # === main ===
@@ -288,7 +385,7 @@ if (-not (Test-Path $globalDir)) {
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Green
 Write-Host " Offline skill pack — setup.ps1" -ForegroundColor Green
-Write-Host " 全 standalone 安裝（純覆蓋、不備份）" -ForegroundColor Green
+Write-Host " 全 standalone 安裝（檔案純覆蓋不備份；settings.json 為 merge）" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
 Write-Host "  Repo  : $repoRoot"
 Write-Host "  Global: $globalDir"
@@ -307,7 +404,7 @@ Write-Host ""
 Write-Host "✔ CLAUDE.md / statusline.sh / 2 hooks 已覆蓋至 $globalDir"
 Write-Host "✔ skills/ 全套已 sync"
 Write-Host "✔ agents/ 全套已 sync"
-Write-Host "✔ settings.json 已覆蓋（hook 路徑已轉絕對）"
+Write-Host "✔ settings.json 已 merge（hooks / statusLine 取 repo 且路徑已轉絕對；本機其餘設定保留）"
 Write-Host ""
 Write-Host "【提醒】" -ForegroundColor Yellow
 Write-Host " 開新 claude session 才能開始使用（既有 session 不會載入新 skill）" -ForegroundColor Yellow
