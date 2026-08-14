@@ -140,9 +140,13 @@ function Merge-LocalFirst {
     #>
     param($Local, $Repo)
 
-    if ($null -eq $Local) { return $Repo }
-    if ($null -eq $Repo) { return $Local }
-    if (-not (Test-JsonObject $Local) -or -not (Test-JsonObject $Repo)) { return $Local }
+    # 陣列不可直接 return：pipeline 會展開它，空陣列變 $null、單元素變純量，
+    # 寫回 settings.json 就成 "deny": null / "allow": "Read"（違反 schema）。以 , 包一層保原型。
+    if ($null -eq $Local) { if ($Repo -is [array]) { return ,$Repo } else { return $Repo } }
+    if ($null -eq $Repo) { if ($Local -is [array]) { return ,$Local } else { return $Local } }
+    if (-not (Test-JsonObject $Local) -or -not (Test-JsonObject $Repo)) {
+        if ($Local -is [array]) { return ,$Local } else { return $Local }
+    }
 
     $merged = [ordered]@{}
     foreach ($p in $Local.PSObject.Properties) { $merged[$p.Name] = $p.Value }
