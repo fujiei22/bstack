@@ -80,6 +80,22 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
+### §協作模式判定（Agent Teams gate）
+判「這件事要不要開 Agent Teams」。**判準是工作者之間要不要互相講話，不是能不能平行**——能平行但不用溝通的工作，subagent 就夠、且便宜得多。
+
+三條**全中**才提議：
+1. **可切 ≥3 塊互不依賴**，且每塊擁有**不同檔案 / 目錄**（會撞同一批檔 → 不開）
+2. **工作者之間需要互相反駁或交換發現**，或你要中途切進某個工作者改方向（只要結果不要過程 → subagent）
+3. **量體 T2+**（T0-T1 協調成本大於收益，直接跳）
+
+三條全中 → `AskUserQuestion` 問跑法（Agent Teams / subagent 平行 / 單一 session 串行），照 §決策點選單：建議選項第一 + 標「（推薦）」，每個選項附**代價**。推薦哪個依判定實據決定，**不預設 Agent Teams**。
+
+- **禁自行開隊友**：判定只產生選項，一律等 user 選。
+- **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」、其餘照常。
+- **成本告知**：每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill，token 隨隊友數線性疊加。
+
+觸發點：`dispatch-parallel` 載入時、`incident-investigate` Test 階段 fan-out 前、`request-review` T3 雙視角前、brainstorm 0d 判完 Tier 且已知任務可切塊時。判準表 / 選單範本 / 隊友派工範本 → `dispatch-parallel` §協作模式判定。
+
 ### §Trace 標籤
 每輪結尾：`[Trace] Phase=<x> | Tier=<T0-T3> | Track=<Bug/Dev/—> | Skill=<active>`。T0 / 純問答省。
 

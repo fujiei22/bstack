@@ -1,16 +1,19 @@
 ---
 name: dispatch-parallel
 description: |
-  Parallel subagent 派發（繁中）。觸發：execute-plan 遇 parallel-group >1 task /
-  平行跑 / 並行 task / dispatch parallel / subagent 平行 / multi-agent。
-  涵蓋：spawn 多 subagent、傳 task prompt、收集結果、整合、處理 conflict、
-  失敗 retry / rollback。
+  平行派發（繁中）。觸發：execute-plan 遇 parallel-group >1 task /
+  平行跑 / 並行 task / dispatch parallel / subagent 平行 / multi-agent /
+  agent teams / 開隊友 / 多人同時做 / 大範圍研究 / 多模組重構。
+  涵蓋：協作模式判定（Agent Teams vs subagent vs 串行）、spawn 多 subagent、
+  隊友派工、傳 task prompt、收集結果、整合、處理 conflict、失敗 retry / rollback。
   上游：execute-plan（遇 parallel-group）。下游：execute-plan（整合完接下個 group）。
 ---
 
 # dispatch-parallel
 
-execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 派給 subagent 平行跑、加速。
+execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑、加速。
+
+跑法有三種——**Agent Teams**（隊友互相通訊、共用任務清單）、**subagent 平行**（各做各的、只回報結果）、**單一 session 串行**。選哪種走 §協作模式判定，一律問 user。
 
 ## 使用契約（強制）
 
@@ -20,10 +23,112 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 派給 sub
 2. **檢預設**：
    - group 內 task **真的無依賴**（write-plan 階段標的應已驗過、但再驗一次）
    - 工作目錄 clean（無未 commit 改動）
-3. **spawn**：對 N 個 task spawn N-1 個 subagent + 主 agent 跑 1 個（最大化平行）。
-4. **等所有完成**：收集每 subagent 的結果（diff + commit sha + verify 狀態）。
-5. **整合**：主 agent 確認所有 commit 都進 branch、無 conflict、verify 都過。
-6. **進下個 group**。
+3. **協作模式判定** → 走 §協作模式判定，`AskUserQuestion` 讓 user 選跑法。**禁自行決定**。
+4. **依 user 選擇分流**：
+   - Agent Teams → §隊友派工
+   - subagent 平行 → §Spawn 細節
+   - 單一 session 串行 → 退回 execute-plan 逐 task 跑，不用本 skill 後續流程
+5. **等所有完成**：收集每個工作者的結果（diff + commit sha + verify 狀態）。
+6. **整合**：主 agent 確認所有 commit 都進 branch、無 conflict、verify 都過。
+7. **進下個 group**。
+
+---
+
+## §協作模式判定
+
+### 判準
+
+先確認**分水嶺**：判準不是「能不能平行」，是**工作者之間要不要互相講話**。三件事只有 Agent Teams 做得到——隊友互相反駁、user 中途切進單一工作者對話、工作者自己認領共用任務清單。三者皆不需要 → subagent 就夠，且便宜得多。
+
+| 面向 | 選 Agent Teams | 選 subagent | 選串行 |
+|---|---|---|---|
+| 依賴 | ≥3 塊互不依賴 | 2+ 塊互不依賴 | 有先後順序 |
+| 檔案歸屬 | 每塊擁有不同檔 / 目錄 | 同上 | 會撞同一批檔 |
+| 產出性質 | 要討論、互相挑戰後收斂 | 只要結果 | — |
+| 量體 | T2+ | T1+ | T0-T1 |
+| 典型 | 多假設除錯互相打架、多視角審查、大範圍研究、跨前後端各自一塊、新模組各寫各的 | 各跑一個獨立 task 回報 | 單檔改、例行修 bug |
+
+**規模**：3-5 個隊友起跳，每人 5-6 個 task。任務再多也別無限加隊友——三個專注的通常勝過五個散的。
+
+### 開關偵測（判定前先跑）
+
+Agent Teams 是實驗性功能、預設關閉。開關未設時 Claude **無法**開也無法提議開隊友。
+
+1. 讀 `~/.claude/settings.json` 的 `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`，或查同名環境變數。
+2. 未設 → 選單第一個選項改成「先開開關」，並附設定片段與「**需重開 session 才生效**、本輪先停」的說明。
+3. **禁**在開關關閉時假裝開隊友、或靜默退成 subagent 不告知。
+
+### 選單範本
+
+```
+AskUserQuestion:
+  header: 跑法
+  question: |
+    這個 group 判定「可以開 Agent Teams」，依據：
+    - 可切 <N> 塊互不依賴：<列每塊擁有的檔 / 目錄>
+    - 需要互相講話的理由：<具體寫哪兩塊要對話；寫不出來就不該問這題>
+    - 量體：<Tier>
+    要用哪種跑法？
+  options:
+    - label: <推薦的那個>（推薦）
+      description: <為何推薦——引上面判定實據>；代價：<token / 摩擦>
+    - label: <次選>
+      description: <好處>；缺點：<失去什麼>
+    - label: <再次選>
+      description: 同上
+```
+
+**硬規則**：
+
+- 推薦哪個**依判定實據決定，不預設 Agent Teams**。第 2 條（要互相講話）只是勉強成立 → 推薦 subagent。
+- 每個選項都要寫**代價**，不能只寫好處。Agent Teams 至少要寫這兩項：token 隨隊友數線性疊加（每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill）、隊友的權限確認全部彈回主視窗。
+- 三條判準沒全中 → **不問這題**，直接照 §Spawn 細節走 subagent。多問一次選單也是成本。
+
+---
+
+## §隊友派工
+
+user 選 Agent Teams 後才走這節。
+
+### 派工 prompt 範本
+
+```
+Context:
+- repo: <repo root>
+- branch: <branch name>
+- 你負責的 task: <task ID + 摘要>
+- 你擁有的檔 / 目錄: <明列；此範圍外的檔禁動>
+- plan 全文: <貼 plan markdown>
+- spec 全文: <貼 spec markdown>
+
+你是這個團隊的隊友，**不是**接到新需求的主 agent：
+- **禁**跑 dev-workflow 9 階段、禁 brainstorm、禁 write-plan。plan 已經寫好了。
+- 直接依 tdd-cycle 走 5 step（紅 → 跑紅 → 綠 → 跑綠 → commit）。
+- commit 用 CLAUDE.md commit 格式。
+- 跑完自己 task 的 verify command。
+- 有發現會影響別人負責範圍的事 → 直接訊息給該隊友，別默默改。
+
+禁：
+- 動你擁有範圍以外的檔（除非 plan 明列）
+- 跑 push / open PR（lead 統一做）
+- 自己再開隊友（隊友不能再開隊友；要幫手就開 subagent）
+```
+
+### 隊友專屬注意
+
+| 事項 | 處置 |
+|---|---|
+| 隊友會載入完整 CLAUDE.md 與全套 skill | 派工 prompt **必須**明講「不要跑 9 階段流程」，否則隊友會自己 brainstorm 起來 |
+| 隊友不繼承 lead 的對話歷史 | spec / plan 全文要貼進派工 prompt，不能只給檔案路徑就算 |
+| 權限確認彈回 lead 視窗 | 開工前先跟 user 講；常用操作可先進 `permissions.allow` 減少中斷 |
+| 隊友沿用 lead 的權限模式與兩個 PreToolUse hook | branch-safety / file-type-guard 照常生效，不用另外處理 |
+| 兩個隊友改同一檔會互相蓋掉 | 派工前檔案歸屬必須切乾淨；切不乾淨就不該選 Agent Teams |
+| 隊友可能沒標完成就閒置、卡住後續 task | lead 要盯任務清單狀態，卡住就直接訊息該隊友 |
+| 恢復對話不會還原隊友 | `/resume`、`/rewind` 後 lead 可能去找不存在的隊友；告訴 lead 重開 |
+
+### 收工
+
+隊友全部回報後，整合流程與 subagent 路線相同（見 §等所有完成 / §整合 / 衝突）。額外一步：確認每個隊友都已收工，用名字請 lead 送出關閉請求。
 
 ---
 
@@ -132,7 +237,9 @@ state:
 
 dispatch-parallel 期間：
 
-- spawn 前印 「group <N> 派 M task 平行跑」
+- 判定完先問跑法（§協作模式判定），user 沒選前不 spawn 任何東西
+- spawn 前印 「group <N> 派 M task 平行跑（跑法：<user 選的>）」
+- 走 Agent Teams 時另外告知：隊友列在輸入框下方的面板，上下鍵選、Enter 進去直接對話
 - 等待期間每 30s 印 「子 task 進度：<N done / M total>」（不刷屏）
 - 完成印 「group <N> 完成：M task / M commit」
 - fail 印詳細 + 走 §Fail handling
@@ -159,3 +266,9 @@ dispatch-parallel 期間：
 | 「conflict 自作主張 resolve」 | 走 finish-branch §Conflict 流程 |
 | 「parallel 跑得快、跳 verify」 | 整合測必跑 |
 | 「subagent prompt 不含完整 spec」 | 必含；subagent 無 context |
+| 「能平行就開 Agent Teams」 | 判準是要不要互相講話；不用溝通 → subagent，便宜得多 |
+| 「判定完直接開隊友」 | 禁；一律 `AskUserQuestion` 讓 user 選跑法 |
+| 「開關關著、悄悄退 subagent」 | 禁靜默降級；要講開關狀態與開啟方式 |
+| 「隊友派工只給檔案路徑」 | 隊友不繼承對話歷史；spec / plan 全文必貼 |
+| 「隊友自己再開隊友」 | 不支援；隊友只能開 subagent |
+| 「選單只寫每個選項的好處」 | 必寫代價，尤其 Agent Teams 的 token 疊加與權限確認集中 |
