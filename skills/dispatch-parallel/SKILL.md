@@ -83,6 +83,9 @@ AskUserQuestion:
 - 推薦哪個**依判定實據決定，不預設 Agent Teams**。第 2 條（要互相講話）只是勉強成立 → 推薦 subagent。
 - 每個選項都要寫**代價**，不能只寫好處。Agent Teams 至少要寫這兩項：token 隨隊友數線性疊加（每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill）、隊友的權限確認全部彈回主視窗。
 - 三條判準沒全中 → **不問這題**，直接照 §Spawn 細節走 subagent。多問一次選單也是成本。
+- **唯讀 fan-out 不套這張判準表**：review / 驗證 / 稽核類——`review-plan` 多視角、`request-review` T3 雙視角、`incident-investigate` 多假設、`security-audit` + `db-reviewer`——一律 subagent，**連選單都不出**。兩個理由：
+  - 判準 1「每塊擁有不同檔 / 目錄」的實質是防兩個隊友互蓋（見 §隊友專屬注意）。唯讀工作沒人在動檔，這條套不上；硬要讓它「通過」等於為它開例外。
+  - 這類 fan-out 的**產出價值就是驗證者彼此不知道對方在驗什麼**。`incident-investigate` 的派工模板第一句是「你只看到這一條、不知道別的」，目的正是避免假設間交叉污染；`request-review` 要的也是不會自我合理化的獨立視角。開隊友讓他們互相講話，是把這個唯一紅利親手拆掉。
 
 ---
 
@@ -267,6 +270,7 @@ dispatch-parallel 期間：
 | 「parallel 跑得快、跳 verify」 | 整合測必跑 |
 | 「subagent prompt 不含完整 spec」 | 必含；subagent 無 context |
 | 「能平行就開 Agent Teams」 | 判準是要不要互相講話；不用溝通 → subagent，便宜得多 |
+| 「多視角 review 天生會打架、正好開隊友互辯」 | 唯讀 fan-out 一律 subagent、連選單都不出；獨立性就是產出價值，互相聽到彼此結論 = 污染 |
 | 「判定完直接開隊友」 | 禁；一律 `AskUserQuestion` 讓 user 選跑法 |
 | 「開關關著、悄悄退 subagent」 | 禁靜默降級；要講開關狀態與開啟方式 |
 | 「隊友派工只給檔案路徑」 | 隊友不繼承對話歷史；spec / plan 全文必貼 |

@@ -91,10 +91,11 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 三條全中 → `AskUserQuestion` 問跑法（Agent Teams / subagent 平行 / 單一 session 串行），照 §決策點選單：建議選項第一 + 標「（推薦）」，每個選項附**代價**。推薦哪個依判定實據決定，**不預設 Agent Teams**。
 
 - **禁自行開隊友**：判定只產生選項，一律等 user 選。
+- **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review 雙視角、incident-investigate 多假設、security-audit）**不開隊友、也不問**。兩個理由：這些工作沒人在動檔（判準 1「不同檔案 / 目錄」的實質是防互蓋，唯讀時不成立），且**獨立性本身就是產出價值**——讓驗證者互相聽到彼此結論會污染判斷，等於拆掉 fan-out 的唯一紅利。
 - **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」、其餘照常。
 - **成本告知**：每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill，token 隨隊友數線性疊加。
 
-觸發點：`dispatch-parallel` 載入時、`incident-investigate` Test 階段 fan-out 前、`request-review` T3 雙視角前、brainstorm 0d 判完 Tier 且已知任務可切塊時。判準表 / 選單範本 / 隊友派工範本 → `dispatch-parallel` §協作模式判定。
+觸發點：**只有一個**——`execute-plan` 遇 `parallel-group` 同號多 task 而載入 `dispatch-parallel` 時。9 階段裡只有這裡同時滿足「要互相講話」× 「有人在動同一批檔」。判準表 / 選單範本 / 隊友派工範本 → `dispatch-parallel` §協作模式判定。
 
 ### §Trace 標籤
 每輪結尾：`[Trace] Phase=<x> | Tier=<T0-T3> | Track=<Bug/Dev/—> | Skill=<active>`。T0 / 純問答省。
