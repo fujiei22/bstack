@@ -101,7 +101,7 @@ git commit -m "feat: 加入 <具體功能> 並補測試"
 
 ## §並行性分析（parallel-group）
 
-**目的**：execute-plan 階段，遇 `parallel-group` 相同的多 task → 載 `dispatch-parallel` 派 subagent 平行跑、節省時間。
+**目的**：execute-plan 階段，遇 `parallel-group` 相同的多 task → 載 `dispatch-parallel` 判跑法後平行跑、節省時間。
 
 **規則**：
 

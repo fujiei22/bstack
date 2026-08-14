@@ -76,7 +76,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
      └─ T3 = CEO + Design + Eng + DX 4 視角
    ↓
 3. execute-plan + tdd-cycle
-   遇 parallel-group >1 task → 載 dispatch-parallel 派 subagent 平行
+   遇 parallel-group >1 task → 載 dispatch-parallel 判跑法（Agent Teams / subagent / 串行）後平行
    ↓
 4. verify-done
    ├─ T2+ = 多輪 verify（test + lint + build）

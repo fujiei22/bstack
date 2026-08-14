@@ -20,7 +20,7 @@ description: |
 1. **讀 plan**：從 hand-off state 取 `plan_path`、Read 全文。同時讀 `spec_path` 對齊目標。
 2. **TaskCreate**：把 plan 內每個 task 落到 TaskCreate（含 parallel-group 屬性）。
 3. **逐 group 推進**：
-   - 同 `parallel-group` 多 task → 載 `dispatch-parallel`、派 subagent 平行
+   - 同 `parallel-group` 多 task → 載 `dispatch-parallel`、由它判跑法（Agent Teams / subagent / 串行）並問 user
    - 單 task group → 主 agent 自己跑 tdd-cycle
 4. **每 task 完跑 verify**（plan 內的 verify command + 主 build / test）。
 5. **每 task 完 commit**（繁中、依 CLAUDE.md commit 格式）。
