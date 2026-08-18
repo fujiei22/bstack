@@ -15,6 +15,7 @@
          skills/<name>/SKILL.md          → skills/<name>/SKILL.md     （遞迴整個 skills/）
          agents/<name>.md                → agents/<name>.md
          settings.json                   → settings.json（**merge、非覆蓋**；轉 ${CLAUDE_PROJECT_DIR} 為絕對路徑）
+    4. playwright MCP：user scope 未裝則裝上（含 --isolated；已裝但缺 flag 只警告不代改）
 
   settings.json merge 語意（本機優先）：
     hooks / statusLine        → 以 repo 為準（更新 hook 路徑正是本腳本目的）
@@ -22,8 +23,8 @@
                               → 本機既有值原封保留；本機沒有的 key 才補 repo 值
   原因：`/config` 寫的設定存在 ~/.claude/settings.json，整檔覆蓋會把它們全洗掉。
 
-  全 standalone：不裝 marketplace / plugin、不裝 playwright MCP、不跑 bun。
-  mysql MCP 由 user 手動裝（結尾印指令範例）。
+  全 standalone：不裝 marketplace / plugin、不跑 bun。
+  MCP：只管 playwright（見上 step 4）；mysql MCP 由 user 自行安裝。
 
 .NOTES
   Windows + pwsh 7+。
@@ -372,6 +373,79 @@ function Invoke-SyncRepoFiles {
     }
 }
 
+# === Step 2: Ensure playwright MCP ===
+
+function Invoke-EnsurePlaywrightMcp {
+    <#
+    .SYNOPSIS
+      確保 user scope 裝有 playwright MCP，且帶 --isolated。
+
+    .DESCRIPTION
+      --isolated 讓瀏覽器 profile 只存在記憶體、不落磁碟。少了它，多個
+      Claude Code session 共用同一個 profile 目錄，被 Chrome 的排他鎖擋住，
+      第二個 session 開瀏覽器時報 "Browser is already in use"。
+
+      三種情形分別處理：
+        未安裝        → 直接裝（--scope user，由 claude CLI 寫入 ~/.claude.json）
+        已裝且帶 flag → 跳過
+        已裝但缺 flag → 只警告並印修復指令，不代改
+
+      最後一種刻意不自動修：既有設定可能帶其他自訂參數，
+      remove + add 會把它們一併洗掉。
+
+      設定檔一律交 claude CLI 讀寫。~/.claude.json 內含深層 session 狀態，
+      用 ConvertTo-Json 回寫會因 -Depth 截斷而毀損，故本函式只讀不寫。
+    #>
+    param(
+        [Parameter(Mandatory)][string]$GlobalDir
+    )
+
+    Write-Section "Step 2: playwright MCP（user scope）"
+
+    $addCmdText = "claude mcp add --scope user playwright -- npx -y `"@playwright/mcp@latest`" --sandbox --isolated"
+    $configPath = Join-Path (Split-Path $GlobalDir -Parent) '.claude.json'
+
+    # 讀既有設定；讀不到或壞掉一律當「未安裝」，讓後面的安裝流程接手
+    $existingArgs = $null
+    if (Test-Path $configPath) {
+        try {
+            $raw = Get-Content $configPath -Raw
+            if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                $pw = ($raw | ConvertFrom-Json).mcpServers.playwright
+                if ($pw) { $existingArgs = @($pw.args) }
+            }
+        } catch {
+            Write-Warning "  $configPath 讀不到或不是合法 JSON，改以「未安裝」處理"
+        }
+    }
+
+    if ($null -ne $existingArgs) {
+        if ($existingArgs -contains '--isolated') {
+            Write-Host "  [skip ] 已安裝且帶 --isolated"
+            return
+        }
+        Write-Warning "  已安裝但缺 --isolated：多個 session 會互搶瀏覽器 profile 鎖。"
+        Write-Warning "  現有參數：$($existingArgs -join ' ')"
+        Write-Warning "  確認無其他自訂參數後，執行這兩行修復："
+        Write-Host   "    claude mcp remove playwright --scope user"
+        Write-Host   "    $addCmdText"
+        return
+    }
+
+    # npx 缺席不擋安裝：設定寫得進去，只是屆時瀏覽器起不來
+    if (-not (Test-CommandExists 'npx')) {
+        Write-Warning "  未偵測到 npx（需 Node.js）。設定仍會寫入，但啟動瀏覽器時會失敗。"
+    }
+
+    Write-Host "  安裝中…"
+    & claude mcp add --scope user playwright -- npx -y '@playwright/mcp@latest' --sandbox --isolated
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "  安裝失敗（exit $LASTEXITCODE）。可手動執行：$addCmdText"
+        return
+    }
+    Write-Host "  [new  ] 已安裝（--sandbox --isolated）"
+}
+
 # === main ===
 
 $repoRoot = (git rev-parse --show-toplevel 2>$null)
@@ -402,6 +476,8 @@ if (-not $SkipPrereqCheck) {
 
 Invoke-SyncRepoFiles -RepoRoot $repoRoot -GlobalDir $globalDir
 
+Invoke-EnsurePlaywrightMcp -GlobalDir $globalDir
+
 # === Summary ===
 Write-Section "Done"
 Write-Host ""
@@ -409,6 +485,7 @@ Write-Host "✔ CLAUDE.md / statusline.sh / 2 hooks 已覆蓋至 $globalDir"
 Write-Host "✔ skills/ 全套已 sync"
 Write-Host "✔ agents/ 全套已 sync"
 Write-Host "✔ settings.json 已 merge（hooks / statusLine 取 repo 且路徑已轉絕對；本機其餘設定保留）"
+Write-Host "✔ playwright MCP 檢查完成（結果見上方 Step 2）"
 Write-Host ""
 Write-Host "【提醒】" -ForegroundColor Yellow
 Write-Host " 開新 claude session 才能開始使用（既有 session 不會載入新 skill）" -ForegroundColor Yellow
