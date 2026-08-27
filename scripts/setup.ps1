@@ -484,9 +484,6 @@ Write-Host ""
 Write-Host "✔ CLAUDE.md / statusline.sh / 2 hooks 已覆蓋至 $globalDir"
 Write-Host "✔ skills/ 全套已 sync"
 Write-Host "✔ agents/ 全套已 sync"
-Write-Host "✔ settings.json 已 merge（hooks / statusLine 取 repo 且路徑已轉絕對；本機其餘設定保留）"
+Write-Host "✔ settings.json 已 merge（hooks / statusLine 取自本 repo 且路徑已轉絕對；本機其餘設定保留）"
 Write-Host "✔ playwright MCP 檢查完成（結果見上方 Step 2）"
-Write-Host ""
-Write-Host "【提醒】" -ForegroundColor Yellow
-Write-Host " 開新 claude session 才能開始使用（既有 session 不會載入新 skill）" -ForegroundColor Yellow
 Write-Host ""
