@@ -75,7 +75,7 @@ description: |
 3. **`involved=false` → 到此為止**，繼續 0c。
 4. **`involved=true`** → 判定結果進 §Phase 0c/0d 合併確認 的第 3 題一起問。
 
-**本階段不寫任何檔（硬規則）**。Phase 0 執行時仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉 repo 內的寫入。`.design-gate` 與 `design-map.md` 的落檔一律延到 **branch 建立後、與寫 `spec.md` 同一步**（見 §spec 文件結構與落檔）。
+**本階段不寫任何檔（硬規則）**。Phase 0 執行時仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉 repo 內的寫入。`design-map.md` 的落檔延到 **branch 建立後**。判定結果只進 hand-off state 與 `spec.md` 的「設計方向」段落。
 
 **禁止用 Tier 推導 `size`**。0d 還沒判，這裡也不准先看量體猜。細則見 `design-language` §兩根尺。
 
@@ -188,8 +188,6 @@ T0 / T1 / T2 / T3。Heuristic：
 ```
 
 **T1** spec 可短至 30 行；**T2+** 內容完整、所有 section 都要寫。
-
-**`design.involved=true` 時**：與 `spec.md` 同一步寫出 `docs/work/<branch-name>/.design-gate`（KEY=VALUE，內容為 `design:` 六欄 ＋ `decided_at`）。**不進版控**（`.gitignore` 已排除）。此檔是階段 C1 的 gate hook 唯一輸入。
 
 寫完跑「self-review」：
 1. 找 TBD / TODO / placeholder → 補

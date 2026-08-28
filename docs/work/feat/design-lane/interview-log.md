@@ -377,6 +377,29 @@
 - **user 當時怎麼說**：`AskUserQuestion` 選「不另設，『跑一次判定』就是門（推薦）」。
 - **已知代價（user 已看過並接受）**：真的遇到 hook 誤擋（bug）時，唯一出路是手動改 `~/.claude/settings.json` 拿掉那條 hook。
 
+### D26 · 廢掉 design-gate hook，改寫進 CLAUDE.md 強制守則（**推翻 D21 / D15 / D22 / D24 / D25**）
+
+- **決定了什麼**：
+  - **不做 `hooks/design-gate.ps1`**。階段 C1 由「最小 gate hook」改為「**全域守則條文**」——在 `CLAUDE.md` 強制守則加一條 §設計語言對齊，與 §事實核實、§決策點選單 同等地位。
+  - 連帶：**`.design-gate` 檔一併廢除**（它在 skill 裡的定義就是「hook 的唯一輸入」，沒有 hook 就沒有讀者）。
+  - 階段序回到 **A → B → C**（C 只剩 `setup.ps1` 孤兒偵測）。
+- **依據哪個實據**：
+  1. **既有兩支 hook 防的是不可逆傷害，design-gate 防的是可逆的品質問題** —— `branch-safety` 防「在 main 上直接寫入」（難以乾淨復原、污染共用歷史）、`file-type-guard` 防「密鑰 commit」（不可逆外洩）。而「改顏色前沒讀設計語言」改錯了 `git checkout --` 就回來了，且 verify-done / request-review 本來就在抓品質問題。**這是不同類別的東西，原 plan 把它們放進同一個籃子。**
+  2. **這套系統每一道 gate 都靠 CLAUDE.md 文字，不是 hook** —— §事實核實雙 source、§決策點選單、Tier 判定、§Docs 落檔、§Fail handling 全都沒有 hook。CEO 視角的「用『模型會自覺遵守新規則』解『模型不自覺』是循環論證」**證明太多**：照該邏輯 CLAUDE.md 每一條都是循環論證，整套流程根本不該能運作。
+  3. **在 auto mode 下這支 hook 幾乎不會被觸發（實測）** —— `settings.json` 的 matcher 只有 `Write|Edit|NotebookEdit`，**無任何 hook 攔 Bash**；而 auto mode 明確指示「改檔優先用 sed / heredoc / 短腳本而非 Edit / Write 工具」。本 session 大多數編輯確實走 python heredoc → hook 一次都不會觸發。
+  4. **會誤傷這台機器上所有其他前端專案（reviewer 沙盒實測）** —— 判定鏈無 opt-in，只要是 git repo ＋ 非保護分支 ＋ 前端副檔名就擋，而 `docs/work/` 是本套流程專有慣例，別的專案永遠沒有。配上 D25「無逃生門」，那些專案要工作得先改全域設定檔。
+  5. **錯誤訊息在教它怎麼繞** —— 原設計的訊息明寫「缺少檔案：`docs/work/$branch/.design-gate`」，對被擋住的模型而言那是「建立這個檔就好」。`New-Item` 一行解鎖，成本遠低於跑 0b′。
+- **user 當時怎麼說**：先回「我看不懂你提供的幾個選項分別是怎麼處理的」「我現在反而對這個 hook 有疑問，為什麼需要存在這個 hook？」→ 經上述說明後表示「**我認為開 auto mode 什麼都沒有阻攔到很合理，但只要全域設定內也有說到要檢查的事項，就算不是硬性規定也沒關係，因為整個作業流程的 gate 也是建築在此一基礎之上**」→ 選「廢掉 hook，改寫進 CLAUDE.md 強制守則（推薦）」。
+- **被推翻的先前決策**：
+  | 決策 | 原內容 | 現況 |
+  |---|---|---|
+  | **D15** | 廢上游 hook、另寫 `hooks/design-gate.ps1`（block 級） | **廢除**——不寫任何 hook |
+  | **D21** | 拆 C1／C2、排序 A → C1 → B → C2 | **廢除**——回到 A → B → C |
+  | **D22** | `.design-gate` 落 `docs/work/<branch>/`、不進版控 | **廢除**——檔本身取消 |
+  | **D24** | `.design-gate` 落檔綁 `involved` 不綁 Tier（補 T0 洞） | **失效**——沒有這個檔就沒有這個洞 |
+  | **D25** | 不另設逃生門 | **失效**——沒有 hook 就沒有要逃的門 |
+- **仍然成立的**：D1-D14、D16-D20、D23。spec 的 S2 需改寫（見下）。
+
 ---
 
 ## 訪談收斂總結（D1-D16）

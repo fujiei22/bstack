@@ -35,7 +35,7 @@ description: |
 - 憑印象寫 token 值（必須從實際檔案抄 exact values）
 - 用 `Tier` 推導 `size`（見 §兩根尺）
 
-**落檔時機（硬規則）**：本 skill **不在 brainstorm Phase 0 當下寫任何檔**。Phase 0 執行時仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉 repo 內的寫入。`design-map.md` 與 `.design-gate` 的落檔一律延到 **branch 建立後、與寫 `spec.md` 同一步**。
+**落檔時機（硬規則）**：本 skill **不在 brainstorm Phase 0 當下寫任何檔**。Phase 0 執行時仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉 repo 內的寫入。`design-map.md` 的落檔一律延到 **branch 建立後**。
 
 ---
 

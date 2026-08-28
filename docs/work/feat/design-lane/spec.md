@@ -1,7 +1,7 @@
 # 設計 lane：把 huashu-design 精選整合進 dev-workflow
 
 > Track: Dev | Tier: T3 | 建立: 2026-08-28
-> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D25，每條含實據與 user 原話）
+> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D26，每條含實據與 user 原話）
 
 ## 動機 / Why
 
@@ -18,7 +18,9 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 ## 目標 / Success criteria
 
 - **S1**　任何 code 改動類 prompt 進 Phase 0 後，都會產出 `ui_involved` / `ui_scope` / `ui_size` 三個判定，並與 Track / Tier 在**同一個** `AskUserQuestion` 內一次確認。
-- **S2**　`ui_involved=true` 時，動任何前端檔之前必定已讀過該區塊的設計語言；此事由 hook 機械保證，不靠模型自覺。**（階段 C1 達成，見 D21）**
+- **S2**　`ui_involved=true` 時，動任何前端檔之前必定已讀過該區塊的設計語言。
+  > **保證方式（D26 改寫）**：由 **`CLAUDE.md` 強制守則**（每個 session 必載）＋ `design-language` / `brainstorm` 兩個 skill 承擔，**不做 hook**。
+  > 原本規劃的 `hooks/design-gate.ps1` 已廢除，理由見 D26：① 既有兩支 hook 防的是不可逆傷害（main 寫入、密鑰外洩），本項是可逆的品質問題，類別不同；② 本系統每一道 gate 都靠 CLAUDE.md 文字而非 hook；③ 實測 auto mode 下 hook 幾乎不會被觸發（無任何 hook 攔 Bash，而 auto mode 指示優先用 sed/heredoc 改檔）；④ 會誤傷這台機器上所有其他前端專案。
 - **S3**　同一 repo 內多套設計語言可分區辨識，改 A 區不會抄到 B 區的 token。
   > ⚠️ **驗收受限（D20）**：bstack 是單區 repo（實測 58 個 commit 中動過前端檔的只有 4 個 commit、只涉 `docs/index.html` 與 `docs/css/styles.css`），驗不出多區分歧路徑。S3 在本專案只能達成「單區驗證通過」，**多區辨識的真驗收 deferred 到第一個真正多區的專案**。
 - **S4**　後端改動途中冒出前端需求時，可從 `execute-plan` 就地轉進、處理完接回原 task，且 `plan.md` 被回寫成實際跑過的樣子。
@@ -66,24 +68,23 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 - **不改** 既有 25 個 skill 中本 spec 未列出的任何一個
 - **不主動搬**舊 PR 的文件到新路徑
 
-## 階段拆分（D17，經 review 後由 D21 重排）
+## 階段拆分（D17；D21 曾改為四階，**D26 又改回三階**）
 
-**按風險分四階段，各自獨立 plan / review-plan / PR。順序：A → C1 → B → C2。**
+**按風險分三階段，各自獨立 plan / review-plan / PR。順序：A → B → C。**
 
 理由：11 項改動混了三種風險等級——改 skill 文字、新增一個會 block 的 hook、改一個會刪 `~/.claude` 內容的安裝腳本。綁在同一個 PR 出問題時無法定位，也無法單獨 revert。
 
-| 序 | 階段 | 內容 | 完成後可用 | 風險 |
-|---|---|---|---|---|
-| 1 | **A · 能力層** | `design-language` skill、`design-map.md`、對齊檢查清單、`brainstorm` 0b′、`dev-workflow` 觸發表與 state 欄位、`.gitignore` | **小改路徑**（讀設計語言 → 改 code → 四項對齊檢查） | 低、自包含 |
-| 2 | **C1 · 最小 gate** | `hooks/design-gate.ps1`（只驗 `.design-gate` 存在）＋ `settings.json` 註冊 ＋ `setup.ps1` 的 `$singleFiles` 加該 hook ＋ 逃生門 | **S2 達成**：動前端檔前沒跑判定就會被擋 | 高（會 block user 自己的編輯） |
-| 3 | **B · 流程層** | `design-direction` skill、三方向流程、`design-demos/` 落檔、`execute-plan` 中途轉進、`verify-done` 漏網複查 | **大改路徑**（三方向 → 選定 → 落 code） | 中 |
-| 4 | **C2 · 加固收尾** | `design-gate.ps1` 補「大改方向驗證」分支 ＋ `setup.ps1` 孤兒偵測 | 全部驗收標準達成 | 高（會刪 `~/.claude` 內容） |
+| 序 | 階段 | 內容 | 完成後可用 | 風險 | 狀態 |
+|---|---|---|---|---|---|
+| 1 | **A · 能力層** | `design-language` skill、`design-map.md`、對齊檢查清單、`brainstorm` 0b′、`dev-workflow` 觸發表與 state 欄位、`.gitignore` | **小改路徑**（讀設計語言 → 改 code → 四項對齊檢查） | 低、自包含 | ✅ 已完成上線 |
+| 2 | **B · 流程層** | `design-direction` skill、三方向流程、`design-demos/` 落檔、`execute-plan` 中途轉進、`verify-done` 漏網複查 | **大改路徑**（三方向 → 選定 → 落 code） | 中 | 待做 |
+| 3 | **C · 收尾** | `setup.ps1` 孤兒偵測 | S7 達成 | 高（會刪 `~/.claude` 內容） | 待做 |
 
-**為什麼 C1 前移（D21）**：階段 A、B 交付的全是靠自覺執行的規則，而**這個 lane 存在的理由就是模型不會自覺去讀設計語言**——用「模型會自覺遵守新寫的規則」去解「模型不自覺」，在 hook 上線前是循環論證。另 `.design-gate` 在 A 就產生，若到最後才有讀者，中間兩輪發現格式要改就得回頭改 `brainstorm`。
+**曾經存在的 C1「最小 gate」已於 D26 廢除**（原規劃：`hooks/design-gate.ps1` ＋ `settings.json` 註冊）。原本的 C2 只剩 `setup.ps1` 孤兒偵測，併回 C。
 
-**依賴關係**：A → C1（C1 只需 A 產出的 `.design-gate`，不需 B 的定案方向段格式）；A → B（B 的三方向需要 A 的設計語言辨識）；C2 需要 A 的 `.design-gate` ＋ B 的定案方向段格式，故排最後。
+**取代方案**：S2 改由 `CLAUDE.md` 強制守則承擔（見 S2 註）。實作併入本次 C1 階段的收尾工作，不另開階段。
 
-**階段間的已知缺口**：A 單獨上線（C1 尚未 merge）的那一段期間，S2 仍靠自律；C1 一 merge 即消失。此窗口比原排序短兩輪。
+**依賴關係**：A → B（B 的三方向需要 A 的設計語言辨識）；C 獨立，可隨時做。
 
 ## 影響檔案 / Codebase impact
 
@@ -97,10 +98,11 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 | **A** | `skills/dev-workflow/SKILL.md` | edit | §Phase 0 流程圖加 0b′；§Skill hand-off state 加欄位；§跨流程 skill 觸發表加 `design-language` 一列；Dev track 路徑圖加設計 lane 與兩個轉進點 | 同上 |
 | **B** | `skills/execute-plan/SKILL.md` | edit | §Task 推進規則加「中途轉進」分支（暫停 → 補判 → 處理 → 回寫 plan.md → 接回） | 中斷／恢復是新語意，需明確定義 state |
 | **B** | `skills/verify-done/SKILL.md` | edit | §UI / browser e2e 加漏網複查：偵測到前端檔但 `state.ui_involved=false` → 觸發補判 + 對齊檢查 | 低——複用該節既有的副檔名清單 |
-| **C1**／**C2** | `hooks/design-gate.ps1` | new | C1：PreToolUse(Write\|Edit) 前端副檔名，只驗 `.design-gate` 存在 ＋ 可稽核逃生門。C2：補「`ui_size=大改` 且 spec.md 無定案方向段」分支 | **會擋住手動小改**，誤擋成本高 |
-| **C1** | `settings.json` | edit | `hooks.PreToolUse` 註冊第三個 hook | 低 |
-| **C1**／**C2** | `scripts/setup.ps1` | edit | C1：`$singleFiles` 加新 hook。C2：新增孤兒偵測（列出 → 問 → 刪） | **孤兒偵測會刪 `~/.claude` 內容**，必須寫得保守 |
-| **A** | `.gitignore` | edit | 加 `**/design-demos/` 與 `**/.design-gate`（由 B 提前到 A，因 `.design-gate` 在 A 就產生） | 命中 `file-type-guard.ps1` gitignore 類別 → 二次確認 |
+| ~~C1~~ | ~~`hooks/design-gate.ps1`~~ | ~~new~~ | **D26 廢除**，不做任何 hook | —— |
+| ~~C1~~ | ~~`settings.json`~~ | ~~edit~~ | **D26 廢除**（無第三個 hook 要註冊） | —— |
+| **C1** | `CLAUDE.md` | edit | 新增 §設計語言對齊 強制守則（取代 hook，見 S2 註） | 動全域必載檔，所有 session 受影響 |
+| **C** | `scripts/setup.ps1` | edit | 新增孤兒偵測（列出 → 問 → 刪）。~~`$singleFiles` 加新 hook~~ 隨 D26 取消 | **孤兒偵測會刪 `~/.claude` 內容**，必須寫得保守 |
+| **A** | `.gitignore` | edit | 加 `**/design-demos/`。~~`**/.design-gate`~~ 隨 D26 取消（該檔已廢除），本階段順手移除該行 | 命中 `file-type-guard.ps1` gitignore 類別 → 二次確認 |
 | **A** | 各專案 `docs/reference/design-map.md` | new（執行期產生） | 區塊表：區塊 / 範圍 / token 來源 / 框架 / CSS 方案 | 會過期，靠機械失效檢查觸發更新 |
 
 **DB 影響**：無。本 task 不涉任何資料庫。
@@ -169,18 +171,19 @@ Fallback 三版由 **subagent 平行**產出，**不開 Agent Teams、也不問 
 - `direction-approved.md` / `brand-spec.md` **不開獨立檔**：前者內容回寫 `spec.md`；後者僅在涉具名品牌時作為 `spec.md` 的一個小節
 - ⚠️ 截圖會被刪，故 `spec.md` 記錄的是**定案方向的文字描述 ＋ user 選擇原話**，不得以截圖路徑作為事後追溯依據
 
-### Gate hook 邏輯（D15）
+### ~~Gate hook 邏輯（D15）~~ → **D26 廢除，改為 CLAUDE.md 強制守則**
 
-```
-hooks/design-gate.ps1（PreToolUse: Write|Edit）
+**不做任何 hook。** 原規劃的 `hooks/design-gate.ps1` 已於 D26 廢除，`.design-gate` 檔一併取消。
 
-改動檔副檔名 ∈ {.css .scss .tsx .jsx .vue .svelte .html}
-  ├─ docs/work/<branch>/.design-gate 不存在 → exit 2「尚未跑 0b′ UI 面判定」
-  ├─ ui_size=大改 且 spec.md 無定案方向段 → exit 2「三方向未完成或未記選定」
-  └─ 其餘 → exit 0
-```
+取代方案：在 `CLAUDE.md` 強制守則新增一條 **§設計語言對齊**，與 §事實核實、§決策點選單 同等地位。CLAUDE.md 是**每個 session 必載**的檔，而 `design-language` / `brainstorm` 是選載的 skill —— 寫進必載層才接得住「該載卻沒載」的情況。
 
-必須提供一個**可稽核的逆向逃生門**（等價於上游的 `SKIP_DESIGN_GATE=1`），否則手動改一個 CSS typo 也會被擋死。
+條文要涵蓋：
+- `involved=true` 時，動前端檔前必先讀該區塊設計語言（載 `design-language`）
+- 小改路徑改完必跑四項對齊檢查
+- 禁止用 `Tier` 推導 `size`
+- 條文要短（CLAUDE.md 是每個 session 的固定成本）
+
+廢除理由見 D26 五條實據。
 
 ### design-map.md 形狀（D10 / D13）
 
@@ -233,14 +236,14 @@ user 在任務開頭訂的硬約束是「MIT 版權聲明必須隨程式碼保�
 |---|---|---|
 | V1 | 0b′ 判定生效 | 對一個純後端改動與一個前端改動各跑一次 Phase 0，確認前者 `ui_involved=false`、後者 `true`，且四項在同一個 `AskUserQuestion` 出現 |
 | V2 | 分區不誤植（**部分**，見 S3 註） | 在 bstack 產出 `docs/reference/design-map.md`，確認 `docs/` 被獨立辨識、token 來源指向 `docs/css/styles.css`、dark 機制欄記為 `[data-theme]`（**實測：該檔 `prefers-color-scheme` 零命中、`@media` 零命中，dark 走 `:root[data-theme="dark"]`（`:47`）**）。多區分歧路徑本專案驗不到 |
-| V3 | hook 真的擋（**階段 C1**） | 未跑 0b′ 時直接 Edit `docs/css/styles.css`，確認被 exit 2 擋下；走逃生門後放行 |
+| ~~V3~~ | ~~hook 真的擋~~ | **D26 廢除**（無 hook）。取代：確認 `CLAUDE.md` §設計語言對齊 條文存在且被 `setup.ps1` 同步到 `~/.claude/CLAUDE.md` |
 | V4 | 小改路徑（S8） | 對 `docs/` 做一次小改，確認走「讀設計語言 → 改 code → 四項對齊檢查」且不觸發三方向 |
 | V5 | 大改路徑（S8，**階段 B**） | 對 `docs/` 做一次大改，確認出三版、選定後回寫 `spec.md`、`design-demos/` 未進版控 |
 | V6 | 中途轉進（**階段 B**） | 模擬 execute-plan 途中冒出前端需求，確認暫停 → 補判 → 處理 → 回寫 `plan.md` → 接回原 task |
 | V7 | 漏網複查（**階段 B**） | 令 Phase 0 判 `ui_involved=false` 但實際改到 `.css`，確認 verify-done 觸發補判 |
 | V8 | 識別字串清乾淨 | 指令：`grep -rniE "花叔\|alchaincyf\|design-philosophy\|huashu-gpt-image\|huashu-md-html\|Huashu-Design" skills/`，須零命中。**階段 B 搬 10 個上游檔時是主要驗收工具。注意：依 D23 不放聲明，本項通過不代表授權合規** |
-| V9 | 孤兒偵測（**階段 C2**） | 暫時改名一個 skill 目錄後跑 `setup.ps1`，確認舊名被列出並詢問，未經確認不刪 |
-| V10 | setup 不壞既有行為（**階段 C1／C2 各驗一次**） | 跑 `setup.ps1`，確認既有 25 skill、2 hook、6 agent、settings merge 行為全部照舊 |
+| V9 | 孤兒偵測（**階段 C**） | 暫時改名一個 skill 目錄後跑 `setup.ps1`，確認舊名被列出並詢問，未經確認不刪 |
+| V10 | setup 不壞既有行為（**階段 C**） | 跑 `setup.ps1`，確認既有 25 skill、2 hook、6 agent、settings merge 行為全部照舊 |
 
 ## 風險與 trade-off
 
