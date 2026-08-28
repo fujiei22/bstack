@@ -69,6 +69,17 @@ PII（email / phone / 身分證 / 信用卡 / 地址 / id_number）原值**禁�
 - **量限** 預設 `LIMIT 100`；重 query 先 `EXPLAIN`；**PII** SELECT mask、WHERE 可原值
 - **觸發** DB 詞 / brainstorm 0b / write-plan / execute-plan / review 需查 schema → 直接用 MCP；細則 → `db-access`
 
+### §設計語言對齊
+動任何**前端檔**（`.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`）之前，**先讀該區塊的既有設計語言**——載 `design-language`，從實際檔案抄 exact values，不憑印象重畫。
+
+- **判定** brainstorm Phase 0b′ 產出 `design.{involved, scope, scope_evidence, size, precedent, map_status}`，與 Track / Tier 合併一個 `AskUserQuestion` 一次確認。**0b′ 必跑**（含純後端 task；第一步是零成本的副檔名比對，不命中就結束）
+- **小改**（沿用既有 token、無新視覺決策）→ 直接改 code，改完跑**四項對齊檢查**（元件狀態 / 斷點 / 表單 / dark mode；該區客觀上無此維度 → 標 N/A 並附依據）
+- **大改**（新頁 / 新區塊 / 改版）→ 先出三方向真實視覺讓 user 選，選定才落 code
+- **禁止用 Tier 推導 `design.size`** 兩根尺各自判：Tier 量 code 改動量體，`size` 量新視覺決策的量體，兩者系統性錯開
+- **禁止拿別區的 token 值頂替** 抽不到就說抽不到——頂替就是「把前台樣式套到後台」的起點
+
+細則 → `design-language`（區塊偵測 / 抽取 / 對齊清單）。
+
 ### §Docs 落檔（按壽命分，不按文件類型分）
 dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs/plans/<topic>/`、`docs/reviews/<pr>.md`、`docs/test-reports/<branch>/`。
 按 feat / fix / refactor 分類在 merge 之後沒有資訊量——找文件用主題找，不用類型找。
