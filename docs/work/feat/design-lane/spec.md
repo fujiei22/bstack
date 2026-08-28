@@ -1,7 +1,7 @@
 # 設計 lane：把 huashu-design 精選整合進 dev-workflow
 
 > Track: Dev | Tier: T3 | 建立: 2026-08-28
-> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D28，每條含實據與 user 原話）
+> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D31，每條含實據與 user 原話）
 
 ## 動機 / Why
 
@@ -77,7 +77,7 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 | 序 | 階段 | 內容 | 完成後可用 | 風險 | 狀態 |
 |---|---|---|---|---|---|
 | 1 | **A · 能力層** | `design-language` skill、`design-map.md`、對齊檢查清單、`brainstorm` 0b′、`dev-workflow` 觸發表與 state 欄位、`.gitignore` | **小改路徑**（讀設計語言 → 改 code → 四項對齊檢查） | 低、自包含 | ✅ 已完成上線 |
-| 2 | **B1 · skill 本體** | `design-direction` skill（SKILL.md 改寫 ＋ 6 reference 去識別搬入 ＋ 2 資產）、`design-language` 排除 `skills/**` | 三方向能力就位（尚未接上流程） | 中（全新建檔） | 待做 |
+| 2 | **B1 · skill 本體** | `design-direction` skill（SKILL.md 改寫 ＋ **6 reference 繁化／修剪／結構性改寫至約 1,345 行** ＋ 2 資產）、`design-language` 與 `verify-done` 各加一條 `skills/**` 排除 | 三方向能力就位（尚未接上流程） | 中（全新建檔 ＋ 兩處既有 skill 加排除） | 待做 |
 | 3 | **B2 · 流程接點** | `execute-plan` 中途轉進、`verify-done` 漏網複查、`dev-workflow` 接上 `design-direction` | **大改路徑**（三方向 → 選定 → 落 code） | 中高（動所有 task 必經之路） | 待做 |
 | 4 | **C · 收尾** | `setup.ps1` 孤兒偵測 | S7 達成 | 高（會刪 `~/.claude` 內容） | 待做 |
 
@@ -98,7 +98,7 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 | **A** | `skills/brainstorm/SKILL.md` | edit | 0b 與 0c 之間插入 §Phase 0b′；0c/0d 的 `AskUserQuestion` 合併為一次問四項＋設計路徑；spec 結構加「設計方向」section；hand-off state 加三欄；Red Flags 加一條 | 動到 Phase 0 骨架，所有 task 都會經過 |
 | **A** | `skills/dev-workflow/SKILL.md` | edit | §Phase 0 流程圖加 0b′；§Skill hand-off state 加欄位；§跨流程 skill 觸發表加 `design-language` 一列；Dev track 路徑圖加設計 lane 與兩個轉進點 | 同上 |
 | **B** | `skills/execute-plan/SKILL.md` | edit | §Task 推進規則加「中途轉進」分支（暫停 → 補判 → 處理 → 回寫 plan.md → 接回） | 中斷／恢復是新語意，需明確定義 state |
-| **B** | `skills/verify-done/SKILL.md` | edit | §UI / browser e2e 加漏網複查：偵測到前端檔但 `state.ui_involved=false` → 觸發補判 + 對齊檢查 | 低——複用該節既有的副檔名清單 |
+| **B1**／**B2** | `skills/verify-done/SKILL.md` | edit | **B1（D31 提前）**：兩處副檔名清單加「`skills/**` 底下不觸發 e2e」。**B2**：§UI / browser e2e 加漏網複查（偵測到前端檔但 `design.involved=false` → 觸發補判 + 對齊檢查） | 動所有 task 必經之路；B1 只加排除、不動 T3 必跑規則 |
 | ~~C1~~ | ~~`hooks/design-gate.ps1`~~ | ~~new~~ | **D26 廢除**，不做任何 hook | —— |
 | ~~C1~~ | ~~`settings.json`~~ | ~~edit~~ | **D26 廢除**（無第三個 hook 要註冊） | —— |
 | **C1** | `CLAUDE.md` | edit | 新增 §設計語言對齊 強制守則（取代 hook，見 S2 註） | 動全域必載檔，所有 session 受影響 |
