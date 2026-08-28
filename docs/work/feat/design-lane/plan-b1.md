@@ -92,13 +92,13 @@ alignment:                   # review M4：v1 漏了這三項，但流程實際�
 ## Task 1: `design-language` 排除 skill 定義目錄
 
 **parallel-group**: 1
-**files**: modify `skills/design-language/SKILL.md`（§使用契約 第 1 步）
+**files**: modify `skills/design-language/SKILL.md`（§使用契約 第 1 步 ＋ frontmatter description 的分工行）
 
 - [ ] **Step 1: 寫驗證指令**
 
 ```bash
 cd "$(git rev-parse --show-toplevel)" && f=skills/design-language/SKILL.md; ok=1
-for p in "skill 定義目錄" "工具範本" "先剔除" ; do
+for p in "skill 定義目錄" "工具範本" "先剔除" "新設計決策 → \`design-direction\`" ; do
   grep -qF "$p" "$f" 2>/dev/null || { echo "MISS: $p"; ok=0; }
 done
 # 排除必須寫在第 1 步的「先剔除」動作裡，不能只在事後補述
@@ -125,6 +125,12 @@ awk '/^1\. \*\*先算/{a=1} a&&/先剔除/{seen=1} /^2\. \*\*判/{if(!seen) exit
    **剩下的全部不命中 → 立即回傳且不讀地圖**：`{involved:false, scope:null, scope_evidence:null, size:null, precedent:false, map_status:unknown}`，結束。
    > 為什麼這步必須在最前面：本 skill 由 `setup.ps1` 同步到 `~/.claude/skills/`，**全域生效**。若把讀地圖／偵測放在前面，這台機器上每個專案的每個 task（含純後端）都要付一次偵測成本。
    > 為什麼錨定「含 `*/SKILL.md`」而非裸 `skills/`：某個專案可能有叫 `skills/` 的產品目錄（例如做技能系統的產品），裸比對會把真實介面靜默排除。
+```
+
+**改動 2 — frontmatter 的分工行**（review M10：職責消歧目前只有單向。`design-direction` 那邊寫了三向分工，`design-language` 這邊沒提它；而 description 是 skill 選擇時**唯一**被讀到的文字，body 裡寫了也來不及）：
+
+```markdown
+  分工：既有事實（這區長什麼樣）→ 本 skill；新設計決策 → `design-direction`；改**完**要驗畫面 → `frontend-test`。
 ```
 
 - [ ] **Step 4: 跑驗證確認通過** — 同 Step 1，Expected: PASS
@@ -255,7 +261,10 @@ description: |
 **載入後依序執行**：
 
 1. 讀 §對外契約 的輸入欄位。
-2. **對齊假設**：受眾 / 核心訊息 / **輸出尺寸** / 真實內容來源 —— 四項缺任一走 `AskUserQuestion` 問。**輸出尺寸必須在這一步定案**，三版共用；不統一就無法橫向比較。
+2. **對齊假設 ＋ 確認設計路徑**：
+   - 受眾 / 核心訊息 / **輸出尺寸** / 真實內容來源 —— 四項缺任一走 `AskUserQuestion` 問。**輸出尺寸必須在這一步定案**，三版共用；不統一就無法橫向比較。
+   - **同一個選單問設計路徑**：三版（預設）／單版／一主一變體。**必須在 spawn 之前問**——問在後面等於先燒完三個 subagent 才問要不要三版。
+   > 階段 B2 接上流程後，設計路徑會前移到 `brainstorm` 0b′ 的合併選單；在那之前由本 skill 自己問。**豁免一律來自選單，不得從對話文字推斷。**
 3. 依 `design.precedent` 決定**可變維度**（見 §可變維度）。
 4. 圖片前置：判斷圖片是不是**內容必需**（判準見 §圖片是不是必需）。必需就先取齊真圖，三版共用同一批。
 5. **並行 spawn 3 個 subagent**，各產一版真實視覺（見 §三個 subagent 的跑法）。
@@ -425,8 +434,9 @@ grep -qE "[这样图对动为过级须将产业们点发题应网络设计资产
 - [ ] **Step 2: 跑驗證確認失敗**
 
 ```bash
-# Expected: FAIL，15 條正向 + 豁免 + 6 維 + 概念 + viewport 引號，全 MISS
-# 本次拉紅：全部（Task 3 只寫到 §技術紅線）
+# Expected: FAIL
+# 本次拉紅：除「先讀」以外全部。「先讀」已由 Task 3 的 §技術紅線 第 4 條寫入，
+#   在此為 regression guard（確保 Task 4 append 沒把它弄丟），不是本次的紅燈來源。
 ```
 
 - [ ] **Step 3: 寫內容**
@@ -470,6 +480,7 @@ append：
 **取不到時三級兜底（不許卡死）**：① 換其他公共領域來源 → ② 標「圖待補」的**誠實 placeholder** 並在三版說明裡註明 → ③ **繼續 spawn 三版，不卡流程**。取圖失敗是「降級繼續」，不是停止。
 
 設計裡若要出現**具名的第三方產品或品牌**，另走 `references/brand-asset-protocol.md`。
+**取到的 logo / 產品圖與截圖同處理**：落 `docs/work/<branch-name>/design-demos/assets/`（不進版控），並把**資產清單與來源網址**寫進 `spec.md` 的設計方向段落——路徑會隨 branch 消失，來源記錄才留得住。三個 subagent 共用同一批。
 
 ---
 
@@ -492,7 +503,8 @@ Agent:
     - <skill 絕對路徑>/references/content-guidelines.md   # 反 slop 與可讀性底線
     - <skill 絕對路徑>/references/typography.md            # 字體配對
     - <skill 絕對路徑>/references/react-setup.md           # 用 inline React 時必讀，含 6 個 integrity hash
-    - <skill 絕對路徑>/references/design-styles.md         # 僅 precedent=false 時
+    - <skill 絕對路徑>/references/design-styles.md §色彩推導協議   # 一律讀（決定色彩就要）
+    - <skill 絕對路徑>/references/design-styles.md §網頁風格庫     # 僅 precedent=false 時
 
     設計語言（必須照抄 exact values，不得臨場發明）：<design_language_summary>
     對齊假設：受眾 <audience> / 核心訊息 <core_message> / 輸出尺寸 <output_size>
@@ -542,8 +554,7 @@ npx playwright screenshot "file:///<絕對路徑>.html" "<輸出>.png" "--viewpo
 - **截圖驗完即刪** —— 所以 `spec.md` 記的是 `direction_decided`（定案方向的文字描述）與 `user_choice_quote`（user 原話）
 - 回寫 `spec.md` 的「設計方向」段落
 
-**豁免**：`design.size=大改` 但 user 不想出三版時，本 skill **自帶一個前置 `AskUserQuestion`**（三版 / 單版 / 一主一變體）。
-> 階段 B2 接上流程後，這個選擇會前移到 `brainstorm` 0b′ 的合併選單；在那之前由本 skill 自己問。**豁免一律來自選單，不得從對話文字推斷。** 豁免要記進 `spec.md`。
+**豁免**：在 §使用契約 **第 2 步**已問過（三版 / 單版 / 一主一變體），此處不重複問。豁免要記進 `spec.md`。
 
 ---
 
@@ -644,7 +655,7 @@ git commit -m "feat: design-direction 加入三方向流程、選定落檔與 6 
 
 **繁化不只是字形**：`字体`→`字型`、`数据`→`資料`、`默认`→`預設`、`用户`→`使用者`、`组件`→`元件`、`布局`→`版面`、`信息`→`資訊`、`软件`→`軟體`、`屏幕`→`螢幕`、`质量`→`品質`、`项目`→`專案`、`代码块`→`程式碼區塊`。
 
-**M1 特別註記**：`typography.md:163` **不得**改寫成「本專案規範：中英之間不加空格」。**實測本 repo 是 2563 : 0——中英之間一律加空格**。改成中性敘述：「中英之間的留白交給 fallback 字型本身處理，不靠手動敲空格」——只講機制、不宣告專案規範。
+**M1 特別註記**：`typography.md:163` **不得**改寫成「本專案規範：中英之間不加空格」。**實測本 repo 是 2563 : 0——中英之間一律加空格**。改成**純機制描述、不帶祈使語氣**：「中英之間的視覺留白由 fallback 字型的字面寬度提供」——不寫「不靠手動敲空格」那種規範語氣（複驗指出斷言擋不到祈使句，而本 repo 實測是加空格的）。
 
 - [ ] **Step 1: 寫驗證指令**
 
@@ -667,7 +678,8 @@ grep -rqF "x-api-key" "$d" && { echo "MISS: react-setup 的 API key 範例應已
 grep -rqF "中英之間不加空格" "$d" && { echo "MISS: 不得宣告與本 repo 相反的規範（實測 2563:0 是加空格）"; ok=0; }
 # 死鏈：bare 檔名掃描（v1 的路徑前綴 regex 只抓得到 1 筆，恆綠）
 for p in $(grep -rhoE '[A-Za-z0-9_-]+\.(md|jsx|py)' "$d" 2>/dev/null | sort -u); do
-  case "$p" in components.jsx|pages.jsx|app.jsx|router.jsx|primitives.jsx|settings.jsx|home.jsx|detail.jsx|terminal.jsx|sidebar.jsx|brand-spec.md) continue;; esac
+  # design-styles.md 由 Task 6 建立，本 task 尚不存在 → 白名單放行，由 Task 8 的 3b 全掃時才驗
+  case "$p" in components.jsx|pages.jsx|app.jsx|router.jsx|primitives.jsx|settings.jsx|home.jsx|detail.jsx|terminal.jsx|sidebar.jsx|brand-spec.md|design-styles.md) continue;; esac
   test -e "skills/design-direction/references/$p" -o -e "skills/design-direction/assets/$p" -o -e "skills/design-direction/scripts/$p" \
     || { echo "MISS(死鏈): $p"; ok=0; }
 done
@@ -708,8 +720,19 @@ git commit -m "feat: 搬入 3 個 reference（繁化 + 台灣用語 + 砍 API ke
 
 | 檔 | 原 | 目標 | 結構性修改 |
 |---|---|---|---|
-| `design-styles.md` | 564 | ~210 | **砍 `:212-364` PPT 20 種、`:365-517` 信息圖 20 種、`:518-546` AI 生圖 ＋ `:547-563` 生圖提示詞**（合計 353 行，SKILL.md §適用邊界 自己寫不涵蓋這些產線）。留：`:8-21` 怎麼用、`:22-60` 色彩推導協議、`:61-211` 網頁 20 種、`:538-546` 審美禁區。**檔頭標題與 `:564` 的「適用」行必須同步改**，否則檔頭與內容不符 |
-| `critique-guide.md` | 221 | ~180 | **修正為 6 維**（原 plan 誤寫 5 維且漏掉權重最高的維度 0「概念/立意」與其一票否決規則）。砍 §場景評審側重 裡屬排除產線的五列（公眾號封面 / 資訊圖 / PPT / PDF 白皮書 / 社群配圖）。`:3`「Phase 7 的詳細參考」與 `:25`「呼應 SKILL.md 的 form 推導」兩處死鏈改寫 |
+| `design-styles.md` | 564 | ~210 | **砍 `:212-364` PPT 20 種、`:365-517` 信息圖 20 種、`:518-537` AI 生圖、`:547-564` 生圖提示詞**（合計 353 行）。留：`:8-21` 怎麼用、`:22-60` 色彩推導協議、`:61-211` 網頁 20 種、`:538-546` 審美禁區。
+> **v2.1 修正**：v2 同一格裡寫「砍 `:518-546`」又寫「留 `:538-546`」，**自己重疊 9 行**。實測章節邊界為 `:518` AI 生圖 / `:538` 審美禁區 / `:547` 生圖提示詞。
+
+**另修保留區內部對被砍段落的依賴**（三處，斷言抓不到，只能逐處讀）：
+1. `:8-21`「這個庫怎麼用」第 1 步是**網頁／PPT／資訊圖三選一的分區判據**——砍掉兩區後前提消失，改寫成「本庫只涵蓋網頁」
+2. 同段的方向 A/B/C 分派邏輯引用上游 SKILL 的隨機選風格機制——新 SKILL.md 無此概念，改寫成「三個方向依 §可變維度 指派」
+3. `:538-546` 審美禁區的「合法暗色」白名單舉三例，**其中兩例在要砍的 PPT 區**——只有 Linear 暗色發光（`:152`）在保留的網頁區。刪掉指向被砍條目的兩例
+
+**檔頭標題與 `:564` 的「適用」行必須同步改**，否則檔頭與內容不符 |
+| `critique-guide.md` | 221 | ~180 | **修正為 6 維**（原 plan 誤寫 5 維且漏掉權重最高的維度 0「概念/立意」與其一票否決規則）。
+**改寫維度 1「哲學一致性」的評分表與評審要點**：上游該維的五段評分標準全繞著「有沒有用某位設計師／機構的標誌性手法」寫，而本 skill 只有 `precedent=false` 走風格庫時才有流派錨點。改寫成兩路判準——`precedent=false` 對照風格庫條目標的參考案例；`precedent=true` 對照該區設計語言的 token 體系（色彩／字型／版面是否自洽）。**不改寫的話，SKILL.md 說一套、reference 說另一套。**
+砍 §場景評審側重 裡屬排除產線的五列（公眾號封面 / 資訊圖 / PPT / PDF 白皮書 / 社群配圖），以及 **§常見設計問題 Top 10 的第 10 條**（整條是 PPT／封面／資訊圖／PDF 的密度建議）。
+`:3`「Phase 7 的詳細參考」與 `:25`「呼應 SKILL.md 的 form 推導」兩處死鏈改寫 |
 | `brand-asset-protocol.md` | 250 | ~200 | **① `:163` Step 5「固化為 `brand-spec.md` 檔案」與 `:215`「所有 HTML 必須引用 `brand-spec.md`」改寫**——依 D14，`brand-spec.md` **不開獨立檔**，改成「寫進 `spec.md` 的『設計方向』段落之下」。**② 拿掉 `nano-banana-pro`（`:107`/`:133`/`:228`）與 `yt-dlp` ＋ `ffmpeg`（`:105`）依賴**——本專案沒有這些工具，改成「有生圖能力時另行處理／無則走誠實 placeholder」。**③ 5 處作者原話改中性敘述**，保留案例事實與教訓。**④ `:3-4` 的「從 SKILL.md 核心哲學 #1.a 下沉／回 SKILL.md 看精簡版」兩處死鏈改寫**（新 SKILL.md 無 #1.a 編號）。**⑤ `:110` 硬寫的第三方官網 URL 改成通則描述** |
 
 - [ ] **Step 1: 寫驗證指令**
@@ -915,6 +938,7 @@ git commit -m "docs: 加入階段 B1 驗收記錄"
 **5. scope 檢查**：新增 `skills/design-direction/`（9 檔）＋ 改 `design-language`、`verify-done` 各一處。`verify-done` 原列 B2，經 D31 提前，spec 影響檔案表需同步。**未動 `execute-plan` / `brainstorm` / `dev-workflow`**。
 
 **6. 誠實聲明**：
+- **K6 的接收端推到 B2**：v2 定義了 `direction_decided` / `user_choice_quote` 兩個輸出欄，但 `brainstorm` 的 spec 範本「設計方向」段落目前只有 4 個判定欄、`dev-workflow` 的 `design:` 也只有六欄——**兩個接收端都還沒建**。本階段刻意不動那兩個檔（屬 B2）。**後果**：B1 期間 user 顯式呼叫本 skill 時，第 7 步「回寫 `spec.md`」是寫進一個尚無對應欄位的段落，要自行補欄。
 - 本階段完成後 `design-direction` **尚未接上流程**——`brainstorm` 不會呼叫它，只有 user 顯式呼叫才會載入。這是 D27 拆兩輪的預期中間態，已寫進 skill 的 description 與 §與 dev-workflow 銜接。
 - **D23 授權立場**：搬入的 6 個 reference 是大量具體表達。user 已知情並選擇不放聲明。V8 通過**不代表授權合規**。
 - **本階段最大的工作量是 1,345 行的繁化**，不是搬檔。若執行中發現量體超出預期，回報而不是降低品質。
