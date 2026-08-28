@@ -156,3 +156,190 @@ Read 工具需要絕對路徑，**引用 reference 前先解析成絕對路徑**
 4. React / Babel 一律用 **pinned 版本 ＋ `integrity` hash**。那六個 sha384 值在 `references/react-setup.md`，**產 HTML 的 subagent 必須先讀那個檔**——自己生不出來，省略 `integrity` 等於拿掉 CDN 被劫持時的唯一防線
 
 **可讀性硬底線（任何風格都不豁免）**：正文 ≥14px、行動端 ≥16px、標籤 ≥12px、正文對比度 ≥4.5:1、hit target ≥44×44。留白必須是**構圖**（首屏有明確視覺錨點），不是內容缺席。
+
+---
+
+## §可變維度
+
+三版要差在哪，取決於 `design.precedent`：
+
+| `precedent` | 鎖死 | 可變 |
+|---|---|---|
+| **`true`**（該區有可繼承的設計語言） | 色彩 token / 字型 / 元件庫（用 `design-language` 抄出的 exact values） | 版面結構、資訊層級、互動模式 |
+| **`false`**（0→1 或全新區塊、無先例） | —— | 連設計語言本身一起變 |
+
+**`precedent=true` 時的硬要求**：三版的**骨架必須互異**——導航 / 構圖 / 內容區結構至少一項結構性不同。**不許兩版共用同一骨架只換色換字型**，那會被一眼看穿是換皮。
+
+**`precedent=false` 時**：從 `references/design-styles.md` §網頁風格庫 取三個差異化方向。
+
+**兩條路徑都要讀**：`references/design-styles.md` §色彩推導協議——它的標題就是「用任何風格前先走這三步」，決定色彩時一律適用。
+
+---
+
+## §圖片是不是必需
+
+§使用契約 第 4 步的判準：
+
+| 內容類型 | 判定 |
+|---|---|
+| 介紹一個具體事物（產品 / 地點 / 人物 / 生物 / 歷史） | 圖片**內容必需** |
+| 工具 / 資料 / 文件 / 純觀點型 | 可能不需要 |
+| 拿不準 | **按內容必需處理**（寧可取真圖） |
+
+**真圖誠實性測試**：「去掉這張圖，資訊是否有損？」有損才用。無損 = 裝飾 = slop，不加。
+
+**取圖**：`scripts/fetch_images.py`（Wikimedia Commons 公共領域）。取材原則：搜尋 5 輪、找到 10 個素材、選 2 個好的，每個需 8/10 以上——**寧缺毋濫**，湊數的素材比沒有更糟。
+
+**取不到時三級兜底（不許卡死）**：① 換其他公共領域來源 → ② 標「圖待補」的**誠實 placeholder** 並在三版說明裡註明 → ③ **繼續 spawn 三版，不卡流程**。取圖失敗是「降級繼續」，不是停止。
+
+設計裡若要出現**具名的第三方產品或品牌**，另走 `references/brand-asset-protocol.md`。
+**取到的 logo / 產品圖與截圖同處理**：落 `docs/work/<branch-name>/design-demos/assets/`（不進版控），並把**資產清單與來源網址**寫進 `spec.md` 的設計方向段落——路徑會隨 branch 消失，來源記錄才留得住。三個 subagent 共用同一批。
+
+---
+
+## §三個 subagent 的跑法
+
+**用 subagent 平行，不開 Agent Teams，也不問 user。**
+
+依據 CLAUDE.md §協作模式判定三判準：可切 3 塊 ✓、不同檔（`design-demos/*.html`）✓、T2+ ✓，但判準 2「工作者之間需要互相反駁或交換發現」**明確不成立**——三版必須**獨立 context、互不參考**才不會趨同。§協作模式判定 也明訂「唯讀 fan-out 一律 subagent、不開隊友也不問」。
+
+**spawn 範本**（三個各一，只換 `<方向名>` 與可變維度的指派）：
+
+```yaml
+Agent:
+  description: "design-direction 方向 <方向名>"
+  subagent_type: general-purpose
+  prompt: |
+    你要產出一版真實的設計視覺（純 HTML/CSS，必要時 inline React）。
+
+    **開工前必讀**（用絕對路徑 Read，讀不到就說讀不到、不要憑摘要做）：
+    - <skill 絕對路徑>/references/content-guidelines.md   # 反 slop 與可讀性底線
+    - <skill 絕對路徑>/references/typography.md            # 字型配對
+    - <skill 絕對路徑>/references/react-setup.md           # 用 inline React 時必讀，含 6 個 integrity hash
+    - <skill 絕對路徑>/references/design-styles.md §色彩推導協議   # 一律讀（決定色彩就要）
+    - <skill 絕對路徑>/references/design-styles.md §網頁風格庫     # 僅 precedent=false 時
+
+    設計語言（必須照抄 exact values，不得臨場發明）：<design_language_summary>
+    對齊假設：受眾 <audience> / 核心訊息 <core_message> / 輸出尺寸 <output_size>
+    真實內容：<content_source 提供的實際文字，不是 Lorem>
+    真圖：<共用的那批圖，或「無，用誠實 placeholder」>
+    你這一版的可變維度指派：<結構 / 層級 / 互動 三選一的具體方向>
+
+    產出：
+    1. 一份 HTML 落 docs/work/<branch>/design-demos/<方向名>.html
+    2. 一句話說明「本版的骨架差在哪」（導航 / 構圖 / 內容區結構挑一項）
+
+    禁止參考其他兩版；禁止 Lorem；禁止發明新顏色。
+```
+
+**截圖**（`--viewport-size` **必須帶引號**——PowerShell 下逗號會被當參數分隔，實測回 `Invalid viewport size format`）：
+
+```bash
+npx playwright screenshot "file:///<絕對路徑>.html" "<輸出>.png" "--viewport-size=<output_size>"
+```
+
+> 實測本機可跑（browser binary 來自 `@playwright/mcp` 安裝的副產物）。**沒有 playwright CLI 時改用 `frontend-test`**，不要現場下載。
+
+**產出自檢（進 §選定與落檔 前必查）**：
+- `design-demos/` 下真的有 **3 個 `.html`**。少於 3 個 = 沒跑完，補齊再往下
+- **三版各有一句「骨架差在哪」，且三句不是在講同一件事**。三句雷同 = 換皮，退回重產
+
+---
+
+## §選定與落檔
+
+**三版全部完成後一起攤出來**，每版標明：可變維度上做了什麼選擇、骨架差在哪、一句話說為什麼。並排展示用 `assets/design_canvas.jsx`（讀取內容 → inline 進一份展示 HTML 的 `<script>` 標籤 → 把三版 slot 進去）。
+
+**走 `AskUserQuestion`**（CLAUDE.md §決策點選單；**禁文字 token NLP**——不得從對話裡的「就這個吧」「不錯」推斷選擇）：
+
+1. A 版 —— `<骨架差異一句話>`
+2. B 版 —— `<骨架差異一句話>`
+3. C 版 —— `<骨架差異一句話>`
+4. 混合（選了之後我再問你要取哪版的哪部分）
+5. 都不對，重跑三版
+
+> **本選單刻意不標推薦**：三版是等價的，標其中一版等於預先替 user 做選擇，違背 §核心哲學 3。CLAUDE.md §決策點選單 的「推薦選項放第一」規則在此不適用。
+
+**重跑上限**：同一次 task 內**最多重跑 1 次**。第 2 次仍全否 → 走 `AskUserQuestion`：① 改由 user 描述想要的方向、我做一版 ② 退回 `brainstorm` 重釐清需求 ③ 暫停。三版重跑的成本是 3 個 subagent ＋ 截圖，不設上限會無限迴圈。
+
+**落檔**：
+- 三份 HTML ＋ 截圖 → `docs/work/<branch-name>/design-demos/`，**不進版控**
+- **截圖驗完即刪** —— 所以 `spec.md` 記的是 `direction_decided`（定案方向的文字描述）與 `user_choice_quote`（user 原話）
+- 回寫 `spec.md` 的「設計方向」段落
+
+**豁免**：在 §使用契約 **第 2 步**已問過（三版 / 單版 / 一主一變體），此處不重複問。豁免要記進 `spec.md`。
+
+---
+
+## §評審
+
+user 提「評審 / 好不好看 / 打分」，或你對產出有疑慮想主動質檢時，按 `references/critique-guide.md` 走 **6 維度**評分，各 0-10：
+
+| 維 | 名稱 | 備註 |
+|---|---|---|
+| 0 | **概念 / 立意** | **權重最高**，且有一票否決：概念 ≤5 分時總評封頂 6.0 |
+| 1 | 哲學一致性 | `precedent=false` 走風格庫時才有明確輸入；否則以該區設計語言為對照 |
+| 2 | 視覺層級 | |
+| 3 | 細節執行 | |
+| 4 | 功能性 | |
+| 5 | 創新性 | |
+
+輸出：總評 ＋ Keep（做得好的）＋ Fix（分致命 / 重要 / 優化）＋ 5 分鐘內能做的前 3 件事。
+
+**評設計，不評設計師。**
+
+---
+
+## §References 路由
+
+路徑解析見 §檔案路徑解析。分**必讀**與**條件讀**兩塊——條件讀那塊的條件都是可機械判斷的。
+
+**必讀**（每次三方向都要）：
+
+| 檔 | 為什麼 |
+|---|---|
+| `references/content-guidelines.md` | 反 slop 與可讀性底線，每一版都要對 |
+| `references/typography.md` | 每一版都要選字型 |
+
+**條件讀**：
+
+| 條件 | 讀 |
+|---|---|
+| `precedent=false`（要從風格庫取方向） | `references/design-styles.md` §網頁風格庫 |
+| 決定色彩時（兩條路徑都適用） | `references/design-styles.md` §色彩推導協議 |
+| 三版要用 inline React + Babel | `references/react-setup.md`（**含 6 個 integrity hash，subagent 必讀**） |
+| 走 §評審 | `references/critique-guide.md` |
+| 設計裡要出現具名的第三方產品 / 品牌 | `references/brand-asset-protocol.md` |
+
+| 資產 | 用途 |
+|---|---|
+| `assets/design_canvas.jsx` | 三版並排展示的網格版面（讀內容 → inline 進展示 HTML） |
+| `scripts/fetch_images.py` | 從 Wikimedia Commons 取公共領域真圖 |
+
+---
+
+## §與 dev-workflow 銜接
+
+| 呼叫端 | 何時 | 期待輸出 |
+|---|---|---|
+| user 顯式呼叫 | 「出三版看看」「這個要改版」 | 三版 ＋ 選定結果回寫 `spec.md` |
+| `brainstorm`（**階段 B2 才接上，目前未接**） | 0b′ 判 `design.size=大改` 且設計路徑選「出三版」 | 同上 |
+
+**上游**：`design-language`（供給設計語言）。**下游**：`write-plan`（依定案方向拆 task）。
+
+---
+
+## §Red Flags
+
+| 想法 | 真相 |
+|---|---|
+| 「需求很清楚，直接做一版就好」 | 大改一律三版；豁免只能來自選單選項 |
+| 「先給文字方案讓 user 選方向」 | 沒看到真實視覺的選擇是無效的選擇 |
+| 「三版換個色換個字型就好」 | `precedent=true` 時骨架必須互異；三句「骨架差在哪」雷同就是換皮 |
+| 「三個 subagent 讓它們互相看一下比較一致」 | 獨立 context 是產出價值本身；趨同就白跑了 |
+| 「user 說『這個不錯』就是選 A 版」 | 禁文字 token NLP；一律走 `AskUserQuestion` |
+| 「reference 讀不到就先照 SKILL.md 的摘要做」 | 摘要不是細則。讀不到就說讀不到——尤其 `integrity` hash 自己生不出來 |
+| 「截圖路徑寫進 spec 就好」 | 截圖驗完即刪；spec 記文字描述與 user 原話 |
+| 「先開 Agent Teams 跑三版比較快」 | 三判準的第 2 條不成立；subagent 平行即可，不問也不開 |
+| 「輸出尺寸之後再說」 | 尺寸是 §使用契約 第 2 步的產物；三版不同尺寸就無法橫向比較 |
+| 「都不對，那就一直重跑」 | 重跑上限 1 次，之後走選單改路徑 |
