@@ -399,7 +399,7 @@ git commit -m "feat: 加入 design-language skill 主體（契約 / 偵測 / 地
 ```bash
 cd "$(git rev-parse --show-toplevel)" && f=skills/design-language/SKILL.md; ok=1
 for p in \
-  "§對齊檢查清單" \
+  "§對齊檢查清單（小改路徑必跑）" \
   "§Red Flags" \
   "§與 dev-workflow 銜接" \
   "default / hover / focus / disabled / loading / empty / error" \
@@ -418,6 +418,11 @@ done
 # Expected: FAIL，7 條 MISS
 # 本次拉紅：7 條。「必填標示」是 regression guard —— Task 1 的 §設計語言抽取
 # 輸出格式第 7 行已寫入該字串，本 task 不靠它拉紅，只確保沒把它弄丟
+#
+# 實測補記（execute 階段發現）：第一條原本寫成 "§對齊檢查清單"，實跑只有 6 條
+# MISS —— 因為 Task 1 的 §使用契約 第 7 步就前向引用了這個章節名。已改成抓完整
+# 標題 "§對齊檢查清單（小改路徑必跑）"，那是 Task 2 才會寫入的字串。
+# 教訓：章節名若在別處被前向引用，就不能單獨拿來當斷言（違反紀律 1）。
 ```
 
 - [ ] **Step 3: 寫內容**
