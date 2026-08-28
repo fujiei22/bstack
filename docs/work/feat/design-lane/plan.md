@@ -638,7 +638,8 @@ awk '/^## §交棒/,/^## §結尾/' "$f" | grep -qF "map_status" || { echo "MISS
 grep -qF "問：判定為" "$f" && { echo "MISS: §Phase 0c 的獨立選單範例應已刪除"; ok=0; }
 grep -qF "四子步驟" "$f" && { echo "MISS: §使用契約 的「四子步驟」應已改掉"; ok=0; }
 grep -qF "子步驟之間以 \`AskUserQuestion\` 取 user 確認" "$f" && { echo "MISS: §使用契約 第 2 條（C2 殘留）應已改掉"; ok=0; }
-awk '/UI 面判定/{a=1} /§Phase 0c/{ if(!a) exit 1 }' "$f" || { echo "MISS: 0b′ 節必須排在 §Phase 0c 之前"; ok=0; }
+# 只比對「標題行」，不能用裸字串——內文會多處引用 §Phase 0c/0d 合併確認
+awk '/^## .*UI 面判定/{a=1} /^## §Phase 0c — Track/{ if(!a) exit 1 }' "$f" || { echo "MISS: 0b′ 節必須排在 §Phase 0c 之前"; ok=0; }
 [ $ok = 1 ] && echo PASS || echo FAIL
 ```
 
@@ -649,6 +650,11 @@ awk '/UI 面判定/{a=1} /§Phase 0c/{ if(!a) exit 1 }' "$f" || { echo "MISS: 0b
 # 本次拉紅：10 條正向 + 改動 4 的計數斷言 + 改動 7 的區段斷言
 #           + 3 條負向（實測：「問：判定為」在 :76、「四子步驟」在 :20、
 #             「子步驟之間以 AskUserQuestion 取 user 確認」在 :21）+ 1 條順序檢查
+#
+# 實測補記（execute 階段發現）：順序斷言原本用裸字串 `/§Phase 0c/`，會被改動 1
+# 寫進 :21 的「見 §Phase 0c/0d 合併確認」誤命中（該行在 0b′ 節之前）→ 假 FAIL。
+# 已改成只比對標題行 `/^## §Phase 0c — Track/`。
+# 教訓：章節名會在內文被反覆引用，順序檢查一律只比對標題行。
 # 補這幾條的原因：前一版的斷言只證明得了 8 個改動裡的 4 個 —— 改動 4／5／6-後半／7
 #   跳過也照樣 PASS。那正是 C2 的原始病灶（刪改型改動沒有反向驗證）在本 task 內復發。
 ```

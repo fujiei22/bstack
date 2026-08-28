@@ -17,8 +17,8 @@ description: |
 
 **載入後立即動作**：
 
-1. 進 Phase 0 四子步驟（0a → 0b → 0c → 0d），不跳過。
-2. 子步驟之間以 `AskUserQuestion` 取 user 確認；**禁文字 token NLP 判斷**。
+1. 進 Phase 0 五子步驟（0a → 0b → 0b′ → 0c → 0d），不跳過。
+2. 0b′／0c／0d 的判定**合併成一個 `AskUserQuestion` 一次確認**（見 §Phase 0c/0d 合併確認）；**禁文字 token NLP 判斷**。
 3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
 4. T0 → user 點頭後直接交實作；T1+ → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
 
@@ -91,15 +91,7 @@ description: |
 | 加 / 改 / 寫 / 實作 / build / feature / refactor / 重構 / 整合 / 升級 / 換 | Dev |
 | 兼有 / 模糊 | Dev（保守、走完整流程；若中途發現純 bug 再 fallback） |
 
-`AskUserQuestion` 確認，推薦選項 = AI 預判：
-
-```
-問：判定為 <Bug/Dev> track，正確嗎？
-選項：
-  1. <推薦預判>（推薦）
-  2. <另一 track>
-  3. 兩者皆有 / 拆分
-```
+判定結果留給 §Phase 0c/0d 合併確認 一次問，**本節不單獨發問**。
 
 ---
 
@@ -114,7 +106,7 @@ T0 / T1 / T2 / T3。Heuristic：
 | 3-10 個檔 / 單模組 feature / 中型 refactor / 多步 bug fix | T2 |
 | >10 個檔 / 跨模組 / 新建 module / DB schema 改動 / API 介面 / 架構決策 / 含 migration | T3 |
 
-`AskUserQuestion` 確認，推薦 = AI 預判。
+判定結果留給 §Phase 0c/0d 合併確認 一次問，**本節不單獨發問**。
 
 **Tier 升降 trigger**：File-type 硬規則（見 CLAUDE.md）命中 DB migration / CI/CD / lock / infra 等 → 自動升至少 T2。
 
