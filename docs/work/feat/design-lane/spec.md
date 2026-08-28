@@ -1,7 +1,7 @@
 # 設計 lane：把 huashu-design 精選整合進 dev-workflow
 
 > Track: Dev | Tier: T3 | 建立: 2026-08-28
-> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D26，每條含實據與 user 原話）
+> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D28，每條含實據與 user 原話）
 
 ## 動機 / Why
 
@@ -77,8 +77,9 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 | 序 | 階段 | 內容 | 完成後可用 | 風險 | 狀態 |
 |---|---|---|---|---|---|
 | 1 | **A · 能力層** | `design-language` skill、`design-map.md`、對齊檢查清單、`brainstorm` 0b′、`dev-workflow` 觸發表與 state 欄位、`.gitignore` | **小改路徑**（讀設計語言 → 改 code → 四項對齊檢查） | 低、自包含 | ✅ 已完成上線 |
-| 2 | **B · 流程層** | `design-direction` skill、三方向流程、`design-demos/` 落檔、`execute-plan` 中途轉進、`verify-done` 漏網複查 | **大改路徑**（三方向 → 選定 → 落 code） | 中 | 待做 |
-| 3 | **C · 收尾** | `setup.ps1` 孤兒偵測 | S7 達成 | 高（會刪 `~/.claude` 內容） | 待做 |
+| 2 | **B1 · skill 本體** | `design-direction` skill（SKILL.md 改寫 ＋ 6 reference 去識別搬入 ＋ 2 資產）、`design-language` 排除 `skills/**` | 三方向能力就位（尚未接上流程） | 中（全新建檔） | 待做 |
+| 3 | **B2 · 流程接點** | `execute-plan` 中途轉進、`verify-done` 漏網複查、`dev-workflow` 接上 `design-direction` | **大改路徑**（三方向 → 選定 → 落 code） | 中高（動所有 task 必經之路） | 待做 |
+| 4 | **C · 收尾** | `setup.ps1` 孤兒偵測 | S7 達成 | 高（會刪 `~/.claude` 內容） | 待做 |
 
 **曾經存在的 C1「最小 gate」已於 D26 廢除**（原規劃：`hooks/design-gate.ps1` ＋ `settings.json` 註冊）。原本的 C2 只剩 `setup.ps1` 孤兒偵測，併回 C。
 

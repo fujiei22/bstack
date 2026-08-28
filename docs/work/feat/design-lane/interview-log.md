@@ -400,6 +400,27 @@
   | **D25** | 不另設逃生門 | **失效**——沒有 hook 就沒有要逃的門 |
 - **仍然成立的**：D1-D14、D16-D20、D23。spec 的 S2 需改寫（見下）。
 
+### D27 · 階段 B 拆兩輪：B1 skill 本體 / B2 流程接點
+
+- **決定了什麼**：
+  - **B1** = `design-direction` skill 本體（SKILL.md 改寫 ＋ 6 個 reference 搬入去識別 ＋ 2 個資產），約 6 task
+  - **B2** = 流程接點（`execute-plan` 中途轉進、`verify-done` 漏網複查、`dev-workflow` 接上 `design-direction`），約 4 task
+- **依據哪個實據**：
+  - 量體：上游 `SKILL.md` **579 行 / 17 章節**、6 個 reference 合計 **1,835 行**、外加 3 個既有 skill 要改。前一份 5-task 的 plan 就已 900 行
+  - **兩者風險性質不同**：B1 全是**新建檔**（改壞了不影響現有流程）；B2 動的是 `execute-plan` / `verify-done`——**所有 task 的必經之路**
+- **user 當時怎麼說**：`AskUserQuestion` 選「拆兩輪：B1 skill 本體 / B2 流程接點（推薦）」。
+
+### D28 · `design-language` 排除 `skills/**`
+
+- **決定了什麼**：`design-language` §使用契約 第 1 步（`involved` 判定）加一條——改動檔落在 `skills/**` 底下 → `involved=false`，不算專案 UI。
+- **依據哪個實據**（規劃 B1 時發現，屬 C1 階段埋下的問題）：
+  - B1 要把 `design_canvas.jsx` 放進 `skills/design-direction/assets/`，而 **`.jsx` 就在我自己寫進 `CLAUDE.md` 的前端副檔名清單裡**
+  - 現有排除清單（`node_modules/`、`dist/`、`build/`、`vendor/`、gitignore 命中、`**/design-demos/`）**不含 `skills/`**，且該排除只寫在 §首次偵測 第 2 步（找 token 來源用），**不在 `involved` 判定那一步** → 判定仍會回 `true`
+  - 後果：每次動 skill 的 `.jsx` / `.html` 附屬資產，都會跑一遍區塊偵測 ＋ 對齊檢查，而那個檔根本不屬於任何設計語言區塊——純粹損耗，且會讓人開始想繞過這條規則
+  - 理由：**skill 資產是工具範本，不是這個專案的介面**
+- **user 當時怎麼說**：`AskUserQuestion` 選「design-language 排除 skills/**（推薦）」。
+- **已知代價（user 已看過並接受）**：若未來真的要在 `skills/` 下做一個真實介面會漏掉（實務上不會發生）。
+
 ---
 
 ## 訪談收斂總結（D1-D16）
