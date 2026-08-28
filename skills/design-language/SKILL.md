@@ -7,7 +7,7 @@ description: |
   涵蓋：前端副檔名唯一真相、區塊邊界偵測、設計語言抽取（exact values）、
   design-map.md 產／查／失效檢查、四項對齊檢查清單。
   **強制**：brainstorm Phase 0b′ 必載；execute-plan 動前端檔的 task 前後必載。
-  分工：改**之前**要對齊 → 本 skill；改**完**要驗 → `frontend-test`。
+  分工：既有事實（這區長什麼樣）→ 本 skill；新設計決策 → `design-direction`；改**完**要驗畫面 → `frontend-test`。
 ---
 
 # design-language
@@ -20,9 +20,10 @@ description: |
 
 **載入後依序執行，不跳步**：
 
-1. **先算 `involved`（零成本，必為第一步）**：拿呼叫端給的改動檔清單，比對 §前端副檔名。
-   **全部不命中 → 立即回傳且不讀地圖**：`{involved:false, scope:null, scope_evidence:null, size:null, precedent:false, map_status:unknown}`，結束。
+1. **先算 `involved`（零成本，必為第一步）**：拿呼叫端給的改動檔清單，**先剔除落在 skill 定義目錄底下的檔**（`~/.claude/skills/**`，或 repo 內含 `*/SKILL.md` 的 `skills/**`）——那些是**工具範本**（元件骨架、腳本），不是這個專案的介面——再比對 §前端副檔名。
+   **剩下的全部不命中 → 立即回傳且不讀地圖**：`{involved:false, scope:null, scope_evidence:null, size:null, precedent:false, map_status:unknown}`，結束。
    > 為什麼這步必須在最前面：本 skill 由 `setup.ps1` 同步到 `~/.claude/skills/`，**全域生效**。若把讀地圖／偵測放在前面，這台機器上每個專案的每個 task（含純後端）都要付一次偵測成本。
+   > 為什麼錨定「含 `*/SKILL.md`」而非裸 `skills/`：某個專案可能有叫 `skills/` 的產品目錄（例如做技能系統的產品），裸比對會把真實介面靜默排除。
 2. **判 `size`**：依 §兩根尺 的判準表判小改／大改。**不看 Tier**。
 3. 讀 `<專案>/docs/reference/design-map.md`；不存在 → 進 §首次偵測。
 4. 存在 → 跑 §失效檢查。
