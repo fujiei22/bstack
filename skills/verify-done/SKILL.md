@@ -50,6 +50,8 @@ description: |
 - T2 全部
 - 跑**整個 test suite**
 - 若改動含 UI / DOM / browser code（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）→ **載入 `frontend-test` skill** 跑 Playwright MCP e2e（必跑）
+
+　**例外**：落在 skill 定義目錄底下的前端檔（`skills/*/assets/`、`skills/*/references/` 等）**不觸發** —— 那些是**工具範本、非可執行頁面**（例如只靠 `Object.assign(window,…)` 導出、沒有 HTML 宿主的元件片段），e2e 無從跑起。判準與 `design-language` §使用契約 第 1 步一致。
 - 若改動含 DB → 跑 migration dry-run + schema diff 對齊
 
 ---
@@ -79,6 +81,8 @@ description: |
 ## §UI / browser e2e
 
 改動含 UI / 前端檔（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）時觸發。**載入 `frontend-test` skill** 委派執行：
+
+　**例外**：落在 skill 定義目錄底下的前端檔（`skills/*/assets/`、`skills/*/references/` 等）**不觸發** —— 那些是**工具範本、非可執行頁面**（例如只靠 `Object.assign(window,…)` 導出、沒有 HTML 宿主的元件片段），e2e 無從跑起。判準與 `design-language` §使用契約 第 1 步一致。
 
 | Tier | 行為 |
 |---|---|
