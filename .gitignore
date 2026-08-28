@@ -3,6 +3,12 @@
 /gstack
 /huashu-design
 
+# 設計 lane 的工作產物（不入版控）
+# design-demos：三方向 mockup 與截圖，選定後即可刪
+# .design-gate：0b′ 判定結果，branch 生命週期內有效，階段 C1 的 hook 讀它
+**/design-demos/
+**/.design-gate
+
 # Claude Code per-cwd 權限白名單（per-machine，不入 repo）
 **/.claude/settings.local.json
 

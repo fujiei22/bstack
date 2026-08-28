@@ -808,12 +808,11 @@ git commit -m "refactor: brainstorm 移除 0c/0d 各自發問的舊指示"
 cd "$(git rev-parse --show-toplevel)" && ok=1
 grep -qF "**/design-demos/" .gitignore || { echo "MISS: .gitignore design-demos"; ok=0; }
 grep -qF "**/.design-gate" .gitignore || { echo "MISS: .gitignore design-gate"; ok=0; }
-test -f docs/reference/design-map.md || { echo "MISS: design-map.md 不存在"; ok=0; }
-for p in "docs/css/styles.css" "外部 stylesheet" "[data-theme]" ; do
-  grep -qF "$p" docs/reference/design-map.md 2>/dev/null || { echo "MISS(map): $p"; ok=0; }
-done
+# 地圖為臨時產物（user 決定不進版控），驗收後刪除 → 驗它「不存在」
+test -f docs/reference/design-map.md && { echo "MISS: 臨時地圖應已在驗收後刪除"; ok=0; }
 test -f docs/work/feat/design-lane/verify-stage-a.md || { echo "MISS: 驗收記錄未落檔"; ok=0; }
-for p in "V1" "V2" "V4" "2 題" "3 題" ; do
+# 地圖內容改由驗收記錄承載（記錄不刪，證據才留得住）
+for p in "V1" "V2" "V4" "2 題" "3 題" "docs/css/styles.css" "外部 stylesheet" "[data-theme]" ; do
   grep -qF "$p" docs/work/feat/design-lane/verify-stage-a.md 2>/dev/null || { echo "MISS(verify): $p"; ok=0; }
 done
 grep -rqiE "花叔|alchaincyf|design-philosophy|huashu-gpt-image" skills/ && { echo "MISS: skills/ 有上游識別字串"; ok=0; }
