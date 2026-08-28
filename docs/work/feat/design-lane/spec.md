@@ -1,7 +1,7 @@
 # 設計 lane：把 huashu-design 精選整合進 dev-workflow
 
 > Track: Dev | Tier: T3 | 建立: 2026-08-28
-> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D23，每條含實據與 user 原話）
+> 決策依據：`docs/work/feat/design-lane/interview-log.md`（D1-D25，每條含實據與 user 原話）
 
 ## 動機 / Why
 
@@ -259,7 +259,8 @@ user 在任務開頭訂的硬約束是「MIT 版權聲明必須隨程式碼保�
 1. ~~兩個新 skill 的正式命名~~ → **已定（D18）**：`design-direction`（主，定設計方向）＋ `design-language`（能力，辨識與對齊既有設計語言）。避開 Claude Code 內建的 `design` skill（畫布工具）。
 2. ~~作者原話的處理方式~~ → **已定（D23）**：照搬／改寫上游內容，不放任何聲明。作者原話本身（人名、引號原話）仍全部移除，改寫成中性敘述並保留案例事實。
 3. ~~`.design-gate` 的格式與位置~~ → **已定（D22）**：`docs/work/<branch-name>/.design-gate`，KEY=VALUE 純文字，**不進版控**（`.gitignore` 提前到階段 A）。落檔時機延到 branch 建立後、與寫 `spec.md` 同一步（review C1 修正）。
-4. **hook 逃生門的形式**（階段 C1 前必須拍板）：環境變數（等價 `SKIP_DESIGN_GATE=1`）／專用檔案／其他。**這是 C1 唯一未決項**，且因 C1 一 merge 就會擋 user 自己的編輯，逃生門必須好按。
+4. ~~hook 逃生門的形式~~ → **已定（D25）**：**不另設逃生門**。hook 只問「這支 branch 跑過 0b′ 了嗎」，跑過即解鎖。環境變數方案因實測限制排除（`Write`/`Edit` hook 的輸入沒有地方 inline 帶 env var）。誤擋時的唯一出路是手動改 `~/.claude/settings.json`。
+   > 配套：**D24** 把 `.design-gate` 的落檔改綁 `involved`、不綁 Tier，補掉「T0 不寫 spec → 永遠沒有 `.design-gate` → 永遠被擋」的洞。
 5. **`.sass` 到底收不收**（review M1）：**實測** `skills/` 內共五處副檔名清單（`verify-done:52`、`verify-done:81`、`frontend-test:8`、`frontend-test:31`、`dev-workflow:230`），其中**只有 `frontend-test:8` 一處含 `.sass`**。階段 A 的 `design-language` §前端副檔名 暫不收，與多數處對齊。要收的話需同時補回 `verify-done` 兩處與 `dev-workflow` 一處。
 
 ---

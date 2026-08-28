@@ -355,6 +355,28 @@
 - **本紀錄的立場**：照 user 決定執行，但**不記載為「已符合授權要求」**。
 - **user 當時怎麼說**：先問「這個 MIT 會跟上游 repo 有關嗎？」→ 經授權條款、表達 vs 想法之分、以及合法替代路徑的說明後，選「照搬上游內容，但不放聲明」。
 
+### D24 · `.design-gate` 落檔綁 `involved`、不綁 Tier（補 T0 洞）
+
+- **決定了什麼**：`design.involved=true` 就寫 `.design-gate`，**與 Tier 無關**——T0 也寫（只是仍不寫 `spec.md`）。
+- **依據哪個實據**（階段 C1 開工前查證發現，屬階段 A 埋下的洞）：
+  - `skills/brainstorm/SKILL.md:138`「**T0** 不寫 spec」
+  - 同檔 `:192`「`design.involved=true` 時：**與 `spec.md` 同一步**寫出 `.design-gate`」
+  - → **T0 的 task 永遠不會產生 `.design-gate`**，而 C1 hook 的規則是「檔不存在 → `exit 2`」→ **T0 ＋ 前端改動 = 永遠被擋死**，而 T0 正是「改 1 行 / typo / 純設定值」這種最常見的小改
+  - 可行性：T0 要改 repo 內的前端檔，本來就得先開 branch（否則 `hooks/branch-safety.ps1` 先擋），開了 branch 就寫得出 `.design-gate`
+- **user 當時怎麼說**：`AskUserQuestion` 選「落檔改綁 involved、不綁 Tier（推薦）」。
+- **待改位置**：`skills/brainstorm/SKILL.md` §spec 文件結構與落檔（本次由階段 C1 一併修）
+
+### D25 · 不另設逃生門，「跑一次判定」就是門
+
+- **決定了什麼**：`hooks/design-gate.ps1` 只問一件事——這支 branch 跑過 0b′ 了嗎？跑過就解鎖，之後都放行。**不設 `SKIP_*` 環境變數、不設 skip 檔、不設 skip 欄位。**
+- **依據哪個實據**：
+  - **環境變數方案被實測限制排除**：上游 hook 攔的是 **Bash 指令**，所以能在指令前加 `SKIP_DESIGN_GATE=1` 讓 hook grep 到；本 hook 攔的是 **`Write`／`Edit`**，收到的 JSON 只有 `file_path` 與內容，**沒有任何地方可以 inline 帶環境變數**。只能在啟動 Claude Code 前設，粒度是整個 session 且要重開才關得掉。
+  - 專用 skip 檔的問題是 **sticky**：忘了刪就永遠開著，而且它也在 `.gitignore` 裡、沒人看得到門是開的。
+  - 寫進 `.design-gate` 的 skip 欄位更糟：它依賴該檔先存在，而「檔根本不在」正是最常被擋的情境——逃生門在最需要它的時候沒地方寫。
+  - 配上 D24 之後，解鎖門檻本來就很低（跑一次判定，那本來就是想要的行為）。
+- **user 當時怎麼說**：`AskUserQuestion` 選「不另設，『跑一次判定』就是門（推薦）」。
+- **已知代價（user 已看過並接受）**：真的遇到 hook 誤擋（bug）時，唯一出路是手動改 `~/.claude/settings.json` 拿掉那條 hook。
+
 ---
 
 ## 訪談收斂總結（D1-D16）
