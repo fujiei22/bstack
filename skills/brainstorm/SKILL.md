@@ -20,6 +20,8 @@ description: |
 1. 進 Phase 0 五子步驟（0a → 0b → 0b′ → 0c → 0d），不跳過。
 2. 0b′／0c／0d 的判定**合併成一個 `AskUserQuestion` 一次確認**（見 §Phase 0c/0d 合併確認）；**禁文字 token NLP 判斷**。
 3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
+3.5 **`design.size=大改` 且第 3 題選了「出三版」** → 此時 branch 已建立、spec 已落檔，**載入 `design-direction`** 走三方向流程；選定後**回寫本檔的「設計方向」段落**（`direction_decided` / `user_choice_quote` / 資產清單），再進第 4 步交棒。
+   第 3 題選了「跳過三方向」→ 不載入 `design-direction`，把**理由**寫進「設計方向」段落，直接進第 4 步。
 4. T0 → user 點頭後直接交實作；T1+ → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
 
 **硬規定**：任何實作動作（寫 code / 改檔 / 跑 build / 安裝套件）一律等 spec 與 tier 敲完。**包括 trivial 看起來「一行就好」的 task** — 由 Tier 判定，不是你決定。
@@ -80,6 +82,8 @@ description: |
 **禁止用 Tier 推導 `size`**。0d 還沒判，這裡也不准先看量體猜。細則見 `design-language` §兩根尺。
 
 **判不出來時**：`map_status: absent`（專案尚無設計語言）照樣繼續、`precedent=false`，不要卡住流程。
+
+**本階段只判不做**。`size=大改` 的三方向流程在 **branch 建立且 spec 落檔之後**才跑（見 §spec 文件結構與落檔），**不得在 Phase 0 期間載入 `design-direction`**——它要寫 `docs/work/<branch-name>/` 底下的檔，而 Phase 0 仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉。
 
 ## §Phase 0c — Track 判定
 
@@ -151,6 +155,8 @@ T0 / T1 / T2 / T3。Heuristic：
 把三者並列在同一個選單，用意是讓 `Tier` 與 `design.size` 的錯位當場可見——「T1 ＋ 大改」（改一個站的整體視覺）或「T3 ＋ 小改」（10 個元件加同一個 loading state）都是合法組合。
 
 ## §spec 文件結構與落檔
+
+**順序（硬規則）**：合併確認 → `git checkout -b <branch>` → 寫 `spec.md` → **（`size=大改` 且選了出三版時）載入 `design-direction`** → 回寫「設計方向」段落 → 交棒。三方向的產出全落在 `docs/work/<branch-name>/design-demos/`，**branch 不存在就跑不了**。
 
 **T0** 不寫 spec。其餘按下面結構寫至 `docs/work/<branch-name>/spec.md`：
 
