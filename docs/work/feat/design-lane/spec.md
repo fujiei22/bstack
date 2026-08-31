@@ -79,7 +79,7 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 | 1 | **A · 能力層** | `design-language` skill、`design-map.md`、對齊檢查清單、`brainstorm` 0b′、`dev-workflow` 觸發表與 state 欄位、`.gitignore` | **小改路徑**（讀設計語言 → 改 code → 四項對齊檢查） | 低、自包含 | ✅ 已完成上線 |
 | 2 | **B1 · skill 本體** | `design-direction` skill（SKILL.md 改寫 ＋ **6 reference 繁化／修剪／結構性改寫至約 1,345 行** ＋ 2 資產）、`design-language` 與 `verify-done` 各加一條 `skills/**` 排除 | 三方向能力就位（尚未接上流程） | 中（全新建檔 ＋ 兩處既有 skill 加排除） | ✅ 已完成上線（驗收見 `verify-stage-b1.md`） |
 | 3 | **B2 · 流程接點** | `brainstorm` 合併確認第 3 題加設計路徑、三方向載入點、`execute-plan` 中途轉進、`verify-done` 漏網複查、`write-plan` 讀定案方向、`dev-workflow` 接上 `design-direction`、收掉兩個 skill 的「還沒接上」自述 | **大改路徑接通（V5 端到端未實跑）** | 中高（動所有 task 必經之路） | ✅ 已完成（驗收見 `verify-stage-b2.md`） |
-| 4 | **C · 收尾** | `setup.ps1` 孤兒偵測 | S7 達成 | 高（會刪 `~/.claude` 內容） | 待做 |
+| 4 | **C · 收尾** | `setup.ps1` 孤兒偵測（兩態：預設只列不刪、`-RemoveOrphans` 才刪；三道守衛：repo 側清單為空即中止、身分哨兵、比例上限） | S7 達成 | 高（會刪 `~/.claude` 內容） | ✅ 已完成（驗收見 `verify-stage-c.md`） |
 
 **曾經存在的 C1「最小 gate」已於 D26 廢除**（原規劃：`hooks/design-gate.ps1` ＋ `settings.json` 註冊）。原本的 C2 只剩 `setup.ps1` 孤兒偵測，併回 C。
 
@@ -248,8 +248,8 @@ user 在任務開頭訂的硬約束是「MIT 版權聲明必須隨程式碼保�
 | V6 | 中途轉進（**階段 B**） | 模擬 execute-plan 途中冒出前端需求，確認暫停 → 補判 → 處理 → 回寫 `plan.md` → 接回原 task |
 | V7 | 漏網複查（**階段 B**） | 令 Phase 0 判 `ui_involved=false` 但實際改到 `.css`，確認 verify-done 觸發補判 |
 | V8 | 識別字串清乾淨 | 指令：`grep -rniE "花叔\|alchaincyf\|design-philosophy\|huashu-gpt-image\|huashu-md-html\|Huashu-Design" skills/`，須零命中。**階段 B 搬 10 個上游檔時是主要驗收工具。注意：依 D23 不放聲明，本項通過不代表授權合規** |
-| V9 | 孤兒偵測（**階段 C**） | 暫時改名一個 skill 目錄後跑 `setup.ps1`，確認舊名被列出並詢問，未經確認不刪 |
-| V10 | setup 不壞既有行為（**階段 C**） | 跑 `setup.ps1`，確認既有 25 skill、2 hook、6 agent、settings merge 行為全部照舊 |
+| V9 | 孤兒偵測 | ✅ 造真孤兒（整包 ＋ 殘留檔各一）後跑 `setup.ps1`：兩類分開列出、`-Yes` **不刪**、`-RemoveOrphans` 才刪、再跑回「無孤兒」。**「詢問」由 agent 走 `AskUserQuestion` 承擔**，script 不做互動確認（理由見 `verify-stage-c.md`）。另實測身分哨兵擋住「在別的 repo 裡跑 `-RemoveOrphans`」 |
+| V10 | setup 不壞既有行為 | ✅ 跑 `setup.ps1`，確認既有 **27** skill、2 hook、6 agent、settings merge 行為全部照舊（階段 C 實測：`allow` 24 條、9 個 top-level key、hook 絕對路徑皆完好） |
 
 ## 風險與 trade-off
 
