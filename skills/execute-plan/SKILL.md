@@ -38,11 +38,45 @@ description: |
 對每個 task：
 
 1. `TaskUpdate` → `in_progress`
-2. 讀 task 5 個 step
+2. 讀 task 5 個 step，**並比對要動的檔是否都在 `codebase_impact.files` 內**；有前端檔不在清單 → 進 §前端檔處理 的例外分支
 3. **進 tdd-cycle**：嚴格紅 → 跑紅 → 綠 → 跑綠 → commit
 4. 遇 verify command → 跑 → 印 output → 確認 expected
 5. `TaskUpdate` → `completed`
 6. 進下個 task / 下個 group
+
+---
+
+## §前端檔處理
+
+**先講常規**：task 要動的前端檔**在** `codebase_impact.files` 裡 → 照 §Task 推進規則 第 3 步之前載 `design-language`、寫完跑 `design-language §對齊檢查清單` 四項（元件狀態 / 斷點 / 表單 / dark mode）。這是既有規則，見 `dev-workflow` §跨流程 skill 觸發。
+
+**本節其餘講的是例外**：施工中發現要動的前端檔，不在 `codebase_impact.files` 裡——也就是 Phase 0 沒看到它。
+
+判斷副檔名用 `design-language` §前端副檔名 那份清單（**不在本檔重列**），排除同樣照 `design-language` §使用契約 第 1 步：剔除 `~/.claude/skills/**`，或 repo 內含 `*/SKILL.md` 的 `skills/**`。**不得用裸 `skills/` 比對**——`design-language` 明文說明理由：某個專案可能有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除。
+
+**動作（五步）**：
+
+1. **暫停當前 task**，`TaskUpdate` 維持 `in_progress`，**不 commit 半成品**。
+2. **補判**：載入 `design-language`，把新冒出的檔交給它，取回 `design.*` 六欄。
+3. **依 `size` 分流**：
+   - **小改** → 跑 `design-language §對齊檢查清單` 四項，通過就繼續寫 code
+   - **大改** → **先查 `spec.md` 是否已有 `direction_decided`**：有值代表本 task 走過三方向，**照已定案方向做，不重問**。沒有才**升級為 user gate**，走 `AskUserQuestion`：
+     1. 現在轉進三方向（`design-direction`）
+     2. 縮回小改範圍、只做沿用既有 token 的版本
+     3. 這個前端改動其實不必要，撤掉
+     4. 切成本 branch 內的獨立 task 之後再做（**不另開 branch**）
+     5. 接受它是大改、照既有 token 做完並記入技術債
+     6. 暫停整個 plan 重新 brainstorm——此時未 commit 的改動一律 `git stash`，不丟棄
+     > **不得自行選定後繼續**。大改代表有新的視覺決策要做，那是 user 的決定不是實作細節。
+     > **無人值守**時停在這裡等，**不得自選**（對齊 `design-direction` §使用契約 的同一條禁令）。
+4. **回寫 state**：把補判結果寫回 `state.design`（`involved=true`、`size` 依補判），原值存進 `design_rejudge[].design_before`。**大改才另外回寫 `plan.md`**（在該 task 底下追加 `轉進紀錄`）——小改只進 state，不必動 plan，否則「順手多改一個 `.css`」的成本過重。
+   > 為什麼一定要回寫 `state.design`：不回寫的話 `verify-done` §漏網複查 會對同一批檔**再觸發一次**；大改情境甚至會把 user 五分鐘前答過的問題再問一次並升成 blocker。
+5. **接回 §Task 推進規則 第 3 步（tdd-cycle）**，從中斷處繼續，**不必整個紅綠循環重來**。
+
+**禁止**：
+- 發現前端檔卻只在心裡記一下就繼續寫
+- 把中途轉進當 §Blocker 處理然後停在那裡——轉進**有明確回歸點**，是繞路不是撞牆
+- 為了不轉進而把前端改動拆到別的 branch 偷做（選項 4 指的是**本 branch 內**的新 task）
 
 ---
 
@@ -158,6 +192,14 @@ state:
   tasks_completed: <N>
   commits: [<sha>, ...]
   parallel_executed_groups: [...]
+  design_rejudge:               # 施工開始後對 design.* 的重判；沒發生就是空 list
+    - stage: execute-plan       # execute-plan | verify-done
+      task_id: <轉進發生在哪個 task>
+      trigger_files: [...]
+      design_before: {...}      # 補判前的六欄
+      design: {...}             # 補判後的六欄
+      action: <小改對齊|大改-user-gate|blocker>
+      user_choice: <大改時 user 選的選項|null>
   current_phase: execute-plan-done
 ```
 
