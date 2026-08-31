@@ -20,17 +20,17 @@
 
 | Task | 內容 | Step 2 紅燈 | Step 4 | commit |
 |---|---|---|---|---|
-| 1 | `brainstorm` 合併確認第 3 題收窄選單 | 7 條 | PASS | `d0d3128` |
+| 1 | `brainstorm` 合併確認第 3 題收窄選單 | 7 條 | PASS | `0e05cbc` |
 | 2 | `brainstorm` 三方向載入點（branch 之後） | 4 條 | PASS | `27c94a8` |
-| 3 | `brainstorm` spec 範本 ＋ state 三欄 | 3 條 | PASS | `9a1a1e6` |
-| 4 | `design-direction` / `design-language` 收自述 | 5 條 | PASS | `56ec1ff` |
-| 5 | `execute-plan` 常規 ＋ 中途轉進 | 14 條 | PASS | `d6c0f5a` |
-| 6 | `verify-done` 漏網複查（全 tier） | 16 條 | PASS | `9dcfe07` |
-| 7 | `write-plan` 讀定案方向 | 3 條 | PASS | `f2a2b9c` |
-| 8 | `dev-workflow` 接上 | 8 條 | PASS | `7bd4d02` |
-| 9 | 驗收 ＋ spec ＋ 全域同步 | 5 條 | PASS | 本次 |
+| 3 | `brainstorm` spec 範本 ＋ state 三欄 | 3 條 | PASS | `6864f29` |
+| 4 | `design-direction` / `design-language` 收自述 | 5 條 | PASS | `a7a2380` |
+| 5 | `execute-plan` 常規 ＋ 中途轉進 | 14 條 | PASS | `032e909` |
+| 6 | `verify-done` 漏網複查（全 tier） | 16 條 | PASS | `a876ada` |
+| 7 | `write-plan` 讀定案方向 | 3 條 | PASS | `975e10a` |
+| 8 | `dev-workflow` 接上 | 8 條 | PASS | `0baf958` |
+| 9 | 驗收 ＋ spec ＋ 全域同步 | 5 條 | PASS | `75ea217` |
 
-> commit hash 以 `git log` 為準。
+> 另有三個施工中產生的修正 commit：`a17ef18`（write-plan 補 `user_choice_quote`）、`c0c9415`（description 併掉重複觸發行）、`449ca6f`（plan 的 0b′ guard 改錨定粗體）。
 
 ---
 
