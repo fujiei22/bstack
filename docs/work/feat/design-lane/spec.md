@@ -240,12 +240,12 @@ user 在任務開頭訂的硬約束是「MIT 版權聲明必須隨程式碼保�
 
 | # | 驗收項 | 怎麼驗 |
 |---|---|---|
-| V1 | 0b′ 判定生效 | 對一個純後端改動與一個前端改動各跑一次 Phase 0，確認前者 `ui_involved=false`、後者 `true`，且四項在同一個 `AskUserQuestion` 出現 |
+| V1 | 0b′ 判定生效 | ✅ **兩半分別實跑**：`involved=false` 半段在「流程圖補設計 lane」任務實跑（改動檔 `docs/js/data.js`，`.js` 不在前端副檔名清單 → `involved=false`；佐證 legend／phase 皆資料驅動、`styles.css` per-phase 硬編 0 命中，故該 false 是正確而非漏判）；`involved=true` 半段見 V4（stage A 真的改了 `docs/css/styles.css` 再還原）。**合併確認四項同框仍為推演**（`verify-stage-a.md:54`） |
 | V2 | 分區不誤植（**部分**，見 S3 註） | 在 bstack 產出 `docs/reference/design-map.md`，確認 `docs/` 被獨立辨識、token 來源指向 `docs/css/styles.css`、dark 機制欄記為 `[data-theme]`（**實測：該檔 `prefers-color-scheme` 零命中、`@media` 零命中，dark 走 `:root[data-theme="dark"]`（`:47`）**）。多區分歧路徑本專案驗不到 |
 | ~~V3~~ | ~~hook 真的擋~~ | **D26 廢除**（無 hook）。取代：確認 `CLAUDE.md` §設計語言對齊 條文存在且被 `setup.ps1` 同步到 `~/.claude/CLAUDE.md` |
 | V4 | 小改路徑（S8） | 對 `docs/` 做一次小改，確認走「讀設計語言 → 改 code → 四項對齊檢查」且不觸發三方向 |
-| V5 | 大改路徑（S8，**階段 B**） | 對 `docs/` 做一次大改，確認出三版、選定後回寫 `spec.md`、`design-demos/` 未進版控 |
-| V6 | 中途轉進（**階段 B**） | 模擬 execute-plan 途中冒出前端需求，確認暫停 → 補判 → 處理 → 回寫 `plan.md` → 接回原 task |
+| V5 | 大改路徑（S8） | ✅ **已實跑**：對 bstack `docs/` 站跑過完整三方向（3 個 subagent、截圖、user 選定），並抓到一個真 bug——「輸出尺寸」被三版一致理解成固定畫板而非視口，修正已落在 `design-direction/SKILL.md`（§起手四項 ＋ §產出自檢 的 `grep -E 'width: *(1440\|1280\|1920)px'` 零命中斷言）。**產物依 user 指示全部捨棄，不另寫驗收檔**（user 決定，2026-08-31）。可稽核的殘留證據只有該 skill 的 diff |
+| V6 | 中途轉進 | ⏳ **待真實觸發**（user 決定，2026-08-31：不構造 fixture）。目前只有桌上推演（`verify-stage-b2.md:86`，含組合推演 3e）。**觸發條件**：某個 task 在 Phase 0 判 `involved=false`，執行中卻要動到前端副檔名的檔。實測 bstack 現無此類現成任務——「流程圖補設計 lane」全落在 `.js`，不會觸發。下一次真觸發時補寫 `verify-stage-v6.md` |
 | V7 | 漏網複查（**階段 B**） | 令 Phase 0 判 `ui_involved=false` 但實際改到 `.css`，確認 verify-done 觸發補判 |
 | V8 | 識別字串清乾淨 | 指令：`grep -rniE "花叔\|alchaincyf\|design-philosophy\|huashu-gpt-image\|huashu-md-html\|Huashu-Design" skills/`，須零命中。**階段 B 搬 10 個上游檔時是主要驗收工具。注意：依 D23 不放聲明，本項通過不代表授權合規** |
 | V9 | 孤兒偵測 | ✅ 造真孤兒（整包 ＋ 殘留檔各一）後跑 `setup.ps1`：兩類分開列出、`-Yes` **不刪**、`-RemoveOrphans` 才刪、再跑回「無孤兒」。**「詢問」由 agent 走 `AskUserQuestion` 承擔**，script 不做互動確認（理由見 `verify-stage-c.md`）。另實測身分哨兵擋住「在別的 repo 裡跑 `-RemoveOrphans`」 |
@@ -270,7 +270,8 @@ user 在任務開頭訂的硬約束是「MIT 版權聲明必須隨程式碼保�
 3. ~~`.design-gate` 的格式與位置~~ → **已定（D22）**：`docs/work/<branch-name>/.design-gate`，KEY=VALUE 純文字，**不進版控**（`.gitignore` 提前到階段 A）。落檔時機延到 branch 建立後、與寫 `spec.md` 同一步（review C1 修正）。
 4. ~~hook 逃生門的形式~~ → **已定（D25）**：**不另設逃生門**。hook 只問「這支 branch 跑過 0b′ 了嗎」，跑過即解鎖。環境變數方案因實測限制排除（`Write`/`Edit` hook 的輸入沒有地方 inline 帶 env var）。誤擋時的唯一出路是手動改 `~/.claude/settings.json`。
    > 配套：**D24** 把 `.design-gate` 的落檔改綁 `involved`、不綁 Tier，補掉「T0 不寫 spec → 永遠沒有 `.design-gate` → 永遠被擋」的洞。
-5. **`.sass` 到底收不收**（review M1）：**實測** `skills/` 內共五處副檔名清單（`verify-done:52`、`verify-done:81`、`frontend-test:8`、`frontend-test:31`、`dev-workflow:230`），其中**只有 `frontend-test:8` 一處含 `.sass`**。階段 A 的 `design-language` §前端副檔名 暫不收，與多數處對齊。要收的話需同時補回 `verify-done` 兩處與 `dev-workflow` 一處。
+5. **docs 站的 `references-data.js` 缺兩個 skill、且產出器不存在**（2026-08-31 實測）：該檔收錄 25 skill ＋ 6 agent，缺的正是本 branch 新增的 `design-direction` 與 `design-language`。檔頭自述「產出器：`scripts/build-references.ps1`」，但 `scripts/` 底下**只有 `setup.ps1`**——那支產出器不在 repo 裡。要補齊需先補寫產出器。**明確排除在本 branch 之外**，列為 follow-up。
+6. **`.sass` 到底收不收**（review M1）：**實測** `skills/` 內共五處副檔名清單（`verify-done:52`、`verify-done:81`、`frontend-test:8`、`frontend-test:31`、`dev-workflow:230`），其中**只有 `frontend-test:8` 一處含 `.sass`**。階段 A 的 `design-language` §前端副檔名 暫不收，與多數處對齊。要收的話需同時補回 `verify-done` 兩處與 `dev-workflow` 一處。
 
 ---
 
