@@ -194,7 +194,8 @@ for p in \
   grep -qF "$p" "$f" 2>/dev/null || { echo "MISS: $p"; ok=0; }
 done
 # 載入點必須出現在 §spec 文件結構與落檔 之後，不得在 §Phase 0b′ 之內
-awk '/^## §Phase 0b′/{a=1} /^## §Phase 0c —/{a=0} a && /載入 `design-direction`/{print "MISS: 載入點誤放在 0b′ 內"; f=1} END{exit f}' "$f" || ok=0
+# 反向 guard：0b′ 內不得出現「載入」的祈使形（粗體）；禁令句（「不得…載入」）不算
+awk '/^## §Phase 0b′/{a=1} /^## §Phase 0c —/{a=0} a && /\*\*載入 `design-direction`\*\*/{print "MISS: 載入點誤放在 0b′ 內"; f=1} END{exit f}' "$f" || ok=0
 awk '/^## §spec 文件結構與落檔/{a=1} a && /載入 `design-direction`/{seen=1} END{exit !seen}' "$f" \
   || { echo "MISS: 載入點不在 §spec 文件結構與落檔 之內"; ok=0; }
 # regression guard：0b′ 不寫檔的硬規則不得被動到
