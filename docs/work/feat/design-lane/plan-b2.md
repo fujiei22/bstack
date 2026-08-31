@@ -442,7 +442,7 @@ grep -qF "**禁猜**：don't guess your way through。" "$f" || { echo "MISS(reg
 
 **先講常規**：task 要動的前端檔**在** `codebase_impact.files` 裡 → 照 §Task 推進規則 第 3 步之前載 `design-language`、寫完跑 `design-language §對齊檢查清單` 四項（元件狀態 / 斷點 / 表單 / dark mode）。這是既有規則，見 `dev-workflow` §跨流程 skill 觸發。
 
-**本節其餘講的是例外**：施工中發現要動的前端檔**不在** `codebase_impact.files` 裡——也就是 Phase 0 沒看到它。
+**本節其餘講的是例外**：施工中發現要動的前端檔，不在 `codebase_impact.files` 裡——也就是 Phase 0 沒看到它。
 
 判斷副檔名用 `design-language` §前端副檔名 那份清單（**不在本檔重列**），排除同樣照 `design-language` §使用契約 第 1 步：剔除 `~/.claude/skills/**`，或 repo 內**含 `*/SKILL.md` 的 `skills/**``。**不得用裸 `skills/` 比對**——`design-language:26` 明文說明理由：某個專案可能有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除。
 
@@ -555,7 +555,7 @@ grep -qF "全綠 → 交棒 request-review" "$f" || { echo "MISS(reg): 交棒條
 
 1. 取本 branch 的改動清單。`<base>` = `state.commits` 第一個 commit 的 parent；**`state.commits` 不存在**（verify-done 被單獨呼叫、或上游是 tdd-cycle）→ fallback `$(git merge-base origin/main HEAD)`；兩者都取不到 → **不觸發**，在結果標 `design_rejudge` 未執行與原因。
 2. **副檔名與排除判準一律依 `design-language`**（§前端副檔名 ＋ §使用契約 第 1 步的 skill 定義目錄排除 ＋ §首次偵測 的 `node_modules` / `dist` / `build` / `vendor` / gitignore 命中 / `design-demos` 排除）。**不在本檔重列清單，也不得用裸 `skills/` 比對。**
-3. 篩掉**已被 `design_rejudge` 處理過的檔**（`execute-plan` 中途轉進已經處理過的不重複觸發）。
+3. **已被 `design_rejudge` 處理過的檔不重複觸發**——`execute-plan` 中途轉進處理過的，不必在這裡再來一次。
 4. 剩下的清單非空，且 `state.design.involved` 為 `false`、或該檔不在 `state.design.scope` 對應的範圍內（`scope` 對不上）→ 觸發。
 
 **動作**：
