@@ -1,14 +1,14 @@
 ---
 name: design-direction
 description: |
-  定設計方向（繁中）。觸發：三方向 / 設計方向 / 出幾版 / 視覺提案 /
-  mockup / 改版 / 新頁面 / 新區塊 / 反 slop / 設計評審 / 這樣好不好看。
+  定設計方向（繁中）。觸發：brainstorm 0c/0d 合併確認第 3 題選「出三版」時自動載入；
+  或 user 顯式提三方向 / 設計方向 / 出幾版 / 視覺提案 / mockup / 改版 /
+  新頁面 / 新區塊 / 反 slop / 設計評審 / 這樣好不好看。
   涵蓋：三方向硬門、可變維度（有無先例）、三 subagent 並行、產出落檔、
   反 AI slop、React+Babel 技術紅線、6 維度評審。
   分工：既有事實（這區長什麼樣）→ `design-language`；新設計決策 → 本 skill；
   改完要驗畫面 → `frontend-test`。
   上游：`design-language`（供給設計語言）。下游：`write-plan`（依定案方向拆 task）。
-  觸發：brainstorm 0c/0d 合併確認第 3 題選「出三版」時自動載入；user 亦可顯式呼叫。
 ---
 
 # design-direction
