@@ -122,7 +122,8 @@ for p in \
   grep -qF "$p" "$f" 2>/dev/null || { echo "MISS: $p"; ok=0; }
 done
 grep -qF "不代表同意刪除" "$f" || { echo "MISS: 缺 -Yes 語意聲明"; ok=0; }
-grep -qE "^Invoke-DetectOrphans " "$f" || { echo "MISS: main 未呼叫"; ok=0; }
+# 呼叫必須包在身分哨兵的 if 裡（Step 3 規定），所以不能用行首錨定
+grep -qF "Invoke-DetectOrphans -RepoRoot" "$f" || { echo "MISS: main 未呼叫"; ok=0; }
 # --- 反向：互動分支必須不存在 ---
 grep -qF "Read-Host" "$f" && [ "$(grep -c 'Read-Host' "$f")" != "1" ] && { echo "MISS: Read-Host 應只剩備份提醒那一處，實際 $(grep -c 'Read-Host' "$f") 處"; ok=0; }
 grep -qF "UserInteractive" "$f" && { echo "MISS: 不得使用 UserInteractive（實測恆為 True）"; ok=0; }

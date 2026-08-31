@@ -16,6 +16,7 @@
          agents/<name>.md                → agents/<name>.md
          settings.json                   → settings.json（**merge、非覆蓋**；轉 ${CLAUDE_PROJECT_DIR} 為絕對路徑）
     4. playwright MCP：user scope 未裝則裝上（含 --isolated；已裝但缺 flag 只警告不代改）
+    5. 孤兒偵測：列出 global 有、repo 沒有的 skill / agent（**預設不刪**，需 -RemoveOrphans）
 
   settings.json merge 語意（本機優先）：
     hooks / statusLine        → 以 repo 為準（更新 hook 路徑正是本腳本目的）
@@ -34,13 +35,18 @@
   跳 pre-flight 版本檢查（debug 用）。
 
 .PARAMETER Yes
-  跳備份提醒（適 CI / 自動化）。
+  跳備份提醒（適 CI / 自動化）。**不代表同意刪除孤兒。**
+
+.PARAMETER RemoveOrphans
+  同意刪除孤兒（`~/.claude/skills` 與 `~/.claude/agents` 內 repo 沒有的項目）。
+  **不給這個開關就只列出、不刪。** `-Yes` 不代表同意刪除——它只跳備份提醒。
 #>
 
 [CmdletBinding()]
 param(
     [switch]$SkipPrereqCheck,
-    [switch]$Yes
+    [switch]$Yes,
+    [switch]$RemoveOrphans
 )
 
 $ErrorActionPreference = 'Stop'
@@ -446,6 +452,165 @@ function Invoke-EnsurePlaywrightMcp {
     Write-Host "  [new  ] 已安裝（--sandbox --isolated）"
 }
 
+# === Step 3: 孤兒偵測 ===
+
+function Get-OrphanItems {
+    <#
+    .SYNOPSIS
+      比對 repo 與 global，回傳孤兒清單。**只掃 skills 與 agents，不碰其他任何東西。**
+
+    .DESCRIPTION
+      純比對，不刪任何檔案。
+
+      前置守衛：repo 側 skills 或 agents 清單為空 → 直接回空並警告。
+      理由：`$repoRoot` 取自 cwd（見 main 區），若在別的 repo 或空 working tree 執行，
+      global 的每一個項目都會被判成孤兒。sync 端遇到 repo 無 skills/ 是靜默跳過，
+      最壞組合是「sync 什麼都沒做、刪除照跑全力」。
+
+    .OUTPUTS
+      hashtable：@{ Whole = <整包孤兒路徑>; Stale = <活 skill 內的殘留檔路徑> }
+    #>
+    param(
+        [Parameter(Mandatory)][string]$RepoRoot,
+        [Parameter(Mandatory)][string]$GlobalDir
+    )
+
+    $empty = @{ Whole = @(); Stale = @() }
+
+    $repoSkills   = Join-Path $RepoRoot 'skills'
+    $repoAgents   = Join-Path $RepoRoot 'agents'
+    $globalSkills = Join-Path $GlobalDir 'skills'
+    $globalAgents = Join-Path $GlobalDir 'agents'
+
+    # --- 前置守衛：repo 側清單為空就中止 ---
+    $repoSkillNames = @()
+    if (Test-Path -LiteralPath $repoSkills) {
+        $repoSkillNames = @(Get-ChildItem -LiteralPath $repoSkills -Directory | ForEach-Object { $_.Name })
+    }
+    $repoAgentNames = @()
+    if (Test-Path -LiteralPath $repoAgents) {
+        $repoAgentNames = @(Get-ChildItem -LiteralPath $repoAgents -File -Filter '*.md' | ForEach-Object { $_.Name })
+    }
+
+    if ($repoSkillNames.Count -eq 0 -or $repoAgentNames.Count -eq 0) {
+        Write-Warning "  repo 側清單為空（skills=$($repoSkillNames.Count) / agents=$($repoAgentNames.Count)），孤兒偵測中止，不刪任何東西。"
+        return $empty
+    }
+
+    $whole = @()
+    $stale = @()
+
+    # --- skills：整包孤兒 + 活 skill 內的殘留檔 ---
+    if (Test-Path -LiteralPath $globalSkills) {
+        foreach ($g in Get-ChildItem -LiteralPath $globalSkills -Directory) {
+            if ($repoSkillNames -notcontains $g.Name) {
+                $whole += $g.FullName          # 整包孤兒；不再逐檔列它底下的檔
+                continue
+            }
+            $repoDir = Join-Path $repoSkills $g.Name
+            $repoRel = @(Get-ChildItem -LiteralPath $repoDir -Recurse -File |
+                         ForEach-Object { $_.FullName.Substring($repoDir.Length).TrimStart('\','/') })
+            foreach ($gf in Get-ChildItem -LiteralPath $g.FullName -Recurse -File) {
+                $rel = $gf.FullName.Substring($g.FullName.Length).TrimStart('\','/')
+                if ($repoRel -notcontains $rel) { $stale += $gf.FullName }
+            }
+        }
+    }
+
+    # --- agents：單檔比對 ---
+    if (Test-Path -LiteralPath $globalAgents) {
+        foreach ($ga in Get-ChildItem -LiteralPath $globalAgents -File -Filter '*.md') {
+            if ($repoAgentNames -notcontains $ga.Name) { $whole += $ga.FullName }
+        }
+    }
+
+    # `,` 包一層：避免空陣列變 $null、單元素被展開成純量（同 Merge-LocalFirst 的處理）
+    return @{ Whole = ,$whole; Stale = ,$stale }
+}
+
+function Invoke-DetectOrphans {
+    <#
+    .SYNOPSIS
+      列出孤兒；**預設不刪**。刪除需顯式 `-AutoRemove`（由 main 的 `-RemoveOrphans` 傳入）。
+
+    .DESCRIPTION
+      兩態，**沒有互動確認**：
+        1. 預設                → 只列出 + 印出刪除指令
+        2. `-AutoRemove`       → 刪除
+
+      為什麼不做互動確認：Windows 上用來判斷「有沒有互動終端」的那個 .NET 屬性
+      實測恆為 True（只有 Windows Service 才是 False），偵測不到非互動執行；
+      而 `yes | pwsh -File setup.ps1` 會把每個互動提示餵成 y，等於無人值守刪除。
+      「驗不到又會刪東西」的分支直接不做——本函式全程不讀任何使用者輸入。
+      要不要刪由呼叫端（人或 agent）決定後用 `-RemoveOrphans` 重跑。
+
+      `-Yes` **不代表同意刪除**——它只跳備份提醒。
+    #>
+    param(
+        [Parameter(Mandatory)][string]$RepoRoot,
+        [Parameter(Mandatory)][string]$GlobalDir,
+        [switch]$AutoRemove
+    )
+
+    Write-Section "Step 3: 孤兒偵測（global 有、repo 沒有）"
+
+    if ($PSVersionTable.PSVersion.Major -lt 7) {
+        Write-Warning "  PowerShell $($PSVersionTable.PSVersion) < 7，跳過孤兒偵測（舊版 Remove-Item 對 junction 的行為不可靠）。"
+        return
+    }
+
+    $found = Get-OrphanItems -RepoRoot $RepoRoot -GlobalDir $GlobalDir
+    $wholeList = @($found.Whole)
+    $staleList = @($found.Stale)
+
+    if ($wholeList.Count -eq 0 -and $staleList.Count -eq 0) {
+        Write-Host "  無孤兒：global 的 skills / agents 與 repo 一致。"
+        return
+    }
+
+    if ($wholeList.Count -gt 0) {
+        Write-Host ""
+        Write-Host "  整包孤兒（repo 已無同名 skill / agent）：" -ForegroundColor Yellow
+        $wholeList | ForEach-Object { Write-Host "    $_" }
+    }
+    if ($staleList.Count -gt 0) {
+        Write-Host ""
+        Write-Host "  殘留檔（skill 還在，但這些檔 repo 已無）：" -ForegroundColor Yellow
+        $staleList | ForEach-Object { Write-Host "    $_" }
+    }
+    Write-Host ""
+
+    # --- 比例上限：孤兒數超過 global 總數一半 → 判定為偵測異常，強制只列出 ---
+    $globalTotal = 0
+    $gs = Join-Path $GlobalDir 'skills'
+    $ga = Join-Path $GlobalDir 'agents'
+    if (Test-Path -LiteralPath $gs) { $globalTotal += @(Get-ChildItem -LiteralPath $gs -Directory).Count }
+    if (Test-Path -LiteralPath $ga) { $globalTotal += @(Get-ChildItem -LiteralPath $ga -File -Filter '*.md').Count }
+
+    if ($AutoRemove -and $globalTotal -gt 0 -and $wholeList.Count -gt ($globalTotal / 2)) {
+        Write-Warning "  整包孤兒 $($wholeList.Count) 項 > global 總數 $globalTotal 的一半 —— 判定為偵測異常，強制只列出、不刪。"
+        Write-Host "  若確認無誤，請自行逐項刪除上列路徑。"
+        return
+    }
+
+    if (-not $AutoRemove) {
+        Write-Host "  **預設不刪**。確認要刪的話，重跑並加上 -RemoveOrphans：" -ForegroundColor Cyan
+        Write-Host "    pwsh -NoProfile -File scripts/setup.ps1 -RemoveOrphans"
+        Write-Host "  或自行逐項刪除上列路徑。"
+        return
+    }
+
+    foreach ($p in $wholeList) {
+        Remove-Item -LiteralPath $p -Recurse -Force
+        Write-Host "  [del  ] $p"
+    }
+    foreach ($p in $staleList) {
+        Remove-Item -LiteralPath $p -Force
+        Write-Host "  [del  ] $p"
+    }
+    Write-Host "  已刪除 $($wholeList.Count) 個整包孤兒、$($staleList.Count) 個殘留檔。"
+}
+
 # === main ===
 
 $repoRoot = (git rev-parse --show-toplevel 2>$null)
@@ -478,6 +643,14 @@ Invoke-SyncRepoFiles -RepoRoot $repoRoot -GlobalDir $globalDir
 
 Invoke-EnsurePlaywrightMcp -GlobalDir $globalDir
 
+# 身分哨兵：$repoRoot 取自 cwd，若不是 bstack repo 就不做孤兒偵測
+$sentinel = Join-Path $repoRoot 'skills/dev-workflow/SKILL.md'
+if (Test-Path -LiteralPath $sentinel) {
+    Invoke-DetectOrphans -RepoRoot $repoRoot -GlobalDir $globalDir -AutoRemove:$RemoveOrphans
+} else {
+    Write-Warning "身分哨兵 $sentinel 不存在，跳過孤兒偵測（這可能不是 bstack repo）"
+}
+
 # === Summary ===
 Write-Section "Done"
 Write-Host ""
@@ -486,4 +659,5 @@ Write-Host "✔ skills/ 全套已 sync"
 Write-Host "✔ agents/ 全套已 sync"
 Write-Host "✔ settings.json 已 merge（hooks / statusLine 取自本 repo 且路徑已轉絕對；本機其餘設定保留）"
 Write-Host "✔ playwright MCP 檢查完成（結果見上方 Step 2）"
+Write-Host "✔ 孤兒偵測完成（預設不刪；要刪請加 -RemoveOrphans）"
 Write-Host ""
