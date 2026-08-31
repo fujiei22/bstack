@@ -19,7 +19,7 @@ description: |
 1. **讀 spec**：從 brainstorm hand-off state 取 `spec_path`、Read 全文。
 2. **檢查 scope**：若 spec 內單一 sub-system 範圍仍過大、跨多獨立子系統，停下、提示 user 拆 sub-spec（每 sub-spec 各自走 brainstorm → write-plan）。
 2.5 **`design.size=大改` 且 `direction_decided` 有值時**：先讀 `spec.md` 的「設計方向」段落，**依定案方向拆 task**。
-   **不得推翻已定案的方向**——方向是 user 看過三版真實視覺後選的，plan 階段改方向等於把那次選擇作廢。覺得方向有問題 → 回報，不要自己換。
+   **不得推翻已定案的方向**——方向是 user 看過三版真實視覺後選的，選擇原話記在同段落的 `user_choice_quote`，plan 階段改方向等於把那次選擇作廢。覺得方向有問題 → 回報，不要自己換。
    選了「跳過三方向」時該段落記的是**跳過的理由**，`direction_decided` 為空——照一般流程拆 task 即可。
 3. **規劃檔案結構**：先列要建 / 改的檔案、每個的職責、邊界、interface。
 4. **拆 task**：每 task 5 個 bite-sized step（紅 → 跑紅 → 綠 → 跑綠 → commit）。
