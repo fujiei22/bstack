@@ -259,8 +259,8 @@ grep -oE '`[^`]+\.(css|scss|sass|ts|js|mjs|cjs)`' docs/reference/design-map.md \
 |---|---|---|
 | `brainstorm` §Phase 0b′ | Phase 0，0b 之後、0c 之前。**必跑**（含純後端 task，因為第 1 步是零成本的副檔名比對） | 六個欄位進 hand-off state；**不落檔** |
 | `execute-plan` | `design.involved=true` 且 `size=小改`，動到前端檔的 task 前後 | 前：§設計語言抽取 輸出；後：§對齊檢查清單 逐項結果 |
-| `design-direction`（階段 B） | 大改出三方向前，鎖定該區設計語言 | §設計語言抽取 輸出 |
-| `verify-done`（階段 B） | 偵測到前端檔但 `design.involved=false` 時的漏網複查 | 重跑判定 ＋ §對齊檢查清單 |
+| `design-direction` | 大改出三方向前，鎖定該區設計語言 | §設計語言抽取 輸出 |
+| `verify-done` | 實際改動檔含前端副檔名但 `design.involved=false`（或 `scope` 對不上）時的漏網複查 | 重跑判定 ＋ §對齊檢查清單 |
 
 **與 `frontend-test` 的分工**：改**之前**要對齊 → 本 skill；改**完**要驗（Playwright e2e）→ `frontend-test`。兩者觸發詞刻意不重疊。
 
