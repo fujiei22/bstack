@@ -524,8 +524,10 @@ function Get-OrphanItems {
         }
     }
 
-    # `,` 包一層：避免空陣列變 $null、單元素被展開成純量（同 Merge-LocalFirst 的處理）
-    return @{ Whole = ,$whole; Stale = ,$stale }
+    # 直接存進 hashtable：hashtable 的值不走 pipeline，陣列（含空陣列）原樣保留。
+    # 不要用 `,$arr` 包——那是給「函式回傳陣列」用的，套在 hashtable 值上會多包一層，
+    # 讓空陣列的 .Count 變成 1，「無孤兒」的判斷因此永遠不成立。
+    return @{ Whole = $whole; Stale = $stale }
 }
 
 function Invoke-DetectOrphans {
