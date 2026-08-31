@@ -75,7 +75,9 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 ```
 1. brainstorm（Phase 0 內建，含 0b′ UI 面判定）
    ↓
-   design.size=大改 → 設計 lane（**階段 B 啟用**，目前未接）
+   design.size=大改 ＋ 路徑選「出三版」→ branch 建立、spec 落檔後載 design-direction 出三版
+                                          → user 選定 → 回寫 spec.md → write-plan 依方向拆 task
+   design.size=大改 ＋ 路徑選「跳過三方向」→ 理由記入 spec.md → write-plan
    design.size=小改 → execute-plan 動前端檔的 task 前後載 design-language 跑對齊檢查
    ↓
 2. write-plan ─→ docs/work/<branch-name>/plan.md（含並行性分析 parallel-group）
@@ -86,10 +88,12 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ↓
 3. execute-plan + tdd-cycle
    遇 parallel-group >1 task → 載 dispatch-parallel 判跑法（Agent Teams / subagent / 串行）後平行
+   └─ 計畫外的前端檔 → execute-plan §前端檔處理：暫停 → 補判 → 回寫 state.design ＋ design_rejudge → 接回
    ↓
 4. verify-done
    ├─ T2+ = 多輪 verify（test + lint + build）
    └─ T3 + UI 改動 = 載 frontend-test（Playwright MCP 跑 e2e）
+   └─ 全 tier：實際改動檔含前端副檔名且未被 design_rejudge 處理過 → verify-done §漏網複查
    ↓
 5. request-review
    ├─ T1 = self review
@@ -150,9 +154,12 @@ state:
     size: <小改|大改|null>
     precedent: <bool>
     map_status: <ok|remapped|absent|unknown|pending>
+    direction_decided: <定案方向文字|null>   # size=大改 且走過三方向才有
+    user_choice_quote: <user 選擇原話|null>  # 同上
   memory_loaded: <bool>       # 0a 是否讀過 memory
   plan_path: docs/work/<branch-name>/plan.md  # write-plan 完寫入
   parallel_groups: [...]      # write-plan 內 task 並行 grouping
+  design_rejudge: [...]       # 施工開始後對 design.* 的重判（execute-plan 中途轉進／verify-done 漏網複查共用）
   current_phase: <名稱>
   trace_chain: [phase1, phase2, ...]  # 歷經 phase
   fail_history: [...]         # 每次 fail 的 retry / rollback 記錄
@@ -235,7 +242,8 @@ Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 | Skill | 觸發 |
 |---|---|
 | `db-access` | prompt 含 DB 關鍵詞 / brainstorm 0b 偵測 DB / write-plan 涉 schema / execute-plan 動 DB / review 涉 SQL |
-| `design-language` | brainstorm 0b′（**必跑**，含純後端 task）／ `design.involved=true` 且 `size=小改` 時，execute-plan **動到前端檔的 task 前後**／ user 顯式問設計語言。以下待**階段 B 啟用**：execute-plan 中途轉進、verify-done 漏網複查 |
+| `design-language` | brainstorm 0b′（**必跑**，含純後端 task）／ `design.involved=true` 且 `size=小改` 時，execute-plan **動到前端檔的 task 前後**／ execute-plan §前端檔處理 的中途轉進補判／ verify-done §漏網複查 的補判／ user 顯式問設計語言 |
+| `design-direction` | brainstorm 0c/0d 合併確認第 3 題選「出三版」，且 **branch 已建立、`spec.md` 已落檔**／ user 顯式要求出方向、評審設計。**選「跳過三方向」不載入** |
 | `lock-files` | user 顯式要鎖某些檔（動 prod / 敏感模組）|
 | `cmd-guard` | AI 將執行 rm -rf / drop / force push / sudo / dd 等危險指令 |
 | `safety-guard` | 寫入 / commit 前掃 PII / 密鑰 / token 殘留 |
