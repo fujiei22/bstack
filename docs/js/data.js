@@ -29,6 +29,7 @@ const FLOW_DATA = {
     { id: 'phase0',       label: 'Phase 1：brainstorm + Phase 0 分流',  order: 0  },
     { id: 'phase_split',  label: 'Track / Tier 分流',                   order: 1  },
     { id: 'phase_t0',     label: 'T0 直送',                             order: 1.5 },
+    { id: 'phase_design',  label: 'Phase 1.5：design-direction（大改路徑）', order: 1.8 },
     { id: 'phase_plan',   label: 'Phase 2：write-plan + review-plan',   order: 2  },
     { id: 'phase_bug',    label: 'Phase 3 (Bug)：debug-systematic',     order: 3  },
     { id: 'phase_exec',   label: 'Phase 3 (Dev)：execute-plan + TDD',   order: 3.5 },
@@ -65,6 +66,10 @@ const FLOW_DATA = {
     LoadDB:       { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：db-access\n（mysql MCP 唯讀規範）' },
     P0c:          { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'Phase 0c：Track 判定\nAskUserQuestion: Bug / Dev' },
     P0d:          { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'Phase 0d：Tier 判定\nAskUserQuestion: T0 / T1 / T2 / T3' },
+    LoadDLang:    { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：design-language\nPhase 0b′ 必跑（第 1 步是零成本副檔名比對）' },
+    DesignQ:      { phase: 'phase0', type: 'default', shape: 'diamond', label: '改動檔含前端副檔名？\n.css .scss .tsx .jsx .vue .svelte .html' },
+    DesignMap:    { phase: 'phase0', type: 'default', shape: 'rect',    label: '查 design-map.md + 失效檢查\n得 scope / scope_evidence / size' },
+    P0Design:     { phase: 'phase0', type: 'gate',    shape: 'diamond', label: '合併確認第 3 題：設計路徑\n（involved=true 且 size=大改 才出現）' },
 
     // ───────── Track / Tier 分流 ─────────
     TierSplit:    { phase: 'phase_split', type: 'default', shape: 'diamond', label: '依 Tier 分流' },
@@ -73,9 +78,15 @@ const FLOW_DATA = {
     // ───────── T0 直送 ─────────
     T0Impl:       { phase: 'phase_t0', type: 'impl', shape: 'rect', label: 'T0 直接實作\n跳 plan / TDD / review / security' },
 
+    // ───────── Phase 1.5：design-direction（僅 involved=true 且 size=大改）─────────
+    LoadDD:       { phase: 'phase_design', type: 'skill',  shape: 'rect',    label: '載入 skill：design-direction\n§使用契約 3.5：branch + spec 建立後才載' },
+    ThreeWay:     { phase: 'phase_design', type: 'agent',  shape: 'rect',    label: '3 個 subagent 各出一版\n真實內容 + 三版共用同一輸出尺寸' },
+    DemoIgnore:   { phase: 'phase_design', type: 'policy', shape: 'rect',    label: 'design-demos/ 不進版控\n.gitignore 的 **/design-demos/' },
+    UGDesign:     { phase: 'phase_design', type: 'gate',   shape: 'diamond', label: 'USER GATE：選定方向\n回寫 spec.md 的 direction_decided' },
+
     // ───────── Phase 2：write-plan + review-plan（Dev only）─────────
     LoadWP:       { phase: 'phase_plan', type: 'skill',   shape: 'rect',    label: '載入 skill：write-plan' },
-    WritePlan:    { phase: 'phase_plan', type: 'impl',    shape: 'rect',    label: '寫 docs/plans/<topic>/plan.md\nbite-sized task + 並行性分析' },
+    WritePlan:    { phase: 'phase_plan', type: 'impl',    shape: 'rect',    label: '寫 docs/work/<branch-name>/plan.md\nbite-sized task + 並行性分析' },
     LoadRP:       { phase: 'phase_plan', type: 'skill',   shape: 'rect',    label: '載入 skill：review-plan' },
     RPSplit:      { phase: 'phase_plan', type: 'default', shape: 'diamond', label: '依 Tier 分視角' },
     RPT2:         { phase: 'phase_plan', type: 'agent',   shape: 'rect',    label: 'T2：Eng-only review\n（spawn subagent 評 plan）' },
@@ -96,6 +107,8 @@ const FLOW_DATA = {
     ParaQ:        { phase: 'phase_exec', type: 'default', shape: 'diamond', label: '遇 parallel-group >1 task？' },
     LoadDispatch: { phase: 'phase_exec', type: 'skill',   shape: 'rect',    label: '載入 skill：dispatch-parallel\n（spawn 多 subagent）' },
     TDDLoop:      { phase: 'phase_exec', type: 'impl',    shape: 'rect',    label: '紅綠循環：RED → GREEN → REFACTOR\n逐 task commit' },
+    MidPivotQ:    { phase: 'phase_exec', type: 'default', shape: 'diamond', label: '§Task 推進規則 第 2 步：要動的檔\n都在 codebase_impact.files 內？' },
+    MidPivot:     { phase: 'phase_exec', type: 'gate',    shape: 'diamond', label: '§前端檔處理（中途轉進）\n暫停 → 補判 → 六選項 → 記 design_rejudge' },
 
     // ───────── Phase 4：verify-done ─────────
     LoadVerify:   { phase: 'phase_verify', type: 'skill',   shape: 'rect',    label: '載入 skill：verify-done' },
@@ -103,6 +116,8 @@ const FLOW_DATA = {
     UIQ:          { phase: 'phase_verify', type: 'default', shape: 'diamond', label: 'T3 + UI 改動？' },
     LoadFE:       { phase: 'phase_verify', type: 'skill',   shape: 'rect',    label: '載入 skill：frontend-test' },
     FEAgent:      { phase: 'phase_verify', type: 'agent',   shape: 'rect',    label: '派 agent：frontend-e2e-runner\n（Playwright 隔離 context）' },
+    LeakQ:        { phase: 'phase_verify', type: 'default', shape: 'diamond', label: '§使用契約 2.5 漏網複查（全 Tier）\n實改含前端檔但 involved=false / scope 對不上？' },
+    LeakRecheck:  { phase: 'phase_verify', type: 'impl',    shape: 'rect',    label: '重跑 design-language 判定 + 四項對齊檢查\n已在 design_rejudge 的檔不重複觸發' },
 
     // ───────── Phase 5：request-review + receive-review ─────────
     LoadReq:      { phase: 'phase_review', type: 'skill',   shape: 'rect',    label: '載入 skill：request-review' },
@@ -135,7 +150,7 @@ const FLOW_DATA = {
     // ───────── Phase 8：pr-explain ─────────
     LoadPrEx:     { phase: 'phase_pr', type: 'skill', shape: 'rect',    label: '載入 skill：pr-explain' },
     PrExAgent:    { phase: 'phase_pr', type: 'agent', shape: 'rect',    label: '派 agent：pr-explainer\n獨立 context 重讀 diff' },
-    DocsReviews:  { phase: 'phase_pr', type: 'impl',  shape: 'rect',    label: '落 docs/reviews/<pr-id>.md\n為何 + 怎做 + 關聯' },
+    DocsReviews:  { phase: 'phase_pr', type: 'impl',  shape: 'rect',    label: '落 docs/work/<branch-name>/pr-review.md\n為何 + 怎做 + 關聯' },
     PostComment:  { phase: 'phase_pr', type: 'impl',  shape: 'rect',    label: '貼到 PR comment' },
     End:          { phase: 'phase_pr', type: 'default', shape: 'stadium', label: '主流程完' },
 
@@ -169,10 +184,11 @@ const FLOW_DATA = {
     ['P0a',          'P0b',          '',                            'solid'],
     ['P0b',          'DBKW',         '',                            'solid'],
     ['DBKW',         'LoadDB',       'yes',                         'solid'],
-    ['DBKW',         'P0c',          'no',                          'solid'],
-    ['LoadDB',       'P0c',          '',                            'solid'],
+    ['DBKW',         'LoadDLang',    'no',                          'solid'],
+    ['LoadDB',       'LoadDLang',    '',                            'solid'],
     ['P0c',          'P0d',          'Track 確認',                  'solid'],
-    ['P0d',          'TierSplit',    'Tier 確認',                   'solid'],
+    ['P0d',          'P0Design',     '同一個 AskUserQuestion',      'solid'],
+    ['P0Design',     'TierSplit',    'Track / Tier / 設計路徑 一次確認', 'solid'],
 
     // T0 直送
     ['TierSplit',    'T0Impl',       'T0',                          'solid'],
@@ -205,17 +221,43 @@ const FLOW_DATA = {
     ['LoadExec',     'LoadTDD',      '',                            'solid'],
     ['LoadTDD',      'ParaQ',        '',                            'solid'],
     ['ParaQ',        'LoadDispatch', 'yes',                         'solid'],
-    ['LoadDispatch', 'TDDLoop',      '',                            'solid'],
-    ['ParaQ',        'TDDLoop',      'no',                          'solid'],
+    ['LoadDispatch', 'MidPivotQ',    '',                            'solid'],
+    ['ParaQ',        'MidPivotQ',    'no',                          'solid'],
     ['TDDLoop',      'LoadVerify',   '',                            'solid'],
 
     // verify
     ['LoadVerify',   'VerifyRun',    '',                            'solid'],
-    ['VerifyRun',    'UIQ',          '',                            'solid'],
+    ['VerifyRun',    'LeakQ',        '',                            'solid'],
     ['UIQ',          'LoadFE',       'T3 + UI',                     'solid'],
     ['LoadFE',       'FEAgent',      '',                            'solid'],
     ['FEAgent',      'LoadReq',      '',                            'solid'],
     ['UIQ',          'LoadReq',      '否',                          'solid'],
+
+
+    // 設計 lane：Phase 0b′ 判定（純後端在 DesignQ 就結束）
+    ['LoadDLang',    'DesignQ',      '',                            'solid'],
+    ['DesignQ',      'P0c',          'no：involved=false，到此為止', 'solid'],
+    ['DesignQ',      'DesignMap',    'yes',                         'solid'],
+    ['DesignMap',    'P0c',          '六欄位進 hand-off state',      'solid'],
+
+    // 設計 lane：三方向（Dev + 大改；小改與豁免走原路）
+    ['TrackSplit',   'LoadDD',       'Dev + 大改',                  'solid'],
+    ['LoadDD',       'ThreeWay',     '',                            'solid'],
+    ['ThreeWay',     'DemoIgnore',   '產出落 design-demos/',         'dashed'],
+    ['ThreeWay',     'UGDesign',     '',                            'solid'],
+    ['UGDesign',     'ThreeWay',     '都不要：重出三版',              'solid'],
+    ['UGDesign',     'LoadWP',       '選定：write-plan 2.5 讀定案',  'solid'],
+
+    // 設計 lane：execute-plan 中途轉進
+    ['MidPivotQ',    'MidPivot',     '有前端檔不在清單',              'solid'],
+    ['MidPivot',     'LoadDD',       '轉進三方向',                   'solid'],
+    ['MidPivot',     'TDDLoop',      '縮回小改 / 撤掉 / 記技術債\n接回第 3 步，不重跑紅綠', 'solid'],
+
+    // 設計 lane：verify-done 漏網複查
+    ['LeakQ',        'LeakRecheck',  'yes',                         'solid'],
+    ['LeakRecheck',  'UIQ',          '',                            'solid'],
+    ['MidPivotQ',    'TDDLoop',      '全在清單內',                   'solid'],
+    ['LeakQ',        'UIQ',          'no',                          'solid'],
 
     // review
     ['LoadReq',      'ReviewQ',      '',                            'solid'],
