@@ -3,6 +3,10 @@
 /gstack
 /huashu-design
 
+# 設計 lane 的工作產物（不入版控）
+# design-demos：三方向 mockup 與截圖，選定後即可刪
+**/design-demos/
+
 # Claude Code per-cwd 權限白名單（per-machine，不入 repo）
 **/.claude/settings.local.json
 

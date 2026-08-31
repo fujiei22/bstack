@@ -17,7 +17,7 @@ description: |
 **載入後立即動作**：
 
 1. 確認 user prompt 屬「code 改動類」（寫 / 改 / 修 / 加 / 重構 / 實作 / build / fix）。**純問答 / 教學 / 規劃對談**不適用，直接答。
-2. 進 **Phase 0 入口分流**（4 子步驟，下節展開）。
+2. 進 **Phase 0 入口分流**（5 子步驟，下節展開）。
 3. 依 Phase 0 產出的 Track + Tier，**逐 Phase** 推進。每 Phase 結尾貼 Trace 標籤。
 4. 階段間以**結構化 state** hand-off（見 §Skill hand-off）。
 5. 任何 user 決策點走 `AskUserQuestion`，**禁文字 token NLP 判斷**。
@@ -28,20 +28,26 @@ description: |
 
 ## §Phase 0 入口分流
 
-brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-impact}` 四元組，feed 進後續 Phase。
+brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-impact, design}` 五元組，feed 進後續 Phase。
 
 ```
 0a 對話釐清    ← paraphrase + 讀 memory（user 偏好 / 領域 / 過去決策）
    ↓
 0b 看 codebase ← Read / Grep 影響檔；DB 關鍵詞 → 載 db-access
    ↓
-0c Track 判定  ← Bug or Dev（AskUserQuestion 確認）
+0b′ UI 面判定  ← 載 design-language；產出 design.* 六欄
    ↓
-0d Tier 判定   ← T0/T1/T2/T3（AskUserQuestion 確認）
+0c Track 判定  ← Bug or Dev
+   ↓
+0d Tier 判定   ← T0/T1/T2/T3
+   ↓
+三者一次 AskUserQuestion 確認（Track / Tier / UI 判定）
    ↓
 若 T0 → 直接實作（跳所有後續 Phase）
 若 T1+ → 進階段 2 起跑
 ```
+
+**0b′ 與 0c/0d 的關係**：`design.size` 與 `Tier` 是**獨立的兩根尺**，禁止互推（細則見 `design-language` §兩根尺）。三者合併在同一個 `AskUserQuestion` 確認，讓錯位當場可見。
 
 **Track 判定 heuristic**：
 | 觸發詞 | 預判 Track |
@@ -58,7 +64,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 | 改 3-10 檔 / 單模組 feature / 中型 refactor | T2 |
 | >10 檔 / 跨模組 / 新建 module / DB schema / API 介面 / 架構決策 | T3 |
 
-預判完務必 `AskUserQuestion` 確認（推薦選項 = AI 預判結果）。
+**0b′／0c／0d 三者合併成一個 `AskUserQuestion` 一次確認**（推薦選項 = AI 預判結果）。
 
 ---
 
@@ -67,7 +73,12 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 ### Dev track 完整路徑（9 階段）
 
 ```
-1. brainstorm（Phase 0 內建）
+1. brainstorm（Phase 0 內建，含 0b′ UI 面判定）
+   ↓
+   design.size=大改 ＋ 路徑選「出三版」→ branch 建立、spec 落檔後載 design-direction 出三版
+                                          → user 選定 → 回寫 spec.md → write-plan 依方向拆 task
+   design.size=大改 ＋ 路徑選「跳過三方向」→ 理由記入 spec.md → write-plan
+   design.size=小改 → execute-plan 動前端檔的 task 前後載 design-language 跑對齊檢查
    ↓
 2. write-plan ─→ docs/work/<branch-name>/plan.md（含並行性分析 parallel-group）
    ↓
@@ -77,10 +88,12 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ↓
 3. execute-plan + tdd-cycle
    遇 parallel-group >1 task → 載 dispatch-parallel 判跑法（Agent Teams / subagent / 串行）後平行
+   └─ 計畫外的前端檔 → execute-plan §前端檔處理：暫停 → 補判 → 回寫 state.design ＋ design_rejudge → 接回
    ↓
 4. verify-done
    ├─ T2+ = 多輪 verify（test + lint + build）
    └─ T3 + UI 改動 = 載 frontend-test（Playwright MCP 跑 e2e）
+   └─ 全 tier：實際改動檔含前端副檔名且未被 design_rejudge 處理過 → verify-done §漏網複查
    ↓
 5. request-review
    ├─ T1 = self review
@@ -134,9 +147,19 @@ state:
     files: [...]
     modules: [...]
     db_involved: <bool>
+  design:                     # 0b′；欄位語意見 design-language §對外契約
+    involved: <bool>
+    scope: <區塊名|null>
+    scope_evidence: <token 來源檔路徑|null>
+    size: <小改|大改|null>
+    precedent: <bool>
+    map_status: <ok|remapped|absent|unknown|pending>
+    direction_decided: <定案方向文字|null>   # size=大改 且走過三方向才有
+    user_choice_quote: <user 選擇原話|null>  # 同上
   memory_loaded: <bool>       # 0a 是否讀過 memory
   plan_path: docs/work/<branch-name>/plan.md  # write-plan 完寫入
   parallel_groups: [...]      # write-plan 內 task 並行 grouping
+  design_rejudge: [...]       # 施工開始後對 design.* 的重判（execute-plan 中途轉進／verify-done 漏網複查共用）
   current_phase: <名稱>
   trace_chain: [phase1, phase2, ...]  # 歷經 phase
   fail_history: [...]         # 每次 fail 的 retry / rollback 記錄
@@ -219,6 +242,8 @@ Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 | Skill | 觸發 |
 |---|---|
 | `db-access` | prompt 含 DB 關鍵詞 / brainstorm 0b 偵測 DB / write-plan 涉 schema / execute-plan 動 DB / review 涉 SQL |
+| `design-language` | brainstorm 0b′（**必跑**，含純後端 task）／ `design.involved=true` 且 `size=小改` 時，execute-plan **動到前端檔的 task 前後**／ execute-plan §前端檔處理 的中途轉進補判／ verify-done §漏網複查 的補判／ user 顯式問設計語言 |
+| `design-direction` | brainstorm 0c/0d 合併確認第 3 題選「出三版」，且 **branch 已建立、`spec.md` 已落檔**／ user 顯式要求出方向、評審設計。**選「跳過三方向」不載入** |
 | `lock-files` | user 顯式要鎖某些檔（動 prod / 敏感模組）|
 | `cmd-guard` | AI 將執行 rm -rf / drop / force push / sudo / dd 等危險指令 |
 | `safety-guard` | 寫入 / commit 前掃 PII / 密鑰 / token 殘留 |
@@ -271,4 +296,4 @@ Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 Phase 0 入口分流啟動。先進 0a 對話釐清。
 ```
 
-之後立刻進 brainstorm skill（內含 Phase 0 4 子步驟）。
+之後立刻進 brainstorm skill（內含 Phase 0 5 子步驟）。

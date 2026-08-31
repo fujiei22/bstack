@@ -22,6 +22,7 @@ description: |
    - T1 = test + lint + type-check（基本盤）
    - T2 = T1 + build + 周邊回歸測試 + lint 全跑
    - T3 = T2 + 整 test suite + 必要時 browser e2e
+2.5 **跑 §漏網複查 的觸發判斷**（**全 tier 都跑**，成本是 1 個 `git diff`）。
 3. **每項 verify 印 command + output**（讓 user 看得到）。
 4. 全綠 → 交棒 request-review。
 5. 非綠 → 走 §Verify fail 流程。
@@ -50,6 +51,8 @@ description: |
 - T2 全部
 - 跑**整個 test suite**
 - 若改動含 UI / DOM / browser code（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）→ **載入 `frontend-test` skill** 跑 Playwright MCP e2e（必跑）
+
+　**例外**：落在 skill 定義目錄底下的前端檔（`skills/*/assets/`、`skills/*/references/` 等）**不觸發** —— 那些是**工具範本、非可執行頁面**（例如只靠 `Object.assign(window,…)` 導出、沒有 HTML 宿主的元件片段），e2e 無從跑起。判準與 `design-language` §使用契約 第 1 步一致。
 - 若改動含 DB → 跑 migration dry-run + schema diff 對齊
 
 ---
@@ -67,6 +70,9 @@ description: |
    - **退回 execute-plan 改 task 實作**
    - **退回 write-plan 改 plan**
    - **escalate**
+   - **退回 execute-plan 補做**（漏網複查判為大改時）
+   - **退回 brainstorm 重判**（設計判定從一開始就錯）
+   - **接受現況並記入技術債**（這一輪先出去，方向另案處理）
 4. 選後執行；`state.fail_history` append
 
 **特別 case**：
@@ -80,6 +86,8 @@ description: |
 
 改動含 UI / 前端檔（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）時觸發。**載入 `frontend-test` skill** 委派執行：
 
+　**例外**：落在 skill 定義目錄底下的前端檔（`skills/*/assets/`、`skills/*/references/` 等）**不觸發** —— 那些是**工具範本、非可執行頁面**（例如只靠 `Object.assign(window,…)` 導出、沒有 HTML 宿主的元件片段），e2e 無從跑起。判準與 `design-language` §使用契約 第 1 步一致。
+
 | Tier | 行為 |
 |---|---|
 | T1 | 預設不跑；user 明說再跑 |
@@ -89,6 +97,27 @@ description: |
 frontend-test 跑完寫回 `state.verify_results.e2e` + `state.frontend_test.*`、本 skill 整合進綜合驗證結果。
 
 詳見 `frontend-test` skill §測試矩陣 / §測試流程 / §測試報告。
+
+---
+
+## §漏網複查
+
+**要防的事**：Phase 0b′ 判 `design.involved=false`（或 `scope` 判錯），但這一輪**實際改動檔**含前端副檔名——判定漏了，而且沒有任何 gate 會發現。**全 tier 都跑**：這種漏網最常發生在「T1，兩個檔，順手改一下」，只在 T3 跑等於對最需要的情境無效。
+
+**觸發條件**：
+
+1. 取本 branch 的改動清單。`<base>` = `state.commits` 第一個 commit 的 parent；**`state.commits` 不存在**（verify-done 被單獨呼叫、或上游是 tdd-cycle）→ fallback `$(git merge-base origin/main HEAD)`；兩者都取不到 → **不觸發**，在結果標 `design_rejudge` 未執行與原因。
+2. **副檔名與排除判準一律依 `design-language`**（§前端副檔名 ＋ §使用契約 第 1 步的 skill 定義目錄排除 ＋ §首次偵測 的 `node_modules` / `dist` / `build` / `vendor` / gitignore 命中 / `design-demos` 排除）。**不在本檔重列清單，也不得用裸 `skills/` 比對。**
+3. **已被 `design_rejudge` 處理過的檔不重複觸發**——`execute-plan` 中途轉進處理過的，不必在這裡再來一次。
+4. 剩下的清單非空，且 `state.design.involved` 為 `false`、或該檔不在 `state.design.scope` 對應的範圍內（`scope` 對不上）→ 觸發。
+
+**動作**：
+
+1. 載入 `design-language` 補判，取回 `design.*` 六欄，append 進 `state.design_rejudge`（`stage: verify-done`）。
+2. **跑 `design-language §對齊檢查清單` 四項對齊檢查**，結果記進 verify 結果。
+3. **補判結果是大改 → 標為 blocker**，走 §verify 失敗處置 的 design 專屬三選項。
+
+**界線（硬規則）**：**不在 verify-done 補做三方向。** 這時 code 已經寫完，叫三方向重來等於推翻已經寫好的實作——成本與收益不成比例。verify-done 的職責是**把漏網這件事變成看得見的**，不是把它就地補完。
 
 ---
 
@@ -110,6 +139,14 @@ state:
     fail_count: <n>
     viewports_tested: [...]
     blocker: <bool>
+  design_rejudge:               # 與 execute-plan 共用；沒發生就是空 list
+    - stage: verify-done
+      task_id: null             # verify 階段沒有 task 歸屬
+      trigger_files: [...]
+      design_before: {...}
+      design: {...}
+      action: <小改對齊|blocker>
+      user_choice: <blocker 時 user 選的選項|null>
   flaky_tests: [...]
   current_phase: verify-done-done
 ```
