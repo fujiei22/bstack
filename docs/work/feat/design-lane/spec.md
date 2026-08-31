@@ -77,7 +77,7 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 | 序 | 階段 | 內容 | 完成後可用 | 風險 | 狀態 |
 |---|---|---|---|---|---|
 | 1 | **A · 能力層** | `design-language` skill、`design-map.md`、對齊檢查清單、`brainstorm` 0b′、`dev-workflow` 觸發表與 state 欄位、`.gitignore` | **小改路徑**（讀設計語言 → 改 code → 四項對齊檢查） | 低、自包含 | ✅ 已完成上線 |
-| 2 | **B1 · skill 本體** | `design-direction` skill（SKILL.md 改寫 ＋ **6 reference 繁化／修剪／結構性改寫至約 1,345 行** ＋ 2 資產）、`design-language` 與 `verify-done` 各加一條 `skills/**` 排除 | 三方向能力就位（尚未接上流程） | 中（全新建檔 ＋ 兩處既有 skill 加排除） | 待做 |
+| 2 | **B1 · skill 本體** | `design-direction` skill（SKILL.md 改寫 ＋ **6 reference 繁化／修剪／結構性改寫至約 1,345 行** ＋ 2 資產）、`design-language` 與 `verify-done` 各加一條 `skills/**` 排除 | 三方向能力就位（尚未接上流程） | 中（全新建檔 ＋ 兩處既有 skill 加排除） | ✅ 已完成上線（驗收見 `verify-stage-b1.md`） |
 | 3 | **B2 · 流程接點** | `execute-plan` 中途轉進、`verify-done` 漏網複查、`dev-workflow` 接上 `design-direction` | **大改路徑**（三方向 → 選定 → 落 code） | 中高（動所有 task 必經之路） | 待做 |
 | 4 | **C · 收尾** | `setup.ps1` 孤兒偵測 | S7 達成 | 高（會刪 `~/.claude` 內容） | 待做 |
 
