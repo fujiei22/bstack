@@ -194,6 +194,12 @@ T0 / T1 / T2 / T3。Heuristic：
 - 地圖狀態（`map_status`）：
 - `size`：小改 / 大改
 - 設計語言摘要：<六類值的重點；N/A 的類別要寫依據>
+- **以下 `size=大改` 走過三方向時才填**（小改留空並註明「小改，未走三方向」）：
+  - `direction_decided`：<定案方向的文字描述>
+  - `user_choice_quote`：<user 選擇原話>
+  - 資產清單：<若設計裡出現具名第三方品牌，依 `design-direction` `references/brand-asset-protocol.md` §Step 5 把資產與**來源網址**列在這裡>
+  > **跳過三方向時，這裡改記「跳過的理由」**（第 3 題選項 2 的 user 原話），三個欄位留空。
+  > 三方向的 HTML 與截圖落在 `docs/work/<branch-name>/design-demos/`（不進版控、驗完即刪），**不得以截圖路徑作為事後追溯依據**——能留下的只有上面這幾項文字。
 
 ## DB 影響（如有）
 
@@ -248,6 +254,8 @@ state:
     size: <小改|大改|null>
     precedent: <bool>
     map_status: <ok|remapped|absent|unknown|pending>
+    direction_decided: <定案方向文字|null>   # size=大改 且走過三方向才有
+    user_choice_quote: <user 選擇原話|null>  # 同上
   memory_loaded: true
   current_phase: brainstorm-done
 ```
