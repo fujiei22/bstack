@@ -78,7 +78,7 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 |---|---|---|---|---|---|
 | 1 | **A · 能力層** | `design-language` skill、`design-map.md`、對齊檢查清單、`brainstorm` 0b′、`dev-workflow` 觸發表與 state 欄位、`.gitignore` | **小改路徑**（讀設計語言 → 改 code → 四項對齊檢查） | 低、自包含 | ✅ 已完成上線 |
 | 2 | **B1 · skill 本體** | `design-direction` skill（SKILL.md 改寫 ＋ **6 reference 繁化／修剪／結構性改寫至約 1,345 行** ＋ 2 資產）、`design-language` 與 `verify-done` 各加一條 `skills/**` 排除 | 三方向能力就位（尚未接上流程） | 中（全新建檔 ＋ 兩處既有 skill 加排除） | ✅ 已完成上線（驗收見 `verify-stage-b1.md`） |
-| 3 | **B2 · 流程接點** | `execute-plan` 中途轉進、`verify-done` 漏網複查、`dev-workflow` 接上 `design-direction` | **大改路徑**（三方向 → 選定 → 落 code） | 中高（動所有 task 必經之路） | 待做 |
+| 3 | **B2 · 流程接點** | `brainstorm` 合併確認第 3 題加設計路徑、三方向載入點、`execute-plan` 中途轉進、`verify-done` 漏網複查、`write-plan` 讀定案方向、`dev-workflow` 接上 `design-direction`、收掉兩個 skill 的「還沒接上」自述 | **大改路徑接通（V5 端到端未實跑）** | 中高（動所有 task 必經之路） | ✅ 已完成（驗收見 `verify-stage-b2.md`） |
 | 4 | **C · 收尾** | `setup.ps1` 孤兒偵測 | S7 達成 | 高（會刪 `~/.claude` 內容） | 待做 |
 
 **曾經存在的 C1「最小 gate」已於 D26 廢除**（原規劃：`hooks/design-gate.ps1` ＋ `settings.json` 註冊）。原本的 C2 只剩 `setup.ps1` 孤兒偵測，併回 C。
@@ -86,6 +86,8 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 **取代方案**：S2 改由 `CLAUDE.md` 強制守則承擔（見 S2 註）。實作併入本次 C1 階段的收尾工作，不另開階段。
 
 **依賴關係**：A → B（B 的三方向需要 A 的設計語言辨識）；C 獨立，可隨時做。
+
+**V5 實跑的歸屬（B2 之後、階段 C 之前）**：B2 只讓大改路徑「接得上」，沒有證明它「跑得動」。V5 需要一次真的三方向實跑（3 個 subagent ＋ 截圖 ＋ user 選定），對象是 bstack 自家 `docs/` 站。**排在階段 C 之前**——C 是收尾，V5 驗的是 B1+B2 的核心交付到底能不能用；已知地雷見 `verify-stage-b1.md`（`npx playwright screenshot` 的 `--viewport-size` 未加引號會回 `Invalid viewport size format`），而卡住的時點是**已經燒完 3 個 subagent 之後**。
 
 ## 影響檔案 / Codebase impact
 
@@ -95,8 +97,11 @@ bstack 的 dev-workflow 9 階段目前**沒有任何設計面的判定與產出*
 |---|---|---|---|---|
 | **B** | `skills/design-direction/` | new | 由 B 案 10 檔改寫；含三方向流程、反 slop、風格庫、評審 | 內容量大，改寫時易殘留上游字串 |
 | **A** | `skills/design-language/` | new | 區塊偵測、抽 exact values、產／查 `design-map.md`、失效檢查、對齊檢查清單 | 四塊通用規則需自寫，無可抄 |
-| **A** | `skills/brainstorm/SKILL.md` | edit | 0b 與 0c 之間插入 §Phase 0b′；0c/0d 的 `AskUserQuestion` 合併為一次問四項＋設計路徑；spec 結構加「設計方向」section；hand-off state 加三欄；Red Flags 加一條 | 動到 Phase 0 骨架，所有 task 都會經過 |
-| **A** | `skills/dev-workflow/SKILL.md` | edit | §Phase 0 流程圖加 0b′；§Skill hand-off state 加欄位；§跨流程 skill 觸發表加 `design-language` 一列；Dev track 路徑圖加設計 lane 與兩個轉進點 | 同上 |
+| **A／B2** | `skills/brainstorm/SKILL.md` | edit | 0b 與 0c 之間插入 §Phase 0b′；0c/0d 的 `AskUserQuestion` 合併為一次問四項＋設計路徑；spec 結構加「設計方向」section；hand-off state 加三欄；Red Flags 加一條 | 動到 Phase 0 骨架，所有 task 都會經過 |
+| **A／B2** | `skills/dev-workflow/SKILL.md` | edit | §Phase 0 流程圖加 0b′；§Skill hand-off state 加欄位；§跨流程 skill 觸發表加 `design-language` 一列；Dev track 路徑圖加設計 lane 與兩個轉進點 | 同上 |
+| **B2** | `skills/write-plan/SKILL.md` | edit | §使用契約 加 2.5 步：`size=大改` 且 `direction_decided` 有值時依定案方向拆 task，不得推翻 | 低（一條讀取指示） |
+| **B2** | `skills/design-direction/SKILL.md` | edit | 收掉「還沒接上」自述（`description` / 使用契約第 2 步 / §豁免 / 銜接表）；設計路徑改為前移後不重複問 | **`description` 每 session 載入，不改會讓 lane 靜默失效** |
+| **B2** | `skills/design-language/SKILL.md` | edit | 下游表兩列拿掉「（階段 B）」，改為正式觸發條件 | 低 |
 | **B** | `skills/execute-plan/SKILL.md` | edit | §Task 推進規則加「中途轉進」分支（暫停 → 補判 → 處理 → 回寫 plan.md → 接回） | 中斷／恢復是新語意，需明確定義 state |
 | **B1**／**B2** | `skills/verify-done/SKILL.md` | edit | **B1（D31 提前）**：兩處副檔名清單加「`skills/**` 底下不觸發 e2e」。**B2**：§UI / browser e2e 加漏網複查（偵測到前端檔但 `design.involved=false` → 觸發補判 + 對齊檢查） | 動所有 task 必經之路；B1 只加排除、不動 T3 必跑規則 |
 | ~~C1~~ | ~~`hooks/design-gate.ps1`~~ | ~~new~~ | **D26 廢除**，不做任何 hook | —— |
