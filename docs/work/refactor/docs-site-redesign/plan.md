@@ -294,14 +294,35 @@ node docs/work/refactor/docs-site-redesign/verify/contract.mjs --selftest; echo 
 node docs/work/refactor/docs-site-redesign/verify/contract.mjs; echo "exit=$?"
 ```
 
-現況（改版前）的**完整**預期狀態——v1 只列了 `grep` 撈出的幾條，
-review 指出這會讓開發者分不清「計畫中的紅」與「我抄壞了」：
+現況（改版前）的**實跑**結果——下表是 2026-09-01 真的跑出來的，不是預測。
+v1 只列了 `grep` 撈出的幾條，review 指出這會讓開發者分不清「計畫中的紅」與「我抄壞了」。
 
-| PASS | FAIL（＝本次改版要轉綠的目標） |
-|---|---|
-| C1a C1b C2a C2b C3 C4b C5 C6a C6b C6c C7 C8a C8b C9 C10 C13a C17 | **C4a**（現況 32 條全是 hex，0 條 oklch）、**C11**（舊 DOM 無新錨點）、**C12**（linear=1 裸ease=8 曲線=0）、**C13b**（現況 3 個硬編 hex：`#FF6A00`/`#8080CC`/`#CCCCEE`）、**C14a/b/c**（舊抽屜用 `doc-drawer-*`）、**C15**（現況 `@media` 0 條，期望 1 條）、**C16**（現況 36 ≥ 20，PASS） |
+**17 PASS**：`C1a C1b C2a C2b C3 C4b C5 C6a C6c C7 C8a C8b C9 C10 C13a C14c C16`
 
-> C16 現況其實是 PASS（36 ≥ 20）；它的紅會出現在 Task 2 剛照抄完 demo 的時候（13 < 25）。
+**9 FAIL ＝ 本次改版要轉綠的目標**：
+
+| 契約 | 實際 | 由哪個 task 轉綠 |
+|---|---|---|
+| C4a 八型別 token 值必須是 oklch | 32 條宣告全是 hex（`--c-default:#EEF0F4`…） | Task 2 |
+| C6b 每筆 NODE_DOCS 都有 p/n/k | 33 筆全缺（現況是 `{path, name}`） | Task 3 |
+| C11 骨架錨點齊全 | 五個 id 全缺 | Task 2 |
+| C12 動畫語彙 | linear=1 裸ease=8 曲線=0 | Task 2 |
+| C13b app.js 不寫顏色 | 4 個：`#FF6A00` `#8080CC` `#CCCCEE` `rgba(` | Task 2 |
+| C14a 抽屜用新 class 且無舊 class 殘留 | 缺 `class="drawer-title"` / `class="drawer-desc"` | Task 3 |
+| C14b markdown 被 .md 包起來 | 找不到 `class="md"` | Task 3 |
+| C15 @media 只有 860px 一條 | 0 條（期望 1 條） | Task 2 |
+| C17 無文件節點有 else 分支 | 找不到「無獨立文件」 | Task 3 |
+
+> **兩處預測修正**（實跑推翻了 plan 原本的預期，留下紀錄）：
+> - C6b 原本列在 PASS，實際 FAIL——現況是 `{path, name}` 沒有 `k`。
+> - C17 原本列在 PASS，實際 FAIL——「無獨立文件」卡片是 demo 的**改進**，舊站沒有
+>   （舊站對 51 個無文件節點是整段不出現）。
+>
+> **驗證器自己也修了一個 bug**：C14a 原本用 `js.includes('drawer-head')`，
+> 但舊 class `doc-drawer-header` **包含**這個子字串 → 假 PASS。已改成比對完整的
+> `class="drawer-head"` 並額外檢查 `doc-drawer-*` 殘留。這與 review K5 點名的
+> 「契約保護名字而非行為」是同一種錯，只是換個形式又犯一次。
+
 
 - [ ] **Step 5: commit**
 
