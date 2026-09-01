@@ -700,8 +700,13 @@ function openDrawer(nodeId) {
       var pillsEl = drawerEl.querySelector('#drawer-pills');
       if (pillsEl) pillsEl.innerHTML = pills;
 
-      // 去掉 body 的第一個 H1：抽屜的標題列已經顯示過名稱，留著會重複一次
-      var body = parsed.body.replace(/^#\s+.+\n?/, '').trim();
+      // 去掉 body 的第一個 H1：抽屜的標題列已經顯示過名稱，留著會重複一次。
+      //
+      // **先 trim 再 replace，順序不可對調。** frontmatter 的收尾 `---` 之後還有一個換行，
+      // 所以 body 實際是以 "\r\n# xxx" 開頭；不先 trim 的話 `^#` 永遠匹配不到。
+      // 改版前的 code 是 `.replace(...).trim()`（見 43d5938 的 app.js:603），
+      // 順序反了，所以 baseline F13 寫的「去掉第一個 H1」從來沒有真的生效過。
+      var body = parsed.body.trim().replace(/^#\s+.+\r?\n?/, '').trim();
       var mdEl = drawerEl.querySelector('#drawer-md');
       if (mdEl) mdEl.innerHTML = window.marked.parse(body);
     })
