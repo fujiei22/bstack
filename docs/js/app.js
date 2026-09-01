@@ -18,10 +18,6 @@
  *
  * 設計定案與動畫節奏見 docs/archive/2026/docs-site-redesign/spec.md。
  */
-/* ══════════════════════════════════════════════════════════════════════════
-   rail-console — demo 主程式（vanilla / classic script / file:// 可開）
-   自寫渲染，不引用 docs/js/app.js（它硬編了舊配色）。
-   ══════════════════════════════════════════════════════════════════════════ */
 (function () {
 'use strict';
 
@@ -49,8 +45,14 @@ var PHASE_LABEL = {};
 FLOW.phases.forEach(function (p) { PHASE_LABEL[p.id] = p.label; });
 
 /**
- * node ID → 文件識別（真實路徑，取自站上既有對照表）。
- * demo 不載 202KB 的 references-data.js，抽屜內文用靜態示意。
+ * node ID → 文件識別。
+ *
+ * `p` 不含 `references/` 前綴也不含副檔名，實際的 REFERENCE_DOCS key 由 docKey() 組出來
+ * （skill 補 /SKILL.md、agent 補 .md）。33 個 key 對應 31 個相異文件——
+ * RPT2 與 RPT3 共用 review-plan 的路徑。
+ *
+ * **刻意不收 design-language / design-direction**：references-data.js 沒有這兩份的內嵌全文，
+ * 收了它們反而會讓對應節點點出「載入失敗」。這是已知缺口，維持未修。
  */
 var NODE_DOCS = {
   DevWfSkill:{p:'skills/dev-workflow',        n:'dev-workflow',        k:'skill'},
@@ -73,8 +75,6 @@ var NODE_DOCS = {
   LoadRetro: {p:'skills/retro',               n:'retro',               k:'skill'},
   LoadDebug: {p:'skills/debug-systematic',    n:'debug-systematic',    k:'skill'},
   LoadIncident:{p:'skills/incident-investigate',n:'incident-investigate',k:'skill'},
-  LoadDLang: {p:'skills/design-language',     n:'design-language',     k:'skill'},
-  LoadDD:    {p:'skills/design-direction',    n:'design-direction',    k:'skill'},
   LoadLock:  {p:'skills/lock-files',          n:'lock-files',          k:'skill'},
   LoadCmdG:  {p:'skills/cmd-guard',           n:'cmd-guard',           k:'skill'},
   LoadCtxS:  {p:'skills/context-snapshot',    n:'context-snapshot',    k:'skill'},
@@ -85,32 +85,98 @@ var NODE_DOCS = {
   LangAgent: {p:'agents/lang-reviewer',       n:'lang-reviewer',       k:'agent'},
   SecAgent:  {p:'agents/security-auditor',    n:'security-auditor',    k:'agent'},
   DBAgent:   {p:'agents/db-reviewer',         n:'db-reviewer',         k:'agent'},
-  PrExAgent: {p:'agents/pr-explainer',        n:'pr-explainer',        k:'agent'}
+  PrExAgent: {p:'agents/pr-explainer',        n:'pr-explainer',        k:'agent'},
+  // review-plan 內 spawn 的兩個 subagent 節點，文件指回 review-plan 本身。
+  // 這兩筆在移植來源裡是缺的（它多加了 design-language / design-direction、少了這兩筆），
+  // 少了它們 RPT2 / RPT3 兩個節點的 F12 文件摘要與 F13 抽屜會整個消失。
+  RPT2:      {p:'skills/review-plan',         n:'review-plan (T2 Eng-only)', k:'skill'},
+  RPT3:      {p:'skills/review-plan',         n:'review-plan (T3 四視角)',   k:'skill'}
 };
 
-/** 抽屜示意用的真實描述 / tools（沒有的走 fallback，不編造）。 */
-var DOC_META = {
-  'dev-workflow':      {d:'自動化開發流程主入口。Phase 0 入口分流（Track / Tier）、9 階段順序、skill hand-off state、Trace 標籤、Auto-fix、Fail handling、Memory hook、跨流程 skill dispatch。'},
-  'brainstorm':        {d:'需求釐清 + Phase 0 入口分流。0a 對話釐清（含讀 memory）、0b 看 codebase、0c Track 判定、0d Tier 判定、spec 落檔。'},
-  'write-plan':        {d:'從 spec 寫實作 plan：bite-sized task、紅綠循環、並行性分析（parallel-group）、spec → plan 對齊檢查。'},
-  'execute-plan':      {d:'按 plan 推進實作：逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、task fail 處置、blocker 升級。'},
-  'verify-done':       {d:'task 完成前的綜合驗證：test / lint / build / type-check 全跑，T2+ 多輪 verify，T3 UI 改動加 browser e2e。'},
-  'request-review':    {d:'自動 code review 派發：T1 self / T2 subagent + lang-reviewer / T3 雙視角 + lang-reviewer。'},
-  'finish-branch':     {d:'收尾 development branch + git workflow 細則合一：clean check、rebase、push、開 PR、squash merge。'},
-  'design-language':   {d:'既有專案設計語言辨識與對齊：前端副檔名唯一真相、區塊邊界偵測、設計語言抽取（exact values）、四項對齊檢查清單。'},
-  'design-direction':  {d:'定設計方向：三方向硬門、可變維度、三 subagent 並行、產出落檔、反 AI slop、6 維度評審。'},
-  'lock-files':        {d:'鎖定編輯範圍：user 顯式宣告哪些檔／目錄禁改，寫入動作 pre-check，user 解鎖機制。'},
-  'cmd-guard':         {d:'危險指令防呆：偵測危險指令類型、危險度分級、AskUserQuestion 二次確認、安全替代建議。'},
-  'context-snapshot':  {d:'進度快照存：抽當前 state（spec / plan / phase / decision / pending）寫到 docs/snapshots/，recovery 路徑明確。'},
-  'context-resume':    {d:'進度快照讀回：找最新 snapshot、Read 還原 state、印 progress、接續對應 phase skill。'},
-  'write-skill':       {d:'寫新 skill 的 meta skill：SKILL.md frontmatter / body 結構、繁中風格、命名、放置位置、Red Flags。'},
-  'lang-reviewer':     {d:'程式語言特化 code reviewer。動態 dispatch：主 dispatcher 在 spawn 時標 language，本 agent 依該 language 套對應 idiom / pitfall / best practice。', t:'Read, Grep, Glob, Bash'},
-  'security-auditor':  {d:'安全特化 reviewer：OWASP Top 10、STRIDE 六類威脅、security-checklist 逐項對、PII 違規、File-type 硬規則命中。獨立 context、避免球員兼裁判。', t:'Read, Grep, Glob, Bash'},
-  'db-reviewer':       {d:'資料庫 schema / SQL / migration 特化 reviewer：schema 設計合理性、index / query plan、migration 安全性、PII 處理、回滾路徑。', t:'Read, Grep, Glob, Bash, mysql MCP'},
-  'pr-explainer':      {d:'PR diff 詳盡解釋特化 reviewer：獨立 context 重讀 diff，寫「為何 + 怎做 + 關聯」三層解釋落檔。', t:'Read, Write, Edit, Glob, Grep, Bash'},
-  'frontend-e2e-runner':{d:'Playwright e2e 執行 specialist：獨立 context 跑 browser 自動化、截圖、監控 console+network、PII mask，回結構化 pass/fail/inconclusive。', t:'Playwright MCP, Read, Write, Bash'},
-  'hypothesis-tester': {d:'Incident hypothesis 驗證特化 agent：獨立 context 驗單一假設，不知道別的假設、不預設答案，回嚴格結構化 verdict。', t:'Read, Grep, Glob, Bash'}
-};
+/**
+ * 把 NODE_DOCS 的 p 解成 REFERENCE_DOCS 的 key。
+ * skill 的實體是 <dir>/SKILL.md、agent 的實體是 <name>.md —— 兩者後綴不同，
+ * 解錯的後果是抽屜點下去一片空白而且不報錯（驗證器 C6c 就是為了攔這個）。
+ * @param {{p:string, k:string}} entry NODE_DOCS 的一筆
+ * @returns {string}
+ */
+function docKey(entry) {
+  return entry.k === 'agent' ? 'references/' + entry.p + '.md' : 'references/' + entry.p + '/SKILL.md';
+}
+
+/**
+ * 取得文件全文。**先讀 references-data.js 的內嵌全文，沒有才 fetch** ——
+ * 這個順序是 file:// 能直接開的唯一原因（F14），不可對調。
+ * @param {{p:string, k:string}} entry
+ * @returns {Promise<string>}
+ */
+function docText(entry) {
+  var key = docKey(entry);
+  var inlined = window.REFERENCE_DOCS && window.REFERENCE_DOCS[key];
+  if (inlined != null) return Promise.resolve(inlined);
+  return fetch(key).then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  });
+}
+
+/**
+ * 從 markdown frontmatter 擷取 description 的第一行。
+ * 支援 inline 值與 YAML block scalar（| 與 >）—— 本 repo 的 SKILL.md 兩種都有用。
+ * @param {string} text 文件原始文字
+ * @returns {string|null} 沒有 description 時回 null
+ */
+function parseFrontmatterDesc(text) {
+  var m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  var fm = m ? m[1] : '';
+  var lines = fm.split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].indexOf('description:') !== 0) continue;
+    var val = lines[i].replace(/^description:\s*/, '').replace(/^["']|["']$/g, '').trim();
+    if (val === '|' || val === '>') {
+      var next = lines[i + 1];
+      return next ? next.trim().replace(/^["']|["']$/g, '') : null;
+    }
+    return val || null;
+  }
+  return null;
+}
+
+/**
+ * 解析 markdown 的 YAML frontmatter，回傳 { meta, body }。
+ * 支援 inline 值、JSON 陣列、block scalar（| 與 >）。
+ * @param {string} text
+ * @returns {{meta:Object, body:string}} 沒有 frontmatter 時 meta 為空物件、body 為原文
+ */
+function parseFrontmatter(text) {
+  var m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!m) return { meta: {}, body: text };
+  var meta = {};
+  var lines = m[1].split(/\r?\n/);
+  var i = 0;
+  while (i < lines.length) {
+    var kv = lines[i].match(/^(\w[\w-]*):\s*(.*)/);
+    if (!kv) { i++; continue; }
+    var key = kv[1];
+    var raw = kv[2].trim();
+    if (raw === '|' || raw === '>') {
+      var parts = [];
+      i++;
+      while (i < lines.length && (lines[i].indexOf('  ') === 0 || lines[i] === '')) {
+        parts.push(lines[i].trim());
+        i++;
+      }
+      meta[key] = parts.join(' ').trim();
+    } else if (raw.charAt(0) === '[') {
+      try { meta[key] = JSON.parse(raw.replace(/'/g, '"')); } catch (e) { meta[key] = raw; }
+      i++;
+    } else {
+      meta[key] = raw.replace(/^["']|["']$/g, '');
+      i++;
+    }
+  }
+  return { meta: meta, body: m[2] };
+}
 
 /* ── layout ────────────────────────────────────────────────────────────── */
 /**
@@ -230,6 +296,9 @@ edgeSels.each(function (d) {
 /* — nodes — */
 var nodeSels = nodeLayer.selectAll('g').data(layout.nodes, function (d) { return d.id; })
   .join('g').attr('class', 'node')
+  // data-id 是改版前就有的（舊 app.js 同樣寫在 .node 上），移植來源掉了它。
+  // 它不影響任何 F 項行為，但少了它就沒有穩定的節點選取器可用於 e2e。
+  .attr('data-id', function (d) { return d.id; })
   .attr('transform', function (d) { return 'translate(' + (d.x - d.width / 2) + ',' + (d.y - d.height / 2) + ')'; })
   .style('cursor', 'pointer')
   .on('click', function (evt, d) {
@@ -362,12 +431,14 @@ function renderDetail() {
 
   var docHtml;
   if (doc) {
-    var meta = DOC_META[doc.n];
+    // 描述先掛「載入中⋯」再非同步填入 frontmatter 的 description。
+    // 內嵌資料其實是同步可得的，但保留這個兩段式是因為 F12 的可觀察行為就是這樣，
+    // 且 fetch fallback 路徑（HTTP 模式）真的需要它。四句原文不得改寫。
     docHtml =
       '<div class="doc-card">' +
         '<div class="k">' + (doc.k === 'agent' ? 'agent' : 'skill') + '</div>' +
         '<div class="n">' + esc(doc.n) + '</div>' +
-        '<div class="d">' + esc(meta ? meta.d : 'references/' + doc.p + '/ 下的完整定義。') + '</div>' +
+        '<div class="d" id="node-doc-desc">載入中⋯</div>' +
         '<button class="btn-doc" data-doc="' + esc(id) + '">查看完整文件</button>' +
       '</div>';
   } else {
@@ -399,6 +470,19 @@ function renderDetail() {
   });
   var db = detailEl.querySelector('[data-doc]');
   if (db) db.onclick = function () { openDrawer(db.getAttribute('data-doc')); };
+
+  if (doc) {
+    docText(doc)
+      .then(function (text) {
+        var el = detailEl.querySelector('#node-doc-desc');
+        // selection 可能在載入期間已經換掉，重繪後這個節點就不在了
+        if (el) el.textContent = parseFrontmatterDesc(text) || '（無描述）';
+      })
+      .catch(function () {
+        var el = detailEl.querySelector('#node-doc-desc');
+        if (el) el.textContent = '（載入失敗）';
+      });
+  }
 }
 
 /* ── 召喚式面板 ────────────────────────────────────────────────────────── */
@@ -565,17 +649,17 @@ var drawerEl = $('drawer'), backdropEl = $('backdrop');
 
 /**
  * 開啟文件抽屜並渲染該節點對應的 markdown。
+ *
+ * 先把外框與「載入中⋯」畫出來、抽屜立刻滑開，再非同步填描述、pills 與正文——
+ * 內嵌資料其實同步可得，但保留兩段式是為了 fetch fallback 路徑（HTTP 模式）也能用。
+ * 正文渲染前會去掉第一個 H1（標題列已經顯示過名稱）。
+ *
  * @param {string} nodeId 節點 id；NODE_DOCS 查無此 id 就直接 return（不開空抽屜）
  */
 function openDrawer(nodeId) {
   var d = NODE_DOCS[nodeId];
   if (!d) return;
-  var meta = DOC_META[d.n] || {};
   var type = FLOW.nodes[nodeId] ? (FLOW.nodes[nodeId].type || 'default') : d.k;
-
-  var pills = '<span class="pill"><b>path</b> references/' + esc(d.p) + '</span>';
-  if (d.k === 'skill') pills += '<span class="pill"><b>載入</b> Skill tool</span>';
-  if (meta.t) pills += '<span class="pill"><b>tools</b> ' + esc(meta.t) + '</span>';
 
   drawerEl.innerHTML =
     '<div class="drawer-head">' +
@@ -589,28 +673,42 @@ function openDrawer(nodeId) {
         '<span class="badge" data-type="' + esc(type) + '">' + esc(TYPE_LABEL[type] || d.k) + '</span>' +
       '</div>' +
       '<div class="drawer-title">' + esc(d.n) + '</div>' +
-      '<div class="drawer-desc">' + esc(meta.d || ('references/' + d.p + '/ 下的完整定義。')) + '</div>' +
-      '<div class="pills">' + pills + '</div>' +
+      '<div class="drawer-desc" id="drawer-desc"></div>' +
+      '<div class="pills" id="drawer-pills"></div>' +
     '</div>' +
-    '<div class="drawer-body"><div class="md">' +
-      '<h3>在流程裡的位置</h3>' +
-      '<ul>' +
-        (FLOW.nodes[nodeId]
-          ? '<li>所屬階段：<code>' + esc(PHASE_LABEL[FLOW.nodes[nodeId].phase] || '') + '</code></li>' +
-            '<li>上游 ' + window.getUpstream(nodeId).length + ' 個節點、下游 ' + window.getDownstream(nodeId).length + ' 個節點</li>'
-          : '<li>不在主線圖上：按需載入 / 環境性規則</li>') +
-        '<li>節點 id：<code>' + esc(nodeId) + '</code></li>' +
-      '</ul>' +
-      '<h3>正文</h3>' +
-      '<p>正式站在這裡渲染 <code>' + esc(d.p) + '/</code> 的完整 markdown（frontmatter 的 description、body 的階段步驟、Red Flags 等），' +
-      '由 <code>references-data.js</code> 內嵌後以 marked 轉 HTML，離線也讀得到。</p>' +
-      '<div class="note">這是設計 demo：為了不讓三個方向各自載入 202KB 的內嵌文件庫，抽屜內文以本區塊示意。' +
-      '上方的描述、路徑、tools 與上下游數量都是真資料，只有這段正文是佔位。</div>' +
+    '<div class="drawer-body"><div class="md" id="drawer-md">' +
+      '<p class="loading">載入中⋯</p>' +
     '</div></div>';
 
   drawerEl.classList.add('open');
   backdropEl.classList.add('open');
   $('drawer-close').onclick = closeDrawer;
+
+  docText(d)
+    .then(function (text) {
+      var parsed = parseFrontmatter(text);
+      var meta = parsed.meta;
+
+      var descEl = drawerEl.querySelector('#drawer-desc');
+      if (descEl) descEl.textContent = meta.description || '';
+
+      // pills：路徑一定有；model / tools 依 frontmatter 有才給，不編造
+      var pills = '<span class="pill"><b>path</b> ' + esc(docKey(d)) + '</span>';
+      if (meta.model) pills += '<span class="pill"><b>model</b> ' + esc(meta.model) + '</span>';
+      var tools = Array.isArray(meta.tools) ? meta.tools.join(', ') : meta.tools;
+      if (tools) pills += '<span class="pill"><b>tools</b> ' + esc(tools) + '</span>';
+      var pillsEl = drawerEl.querySelector('#drawer-pills');
+      if (pillsEl) pillsEl.innerHTML = pills;
+
+      // 去掉 body 的第一個 H1：抽屜的標題列已經顯示過名稱，留著會重複一次
+      var body = parsed.body.replace(/^#\s+.+\n?/, '').trim();
+      var mdEl = drawerEl.querySelector('#drawer-md');
+      if (mdEl) mdEl.innerHTML = window.marked.parse(body);
+    })
+    .catch(function (err) {
+      var mdEl = drawerEl.querySelector('#drawer-md');
+      if (mdEl) mdEl.innerHTML = '<p class="drawer-error">載入失敗：' + esc(err.message) + '</p>';
+    });
 }
 /** 關閉文件抽屜與其 backdrop。ESC、✕、點 backdrop 三個入口共用。 */
 function closeDrawer() {
