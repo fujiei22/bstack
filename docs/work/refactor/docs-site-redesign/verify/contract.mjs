@@ -119,14 +119,65 @@ check(
 
 // ── C4：八型別 token ─────────────────────────────────────────────────────────
 const TYPES = ['default', 'gate', 'agent', 'skill', 'policy', 'impl', 'hook', 'stop'];
-const cDecls = [...css.matchAll(/(--c-[a-z]+(?:-bd)?)\s*:\s*([^;]+);/g)];
-const notOklch = cDecls.filter((m) => !m[2].trim().startsWith('oklch('));
+
+/**
+ * 取出一個 CSS 區塊的內容（區塊內不含巢狀大括號，所以簡單配對即可）。
+ * @param {string} selector 例如 ':root' 或 ':root[data-theme="dark"]'
+ * @returns {string}
+ */
+function blockOf(selector) {
+  const i = css.indexOf(selector + ' {');
+  if (i === -1) return '';
+  return css.slice(i, css.indexOf('\n}', i));
+}
+const BLOCKS = { light: blockOf(':root'), dark: blockOf(':root[data-theme="dark"]') };
+
+/**
+ * 取一個區塊裡每個 --c-* 屬性的**生效值**（同名多次宣告時，CSS 取最後一條）。
+ * @param {string} block
+ * @returns {Map<string,string>}
+ */
+function effectiveTokens(block) {
+  const map = new Map();
+  for (const m of block.matchAll(/(--c-[a-z]+(?:-bd)?)\s*:\s*([^;]+);/g)) map.set(m[1], m[2].trim());
+  return map;
+}
+
+// C4a 斷言「生效值」是 oklch，不是「所有宣告都是 oklch」——
+// spec §已決事項 4 要求每個 token 前面加一條 hex fallback，兩者必須能並存。
+// 前一版寫成「每條宣告都要 oklch」，在 fallback 落地的當下就會自我否定。
+const notOklch = [];
+for (const [theme, block] of Object.entries(BLOCKS)) {
+  for (const [prop, val] of effectiveTokens(block)) {
+    if (!val.startsWith('oklch(')) notOklch.push(`${theme}/${prop}=${val}`);
+  }
+}
+const totalTokens = effectiveTokens(BLOCKS.light).size + effectiveTokens(BLOCKS.dark).size;
 check(
-  'C4a 八型別 token 值必須是 oklch',
-  cDecls.length > 0 && notOklch.length === 0,
-  `期望 0 條非 oklch（共 ${cDecls.length} 條宣告），實際 ${notOklch.length} 條非 oklch：` +
-    `${notOklch.slice(0, 4).map((m) => m[1] + ':' + m[2].trim()).join(' / ')}` +
-    `（後果：配色沒換到，或混用了兩套色彩空間）`
+  'C4a 八型別 token 的生效值必須是 oklch',
+  totalTokens === 32 && notOklch.length === 0,
+  `期望 16+16 個 token 的生效值都是 oklch，實際共 ${totalTokens} 個、其中 ${notOklch.length} 個不是：` +
+    `${notOklch.slice(0, 4).join(' / ')}（後果：配色沒換到，或 fallback 蓋過了正式值）`
+);
+
+// C4c：每個 --c-* 都要有 hex / rgba fallback 墊在前面（spec §已決事項 4）
+const noFallback = [];
+for (const [theme, block] of Object.entries(BLOCKS)) {
+  const seen = new Map();
+  for (const m of block.matchAll(/(--c-[a-z]+(?:-bd)?)\s*:\s*([^;]+);/g)) {
+    const list = seen.get(m[1]) || [];
+    list.push(m[2].trim());
+    seen.set(m[1], list);
+  }
+  for (const [prop, vals] of seen) {
+    if (!vals.some((v) => /^(#[0-9A-Fa-f]{3,8}|rgba?\()/.test(v))) noFallback.push(`${theme}/${prop}`);
+  }
+}
+check(
+  'C4c 八型別 token 都有 hex fallback',
+  noFallback.length === 0,
+  `期望每個 token 都有一條 hex/rgba 墊底，實際 ${noFallback.length} 個沒有：${noFallback.slice(0, 6).join(' / ')}` +
+    `（後果：Chrome <111 / Safari <15.4 上該 token 落空，節點會沒有底色或沒有邊框）`
 );
 const missing = TYPES.filter((t) => {
   const fill = (css.match(new RegExp(`--c-${t}\\s*:`, 'g')) || []).length;
