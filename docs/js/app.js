@@ -51,8 +51,9 @@ FLOW.phases.forEach(function (p) { PHASE_LABEL[p.id] = p.label; });
  * （skill 補 /SKILL.md、agent 補 .md）。33 個 key 對應 31 個相異文件——
  * RPT2 與 RPT3 共用 review-plan 的路徑。
  *
- * **刻意不收 design-language / design-direction**：references-data.js 沒有這兩份的內嵌全文，
- * 收了它們反而會讓對應節點點出「載入失敗」。這是已知缺口，維持未修。
+ * design-language / design-direction 兩筆是後來補的：它們的節點一直都在圖上，但先前
+ * references-data.js 沒有內嵌全文（baseline 既有缺口 2），所以是全站唯一點不開文件的兩個
+ * skill。已把兩份 SKILL.md 補進內嵌包，缺口 1 與 2 一併解掉。
  */
 var NODE_DOCS = {
   DevWfSkill:{p:'skills/dev-workflow',        n:'dev-workflow',        k:'skill'},
@@ -75,6 +76,8 @@ var NODE_DOCS = {
   LoadRetro: {p:'skills/retro',               n:'retro',               k:'skill'},
   LoadDebug: {p:'skills/debug-systematic',    n:'debug-systematic',    k:'skill'},
   LoadIncident:{p:'skills/incident-investigate',n:'incident-investigate',k:'skill'},
+  LoadDLang: {p:'skills/design-language',     n:'design-language',     k:'skill'},
+  LoadDD:    {p:'skills/design-direction',    n:'design-direction',    k:'skill'},
   LoadLock:  {p:'skills/lock-files',          n:'lock-files',          k:'skill'},
   LoadCmdG:  {p:'skills/cmd-guard',           n:'cmd-guard',           k:'skill'},
   LoadCtxS:  {p:'skills/context-snapshot',    n:'context-snapshot',    k:'skill'},

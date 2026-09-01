@@ -83,6 +83,7 @@ const FLOW_DATA = {
     ThreeWay:     { phase: 'phase_design', type: 'agent',  shape: 'rect',    label: '3 個 subagent 各出一版\n真實內容 + 三版共用同一輸出尺寸' },
     DemoIgnore:   { phase: 'phase_design', type: 'policy', shape: 'rect',    label: 'design-demos/ 不進版控\n.gitignore 的 **/design-demos/' },
     UGDesign:     { phase: 'phase_design', type: 'gate',   shape: 'diamond', label: 'USER GATE：選定方向\n回寫 spec.md 的 direction_decided' },
+    RerunCap:     { phase: 'phase_design', type: 'gate',   shape: 'diamond', label: '重跑上限 1 次\n第 2 次仍全否 → AskUserQuestion：\nuser 描述方向做一版 / 退回 brainstorm / 暫停' },
 
     // ───────── Phase 2：write-plan + review-plan（Dev only）─────────
     LoadWP:       { phase: 'phase_plan', type: 'skill',   shape: 'rect',    label: '載入 skill：write-plan' },
@@ -106,8 +107,11 @@ const FLOW_DATA = {
     LoadTDD:      { phase: 'phase_exec', type: 'skill',   shape: 'rect',    label: '載入 skill：tdd-cycle' },
     ParaQ:        { phase: 'phase_exec', type: 'default', shape: 'diamond', label: '遇 parallel-group >1 task？' },
     LoadDispatch: { phase: 'phase_exec', type: 'skill',   shape: 'rect',    label: '載入 skill：dispatch-parallel\n（spawn 多 subagent）' },
+    CollabGate:   { phase: 'phase_exec', type: 'gate',    shape: 'diamond', label: '§協作模式判定：三判準全中才提議\nAskUserQuestion：Agent Teams / subagent 平行 / 串行\n唯讀 fan-out 一律 subagent、不開隊友也不問' },
     TDDLoop:      { phase: 'phase_exec', type: 'impl',    shape: 'rect',    label: '紅綠循環：RED → GREEN → REFACTOR\n逐 task commit' },
     MidPivotQ:    { phase: 'phase_exec', type: 'default', shape: 'diamond', label: '§Task 推進規則 第 2 步：要動的檔\n都在 codebase_impact.files 內？' },
+    AlignQ:       { phase: 'phase_exec', type: 'default', shape: 'diamond', label: '本 task 動到前端檔？\ndesign.involved=true 且 size=小改' },
+    AlignChk:     { phase: 'phase_exec', type: 'impl',    shape: 'rect',    label: 'task 前後載 design-language\n四項對齊：元件狀態 / 斷點 / 表單 / dark mode\n該區客觀上無此維度 → 標 N/A 並附依據' },
     MidPivot:     { phase: 'phase_exec', type: 'gate',    shape: 'diamond', label: '§前端檔處理（中途轉進）\n暫停 → 補判 → 六選項 → 記 design_rejudge' },
 
     // ───────── Phase 4：verify-done ─────────
@@ -221,7 +225,8 @@ const FLOW_DATA = {
     ['LoadExec',     'LoadTDD',      '',                            'solid'],
     ['LoadTDD',      'ParaQ',        '',                            'solid'],
     ['ParaQ',        'LoadDispatch', 'yes',                         'solid'],
-    ['LoadDispatch', 'MidPivotQ',    '',                            'solid'],
+    ['LoadDispatch', 'CollabGate',   '',                            'solid'],
+    ['CollabGate',   'MidPivotQ',    '選定跑法後派工',               'solid'],
     ['ParaQ',        'MidPivotQ',    'no',                          'solid'],
     ['TDDLoop',      'LoadVerify',   '',                            'solid'],
 
@@ -241,11 +246,15 @@ const FLOW_DATA = {
     ['DesignMap',    'P0c',          '六欄位進 hand-off state',      'solid'],
 
     // 設計 lane：三方向（Dev + 大改；小改與豁免走原路）
-    ['TrackSplit',   'LoadDD',       'Dev + 大改',                  'solid'],
+    ['TrackSplit',   'LoadDD',       'Dev + 大改\n第 3 題選「出三版」',        'solid'],
+    ['TrackSplit',   'LoadWP',       'Dev + 大改\n第 3 題選「跳過三方向」\n理由記入 spec.md', 'solid'],
     ['LoadDD',       'ThreeWay',     '',                            'solid'],
     ['ThreeWay',     'DemoIgnore',   '產出落 design-demos/',         'dashed'],
     ['ThreeWay',     'UGDesign',     '',                            'solid'],
-    ['UGDesign',     'ThreeWay',     '都不要：重出三版',              'solid'],
+    ['UGDesign',     'ThreeWay',     '都不要：重出三版\n（上限 1 次）',  'solid'],
+    ['UGDesign',     'RerunCap',     '第 2 次仍全否',                'solid'],
+    ['RerunCap',     'LoadWP',       'user 描述方向 → 做一版',       'solid'],
+    ['RerunCap',     'BS',           '退回 brainstorm 重釐清',       'dashed'],
     ['UGDesign',     'LoadWP',       '選定：write-plan 2.5 讀定案',  'solid'],
 
     // 設計 lane：execute-plan 中途轉進
@@ -256,7 +265,10 @@ const FLOW_DATA = {
     // 設計 lane：verify-done 漏網複查
     ['LeakQ',        'LeakRecheck',  'yes',                         'solid'],
     ['LeakRecheck',  'UIQ',          '',                            'solid'],
-    ['MidPivotQ',    'TDDLoop',      '全在清單內',                   'solid'],
+    ['MidPivotQ',    'AlignQ',       '全在清單內',                   'solid'],
+    ['AlignQ',       'AlignChk',     'yes',                         'solid'],
+    ['AlignChk',     'TDDLoop',      '',                            'solid'],
+    ['AlignQ',       'TDDLoop',      'no（純後端 task）',            'solid'],
     ['LeakQ',        'UIQ',          'no',                          'solid'],
 
     // review
@@ -322,15 +334,29 @@ const FLOW_DATA = {
       desc: '優先於任何 skill；環境規則，全程適用、非流程步驟',
       kind: 'policy',
       items: [
+        { name: '§事實核實',      desc: '最高指導原則：儲存實資料 + codebase 使用點雙 source' },
         { name: '§Task 追蹤',     desc: 'TaskCreate / TaskUpdate' },
-        { name: '§決策點選單',   desc: 'AskUserQuestion 取代自由文字 gate' },
+        { name: '§決策點選單',   desc: 'AskUserQuestion；禁文字 token NLP 當 gate' },
         { name: '§Branch safety', desc: 'PreToolUse hook 擋 protected branch' },
         { name: '§File-type 硬規則', desc: '密鑰 / migration / lockfile / CI / infra' },
         { name: '§PII 安全底線',  desc: 'email / phone / 身分證 / 信用卡' },
         { name: '§DB 操作',       desc: 'mcp__mysql 唯讀 / DDL 交 user 跑' },
+        { name: '§設計語言對齊',  desc: '動前端檔前先讀該區既有設計語言、抄 exact values' },
+        { name: '§Docs 落檔',     desc: 'docs/work/<branch-name>/；按壽命分不按類型分' },
+      ],
+    },
+    {
+      id: 'devflow',
+      title: '開發流程政策',
+      desc: 'CLAUDE.md「開發流程」章節；決定流程怎麼跑，本身不是流程步驟',
+      kind: 'policy',
+      items: [
+        { name: '§Tier 機制',     desc: 'T0-T3 決定 brainstorm / plan / TDD / review / security 深度' },
+        { name: '§協作模式判定',  desc: 'Agent Teams gate：三判準全中才提議；唯讀 fan-out 一律 subagent' },
         { name: '§Trace 標籤',    desc: '每輪結尾 Phase / Tier / Track / Skill' },
         { name: '§Auto-fix',      desc: '不危險自動修 / 危險問 user' },
-        { name: '§Fail handling', desc: '不靜默重試 → AskUserQuestion 4 選' },
+        { name: '§Fail handling', desc: '不靜默重試 → AskUserQuestion 5 選' },
+        { name: '§Settings.json', desc: 'permissions.allow 僅限唯讀 / 查詢類' },
       ],
     },
     {

@@ -15,6 +15,7 @@
  *   C13 三態 class / app.js 不寫顏色（F4 F22）
  *   C14 抽屜 DOM 與 .md 包裹            C15 @media 恰為 1080px + 860px 兩條（spec §已決事項 2）
  *   C16 docstring 密度                  C17 無文件節點的 else 分支
+ *   C18 磁碟上的 skill / agent 全部能在站上點開文件
  *
  * **刻意不測 F2 與 F21。** 前一版 plan 曾用 `/function fitView/` 當 F2 的契約，但定案 demo 的
  * fitView() 內容就是 landingTransform()——函式名在、行為沒了，契約照樣綠。這兩項一律以
@@ -24,7 +25,7 @@
  *   node docs/work/refactor/docs-site-redesign/verify/contract.mjs
  *   node docs/work/refactor/docs-site-redesign/verify/contract.mjs --selftest   # 驗 fail 路徑
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -206,6 +207,9 @@ const BASELINE_KEYS = [
   'LoadPrEx', 'LoadRetro', 'LoadDebug', 'LoadIncident', 'LoadLock', 'LoadCmdG', 'LoadCtxS',
   'LoadCtxR', 'LoadWS', 'HypAgent', 'FEAgent', 'LangAgent', 'SecAgent', 'DBAgent', 'PrExAgent',
   'RPT2', 'RPT3',
+  // 後補：這兩個節點一直都在圖上，但先前沒有內嵌全文（baseline 既有缺口 1+2），
+  // 是全站唯一點不開文件的兩個 skill。已補進內嵌包。
+  'LoadDLang', 'LoadDD',
 ].sort();
 
 const ndStart = js.search(/(?:const|var|let)\s+NODE_DOCS\s*=\s*\{/);
@@ -273,23 +277,53 @@ check(
 );
 
 // ── C8：不動的檔 + REFERENCE_DOCS 筆數 ───────────────────────────────────────
-const FROZEN = ['docs/js/data.js', 'docs/js/layout.js', 'docs/js/references-data.js'];
-try {
-  execFileSync('git', ['diff', '--exit-code', 'HEAD', '--', ...FROZEN], { cwd: REPO, stdio: 'pipe' });
-  check('C8a 三個不動的檔沒被改', true);
-} catch {
-  check(
-    'C8a 三個不動的檔沒被改',
-    false,
-    `期望 git diff 對 ${FROZEN.join(' / ')} 全乾淨，實際有改動` +
-      `（後果：資料契約 84 nodes / 103 edges / 15 phases / 8 types 可能已變）`
-  );
-}
+// C8a 從「git diff 三個凍結檔」改成直接斷言資料契約的數值。
+// data.js 與 references-data.js 已依 user 指示解凍（補設計 lane 漏掉的流程路徑、
+// 修正 ambient 列錯的強制守則、補兩份缺的內嵌文件），用 git diff 守它只會永遠紅。
+// 真正要守的是「數字有沒有無聲跑掉」，那就直接數。
+const win = {};
+new Function('window', readFileSync(join(DOCS, 'js/data.js'), 'utf8'))(win);
+const FD = win.FLOW_DATA;
+const nodeCount = Object.keys(FD.nodes).length;
+const edgeCount = FD.edges.length;
+const phaseCount = FD.phases.length;
+const typeCount = new Set(Object.values(FD.nodes).map((n) => n.type || 'default')).size;
+const EXPECT = { nodes: 88, edges: 111, phases: 15, types: 8 };
 check(
-  'C8b REFERENCE_DOCS 有 31 個 key',
-  refKeys.size === 31,
-  `期望 31，實際 ${refKeys.size}（後果：內嵌文件集合被動過，F13/F14 的資料底變了）`
+  'C8a 資料契約 88 nodes / 111 edges / 15 phases / 8 types',
+  nodeCount === EXPECT.nodes && edgeCount === EXPECT.edges &&
+    phaseCount === EXPECT.phases && typeCount === EXPECT.types,
+  `期望 ${EXPECT.nodes}/${EXPECT.edges}/${EXPECT.phases}/${EXPECT.types}，` +
+    `實際 ${nodeCount}/${edgeCount}/${phaseCount}/${typeCount}` +
+    `（後果：改動 data.js 時數字無聲跑掉；改版前是 84/103/15/8）`
 );
+
+// 圖的完整性：沒有孤兒節點、沒有指向不存在節點的邊
+const usedIds = new Set();
+FD.edges.forEach((e) => { usedIds.add(e[0]); usedIds.add(e[1]); });
+const orphans = Object.keys(FD.nodes).filter((id) => !usedIds.has(id));
+const dangling = FD.edges.filter((e) => !FD.nodes[e[0]] || !FD.nodes[e[1]]);
+check(
+  'C8c 圖完整：無孤兒節點、無懸空邊',
+  orphans.length === 0 && dangling.length === 0,
+  `期望都是 0，實際孤兒 [${orphans.join(', ')}]、懸空邊 ` +
+    `[${dangling.map((e) => e[0] + '->' + e[1]).join(', ')}]` +
+    `（後果：孤兒節點在圖上是無法抵達的島，懸空邊會讓 dagre layout 直接爆）`
+);
+
+check(
+  'C8b REFERENCE_DOCS 有 33 個 key',
+  refKeys.size === 33,
+  `期望 33，實際 ${refKeys.size}（後果：內嵌文件集合被動過，F13/F14 的資料底變了）`
+);
+
+// layout.js 仍然不該被動——它是 dagre 參數，不在本次 scope
+try {
+  execFileSync('git', ['diff', '--exit-code', 'HEAD', '--', 'docs/js/layout.js'], { cwd: REPO, stdio: 'pipe' });
+  check('C8d layout.js 未被改動', true);
+} catch {
+  check('C8d layout.js 未被改動', false, '期望 git diff 乾淨，實際有改動（後果：dagre 佈局參數變了，整張圖的座標會位移）');
+}
 
 // ── C9：F12/F14 四句原文 ─────────────────────────────────────────────────────
 const F12_F14 = ['載入中⋯', '（無描述）', '（載入失敗）', '載入失敗：'];
@@ -417,6 +451,35 @@ check(
   js.includes('無獨立文件'),
   `期望 app.js 有「無獨立文件」卡片，實際找不到` +
     `（後果：84 個節點裡 51 個沒有對應文件，少了這個分支它們的 detail 會缺一塊或出現死按鈕）`
+);
+
+// ── C18：磁碟上的 skill / agent 都要能在站上點開文件 ─────────────────────────
+// 這條是 user 明確要求的本體（「流程圖中也沒有出現所有 skill，請全量檢查」）。
+// 寫成契約，下次新增 skill 卻忘了補內嵌文件時會當場紅，而不是等人發現。
+const diskSkills = readdirSync(join(REPO, 'skills'), { withFileTypes: true })
+  .filter((d) => d.isDirectory()).map((d) => d.name).sort();
+const diskAgents = readdirSync(join(REPO, 'agents'))
+  .filter((f) => f.endsWith('.md')).map((f) => f.replace(/\.md$/, '')).sort();
+
+const docNames = new Set(parsed.map((e) => e.key).map((k) => {
+  const m = ndBlock.match(new RegExp(k + "\\s*:\\s*\\{[^}]*n:\\s*'([^']+)'"));
+  return m ? m[1] : null;
+}).filter(Boolean));
+
+const missingDocs = [];
+for (const name of diskSkills) {
+  if (!refKeys.has(`references/skills/${name}/SKILL.md`)) missingDocs.push('skill:' + name + '(無內嵌全文)');
+  else if (!docNames.has(name)) missingDocs.push('skill:' + name + '(無 NODE_DOCS)');
+}
+for (const name of diskAgents) {
+  if (!refKeys.has(`references/agents/${name}.md`)) missingDocs.push('agent:' + name + '(無內嵌全文)');
+  else if (!docNames.has(name)) missingDocs.push('agent:' + name + '(無 NODE_DOCS)');
+}
+check(
+  `C18 磁碟 ${diskSkills.length} skill + ${diskAgents.length} agent 都能點開文件`,
+  missingDocs.length === 0,
+  `期望 0 個漏掉，實際 ${missingDocs.length} 個：${missingDocs.slice(0, 6).join(' / ')}` +
+    `（後果：那些 skill 的節點點下去只會顯示「無獨立文件」，站上查不到它的規格）`
 );
 
 // ── selftest：證明 fail 路徑有效 ─────────────────────────────────────────────
