@@ -489,11 +489,22 @@ function renderDetail() {
 var panelEl = $('panel'), panelBodyEl = $('panel-body');
 var panelSec = null, panelOpen = false, panelPinned = false;
 
+/**
+ * 文件索引的分組計數，從 NODE_DOCS 直接算。
+ * 這個站的主題就是流程資料本身，硬編數字一旦跟實際清單對不上，
+ * 讀的人會開始懷疑圖上其他數字——e2e 就抓到 rail 寫「31」而面板列 33 項。
+ */
+var DOC_COUNTS = (function () {
+  var c = { skill: 0, agent: 0 };
+  Object.keys(NODE_DOCS).forEach(function (k) { c[NODE_DOCS[k].k]++; });
+  return c;
+})();
+
 var SECTIONS = {
   type:  { title: '節點型別', sub: '8 型別 · 點一個 highlight 同型別節點' },
   phase: { title: '階段傳送', sub: '15 階段 · 點一個把視野帶到該段入口' },
   amb:   { title: '環境與跨流程', sub: '不在主線上、但全程適用的規則與 skill' },
-  docs:  { title: '文件索引', sub: '27 skill + 6 agent · 點開右側抽屜' }
+  docs:  { title: '文件索引', sub: DOC_COUNTS.skill + ' skill + ' + DOC_COUNTS.agent + ' agent · 點開右側抽屜' }
 };
 
 /**
@@ -658,7 +669,12 @@ var drawerEl = $('drawer'), backdropEl = $('backdrop');
  */
 function openDrawer(nodeId) {
   var d = NODE_DOCS[nodeId];
-  if (!d) return;
+  if (!d) {
+    // 不要靜默 return：使用者只會覺得按鈕壞了然後一直點，而 console 什麼都沒有。
+    // 正常路徑走不到這裡（有按鈕才有 key），會走到就代表資料不一致。
+    console.warn('[docs] NODE_DOCS 查無此節點，抽屜未開啟：', nodeId);
+    return;
+  }
   var type = FLOW.nodes[nodeId] ? (FLOW.nodes[nodeId].type || 'default') : d.k;
 
   drawerEl.innerHTML =
@@ -883,6 +899,19 @@ window.addEventListener('keydown', function (e) {
 window.addEventListener('resize', function () { updateMinimapViewport(); });
 
 /* ── 初始 ──────────────────────────────────────────────────────────────── */
+/** rail 按鈕的 hover 名牌數字一律從資料算，不寫死。 */
+(function syncRailLabels() {
+  var m = {
+    type:  '節點型別（' + FLOW.legend.length + '）',
+    phase: '階段傳送（' + FLOW.phases.length + '）',
+    docs:  '文件索引（' + Object.keys(NODE_DOCS).length + '）'
+  };
+  Object.keys(m).forEach(function (sec) {
+    var b = document.querySelector('.rail-btn[data-sec="' + sec + '"]');
+    if (b) b.setAttribute('data-label', m[sec]);
+  });
+})();
+
 renderStatus();
 // 進場：先退半格再滑進落地視野，讓第一眼有「圖被推到位」的動作而不是硬切
 setTimeout(function () {

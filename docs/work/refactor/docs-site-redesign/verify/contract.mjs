@@ -13,7 +13,7 @@
  *   C9  F12/F14 四句原文                C10 vendor 與 references-data 載入（F13 F16）
  *   C11 骨架錨點                        C12 動畫語彙
  *   C13 三態 class / app.js 不寫顏色（F4 F22）
- *   C14 抽屜 DOM 與 .md 包裹            C15 @media 只有 860px（spec §已決事項 2）
+ *   C14 抽屜 DOM 與 .md 包裹            C15 @media 恰為 1080px + 860px 兩條（spec §已決事項 2）
  *   C16 docstring 密度                  C17 無文件節點的 else 分支
  *
  * **刻意不測 F2 與 F21。** 前一版 plan 曾用 `/function fitView/` 當 F2 的契約，但定案 demo 的
@@ -211,7 +211,9 @@ const BASELINE_KEYS = [
 const ndStart = js.search(/(?:const|var|let)\s+NODE_DOCS\s*=\s*\{/);
 const ndEnd = ndStart === -1 ? -1 : js.indexOf('\n};', ndStart);
 const ndBlock = ndStart === -1 ? '' : js.slice(ndStart, ndEnd);
-const entries = [...ndBlock.matchAll(/^\s{2}([A-Za-z][A-Za-z0-9]*)\s*:\s*\{([^}]*)\}/gm)]
+// ^\s+ 而非 ^\s{2}：綁死兩空格縮排的話，任何 re-indent 都會讓 entries 變空陣列，
+// 訊息會報「少了 33 個 key」，看起來像 NODE_DOCS 整個不見。
+const entries = [...ndBlock.matchAll(/^\s+([A-Za-z][A-Za-z0-9]*)\s*:\s*\{([^}]*)\}/gm)]
   .map((m) => ({ key: m[1], body: m[2] }));
 const actualKeys = entries.map((e) => e.key).sort();
 
@@ -321,7 +323,11 @@ check(
 
 // ── C12：動畫語彙 ────────────────────────────────────────────────────────────
 const linears = (css.match(/(transition|animation)[^;]*\blinear\b/g) || []).length;
-const bareEase = (css.match(/(transition|animation)[^;]*\d+m?s\s+ease[;,\s)]/g) || []).length;
+// 連 ease-in / ease-out / ease-in-out 一起擋：它們跟裸 ease 同屬預設曲線族，
+// spec 成功條件 5 要的是「非預設曲線」。另外也接住沒有時長前綴的
+// `transition-timing-function: ease;` 寫法。
+const bareEase = (css.match(/(transition|animation)[^;]*\b(ease|ease-in|ease-out|ease-in-out)\b(?!-)/g) || [])
+  .filter((m) => !/cubic-bezier/.test(m)).length;
 const curves = new Set(css.match(/cubic-bezier\([^)]*\)/g) || []);
 check(
   'C12 動畫語彙',
@@ -380,13 +386,19 @@ check(
 );
 
 // ── C15：@media 只能有 860px 一條 ────────────────────────────────────────────
-const medias = css.match(/@media[^{]*/g) || [];
+// 恰好這兩條、一條不多一條不少。
+// 前一版寫成「只能有 860px 一條」，是基於錯誤分析——真正防 .panel/.detail 重疊的是
+// 1080px 條裡的 `.detail { right: 16px }`（讓出 134px），而 860px 條的
+// min(306px, 100vw-76px) 在 820px 算出 306、根本不會縮。e2e 在 820px 實測到 24px 重疊
+// 才抓到這件事。兩條是一組，缺任一條都會在某個寬度區間讓兩塊浮層疊在一起。
+const medias = (css.match(/@media[^{]*/g) || []).map((m) => m.trim());
+const wanted = ['@media (max-width: 1080px)', '@media (max-width: 860px)'];
 check(
-  'C15 @media 只有 max-width: 860px 一條',
-  medias.length === 1 && /max-width:\s*860px/.test(medias[0]),
-  `期望恰好 1 條且為 max-width: 860px，實際 ${medias.length} 條：${medias.map((m) => m.trim()).join(' / ')}` +
-    `（後果：860px 是新骨架的結構必需——沒有它視窗 <844px 時 .panel 會疊在 .detail 上；` +
-    `多加其他斷點則等於修了 user 明訂不修的缺口 4）`
+  'C15 @media 恰為 1080px 與 860px 兩條',
+  medias.length === 2 && wanted.every((w) => medias.some((m) => m === w)),
+  `期望恰好 ${wanted.join(' 與 ')}，實際 ${medias.length} 條：${medias.join(' / ') || '（無）'}` +
+    `（後果：少了 1080px 條 → 視窗 844px 以下 .panel 疊住 .detail 的關閉鈕與 badge；` +
+    `多加其他斷點 → 等於修了 user 明訂不修的缺口 4）`
 );
 
 // ── C16：docstring 密度 ──────────────────────────────────────────────────────

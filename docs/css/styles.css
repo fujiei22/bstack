@@ -612,6 +612,21 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 
 /* ── 窄視口：rail 保持不動（它本來就窄），面板改成貼齊 rail 的全高 ────── */
 
+/* ── 窄視口 ──────────────────────────────────────────────────────────────
+   兩條斷點是一組，不能只留一條：
+   1080px —— .detail 從 right:150px 移到 right:16px 讓出 134px，這才是防
+             .panel／.detail 重疊的主力；騰出右緣就得請 minimap 讓路。
+             不含這條時 detail 佔 [vw-472, vw-150]、panel 佔 [66, 372]，
+             vw < 844 即重疊（e2e 在 820px 實測到 24px 重疊）。
+    860px —— 再往下才輪到縮寬度。它用 min(306px, 100vw-76px)，在 820px
+             算出 306 不會縮，所以它擋不住 844 那個臨界點。
+   兩條都只處理桌面窄視窗的浮層重疊，不讓這個站變成響應式，
+   手機行為仍未定義（baseline 既有缺口 4 維持未修）。
+   ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .minimap-card { display: none; }
+  .detail { right: 16px; }
+}
 @media (max-width: 860px) {
   .panel { max-height: calc(100vh - 24px); width: min(306px, calc(100vw - var(--rail-w) - 20px)); }
   .detail { width: min(322px, calc(100vw - var(--rail-w) - 32px)); }
