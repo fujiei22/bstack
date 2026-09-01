@@ -1,0 +1,20 @@
+Network requests（全程監看，跨所有 scenario）
+============================================
+- static=true 共 45 個請求，全部 [200] OK（含 vendor JS / css / Google Fonts / favicon）。
+- static=false（非靜態資源，如 fetch/XHR）：0 個請求。
+- 全程無任何 >=400 狀態碼。
+- 抽屜開啟（F13/F14/N1）期間監看：無任何對 *.md 檔的請求——確認內容來自
+  js/references-data.js 內嵌（該檔在頁面載入時以 <script> 靜態載入，非按需 fetch）。
+
+關鍵請求清單（節錄）：
+1. GET http://localhost:8080/                          => 200
+3. GET http://localhost:8080/css/styles.css             => 200
+4. GET http://localhost:8080/js/vendor/d3.min.js        => 200
+5. GET http://localhost:8080/js/vendor/dagre.min.js     => 200
+6. GET http://localhost:8080/js/vendor/marked.min.js    => 200
+7. GET http://localhost:8080/js/layout.js               => 200
+8. GET http://localhost:8080/js/data.js                 => 200
+9. GET http://localhost:8080/js/references-data.js      => 200
+10. GET http://localhost:8080/js/app.js                 => 200
+37. GET http://localhost:8080/favicon.svg               => 200
+（其餘為 Google Fonts CDN 請求，皆 200）

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <title>bstack：dev-workflow flowchart explorer</title>
+
+  <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('dev-workflow-theme'); // 'auto' | 'light' | 'dark' | null
+        var mode = saved === 'light' || saved === 'dark' ? saved : 'auto';
+        var resolved = mode === 'auto'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : mode;
+        document.documentElement.setAttribute('data-theme', resolved);
+        document.documentElement.setAttribute('data-theme-mode', mode);
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute('data-theme-mode', 'auto');
+      }
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600&display=swap">
+  <link rel="stylesheet" href="./css/styles.css" />
+
+  <!-- vendor libs：本地 classic script，file:// 與離線均可用 -->
+  <script src="./js/vendor/d3.min.js"></script>
+  <script src="./js/vendor/dagre.min.js"></script>
+  <script src="./js/vendor/marked.min.js"></script>
+
+  <!-- layout helpers + FLOW_DATA + references bundle：classic script，file:// 相容 -->
+  <script src="./js/layout.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/references-data.js"></script>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ══ RAIL ══ -->
+  <nav class="rail" aria-label="主導覽">
+    <a class="rail-mark" href="./index.html" data-label="回首頁" aria-label="回 bstack 首頁">bs</a>
+    <div class="rail-group" id="rail-group">
+      <button class="rail-btn" data-sec="type" aria-label="節點型別"   data-label="節點型別（8）"      aria-expanded="false">型</button>
+      <button class="rail-btn" data-sec="phase" aria-label="階段傳送"  data-label="階段傳送（15）"     aria-expanded="false">段</button>
+      <button class="rail-btn" data-sec="amb" aria-label="環境規則與跨流程 skill"    data-label="環境規則 / 跨流程"  aria-expanded="false">環</button>
+      <button class="rail-btn" data-sec="docs" aria-label="文件索引"   data-label="文件索引（31）"     aria-expanded="false">檔</button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-group">
+      <button class="rail-btn" id="btn-fit" aria-label="回到流程起點"   data-label="回到起點">置</button>
+      <button class="rail-btn" id="btn-theme" aria-label="切換主題" data-label="主題：自動">自</button>
+    </div>
+    <div class="rail-indicator" id="rail-ind"></div>
+  </nav>
+
+  <!-- ══ STAGE ══ -->
+  <main class="stage">
+    <svg id="flow" aria-label="dev-workflow 流程圖"></svg>
+
+    <div class="masthead">
+      <h1>dev-workflow</h1>
+      <div class="sub" id="mast-sub">—</div>
+    </div>
+
+    <div class="minimap-card" id="minimap-card"></div>
+
+    <div class="hud-bottom">
+      <div class="statusline" id="statusline">—</div>
+    </div>
+  </main>
+
+  <!-- ══ 召喚式面板 ══ -->
+  <aside class="panel" id="panel" aria-live="polite">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title" id="panel-title">—</div>
+        <div class="panel-sub" id="panel-sub"></div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="icon-btn" id="panel-pin" title="釘住：選節點時不自動收起">釘</button>
+      <button class="icon-btn" id="panel-close" title="關閉（Esc）">✕</button>
+    </div>
+    <div class="panel-body" id="panel-body"></div>
+  </aside>
+
+  <!-- ══ DETAIL ══ -->
+  <aside class="detail" id="detail"></aside>
+
+  <!-- ══ 文件抽屜 ══ -->
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="drawer" id="drawer" aria-label="文件"></aside>
+
+</div>
+
+<!-- 主程式：d3 + dagre，無框架；classic script，file:// 相容 -->
+<script src="./js/app.js"></script>
+</body>
+</html>

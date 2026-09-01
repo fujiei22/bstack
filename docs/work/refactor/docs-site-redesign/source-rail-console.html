@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light" data-theme-mode="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dev-workflow — rail console</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600&display=swap">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   rail-console — 設計 token
+   色彩推導：主色不從模型先驗抽籤，從內容的文化語境採樣。
+   這個站的內容是「一份被逐條校對過的施工規則」，所以底色取活版印刷校樣紙
+   （暖紙白，非純白也非奶油黃），強調色取校對紅筆（vermilion，chroma 壓到
+   0.18 模擬油墨吸進紙裡的損失）。八個型別色是「資料色」不是品牌色，沿用
+   既有語意色相（停=紅 / skill=綠 / agent=藍…），只把 chroma 壓到 0.05-0.07、
+   明度統一，讓八色落在同一視覺層級、單靠色相區分。
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* — 中性明度序列（紙 → 墨）— */
+  --paper:      oklch(0.972 0.006 85);
+  --paper-sunk: oklch(0.941 0.008 85);
+  --surface:    oklch(0.995 0.003 85);
+  --ink:        oklch(0.245 0.012 60);
+  --ink-2:      oklch(0.455 0.012 60);
+  --ink-3:      oklch(0.575 0.011 60);
+  --rule:       oklch(0.878 0.008 70);
+  --rule-2:     oklch(0.800 0.010 70);
+
+  /* — 強調（校對紅筆）— */
+  --accent:      oklch(0.545 0.180 28);
+  --accent-ink:  oklch(0.995 0.003 85);
+  --accent-wash: oklch(0.545 0.180 28 / 0.10);
+  --accent-line: oklch(0.545 0.180 28 / 0.34);
+
+  /* — 圖的線 — */
+  --edge:     oklch(0.680 0.020 70);
+  --edge-dim: oklch(0.890 0.010 70);
+
+  /* — 八型別：填色 + 邊框（結構鎖死，色值可換）— */
+  --c-default: oklch(0.945 0.006  85); --c-default-bd: oklch(0.660 0.016  85);
+  --c-skill:   oklch(0.925 0.055 152); --c-skill-bd:   oklch(0.575 0.115 152);
+  --c-agent:   oklch(0.925 0.050 248); --c-agent-bd:   oklch(0.580 0.125 248);
+  --c-gate:    oklch(0.930 0.070  92); --c-gate-bd:    oklch(0.620 0.135  92);
+  --c-impl:    oklch(0.925 0.048 305); --c-impl-bd:    oklch(0.580 0.120 305);
+  --c-policy:  oklch(0.930 0.012 265); --c-policy-bd:  oklch(0.600 0.030 265);
+  --c-hook:    oklch(0.928 0.062  58); --c-hook-bd:    oklch(0.615 0.135  58);
+  --c-stop:    oklch(0.925 0.055  24); --c-stop-bd:    oklch(0.565 0.155  24);
+
+  /* — 抬升（紙疊在紙上，不是玻璃浮在霓虹上）— */
+  --lift-1: 0 1px 2px oklch(0.245 0.012 60 / 0.06), 0 4px 14px oklch(0.245 0.012 60 / 0.07);
+  --lift-2: 0 2px 6px oklch(0.245 0.012 60 / 0.08), 0 18px 44px oklch(0.245 0.012 60 / 0.13);
+
+  /* — 動畫節奏：三檔時長 × 進場減速 / 離場加速 — */
+  --t-micro: 120ms;
+  --t-panel: 260ms;
+  --t-large: 380ms;
+  --e-enter: cubic-bezier(.16, .84, .44, 1);
+  --e-exit:  cubic-bezier(.55, .02, .86, .30);
+  --e-move:  cubic-bezier(.33, .10, .25, 1);
+  --e-snap:  cubic-bezier(.34, 1.28, .48, 1);
+
+  /* — 字型：西文在前、繁中在後（fallback 鏈是逐字元比對）— */
+  --font-display: "Newsreader", "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-body:    "IBM Plex Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono:    "IBM Plex Mono", "Noto Sans TC", "PingFang TC", monospace;
+
+  --rail-w: 56px;
+  --panel-w: 306px;
+
+  color-scheme: light;
+  font-synthesis: none;
+  line-break: strict;
+}
+
+:root[data-theme="dark"] {
+  --paper:      oklch(0.185 0.008 65);
+  --paper-sunk: oklch(0.148 0.008 65);
+  --surface:    oklch(0.236 0.010 65);
+  --ink:        oklch(0.932 0.008 80);
+  --ink-2:      oklch(0.722 0.010 80);
+  --ink-3:      oklch(0.575 0.010 80);
+  --rule:       oklch(0.322 0.010 70);
+  --rule-2:     oklch(0.408 0.012 70);
+
+  --accent:      oklch(0.700 0.150 32);
+  --accent-ink:  oklch(0.160 0.010 60);
+  --accent-wash: oklch(0.700 0.150 32 / 0.14);
+  --accent-line: oklch(0.700 0.150 32 / 0.40);
+
+  --edge:     oklch(0.470 0.020 70);
+  --edge-dim: oklch(0.272 0.012 70);
+
+  --c-default: oklch(0.285 0.008  85); --c-default-bd: oklch(0.500 0.018  85);
+  --c-skill:   oklch(0.300 0.045 152); --c-skill-bd:   oklch(0.620 0.100 152);
+  --c-agent:   oklch(0.300 0.048 248); --c-agent-bd:   oklch(0.630 0.110 248);
+  --c-gate:    oklch(0.310 0.055  92); --c-gate-bd:    oklch(0.700 0.110  92);
+  --c-impl:    oklch(0.300 0.045 305); --c-impl-bd:    oklch(0.640 0.105 305);
+  --c-policy:  oklch(0.295 0.012 265); --c-policy-bd:  oklch(0.520 0.028 265);
+  --c-hook:    oklch(0.305 0.052  58); --c-hook-bd:    oklch(0.680 0.115  58);
+  --c-stop:    oklch(0.300 0.055  24); --c-stop-bd:    oklch(0.620 0.140  24);
+
+  --lift-1: 0 1px 2px oklch(0 0 0 / 0.34), 0 4px 16px oklch(0 0 0 / 0.36);
+  --lift-2: 0 2px 8px oklch(0 0 0 / 0.42), 0 20px 50px oklch(0 0 0 / 0.52);
+
+  color-scheme: dark;
+}
+
+/* ── reset ───────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+ul { margin: 0; padding: 0; list-style: none; }
+p { margin: 0 0 .7em; text-wrap: pretty; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+* { scrollbar-width: thin; scrollbar-color: var(--rule-2) transparent; }
+
+/* ── shell ───────────────────────────────────────────────────────────────── */
+.shell { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+/* ══ RAIL ════════════════════════════════════════════════════════════════
+   骨架的分水嶺：導覽不是一條 220px 的垂直側欄，而是 56px 的直立 rail，
+   內容面板點了才從 rail 旁彈出、關掉就消失，圖幾乎獨占整個視口。
+   ════════════════════════════════════════════════════════════════════════ */
+.rail {
+  position: absolute; inset: 0 auto 0 0; z-index: 40;
+  width: var(--rail-w);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 0 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+}
+.rail-mark {
+  width: 40px; height: 40px; margin-bottom: 14px;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 600; font-size: 19px;
+  letter-spacing: -.02em;
+  color: var(--accent-ink); background: var(--accent);
+  border-radius: 3px;
+  user-select: none;
+}
+.rail-group { display: flex; flex-direction: column; gap: 6px; }
+.rail-spacer { flex: 1; }
+
+.rail-btn {
+  position: relative;
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 4px;
+  color: var(--ink-2);
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 600;
+  transition: background var(--t-micro) var(--e-move),
+              color var(--t-micro) var(--e-move);
+}
+.rail-btn:hover { background: var(--paper-sunk); color: var(--ink); }
+.rail-btn[aria-expanded="true"], .rail-btn.is-on { color: var(--accent); background: var(--accent-wash); }
+.rail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* hover 才浮出的名牌：rail 窄，但每個入口都說得出自己是誰 */
+.rail-btn::after {
+  content: attr(data-label);
+  position: absolute; left: calc(100% + 9px); top: 50%;
+  translate: 0 -50%;
+  padding: 5px 9px;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  letter-spacing: .01em; white-space: nowrap;
+  border-radius: 3px;
+  opacity: 0; transform: translateX(-4px);
+  pointer-events: none;
+  transition: opacity var(--t-micro) var(--e-exit), transform var(--t-micro) var(--e-exit);
+}
+.rail-btn:hover::after { opacity: 1; transform: translateX(0); transition-timing-function: var(--e-enter); transition-duration: 180ms; }
+
+/* 在 rail 上滑動的活躍指示條 —— 面板換頁時它會滑過去，不是閃過去 */
+.rail-indicator {
+  position: absolute; right: -1px; width: 2px; height: 44px;
+  background: var(--accent);
+  border-radius: 2px 0 0 2px;
+  opacity: 0;
+  transition: top 320ms var(--e-snap), opacity var(--t-micro) var(--e-move);
+}
+.rail-indicator.on { opacity: 1; }
+
+/* ══ STAGE（圖是主體）═════════════════════════════════════════════════════ */
+.stage {
+  position: absolute; inset: 0 0 0 var(--rail-w);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--surface) 0%, var(--paper) 62%);
+}
+#flow { display: block; width: 100%; height: 100%; cursor: grab; }
+#flow:active { cursor: grabbing; }
+
+/* 報頭：浮在圖上，不佔一整欄 */
+.masthead {
+  position: absolute; left: 20px; top: 16px; z-index: 12;
+  pointer-events: none;
+}
+.masthead h1 {
+  font-family: var(--font-display);
+  font-size: 26px; font-weight: 600; letter-spacing: -.015em; line-height: 1.1;
+}
+.masthead .sub {
+  margin-top: 3px;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 400;
+  letter-spacing: .02em; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 狀態行（左下角，跟報頭對齊成一條左基線） */
+.hud-bottom {
+  position: absolute; left: 20px; bottom: 16px; z-index: 12;
+  display: flex; align-items: flex-end; gap: 12px;
+}
+/* minimap 是右緣的直立索引條：這張圖實測 1978x12398（1:6.3 的直幅長卷），
+   塞進橫幅小框只會變成一條 20px 的細線，所以讓它跟圖同比例、貼右緣直立，
+   跟左邊的 rail 形成兩道細框把圖夾在中間。 */
+.minimap-card {
+  position: absolute; right: 16px; top: 50%; translate: 0 -50%; z-index: 12;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  box-shadow: var(--lift-1);
+  overflow: hidden;
+  line-height: 0;
+}
+.minimap { display: block; cursor: crosshair; }
+.mm-node { stroke-linejoin: round; }
+.mm-viewport { fill: var(--accent-wash); stroke: var(--accent); }
+.statusline {
+  padding-bottom: 2px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--ink-3); letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+  max-width: 42ch;
+}
+.statusline b { color: var(--ink-2); font-weight: 500; }
+
+/* ══ 召喚式面板（popover，不是第二條側欄）═════════════════════════════════ */
+.panel {
+  position: absolute; z-index: 45;
+  left: calc(var(--rail-w) + 10px);
+  width: var(--panel-w);
+  max-height: min(78vh, 760px);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  box-shadow: var(--lift-2);
+  opacity: 0; visibility: hidden;
+  transform: translateX(-10px) scale(.985);
+  transform-origin: left center;
+  transition: opacity 170ms var(--e-exit), transform 170ms var(--e-exit), visibility 0s 170ms;
+}
+.panel.open {
+  opacity: 1; visibility: visible; transform: none;
+  transition: opacity var(--t-panel) var(--e-enter), transform var(--t-panel) var(--e-enter), visibility 0s;
+}
+.panel-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 10px 10px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.panel-title {
+  flex: 1;
+  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+  letter-spacing: -.005em;
+}
+.panel-sub {
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.icon-btn {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border-radius: 3px; color: var(--ink-3);
+  font-family: var(--font-display); font-size: 14px;
+  transition: background var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move);
+}
+.icon-btn:hover { background: var(--paper-sunk); color: var(--ink); }
+.icon-btn.is-on { color: var(--accent); background: var(--accent-wash); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.panel-body { overflow-y: auto; padding: 8px 8px 12px; }
+
+/* 面板內清單：進場逐項 22ms 錯開，收起時整塊走，不逐項倒放 */
+@keyframes itemIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.panel.open .stag { animation: itemIn 300ms var(--e-enter) backwards; animation-delay: calc(var(--i) * 22ms); }
+
+.sect-label {
+  padding: 12px 6px 6px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .10em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.sect-label:first-child { padding-top: 4px; }
+.sect-note { padding: 0 6px 8px; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+
+.row {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  min-height: 34px; padding: 7px 8px;
+  border-radius: 3px;
+  text-align: left;
+  color: var(--ink);
+  transition: background var(--t-micro) var(--e-move);
+}
+.row:hover { background: var(--paper-sunk); }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row.is-active { background: var(--accent-wash); color: var(--accent); }
+.row.is-static { cursor: default; }
+.row.is-static:hover { background: none; }
+.row-main { flex: 1; min-width: 0; }
+.row-name { font-size: 13.5px; font-weight: 500; }
+.row-desc { font-size: 12px; color: var(--ink-3); line-height: 1.45; margin-top: 1px; }
+.row.is-active .row-desc { color: var(--accent); opacity: .8; }
+.row-count {
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.row-ord {
+  width: 26px; flex: none;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.row.is-active .row-ord, .row.is-active .row-count { color: var(--accent); }
+
+.swatch {
+  width: 15px; height: 15px; flex: none;
+  border: 1.5px solid; border-radius: 2px;
+}
+.swatch[data-type="default"] { background: var(--c-default); border-color: var(--c-default-bd); }
+.swatch[data-type="skill"]   { background: var(--c-skill);   border-color: var(--c-skill-bd); }
+.swatch[data-type="agent"]   { background: var(--c-agent);   border-color: var(--c-agent-bd); }
+.swatch[data-type="gate"]    { background: var(--c-gate);    border-color: var(--c-gate-bd); }
+.swatch[data-type="impl"]    { background: var(--c-impl);    border-color: var(--c-impl-bd); }
+.swatch[data-type="policy"]  { background: var(--c-policy);  border-color: var(--c-policy-bd); }
+.swatch[data-type="hook"]    { background: var(--c-hook);    border-color: var(--c-hook-bd); }
+.swatch[data-type="stop"]    { background: var(--c-stop);    border-color: var(--c-stop-bd); }
+
+/* ══ DETAIL（選到節點才長出來，右側浮出）═════════════════════════════════ */
+.detail {
+  position: absolute; z-index: 44;
+  right: 150px; top: 16px;
+  width: 322px; max-height: calc(100vh - 32px);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  box-shadow: var(--lift-2);
+  opacity: 0; visibility: hidden;
+  transform: translateX(14px);
+  transition: opacity 170ms var(--e-exit), transform 170ms var(--e-exit), visibility 0s 170ms;
+}
+.detail.open {
+  opacity: 1; visibility: visible; transform: none;
+  transition: opacity var(--t-panel) var(--e-enter), transform var(--t-panel) var(--e-enter), visibility 0s;
+}
+.detail-head { padding: 13px 10px 12px 15px; border-bottom: 1px solid var(--rule); }
+.detail-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.badge {
+  padding: 2px 7px; border: 1.5px solid; border-radius: 2px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .04em; color: var(--ink);
+}
+.badge[data-type="default"] { background: var(--c-default); border-color: var(--c-default-bd); }
+.badge[data-type="skill"]   { background: var(--c-skill);   border-color: var(--c-skill-bd); }
+.badge[data-type="agent"]   { background: var(--c-agent);   border-color: var(--c-agent-bd); }
+.badge[data-type="gate"]    { background: var(--c-gate);    border-color: var(--c-gate-bd); }
+.badge[data-type="impl"]    { background: var(--c-impl);    border-color: var(--c-impl-bd); }
+.badge[data-type="policy"]  { background: var(--c-policy);  border-color: var(--c-policy-bd); }
+.badge[data-type="hook"]    { background: var(--c-hook);    border-color: var(--c-hook-bd); }
+.badge[data-type="stop"]    { background: var(--c-stop);    border-color: var(--c-stop-bd); }
+.detail-phase { flex: 1; font-size: 12px; color: var(--ink-3); }
+.detail-title {
+  font-family: var(--font-display); font-size: 19px; font-weight: 600;
+  line-height: 1.3; letter-spacing: -.01em;
+}
+.detail-id { margin-top: 4px; font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); }
+.detail-body { overflow-y: auto; padding: 4px 8px 12px; }
+
+.doc-card {
+  margin: 10px 6px 4px; padding: 11px 12px;
+  background: var(--paper-sunk);
+  border-radius: 4px;
+}
+.doc-card .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.doc-card .n { margin-top: 3px; font-size: 14px; font-weight: 600; }
+.doc-card .d { margin-top: 4px; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.btn-doc {
+  margin-top: 10px; width: 100%;
+  height: 34px; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink);
+  border-radius: 3px;
+  font-size: 13px; font-weight: 500; letter-spacing: .02em;
+  transition: filter var(--t-micro) var(--e-move), transform var(--t-micro) var(--e-move);
+}
+.btn-doc:hover { filter: brightness(1.08); }
+.btn-doc:active { transform: translateY(1px); }
+.btn-doc:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.link-row {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  min-height: 32px; padding: 6px 8px; border-radius: 3px;
+  text-align: left; font-size: 13px;
+  transition: background var(--t-micro) var(--e-move), padding-left var(--t-micro) var(--e-move);
+}
+.link-row:hover { background: var(--paper-sunk); padding-left: 12px; }
+.link-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.link-row .dot { width: 9px; height: 9px; flex: none; border: 1.5px solid; border-radius: 2px; }
+.link-row .dot[data-type="default"] { background: var(--c-default); border-color: var(--c-default-bd); }
+.link-row .dot[data-type="skill"]   { background: var(--c-skill);   border-color: var(--c-skill-bd); }
+.link-row .dot[data-type="agent"]   { background: var(--c-agent);   border-color: var(--c-agent-bd); }
+.link-row .dot[data-type="gate"]    { background: var(--c-gate);    border-color: var(--c-gate-bd); }
+.link-row .dot[data-type="impl"]    { background: var(--c-impl);    border-color: var(--c-impl-bd); }
+.link-row .dot[data-type="policy"]  { background: var(--c-policy);  border-color: var(--c-policy-bd); }
+.link-row .dot[data-type="hook"]    { background: var(--c-hook);    border-color: var(--c-hook-bd); }
+.link-row .dot[data-type="stop"]    { background: var(--c-stop);    border-color: var(--c-stop-bd); }
+.link-row .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-row .via { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.empty { padding: 4px 8px 8px; font-size: 12.5px; color: var(--ink-3); }
+
+/* ══ 文件抽屜 ════════════════════════════════════════════════════════════ */
+.backdrop {
+  position: absolute; inset: 0; z-index: 60;
+  background: oklch(0.245 0.012 60 / 0.28);
+  backdrop-filter: blur(2px);
+  opacity: 0; visibility: hidden;
+  transition: opacity 240ms var(--e-exit), visibility 0s 240ms;
+}
+.backdrop.open { opacity: 1; visibility: visible; transition: opacity var(--t-large) var(--e-enter), visibility 0s; }
+
+.drawer {
+  position: absolute; inset: 0 0 0 auto; z-index: 61;
+  width: min(640px, 100vw - var(--rail-w));
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--rule);
+  box-shadow: var(--lift-2);
+  transform: translateX(101%);
+  transition: transform 260ms var(--e-exit);
+}
+.drawer.open { transform: none; transition: transform var(--t-large) var(--e-enter); }
+.drawer-head { padding: 16px 18px 14px; border-bottom: 1px solid var(--rule); }
+.crumb {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 12px;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3);
+}
+.crumb .sep { opacity: .55; }
+.crumb .close { margin-left: auto; }
+.drawer-title {
+  font-family: var(--font-display); font-size: 27px; font-weight: 600;
+  letter-spacing: -.015em; line-height: 1.2;
+}
+.drawer-desc { margin-top: 7px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6; max-width: 58ch; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.pill {
+  padding: 3px 9px;
+  border: 1px solid var(--rule-2); border-radius: 999px;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2);
+}
+.pill b { font-weight: 500; color: var(--ink-3); }
+.drawer-body { overflow-y: auto; padding: 20px 18px 40px; }
+.md { max-width: 62ch; font-size: 14.5px; line-height: 1.75; }
+.md h3 {
+  margin: 22px 0 8px; font-family: var(--font-display);
+  font-size: 17px; font-weight: 600;
+}
+.md h3:first-child { margin-top: 0; }
+.md ul { margin: 0 0 14px; padding-left: 0; }
+.md li {
+  position: relative; padding-left: 18px; margin-bottom: 5px;
+}
+.md li::before {
+  content: ""; position: absolute; left: 3px; top: .68em;
+  width: 5px; height: 1.5px; background: var(--ink-3);
+}
+.md code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--paper-sunk); padding: 1px 5px; border-radius: 2px;
+}
+.md .note {
+  margin-top: 20px; padding: 12px 14px;
+  border-top: 1.5px solid var(--rule-2);
+  font-size: 13px; color: var(--ink-3); line-height: 1.65;
+}
+
+/* ══ 圖 ══════════════════════════════════════════════════════════════════ */
+.node { transition: opacity 220ms var(--e-move); }
+.node-rect { stroke-width: 1.25px; transition: stroke-width var(--t-micro) var(--e-move); }
+.node-rect[data-type="default"] { fill: var(--c-default); stroke: var(--c-default-bd); }
+.node-rect[data-type="skill"]   { fill: var(--c-skill);   stroke: var(--c-skill-bd); }
+.node-rect[data-type="agent"]   { fill: var(--c-agent);   stroke: var(--c-agent-bd); }
+.node-rect[data-type="gate"]    { fill: var(--c-gate);    stroke: var(--c-gate-bd); }
+.node-rect[data-type="impl"]    { fill: var(--c-impl);    stroke: var(--c-impl-bd); }
+.node-rect[data-type="policy"]  { fill: var(--c-policy);  stroke: var(--c-policy-bd); }
+.node-rect[data-type="hook"]    { fill: var(--c-hook);    stroke: var(--c-hook-bd); }
+.node-rect[data-type="stop"]    { fill: var(--c-stop);    stroke: var(--c-stop-bd); }
+
+.mm-node[data-type="default"] { fill: var(--c-default); stroke: var(--c-default-bd); }
+.mm-node[data-type="skill"]   { fill: var(--c-skill);   stroke: var(--c-skill-bd); }
+.mm-node[data-type="agent"]   { fill: var(--c-agent);   stroke: var(--c-agent-bd); }
+.mm-node[data-type="gate"]    { fill: var(--c-gate);    stroke: var(--c-gate-bd); }
+.mm-node[data-type="impl"]    { fill: var(--c-impl);    stroke: var(--c-impl-bd); }
+.mm-node[data-type="policy"]  { fill: var(--c-policy);  stroke: var(--c-policy-bd); }
+.mm-node[data-type="hook"]    { fill: var(--c-hook);    stroke: var(--c-hook-bd); }
+.mm-node[data-type="stop"]    { fill: var(--c-stop);    stroke: var(--c-stop-bd); }
+
+.node-inner {
+  height: 100%; padding: 9px 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-body);
+  font-size: 15px; font-weight: 400; line-height: 1.4;
+  text-align: center; color: var(--ink);
+  overflow: hidden;
+  user-select: none;
+}
+.node:hover .node-rect { stroke-width: 2px; }
+.node.is-neighbor .node-rect { stroke-width: 2px; }
+.node.is-dimmed { opacity: .2; }
+.node.is-focus .node-rect { stroke-width: 2px; }
+.node.is-focus { filter: drop-shadow(0 3px 10px var(--accent-line)); }
+
+.node-ring { fill: none; stroke: var(--accent); stroke-width: 1.75px; opacity: 0; }
+@keyframes ringIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+.node.is-focus .node-ring {
+  transform-box: fill-box; transform-origin: center;
+  animation: ringIn 300ms var(--e-enter) forwards;
+}
+
+.edge-path { fill: none; stroke: var(--edge); stroke-width: 1.4px; transition: stroke 220ms var(--e-move); }
+.edge { transition: opacity 220ms var(--e-move); }
+.edge.is-dimmed { opacity: .3; }
+.edge.is-dimmed .edge-path { stroke: var(--edge-dim); }
+.edge.is-highlighted .edge-path {
+  stroke: var(--accent); stroke-width: 2.2px;
+  stroke-dasharray: 8 4;
+  animation: dashmarch 720ms steps(6, end) infinite;
+}
+@keyframes dashmarch { to { stroke-dashoffset: -24; } }
+
+#arrow-normal path { fill: var(--edge); }
+#arrow-dim path    { fill: var(--edge-dim); }
+#arrow-hl path     { fill: var(--accent); }
+
+.edge-label {
+  font-family: var(--font-body); font-size: 12px; fill: var(--ink-2);
+  user-select: none;
+}
+.edge-label-bg { fill: var(--paper); stroke: var(--rule); stroke-width: 1px; }
+.edge.is-dimmed .edge-label { opacity: .5; }
+.edge.is-highlighted .edge-label { fill: var(--ink); font-weight: 500; }
+.edge.is-highlighted .edge-label-bg { stroke: var(--accent-line); }
+
+/* ── 窄視口：rail 保持不動（它本來就窄），面板改成貼齊 rail 的全高 ────── */
+@media (max-width: 1080px) {
+  .minimap-card { display: none; }
+  .detail { right: 16px; }
+}
+@media (max-width: 860px) {
+  .panel { max-height: calc(100vh - 24px); width: min(306px, calc(100vw - var(--rail-w) - 20px)); }
+  .detail { width: min(322px, calc(100vw - var(--rail-w) - 32px)); }
+  .masthead h1 { font-size: 21px; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══ RAIL ══ -->
+  <nav class="rail" aria-label="主導覽">
+    <div class="rail-mark" aria-hidden="true">bs</div>
+    <div class="rail-group" id="rail-group">
+      <button class="rail-btn" data-sec="type"   data-label="節點型別（8）"      aria-expanded="false">型</button>
+      <button class="rail-btn" data-sec="phase"  data-label="階段傳送（15）"     aria-expanded="false">段</button>
+      <button class="rail-btn" data-sec="amb"    data-label="環境規則 / 跨流程"  aria-expanded="false">環</button>
+      <button class="rail-btn" data-sec="docs"   data-label="文件索引（31）"     aria-expanded="false">檔</button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-group">
+      <button class="rail-btn" id="btn-fit"   data-label="回到起點">置</button>
+      <button class="rail-btn" id="btn-theme" data-label="主題：自動">自</button>
+    </div>
+    <div class="rail-indicator" id="rail-ind"></div>
+  </nav>
+
+  <!-- ══ STAGE ══ -->
+  <main class="stage">
+    <svg id="flow" aria-label="dev-workflow 流程圖"></svg>
+
+    <div class="masthead">
+      <h1>dev-workflow</h1>
+      <div class="sub" id="mast-sub">—</div>
+    </div>
+
+    <div class="minimap-card" id="minimap-card"></div>
+
+    <div class="hud-bottom">
+      <div class="statusline" id="statusline">—</div>
+    </div>
+  </main>
+
+  <!-- ══ 召喚式面板 ══ -->
+  <aside class="panel" id="panel" aria-live="polite">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title" id="panel-title">—</div>
+        <div class="panel-sub" id="panel-sub"></div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="icon-btn" id="panel-pin" title="釘住：選節點時不自動收起">釘</button>
+      <button class="icon-btn" id="panel-close" title="關閉（Esc）">✕</button>
+    </div>
+    <div class="panel-body" id="panel-body"></div>
+  </aside>
+
+  <!-- ══ DETAIL ══ -->
+  <aside class="detail" id="detail"></aside>
+
+  <!-- ══ 文件抽屜 ══ -->
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="drawer" id="drawer" aria-label="文件"></aside>
+
+</div>
+
+<script src="../../../../js/vendor/d3.min.js"></script>
+<script src="../../../../js/vendor/dagre.min.js"></script>
+<script src="../../../../js/layout.js"></script>
+<script src="../../../../js/data.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   rail-console — demo 主程式（vanilla / classic script / file:// 可開）
+   自寫渲染，不引用 docs/js/app.js（它硬編了舊配色）。
+   ══════════════════════════════════════════════════════════════════════════ */
+(function () {
+'use strict';
+
+var d3 = window.d3;
+var FLOW = window.FLOW_DATA;
+
+var NODE_W = 252, NODE_H = 98;
+/* minimap 跟主圖同比例（直幅），高度隨視口給，寬度由比例回推 */
+var MM_H = Math.max(320, Math.min(560, window.innerHeight - 190));
+var MM_W = 0; // 待 layout 算完才知道比例
+
+/** XSS 防護：HTML 特殊字元轉義。 */
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function $(id) { return document.getElementById(id); }
+
+/* ── 型別 / phase 對照 ─────────────────────────────────────────────────── */
+var TYPE_LABEL = {};
+FLOW.legend.forEach(function (l) { TYPE_LABEL[l.type] = l.label; });
+
+var PHASE_LABEL = {};
+FLOW.phases.forEach(function (p) { PHASE_LABEL[p.id] = p.label; });
+
+/**
+ * node ID → 文件識別（真實路徑，取自站上既有對照表）。
+ * demo 不載 202KB 的 references-data.js，抽屜內文用靜態示意。
+ */
+var NODE_DOCS = {
+  DevWfSkill:{p:'skills/dev-workflow',        n:'dev-workflow',        k:'skill'},
+  BS:        {p:'skills/brainstorm',          n:'brainstorm',          k:'skill'},
+  LoadDB:    {p:'skills/db-access',           n:'db-access',           k:'skill'},
+  LoadWP:    {p:'skills/write-plan',          n:'write-plan',          k:'skill'},
+  LoadRP:    {p:'skills/review-plan',         n:'review-plan',         k:'skill'},
+  LoadExec:  {p:'skills/execute-plan',        n:'execute-plan',        k:'skill'},
+  LoadTDD:   {p:'skills/tdd-cycle',           n:'tdd-cycle',           k:'skill'},
+  LoadDispatch:{p:'skills/dispatch-parallel', n:'dispatch-parallel',   k:'skill'},
+  LoadVerify:{p:'skills/verify-done',         n:'verify-done',         k:'skill'},
+  LoadFE:    {p:'skills/frontend-test',       n:'frontend-test',       k:'skill'},
+  LoadReq:   {p:'skills/request-review',      n:'request-review',      k:'skill'},
+  LoadRecv:  {p:'skills/receive-review',      n:'receive-review',      k:'skill'},
+  LoadSec:   {p:'skills/security-audit',      n:'security-audit',      k:'skill'},
+  LoadChk:   {p:'skills/security-checklist',  n:'security-checklist',  k:'skill'},
+  LoadFin:   {p:'skills/finish-branch',       n:'finish-branch',       k:'skill'},
+  LoadSafety:{p:'skills/safety-guard',        n:'safety-guard',        k:'skill'},
+  LoadPrEx:  {p:'skills/pr-explain',          n:'pr-explain',          k:'skill'},
+  LoadRetro: {p:'skills/retro',               n:'retro',               k:'skill'},
+  LoadDebug: {p:'skills/debug-systematic',    n:'debug-systematic',    k:'skill'},
+  LoadIncident:{p:'skills/incident-investigate',n:'incident-investigate',k:'skill'},
+  LoadDLang: {p:'skills/design-language',     n:'design-language',     k:'skill'},
+  LoadDD:    {p:'skills/design-direction',    n:'design-direction',    k:'skill'},
+  LoadLock:  {p:'skills/lock-files',          n:'lock-files',          k:'skill'},
+  LoadCmdG:  {p:'skills/cmd-guard',           n:'cmd-guard',           k:'skill'},
+  LoadCtxS:  {p:'skills/context-snapshot',    n:'context-snapshot',    k:'skill'},
+  LoadCtxR:  {p:'skills/context-resume',      n:'context-resume',      k:'skill'},
+  LoadWS:    {p:'skills/write-skill',         n:'write-skill',         k:'skill'},
+  HypAgent:  {p:'agents/hypothesis-tester',   n:'hypothesis-tester',   k:'agent'},
+  FEAgent:   {p:'agents/frontend-e2e-runner', n:'frontend-e2e-runner', k:'agent'},
+  LangAgent: {p:'agents/lang-reviewer',       n:'lang-reviewer',       k:'agent'},
+  SecAgent:  {p:'agents/security-auditor',    n:'security-auditor',    k:'agent'},
+  DBAgent:   {p:'agents/db-reviewer',         n:'db-reviewer',         k:'agent'},
+  PrExAgent: {p:'agents/pr-explainer',        n:'pr-explainer',        k:'agent'}
+};
+
+/** 抽屜示意用的真實描述 / tools（沒有的走 fallback，不編造）。 */
+var DOC_META = {
+  'dev-workflow':      {d:'自動化開發流程主入口。Phase 0 入口分流（Track / Tier）、9 階段順序、skill hand-off state、Trace 標籤、Auto-fix、Fail handling、Memory hook、跨流程 skill dispatch。'},
+  'brainstorm':        {d:'需求釐清 + Phase 0 入口分流。0a 對話釐清（含讀 memory）、0b 看 codebase、0c Track 判定、0d Tier 判定、spec 落檔。'},
+  'write-plan':        {d:'從 spec 寫實作 plan：bite-sized task、紅綠循環、並行性分析（parallel-group）、spec → plan 對齊檢查。'},
+  'execute-plan':      {d:'按 plan 推進實作：逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、task fail 處置、blocker 升級。'},
+  'verify-done':       {d:'task 完成前的綜合驗證：test / lint / build / type-check 全跑，T2+ 多輪 verify，T3 UI 改動加 browser e2e。'},
+  'request-review':    {d:'自動 code review 派發：T1 self / T2 subagent + lang-reviewer / T3 雙視角 + lang-reviewer。'},
+  'finish-branch':     {d:'收尾 development branch + git workflow 細則合一：clean check、rebase、push、開 PR、squash merge。'},
+  'design-language':   {d:'既有專案設計語言辨識與對齊：前端副檔名唯一真相、區塊邊界偵測、設計語言抽取（exact values）、四項對齊檢查清單。'},
+  'design-direction':  {d:'定設計方向：三方向硬門、可變維度、三 subagent 並行、產出落檔、反 AI slop、6 維度評審。'},
+  'lock-files':        {d:'鎖定編輯範圍：user 顯式宣告哪些檔／目錄禁改，寫入動作 pre-check，user 解鎖機制。'},
+  'cmd-guard':         {d:'危險指令防呆：偵測危險指令類型、危險度分級、AskUserQuestion 二次確認、安全替代建議。'},
+  'context-snapshot':  {d:'進度快照存：抽當前 state（spec / plan / phase / decision / pending）寫到 docs/snapshots/，recovery 路徑明確。'},
+  'context-resume':    {d:'進度快照讀回：找最新 snapshot、Read 還原 state、印 progress、接續對應 phase skill。'},
+  'write-skill':       {d:'寫新 skill 的 meta skill：SKILL.md frontmatter / body 結構、繁中風格、命名、放置位置、Red Flags。'},
+  'lang-reviewer':     {d:'程式語言特化 code reviewer。動態 dispatch：主 dispatcher 在 spawn 時標 language，本 agent 依該 language 套對應 idiom / pitfall / best practice。', t:'Read, Grep, Glob, Bash'},
+  'security-auditor':  {d:'安全特化 reviewer：OWASP Top 10、STRIDE 六類威脅、security-checklist 逐項對、PII 違規、File-type 硬規則命中。獨立 context、避免球員兼裁判。', t:'Read, Grep, Glob, Bash'},
+  'db-reviewer':       {d:'資料庫 schema / SQL / migration 特化 reviewer：schema 設計合理性、index / query plan、migration 安全性、PII 處理、回滾路徑。', t:'Read, Grep, Glob, Bash, mysql MCP'},
+  'pr-explainer':      {d:'PR diff 詳盡解釋特化 reviewer：獨立 context 重讀 diff，寫「為何 + 怎做 + 關聯」三層解釋落檔。', t:'Read, Write, Edit, Glob, Grep, Bash'},
+  'frontend-e2e-runner':{d:'Playwright e2e 執行 specialist：獨立 context 跑 browser 自動化、截圖、監控 console+network、PII mask，回結構化 pass/fail/inconclusive。', t:'Playwright MCP, Read, Write, Bash'},
+  'hypothesis-tester': {d:'Incident hypothesis 驗證特化 agent：獨立 context 驗單一假設，不知道別的假設、不預設答案，回嚴格結構化 verdict。', t:'Read, Grep, Glob, Bash'}
+};
+
+/* ── layout ────────────────────────────────────────────────────────────── */
+/**
+ * 估算節點高度：逐行量文字寬（CJK 約一個字身、ASCII 約半個），
+ * 除以內容寬得換行數。統一高度會讓三個最長的 label 被裁掉，
+ * 量過再給高度，框才跟著內容長。
+ */
+function measureHeight(label) {
+  var contentW = NODE_W - 22, lineH = 21, lines = 0;
+  String(label).split('\n').forEach(function (ln) {
+    var w = 0;
+    for (var i = 0; i < ln.length; i++) w += ln.charCodeAt(i) > 127 ? 15 : 7.7;
+    lines += Math.max(1, Math.ceil(w / contentW));
+  });
+  return Math.max(NODE_H, lines * lineH + 22);
+}
+
+var rawNodes = Object.keys(FLOW.nodes).map(function (id) {
+  var n = FLOW.nodes[id];
+  return {
+    id: id, label: n.label || id, nodeType: n.type || 'default',
+    shape: n.shape || 'rect', phase: n.phase,
+    width: NODE_W, height: measureHeight(n.label || id)
+  };
+});
+var rawEdges = FLOW.edges.map(function (e, i) {
+  return { id: 'e' + i, source: e[0], target: e[1], label: e[2] || '', kind: e[3] || 'solid' };
+});
+
+var layout = buildLayout(rawNodes, rawEdges, { rankSep: 110, nodeSep: 64 });
+var nodeMap = new Map(layout.nodes.map(function (n) { return [n.id, n]; }));
+
+/** phase id → 該 phase 中最上方的 node，作為傳送目標。 */
+var phaseEntry = new Map();
+layout.nodes.forEach(function (n) {
+  var cur = phaseEntry.get(n.phase);
+  if (!cur || n.y < nodeMap.get(cur).y) phaseEntry.set(n.phase, n.id);
+});
+
+/** 型別 → 節點數；phase → 節點數。面板上的數字全部由真資料算出。 */
+var typeCount = {}, phaseCount = {};
+layout.nodes.forEach(function (n) {
+  typeCount[n.nodeType] = (typeCount[n.nodeType] || 0) + 1;
+  phaseCount[n.phase] = (phaseCount[n.phase] || 0) + 1;
+});
+
+/** dagre 的首尾控制點在 node 中心，換成矩形邊框交點讓箭頭停在框上。 */
+function edgePoints(e) {
+  var pts = e.points;
+  if (!pts || !pts.length) return [];
+  var s = nodeMap.get(e.source), t = nodeMap.get(e.target);
+  if (!s || !t) return pts;
+  var mids = pts.length > 2 ? pts.slice(1, -1) : [];
+  var dS = mids.length ? mids[0] : { x: t.x, y: t.y };
+  var dT = mids.length ? mids[mids.length - 1] : { x: s.x, y: s.y };
+  return [intersectRect(s.x, s.y, s.width, s.height, dS.x, dS.y)]
+    .concat(mids, [intersectRect(t.x, t.y, t.width, t.height, dT.x, dT.y)]);
+}
+
+/* ── svg ───────────────────────────────────────────────────────────────── */
+var svgEl = $('flow');
+var svg = d3.select(svgEl);
+var defs = svg.append('defs');
+
+/** 建 marker；填色交給 CSS 變數，主題切換時箭頭跟著換。 */
+function defArrow(id) {
+  defs.append('marker').attr('id', id)
+    .attr('viewBox', '0 -4 8 8').attr('refX', 8).attr('refY', 0)
+    .attr('markerWidth', 7).attr('markerHeight', 7).attr('orient', 'auto')
+    .append('path').attr('d', 'M0,-4L8,0L0,4Z');
+}
+defArrow('arrow-normal'); defArrow('arrow-hl'); defArrow('arrow-dim');
+
+var currentTransform = d3.zoomIdentity;
+var zoomRoot = svg.append('g');
+var zoom = d3.zoom().scaleExtent([0.04, 2.5]).on('zoom', function (evt) {
+  currentTransform = evt.transform;
+  zoomRoot.attr('transform', evt.transform.toString());
+  updateMinimapViewport();
+});
+svg.call(zoom);
+
+var edgeLayer = zoomRoot.append('g');
+var nodeLayer = zoomRoot.append('g');
+var lineGen = d3.line().x(function (d) { return d.x; }).y(function (d) { return d.y; })
+  .curve(d3.curveCatmullRom.alpha(0.5));
+
+/* — edges — */
+var edgeSels = edgeLayer.selectAll('g').data(layout.edges, function (d) { return d.id; })
+  .join('g').attr('class', 'edge');
+
+edgeSels.append('path')
+  .attr('class', 'edge-path')
+  .attr('d', function (d) { return lineGen(edgePoints(d)); })
+  .attr('marker-end', 'url(#arrow-normal)')
+  .attr('stroke-dasharray', function (d) { return d.kind === 'dashed' ? '5 3' : null; });
+
+edgeSels.each(function (d) {
+  if (!d.label) return;
+  var g = d3.select(this).append('g')
+    .attr('transform', 'translate(' + (d.labelX || 0) + ',' + (d.labelY || 0) + ')');
+  var tw = 0;
+  for (var i = 0; i < d.label.length; i++) tw += d.label.charCodeAt(i) > 127 ? 10.5 : 6;
+  tw += 14;
+  var lines = d.label.split('\n');
+  var th = lines.length * 16 + 6;
+  g.append('rect').attr('class', 'edge-label-bg')
+    .attr('x', -tw / 2).attr('y', -th / 2).attr('width', tw).attr('height', th).attr('rx', 2);
+  var txt = g.append('text').attr('class', 'edge-label')
+    .attr('text-anchor', 'middle')
+    .attr('y', -(lines.length - 1) * 8);
+  lines.forEach(function (ln, i) {
+    txt.append('tspan').attr('x', 0).attr('dy', i === 0 ? '0.35em' : '16').text(ln);
+  });
+});
+
+/* — nodes — */
+var nodeSels = nodeLayer.selectAll('g').data(layout.nodes, function (d) { return d.id; })
+  .join('g').attr('class', 'node')
+  .attr('transform', function (d) { return 'translate(' + (d.x - d.width / 2) + ',' + (d.y - d.height / 2) + ')'; })
+  .style('cursor', 'pointer')
+  .on('click', function (evt, d) {
+    evt.stopPropagation();
+    var same = selection && selection.kind === 'node' && selection.id === d.id;
+    setSelection(same ? null : { kind: 'node', id: d.id });
+  });
+
+/** stadium 節點（Start / End）走膠囊，其餘輕圓角。 */
+function nodeRx(d) { return d.shape === 'stadium' ? d.height / 2 : 3; }
+
+nodeSels.append('rect').attr('class', 'node-ring')
+  .attr('x', -5).attr('y', -5)
+  .attr('width', function (d) { return d.width + 10; })
+  .attr('height', function (d) { return d.height + 10; })
+  .attr('rx', function (d) { return nodeRx(d) + 5; });
+
+nodeSels.append('rect').attr('class', 'node-rect')
+  .attr('data-type', function (d) { return d.nodeType; })
+  .attr('width', function (d) { return d.width; })
+  .attr('height', function (d) { return d.height; })
+  .attr('rx', nodeRx);
+
+nodeSels.append('foreignObject')
+  .attr('width', function (d) { return d.width; })
+  .attr('height', function (d) { return d.height; })
+  .each(function (d) {
+    var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    div.setAttribute('class', 'node-inner');
+    div.innerHTML = esc(d.label).replace(/\n/g, '<br>');
+    this.appendChild(div);
+  });
+
+/* ── selection ─────────────────────────────────────────────────────────── */
+var selection = null;
+
+function setSelection(sel) {
+  selection = sel;
+  applyHighlight();
+  renderDetail();
+  renderStatus();
+  if (panelSec === 'type') renderPanelBody();
+  if (panelSec === 'phase') renderPanelBody();
+  // 未釘住的面板：選了節點就讓路給圖
+  if (sel && sel.kind === 'node' && panelOpen && !panelPinned) closePanel();
+}
+
+function highlightSets() {
+  if (!selection) return { nodes: null, edges: null, nbr: null };
+  if (selection.kind === 'node') {
+    var ns = new Set([selection.id]), es = new Set(), nb = new Set();
+    layout.edges.forEach(function (e) {
+      if (e.source === selection.id) { ns.add(e.target); nb.add(e.target); es.add(e.id); }
+      if (e.target === selection.id) { ns.add(e.source); nb.add(e.source); es.add(e.id); }
+    });
+    return { nodes: ns, edges: es, nbr: nb };
+  }
+  var tn = new Set(layout.nodes.filter(function (n) { return n.nodeType === selection.type; })
+    .map(function (n) { return n.id; }));
+  return { nodes: tn, edges: new Set(), nbr: new Set() };
+}
+
+/** 三態：is-focus（自己）/ is-neighbor（1-hop）/ is-dimmed（其餘）。 */
+function applyHighlight() {
+  var h = highlightSets(), has = selection !== null;
+  nodeSels
+    .classed('is-focus', function (d) { return !!selection && selection.kind === 'node' && d.id === selection.id; })
+    .classed('is-neighbor', function (d) { return !!h.nbr && h.nbr.has(d.id); })
+    .classed('is-dimmed', function (d) { return has && !h.nodes.has(d.id); });
+  edgeSels
+    .classed('is-highlighted', function (d) { return !!h.edges && h.edges.has(d.id); })
+    .classed('is-dimmed', function (d) { return has && !(h.edges && h.edges.has(d.id)); });
+  edgeSels.select('.edge-path').attr('marker-end', function (d) {
+    if (h.edges && h.edges.has(d.id)) return 'url(#arrow-hl)';
+    return has ? 'url(#arrow-dim)' : 'url(#arrow-normal)';
+  });
+}
+
+svg.on('click.pane', function (evt) {
+  if (!evt.target.closest('.node')) setSelection(null);
+});
+
+/* ── detail panel ──────────────────────────────────────────────────────── */
+var detailEl = $('detail');
+
+function neighborListHtml(ids) {
+  if (!ids.length) return '<div class="empty">無</div>';
+  return '<ul>' + ids.map(function (id) {
+    var n = FLOW.nodes[id];
+    if (!n) return '';
+    var first = String(n.label || id).split('\n')[0];
+    return '<li><button class="link-row" data-jump="' + esc(id) + '">' +
+             '<span class="dot" data-type="' + esc(n.type || 'default') + '"></span>' +
+             '<span class="lbl">' + esc(first) + '</span>' +
+             '<span class="via">' + esc(id) + '</span>' +
+           '</button></li>';
+  }).join('') + '</ul>';
+}
+
+function renderDetail() {
+  if (!selection || selection.kind !== 'node') { detailEl.classList.remove('open'); return; }
+  var id = selection.id, n = FLOW.nodes[id];
+  if (!n) { detailEl.classList.remove('open'); return; }
+
+  var type = n.type || 'default';
+  var up = window.getUpstream(id), dn = window.getDownstream(id);
+  var doc = NODE_DOCS[id];
+  var lines = String(n.label || id).split('\n');
+
+  var docHtml;
+  if (doc) {
+    var meta = DOC_META[doc.n];
+    docHtml =
+      '<div class="doc-card">' +
+        '<div class="k">' + (doc.k === 'agent' ? 'agent' : 'skill') + '</div>' +
+        '<div class="n">' + esc(doc.n) + '</div>' +
+        '<div class="d">' + esc(meta ? meta.d : 'references/' + doc.p + '/ 下的完整定義。') + '</div>' +
+        '<button class="btn-doc" data-doc="' + esc(id) + '">查看完整文件</button>' +
+      '</div>';
+  } else {
+    docHtml = '<div class="doc-card"><div class="k">無獨立文件</div>' +
+              '<div class="d">此節點是流程步驟本身，規則寫在 CLAUDE.md 或上游 skill 內。</div></div>';
+  }
+
+  detailEl.innerHTML =
+    '<div class="detail-head">' +
+      '<div class="detail-meta">' +
+        '<span class="badge" data-type="' + esc(type) + '">' + esc(TYPE_LABEL[type] || type) + '</span>' +
+        '<span class="detail-phase">' + esc(PHASE_LABEL[n.phase] || n.phase || '') + '</span>' +
+        '<button class="icon-btn" id="detail-close" title="關閉（Esc）">✕</button>' +
+      '</div>' +
+      '<div class="detail-title">' + esc(lines[0]) + '</div>' +
+      (lines.length > 1 ? '<div class="row-desc" style="margin-top:5px">' + esc(lines.slice(1).join(' ')) + '</div>' : '') +
+      '<div class="detail-id">' + esc(id) + '</div>' +
+    '</div>' +
+    '<div class="detail-body">' +
+      docHtml +
+      '<div class="sect-label">上游 · ' + up.length + '</div>' + neighborListHtml(up) +
+      '<div class="sect-label">下游 · ' + dn.length + '</div>' + neighborListHtml(dn) +
+    '</div>';
+
+  detailEl.classList.add('open');
+  $('detail-close').onclick = function () { setSelection(null); };
+  detailEl.querySelectorAll('[data-jump]').forEach(function (b) {
+    b.onclick = function () { var t = b.getAttribute('data-jump'); setSelection({ kind: 'node', id: t }); panTo(t); };
+  });
+  var db = detailEl.querySelector('[data-doc]');
+  if (db) db.onclick = function () { openDrawer(db.getAttribute('data-doc')); };
+}
+
+/* ── 召喚式面板 ────────────────────────────────────────────────────────── */
+var panelEl = $('panel'), panelBodyEl = $('panel-body');
+var panelSec = null, panelOpen = false, panelPinned = false;
+
+var SECTIONS = {
+  type:  { title: '節點型別', sub: '8 型別 · 點一個 highlight 同型別節點' },
+  phase: { title: '階段傳送', sub: '15 階段 · 點一個把視野帶到該段入口' },
+  amb:   { title: '環境與跨流程', sub: '不在主線上、但全程適用的規則與 skill' },
+  docs:  { title: '文件索引', sub: '27 skill + 6 agent · 點開右側抽屜' }
+};
+
+function openPanel(sec, btn) {
+  panelSec = sec;
+  panelOpen = true;
+  $('panel-title').textContent = SECTIONS[sec].title;
+  $('panel-sub').textContent = SECTIONS[sec].sub;
+  renderPanelBody();
+  positionPanel(btn);
+  panelEl.classList.add('open');
+  document.querySelectorAll('.rail-btn[data-sec]').forEach(function (b) {
+    b.setAttribute('aria-expanded', String(b.getAttribute('data-sec') === sec));
+  });
+  moveIndicator(btn);
+}
+
+function closePanel() {
+  panelOpen = false; panelSec = null;
+  panelEl.classList.remove('open');
+  document.querySelectorAll('.rail-btn[data-sec]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+  moveIndicator(null);
+}
+
+/** 面板貼著被點的 rail 按鈕出現（popover 錨定），超出視口時夾回來。 */
+function positionPanel(btn) {
+  if (!btn) return;
+  var top = btn.getBoundingClientRect().top;
+  var max = window.innerHeight - Math.min(panelEl.scrollHeight || 400, window.innerHeight * 0.78) - 14;
+  panelEl.style.top = Math.max(14, Math.min(top, Math.max(14, max))) + 'px';
+}
+
+var indEl = $('rail-ind');
+function moveIndicator(btn) {
+  if (!btn) { indEl.classList.remove('on'); return; }
+  indEl.style.top = btn.offsetTop + 'px';
+  indEl.classList.add('on');
+}
+
+function renderPanelBody() {
+  if (!panelSec) return;
+  var html = '';
+  var i = 0;
+  function stag() { return ' class="stag" style="--i:' + (i++) + '"'; }
+
+  if (panelSec === 'type') {
+    html += '<div class="sect-note">' + layout.nodes.length + ' 個節點依角色分成 8 型別；顏色只由 <code>data-type</code> 決定。</div>';
+    html += '<ul>' + FLOW.legend.map(function (l) {
+      var on = selection && selection.kind === 'type' && selection.type === l.type;
+      return '<li' + stag() + '><button class="row' + (on ? ' is-active' : '') + '" data-type-pick="' + esc(l.type) + '">' +
+             '<span class="swatch" data-type="' + esc(l.type) + '"></span>' +
+             '<span class="row-main"><span class="row-name">' + esc(l.label) + '</span></span>' +
+             '<span class="row-count">' + (typeCount[l.type] || 0) + '</span></button></li>';
+    }).join('') + '</ul>';
+
+  } else if (panelSec === 'phase') {
+    var sorted = FLOW.phases.slice().sort(function (a, b) { return a.order - b.order; });
+    var curPhase = selection && selection.kind === 'node' && FLOW.nodes[selection.id]
+      ? FLOW.nodes[selection.id].phase : null;
+    html += '<ul>' + sorted.map(function (p, idx) {
+      var on = curPhase === p.id;
+      return '<li' + stag() + '><button class="row' + (on ? ' is-active' : '') + '" data-phase="' + esc(p.id) + '">' +
+             '<span class="row-ord">' + String(idx + 1).padStart(2, '0') + '</span>' +
+             '<span class="row-main"><span class="row-name">' + esc(p.label) + '</span></span>' +
+             '<span class="row-count">' + (phaseCount[p.id] || 0) + '</span></button></li>';
+    }).join('') + '</ul>';
+
+  } else if (panelSec === 'amb') {
+    FLOW.ambient.forEach(function (g) {
+      html += '<div class="sect-label"' + stag() + '>' + esc(g.title) + ' · ' + g.items.length + '</div>';
+      html += '<div class="sect-note">' + esc(g.desc) + '</div>';
+      html += '<ul>' + g.items.map(function (it) {
+        var clickable = g.kind === 'skill' && it.docKey;
+        return '<li' + stag() + '><button class="row' + (clickable ? '' : ' is-static') + '"' +
+               (clickable ? ' data-doc="' + esc(it.docKey) + '"' : ' tabindex="-1"') + '>' +
+               '<span class="row-main"><span class="row-name">' + esc(it.name) + '</span>' +
+               '<span class="row-desc">' + esc(it.desc) + '</span></span></button></li>';
+      }).join('') + '</ul>';
+    });
+
+  } else if (panelSec === 'docs') {
+    var ids = Object.keys(NODE_DOCS);
+    [['skill', 'Skills'], ['agent', 'Agents']].forEach(function (grp) {
+      var list = ids.filter(function (id) { return NODE_DOCS[id].k === grp[0]; });
+      html += '<div class="sect-label"' + stag() + '>' + grp[1] + ' · ' + list.length + '</div>';
+      html += '<ul>' + list.map(function (id) {
+        var d = NODE_DOCS[id];
+        var inGraph = !!FLOW.nodes[id];
+        return '<li' + stag() + '><button class="row" data-doc="' + esc(id) + '">' +
+               '<span class="row-main"><span class="row-name">' + esc(d.n) + '</span></span>' +
+               (inGraph ? '<span class="row-count">在圖上</span>' : '') +
+               '</button></li>';
+      }).join('') + '</ul>';
+    });
+  }
+
+  panelBodyEl.innerHTML = html;
+
+  panelBodyEl.querySelectorAll('[data-type-pick]').forEach(function (b) {
+    b.onclick = function () {
+      var t = b.getAttribute('data-type-pick');
+      var on = selection && selection.kind === 'type' && selection.type === t;
+      setSelection(on ? null : { kind: 'type', type: t });
+      renderPanelBody();
+    };
+  });
+  panelBodyEl.querySelectorAll('[data-phase]').forEach(function (b) {
+    b.onclick = function () {
+      var target = phaseEntry.get(b.getAttribute('data-phase'));
+      if (target) { setSelection({ kind: 'node', id: target }); panTo(target); }
+    };
+  });
+  panelBodyEl.querySelectorAll('[data-doc]').forEach(function (b) {
+    b.onclick = function () { openDrawer(b.getAttribute('data-doc')); };
+  });
+}
+
+document.querySelectorAll('.rail-btn[data-sec]').forEach(function (btn) {
+  btn.onclick = function () {
+    var sec = btn.getAttribute('data-sec');
+    if (panelOpen && panelSec === sec) closePanel();
+    else openPanel(sec, btn);
+  };
+});
+$('panel-close').onclick = closePanel;
+$('panel-pin').onclick = function () {
+  panelPinned = !panelPinned;
+  $('panel-pin').classList.toggle('is-on', panelPinned);
+  $('panel-pin').setAttribute('title', panelPinned ? '已釘住：選節點時保持展開' : '釘住：選節點時不自動收起');
+};
+
+/* ── 文件抽屜 ──────────────────────────────────────────────────────────── */
+var drawerEl = $('drawer'), backdropEl = $('backdrop');
+
+function openDrawer(nodeId) {
+  var d = NODE_DOCS[nodeId];
+  if (!d) return;
+  var meta = DOC_META[d.n] || {};
+  var type = FLOW.nodes[nodeId] ? (FLOW.nodes[nodeId].type || 'default') : d.k;
+
+  var pills = '<span class="pill"><b>path</b> references/' + esc(d.p) + '</span>';
+  if (d.k === 'skill') pills += '<span class="pill"><b>載入</b> Skill tool</span>';
+  if (meta.t) pills += '<span class="pill"><b>tools</b> ' + esc(meta.t) + '</span>';
+
+  drawerEl.innerHTML =
+    '<div class="drawer-head">' +
+      '<div class="crumb">' +
+        '<span>references</span><span class="sep">/</span>' +
+        '<span>' + esc(d.k === 'agent' ? 'agents' : 'skills') + '</span><span class="sep">/</span>' +
+        '<span>' + esc(d.n) + '</span>' +
+        '<button class="icon-btn close" id="drawer-close" title="關閉（Esc）">✕</button>' +
+      '</div>' +
+      '<div class="detail-meta" style="margin-bottom:10px">' +
+        '<span class="badge" data-type="' + esc(type) + '">' + esc(TYPE_LABEL[type] || d.k) + '</span>' +
+      '</div>' +
+      '<div class="drawer-title">' + esc(d.n) + '</div>' +
+      '<div class="drawer-desc">' + esc(meta.d || ('references/' + d.p + '/ 下的完整定義。')) + '</div>' +
+      '<div class="pills">' + pills + '</div>' +
+    '</div>' +
+    '<div class="drawer-body"><div class="md">' +
+      '<h3>在流程裡的位置</h3>' +
+      '<ul>' +
+        (FLOW.nodes[nodeId]
+          ? '<li>所屬階段：<code>' + esc(PHASE_LABEL[FLOW.nodes[nodeId].phase] || '') + '</code></li>' +
+            '<li>上游 ' + window.getUpstream(nodeId).length + ' 個節點、下游 ' + window.getDownstream(nodeId).length + ' 個節點</li>'
+          : '<li>不在主線圖上：按需載入 / 環境性規則</li>') +
+        '<li>節點 id：<code>' + esc(nodeId) + '</code></li>' +
+      '</ul>' +
+      '<h3>正文</h3>' +
+      '<p>正式站在這裡渲染 <code>' + esc(d.p) + '/</code> 的完整 markdown（frontmatter 的 description、body 的階段步驟、Red Flags 等），' +
+      '由 <code>references-data.js</code> 內嵌後以 marked 轉 HTML，離線也讀得到。</p>' +
+      '<div class="note">這是設計 demo：為了不讓三個方向各自載入 202KB 的內嵌文件庫，抽屜內文以本區塊示意。' +
+      '上方的描述、路徑、tools 與上下游數量都是真資料，只有這段正文是佔位。</div>' +
+    '</div></div>';
+
+  drawerEl.classList.add('open');
+  backdropEl.classList.add('open');
+  $('drawer-close').onclick = closeDrawer;
+}
+function closeDrawer() {
+  drawerEl.classList.remove('open');
+  backdropEl.classList.remove('open');
+}
+backdropEl.onclick = closeDrawer;
+
+/* ── minimap ───────────────────────────────────────────────────────────── */
+MM_W = Math.max(56, Math.min(112, Math.round((MM_H - 10) * (layout.gw / layout.gh)) + 10));
+document.documentElement.style.setProperty('--mm-w', MM_W + 'px');
+
+var mmSvg = d3.select($('minimap-card')).append('svg')
+  .attr('class', 'minimap').attr('width', MM_W).attr('height', MM_H);
+var mmScale = Math.min((MM_W - 10) / layout.gw, (MM_H - 10) / layout.gh);
+var mmOX = (MM_W - layout.gw * mmScale) / 2;
+var mmOY = (MM_H - layout.gh * mmScale) / 2;
+var mmG = mmSvg.append('g').attr('transform', 'translate(' + mmOX + ',' + mmOY + ') scale(' + mmScale + ')');
+
+mmG.selectAll('line').data(layout.edges).join('line')
+  .attr('x1', function (d) { return nodeMap.get(d.source).x; })
+  .attr('y1', function (d) { return nodeMap.get(d.source).y; })
+  .attr('x2', function (d) { return nodeMap.get(d.target).x; })
+  .attr('y2', function (d) { return nodeMap.get(d.target).y; })
+  .attr('stroke', 'currentColor').attr('stroke-opacity', 0.18)
+  .attr('stroke-width', 1.5 / mmScale);
+
+mmG.selectAll('rect').data(layout.nodes).join('rect')
+  .attr('class', 'mm-node')
+  .attr('data-type', function (d) { return d.nodeType; })
+  .attr('x', function (d) { return d.x - d.width / 2; })
+  .attr('y', function (d) { return d.y - d.height / 2; })
+  .attr('width', function (d) { return d.width; })
+  .attr('height', function (d) { return d.height; })
+  .attr('rx', 6)
+  .attr('stroke-width', 2 / mmScale);
+
+var mmViewport = mmSvg.append('rect').attr('class', 'mm-viewport')
+  .attr('stroke-width', 1.5).attr('rx', 2);
+
+function updateMinimapViewport() {
+  var w = svgEl.clientWidth || 800, h = svgEl.clientHeight || 600, t = currentTransform;
+  mmViewport
+    .attr('x', mmOX + (-t.x / t.k) * mmScale)
+    .attr('y', mmOY + (-t.y / t.k) * mmScale)
+    .attr('width', (w / t.k) * mmScale)
+    .attr('height', (h / t.k) * mmScale);
+}
+
+mmSvg.on('click', function (evt) {
+  var p = d3.pointer(evt, mmSvg.node());
+  var gx = (p[0] - mmOX) / mmScale, gy = (p[1] - mmOY) / mmScale;
+  var w = svgEl.clientWidth || 800, h = svgEl.clientHeight || 600, k = currentTransform.k;
+  svg.transition().duration(320).ease(d3.easeCubicOut)
+    .call(zoom.transform, d3.zoomIdentity.translate(w / 2 - gx * k, h / 2 - gy * k).scale(k));
+});
+
+/* ── 視野控制 ──────────────────────────────────────────────────────────── */
+/**
+ * 落地視野：對「寬」而不是對「整張」縮放，並錨在流程起點。
+ * 這張圖實測 1978x12398，硬要 fit 整張的話 scale 會掉到 0.075，
+ * 節點文字剩 1px、圖只占 1920 寬裡的 148px —— 那不叫留白，叫沒東西。
+ * 改成填滿寬度、頂端對齊，使用者只需要上下捲，全圖總覽交給右緣 minimap。
+ */
+function landingTransform(k0) {
+  var w = svgEl.clientWidth || 800;
+  var k = k0 || Math.max(0.3, Math.min(1.4, w * 0.93 / layout.gw));
+  return d3.zoomIdentity.translate((w - layout.gw * k) / 2, 26).scale(k);
+}
+function fitView(animate) {
+  var t = landingTransform();
+  if (animate) svg.transition().duration(560).ease(d3.easeCubicInOut).call(zoom.transform, t);
+  else svg.call(zoom.transform, t);
+}
+
+/** 把某節點帶到視野中央；已放大時保持倍率，太小時提到可讀的 0.85。 */
+function panTo(id) {
+  var n = nodeMap.get(id);
+  if (!n) return;
+  var w = svgEl.clientWidth || 800, h = svgEl.clientHeight || 600;
+  var k = Math.max(currentTransform.k, 0.85);
+  svg.transition().duration(560).ease(d3.easeCubicInOut)
+    .call(zoom.transform, d3.zoomIdentity.translate(w / 2 - n.x * k, h / 2 - n.y * k).scale(k));
+}
+
+$('btn-fit').onclick = function () { fitView(true); };
+
+/* ── 狀態行 / 報頭 ─────────────────────────────────────────────────────── */
+function renderStatus() {
+  var el = $('statusline');
+  if (selection && selection.kind === 'node') {
+    var u = window.getUpstream(selection.id).length, dn = window.getDownstream(selection.id).length;
+    el.innerHTML = '焦點 <b>' + esc(selection.id) + '</b> · 上游 ' + u + ' · 下游 ' + dn + ' · Esc 取消';
+  } else if (selection && selection.kind === 'type') {
+    el.innerHTML = '型別 <b>' + esc(TYPE_LABEL[selection.type] || selection.type) + '</b> · ' +
+                   (typeCount[selection.type] || 0) + ' 個節點';
+  } else {
+    el.innerHTML = '點節點看 1-hop 上下游 · 滾輪縮放 · 拖曳平移';
+  }
+}
+$('mast-sub').textContent =
+  layout.nodes.length + ' 節點 · ' + layout.edges.length + ' 邊 · ' + FLOW.phases.length + ' 階段';
+
+/* ── 主題（三態 auto / light / dark；屬性名鎖死）──────────────────────── */
+var THEME_GLYPH = { auto: '自', light: '明', dark: '暗' };
+var THEME_NAME = { auto: '自動', light: '明亮', dark: '暗色' };
+
+function applyThemeMode(mode) {
+  var root = document.documentElement;
+  var resolved = mode === 'auto'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : mode;
+  root.setAttribute('data-theme', resolved);
+  root.setAttribute('data-theme-mode', mode);
+  var b = $('btn-theme');
+  b.textContent = THEME_GLYPH[mode];
+  b.setAttribute('data-label', '主題：' + THEME_NAME[mode]);
+  b.classList.toggle('is-on', mode !== 'auto');
+}
+
+(function setupTheme() {
+  var stored = null;
+  try { stored = localStorage.getItem('rail-console-theme'); } catch (e) {}
+  applyThemeMode(stored || 'auto');
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+    if ((document.documentElement.getAttribute('data-theme-mode') || 'auto') === 'auto') applyThemeMode('auto');
+  });
+  $('btn-theme').onclick = function () {
+    var order = ['auto', 'light', 'dark'];
+    var cur = document.documentElement.getAttribute('data-theme-mode') || 'auto';
+    var next = order[(order.indexOf(cur) + 1) % order.length];
+    applyThemeMode(next);
+    try { localStorage.setItem('rail-console-theme', next); } catch (e) {}
+  };
+})();
+
+/* ── 鍵盤 ──────────────────────────────────────────────────────────────── */
+window.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  if (drawerEl.classList.contains('open')) closeDrawer();
+  else if (selection) setSelection(null);
+  else if (panelOpen) closePanel();
+});
+
+window.addEventListener('resize', function () { updateMinimapViewport(); });
+
+/* ── 初始 ──────────────────────────────────────────────────────────────── */
+renderStatus();
+// 進場：先退半格再滑進落地視野，讓第一眼有「圖被推到位」的動作而不是硬切
+setTimeout(function () {
+  var land = landingTransform();
+  svg.call(zoom.transform, landingTransform(land.k * 0.88));
+  svg.transition().duration(720).ease(d3.easeCubicOut).call(zoom.transform, land);
+}, 40);
+
+})();
+</script>
+</body>
+</html>

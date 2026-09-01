@@ -70,3 +70,33 @@
 4. **零響應式**：`styles.css` 全檔 `@media` 0 命中、`@container` 0 命中。窄視窗／手機的行為**未定義**。
 5. **鍵盤可及性只有 ESC**：全檔 `tabindex` 0 命中、`:focus-visible` 只有 1 條（`styles.css:233` 的主題鈕）。SVG 節點是 `<g>`，不可 focus、不能用鍵盤選取。
 6. **無 `prefers-reduced-motion`**：全檔 0 命中。現有 14 條 transition／animation 宣告在偏好減少動態的系統上照跑。
+
+---
+
+## 改版紀錄
+
+| 改版 | branch | 驗證結果 |
+|---|---|---|
+| 2026-09-01　rail-console 骨架 ＋ 校樣配色 | `refactor/docs-site-redesign` | `docs/archive/2026/docs-site-redesign/verify-F1-F22.md` |
+
+**該次結論**：F1–F22 **22 項全部存在**；其中 9 項標「改動說明」（行為或觸發路徑改變、
+功能未減），1 項附驗證限制（F18 的動態切換工具測不到，只有靜態佐證），
+1 項另含修正（F13 的「去掉第一個 H1」自 `43d5938` 起就從未生效，該次修好）。
+上方「既有缺口」六條維持未修，其中缺口 3 的 no-op code 隨改版移除（行為未變）。
+
+### 2026-09-01 第二批（同一支 branch，驗收後追加）
+
+| 項 | 對基準的影響 |
+|---|---|
+| 文件交叉引用可點 | F13 多一項改動說明：抽屜正文在 marked 之後多跑一次 DOM 改寫，純文字內容不變 |
+| `REFERENCE_DOCS` 收進 CLAUDE.md | 33 → 34 key |
+| `.icon-btn` 墨跡置中 ＋ `flex-shrink` | 純樣式修正，無 F 項影響 |
+| 主題切換過場 | 新增行為，F4 的三態切換本身未變 |
+| **landing 頁**：流程圖從 `index.html` 搬到 `flow.html` | **F1–F22 全部改指 `flow.html`**；`index.html` 是新的 landing 頁，不在 F1–F22 的範圍內 |
+| oklch fallback 改用 `@supports` | **修正**：原本「自訂屬性連寫兩行」的寫法實測完全沒有 fallback 效果 |
+
+**缺口狀態**：六條的 4（零響應式）與 5（鍵盤可及性）在第一批已標處置；
+6（無 `prefers-reduced-motion`）維持未修——主題過場刻意也不加，見驗證表第九節。
+
+> 本節為 **append-only**。上方 F1–F22 原文與「既有缺口」六條是改版比對的基準，
+> **任何一次改版都不得修改它們**——改了就不再是基準。
