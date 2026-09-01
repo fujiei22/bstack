@@ -843,12 +843,17 @@ function applyThemeMode(mode) {
   var b = $('btn-theme');
   b.textContent = THEME_GLYPH[mode];
   b.setAttribute('data-label', '主題：' + THEME_NAME[mode]);
+  // aria-label 也要跟著換：data-label 只餵給 CSS 的 ::after 名牌，不進可及性樹，
+  // 靜態的 aria-label 會讓螢幕閱讀器永遠讀不到目前是哪一態。
+  b.setAttribute('aria-label', '切換主題（目前：' + THEME_NAME[mode] + '）');
   b.classList.toggle('is-on', mode !== 'auto');
 }
 
 (function setupTheme() {
   var stored = null;
-  try { stored = localStorage.getItem('rail-console-theme'); } catch (e) {}
+  // key 必須是 dev-workflow-theme：index.html 的防 FOUC inline script 讀的是同一個，
+  // 且線上既有訪客存的偏好都在這個 key 底下，改名等於把它們全部作廢、退回 auto。
+  try { stored = localStorage.getItem('dev-workflow-theme'); } catch (e) {}
   applyThemeMode(stored || 'auto');
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
     if ((document.documentElement.getAttribute('data-theme-mode') || 'auto') === 'auto') applyThemeMode('auto');
@@ -858,7 +863,7 @@ function applyThemeMode(mode) {
     var cur = document.documentElement.getAttribute('data-theme-mode') || 'auto';
     var next = order[(order.indexOf(cur) + 1) % order.length];
     applyThemeMode(next);
-    try { localStorage.setItem('rail-console-theme', next); } catch (e) {}
+    try { localStorage.setItem('dev-workflow-theme', next); } catch (e) {}
   };
 })();
 

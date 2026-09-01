@@ -226,7 +226,10 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   pointer-events: none;
   transition: opacity var(--t-micro) var(--e-exit), transform var(--t-micro) var(--e-exit);
 }
-.rail-btn:hover::after { opacity: 1; transform: translateX(0); transition-timing-function: var(--e-enter); transition-duration: 180ms; }
+/* 名牌同時吃 hover 與 focus-visible：只綁 hover 的話，用鍵盤 Tab 到「型」
+   永遠不知道它是什麼——rail 上全是單字，名牌是唯一的說明。 */
+.rail-btn:hover::after,
+.rail-btn:focus-visible::after { opacity: 1; transform: translateX(0); transition-timing-function: var(--e-enter); transition-duration: 180ms; }
 
 /* 在 rail 上滑動的活躍指示條 —— 面板換頁時它會滑過去，不是閃過去 */
 .rail-indicator {
