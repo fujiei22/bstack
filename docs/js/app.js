@@ -345,8 +345,7 @@ function setSelection(sel) {
   applyHighlight();
   renderDetail();
   renderStatus();
-  if (panelSec === 'type') renderPanelBody();
-  if (panelSec === 'phase') renderPanelBody();
+  syncPanelActive();
   // 未釘住的面板：選了節點就讓路給圖
   if (sel && sel.kind === 'node' && panelOpen && !panelPinned) closePanel();
 }
@@ -558,6 +557,29 @@ function moveIndicator(btn) {
  * 依目前分區重繪面板內容（型別 / 階段 / 環境 / 文件索引四種版型），
  * 並重新綁定其中的點擊行為。selection 變動時也會重繪，讓 active 標記跟著更新。
  */
+/**
+ * 只同步面板清單的 active 標記，不重繪 innerHTML。
+ *
+ * 為什麼不直接呼叫 renderPanelBody()：那會重建整段 DOM，讓 .stag 的逐項進場動畫
+ * 每次都重播一次——面板開著時，點圖上任何空白處都會讓整張清單再閃一遍。
+ * selection 改變時真正需要更新的只有 is-active 這一個 class。
+ */
+function syncPanelActive() {
+  if (!panelOpen) return;
+  if (panelSec === 'type') {
+    var t = selection && selection.kind === 'type' ? selection.type : null;
+    panelBodyEl.querySelectorAll('[data-type-pick]').forEach(function (b) {
+      b.classList.toggle('is-active', b.getAttribute('data-type-pick') === t);
+    });
+  } else if (panelSec === 'phase') {
+    var ph = selection && selection.kind === 'node' && FLOW.nodes[selection.id]
+      ? FLOW.nodes[selection.id].phase : null;
+    panelBodyEl.querySelectorAll('[data-phase]').forEach(function (b) {
+      b.classList.toggle('is-active', b.getAttribute('data-phase') === ph);
+    });
+  }
+}
+
 function renderPanelBody() {
   if (!panelSec) return;
   var html = '';
@@ -627,7 +649,6 @@ function renderPanelBody() {
       var t = b.getAttribute('data-type-pick');
       var on = selection && selection.kind === 'type' && selection.type === t;
       setSelection(on ? null : { kind: 'type', type: t });
-      renderPanelBody();
     };
   });
   panelBodyEl.querySelectorAll('[data-phase]').forEach(function (b) {
@@ -783,13 +804,32 @@ function updateMinimapViewport() {
     .attr('height', (h / t.k) * mmScale);
 }
 
-mmSvg.on('click', function (evt) {
-  var p = d3.pointer(evt, mmSvg.node());
+/**
+ * 把索引條上的一個點帶到主視圖中央。
+ * @param {[number, number]} p  索引條座標系的點（d3.pointer 的結果）
+ * @param {boolean} animate  true 走 320ms 過場（單擊用）；false 立即套用（拖曳用，
+ *                           拖曳時每次移動都排一個 transition 會互相打斷、變成頓的）
+ */
+function panFromMinimap(p, animate) {
   var gx = (p[0] - mmOX) / mmScale, gy = (p[1] - mmOY) / mmScale;
   var w = svgEl.clientWidth || 800, h = svgEl.clientHeight || 600, k = currentTransform.k;
-  svg.transition().duration(320).ease(d3.easeCubicOut)
-    .call(zoom.transform, d3.zoomIdentity.translate(w / 2 - gx * k, h / 2 - gy * k).scale(k));
+  var t = d3.zoomIdentity.translate(w / 2 - gx * k, h / 2 - gy * k).scale(k);
+  if (animate) svg.transition().duration(320).ease(d3.easeCubicOut).call(zoom.transform, t);
+  else svg.call(zoom.transform, t);
+}
+
+mmSvg.on('click', function (evt) {
+  panFromMinimap(d3.pointer(evt, mmSvg.node()), true);
 });
+
+// 按住拖曳：即時跟隨，不排過場。clickDistance(3) 讓微小抖動仍算單擊、走上面那條有過場的路徑。
+mmSvg.call(
+  d3.drag()
+    .clickDistance(3)
+    .on('drag', function (evt) {
+      panFromMinimap(d3.pointer(evt, mmSvg.node()), false);
+    })
+);
 
 /* ── 視野控制 ──────────────────────────────────────────────────────────── */
 /**

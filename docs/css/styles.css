@@ -95,22 +95,22 @@
 }
 
 :root[data-theme="dark"] {
-  --paper:      #15120F;
-  --paper:      oklch(0.185 0.008 65);
-  --paper-sunk: #0D0A07;
-  --paper-sunk: oklch(0.148 0.008 65);
-  --surface:    #221D19;
-  --surface:    oklch(0.236 0.010 65);
+  --paper:      #1C1916;
+  --paper:      oklch(0.215 0.008 65);
+  --paper-sunk: #13100D;
+  --paper-sunk: oklch(0.176 0.008 65);
+  --surface:    #292521;
+  --surface:    oklch(0.268 0.010 65);
   --ink:        #EBE8E3;
   --ink:        oklch(0.932 0.008 80);
   --ink-2:      #A8A59E;
   --ink-2:      oklch(0.722 0.010 80);
   --ink-3:      #7C7872;
   --ink-3:      oklch(0.575 0.010 80);
-  --rule:       #37332E;
-  --rule:       oklch(0.322 0.010 70);
-  --rule-2:     #4E4943;
-  --rule-2:     oklch(0.408 0.012 70);
+  --rule:       #3F3A35;
+  --rule:       oklch(0.352 0.010 70);
+  --rule-2:     #56504A;
+  --rule-2:     oklch(0.436 0.012 70);
 
   --accent:      #ED7761;
   --accent:      oklch(0.700 0.150 32);
@@ -121,27 +121,27 @@
   --accent-line: rgba(237, 119, 97, 0.4);
   --accent-line: oklch(0.700 0.150 32 / 0.40);
 
-  --edge:     #62594F;
-  --edge:     oklch(0.470 0.020 70);
-  --edge-dim: #2B2621;
-  --edge-dim: oklch(0.272 0.012 70);
+  --edge:     #6B6157;
+  --edge:     oklch(0.500 0.020 70);
+  --edge-dim: #322D27;
+  --edge-dim: oklch(0.300 0.012 70);
 
-  --c-default: #2C2A26; --c-default-bd: #686358;
-  --c-default: oklch(0.285 0.008  85); --c-default-bd: oklch(0.500 0.018  85);
-  --c-skill:   #1B3422; --c-skill-bd:   #549768;
-  --c-skill:   oklch(0.300 0.045 152); --c-skill-bd:   oklch(0.620 0.100 152);
-  --c-agent:   #193045; --c-agent-bd:   #4F8EC8;
-  --c-agent:   oklch(0.300 0.048 248); --c-agent-bd:   oklch(0.630 0.110 248);
-  --c-gate:    #3A2F0A; --c-gate-bd:    #B79C46;
-  --c-gate:    oklch(0.310 0.055  92); --c-gate-bd:    oklch(0.700 0.110  92);
-  --c-impl:    #332840; --c-impl-bd:    #9B7BBF;
-  --c-impl:    oklch(0.300 0.045 305); --c-impl-bd:    oklch(0.640 0.105 305);
-  --c-policy:  #2A2D33; --c-policy-bd:  #61697A;
-  --c-policy:  oklch(0.295 0.012 265); --c-policy-bd:  oklch(0.520 0.028 265);
-  --c-hook:    #422813; --c-hook-bd:    #CD854B;
-  --c-hook:    oklch(0.305 0.052  58); --c-hook-bd:    oklch(0.680 0.115  58);
-  --c-stop:    #462220; --c-stop-bd:    #CD5F5C;
-  --c-stop:    oklch(0.300 0.055  24); --c-stop-bd:    oklch(0.620 0.140  24);
+  --c-default: #3B3935; --c-default-bd: #6E685D;
+  --c-default: oklch(0.345 0.008 85); --c-default-bd: oklch(0.520 0.018  85);
+  --c-skill:   #2B4431; --c-skill-bd:   #5A9E6E;
+  --c-skill:   oklch(0.360 0.045 152); --c-skill-bd:   oklch(0.640 0.100 152);
+  --c-agent:   #283F55; --c-agent-bd:   #5594CF;
+  --c-agent:   oklch(0.360 0.048 248); --c-agent-bd:   oklch(0.650 0.110 248);
+  --c-gate:    #4A3F1B; --c-gate-bd:    #BDA24D;
+  --c-gate:    oklch(0.370 0.055 92); --c-gate-bd:    oklch(0.720 0.110  92);
+  --c-impl:    #433750; --c-impl-bd:    #A181C6;
+  --c-impl:    oklch(0.360 0.045 305); --c-impl-bd:    oklch(0.660 0.105 305);
+  --c-policy:  #393C42; --c-policy-bd:  #676F80;
+  --c-policy:  oklch(0.355 0.012 265); --c-policy-bd:  oklch(0.540 0.028 265);
+  --c-hook:    #533722; --c-hook-bd:    #D48B52;
+  --c-hook:    oklch(0.365 0.052 58); --c-hook-bd:    oklch(0.700 0.115  58);
+  --c-stop:    #57312F; --c-stop-bd:    #D46661;
+  --c-stop:    oklch(0.360 0.055 24); --c-stop-bd:    oklch(0.640 0.140  24);
 
   --lift-1: 0 1px 2px rgba(0, 0, 0, 0.34), 0 4px 16px rgba(0, 0, 0, 0.36);
   --lift-1: 0 1px 2px oklch(0 0 0 / 0.34), 0 4px 16px oklch(0 0 0 / 0.36);
@@ -164,7 +164,9 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
-button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+/* padding:0 不可省：UA 對 button 有預設 padding（Chrome 是 1px 6px），
+   在 30px 見方的 .icon-btn 上會把 content box 壓到 18px，CJK 字看起來就不置中。 */
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 ul { margin: 0; padding: 0; list-style: none; }
 p { margin: 0 0 .7em; text-wrap: pretty; }
 h1, h2, h3 { margin: 0; text-wrap: balance; }
@@ -284,6 +286,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   line-height: 0;
 }
 .minimap { display: block; cursor: crosshair; }
+.minimap:active { cursor: grabbing; }
 .mm-node { stroke-linejoin: round; }
 .mm-viewport { fill: var(--accent-wash); stroke: var(--accent); }
 .statusline {
@@ -330,7 +333,11 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   font-variant-numeric: tabular-nums;
 }
 .icon-btn {
-  width: 30px; height: 30px; display: grid; place-items: center;
+  width: 30px; height: 30px;
+  /* flex + 明確 justify/align，不倚賴 grid 匿名項的置中行為；
+     line-height:1 讓 CJK 字的行框不帶額外上下偏移 */
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1; text-align: center;
   border-radius: 3px; color: var(--ink-3);
   font-family: var(--font-display); font-size: 14px;
   transition: background var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move);
