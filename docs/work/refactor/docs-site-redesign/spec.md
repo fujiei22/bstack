@@ -37,8 +37,11 @@ user 要的是**更有設計感、動畫流暢自然**，同時**功能與互動
 - ~~`app.js:686` 硬編的 app 標題 `bastck`，照抄不改。~~
   **本條已由 §已決事項 4 取代**：正確位置是 `app.js:697`（686 是舊行號），
   且該字串在 demo 命中 **0**——照抄反而會讓它消失。改為列進驗證表當改動說明。
-- `docs/js/data.js`（84 nodes / 103 edges 的內容）、`docs/js/references-data.js`（202KB 內嵌全文）、
-  `docs/js/layout.js`（dagre 參數）、`docs/js/vendor/*` 三個 lib——一律不動。
+- `docs/js/layout.js`（dagre 參數）與 `docs/js/vendor/*` 三個 lib——一律不動。
+- ~~`docs/js/data.js` 與 `docs/js/references-data.js` 一律不動。~~
+  **改版本身（Task 1–5）確實沒動過**，但視覺驗收之後 user 追加要求「全量檢查真實流程並
+  修正流程圖與節點」，這兩個檔已依指示解凍並修改。詳見
+  `verify-F1-F22.md` 第八節。連帶 baseline 既有缺口 1 與 2 的狀態也隨之改變。
 - 不換框架、不引入 bundler、不引入 CDN JS。
 
 ## 影響檔案 / Codebase impact

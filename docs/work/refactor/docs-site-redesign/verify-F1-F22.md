@@ -188,12 +188,15 @@ Chrome <111 / Safari <15.4 不支援 oklch 時整份色票會落空——畫面�
 
 ---
 
-## 四、baseline 既有缺口（6 條，維持未修）
+## 四、baseline 既有缺口（6 條）
+
+> 下表是**改版本身（Task 1–5）結束時**的狀態。缺口 1 與 2 在視覺驗收之後依 user
+> 追加指示做了處置，見第八節。
 
 | # | 缺口 | 改版後狀態 |
 |---|---|---|
-| 1 | `NODE_DOCS` 缺 `design-language` / `design-direction` | **維持未修**。e2e 實測點 `LoadDLang` 顯示「無獨立文件」，與 baseline 吻合。移植來源曾自行補上這兩筆，**已刻意移除**——`references-data.js` 沒有它們的內嵌全文（缺口 2），加了反而會讓節點點出「載入失敗」 |
-| 2 | `build-references.ps1` 不在 repo | **維持未修**，未觸碰 |
+| 1 | `NODE_DOCS` 缺 `design-language` / `design-direction` | **改版期間維持未修**（e2e 實測點 `LoadDLang` 顯示「無獨立文件」，與 baseline 吻合）。**驗收後依 user 追加指示已修**——見第八節 |
+| 2 | `build-references.ps1` 不在 repo | **產出器仍不在 repo**（這部分未修）。但缺的那兩份內嵌全文已於驗收後手動補進 `references-data.js`，見第八節 |
 | 3 | `?v=` 版本切換 no-op | 行為未變，但 no-op code 已移除（見上方「改動 3」） |
 | 4 | 零響應式 | **實質維持未修**。手機行為仍未定義；新增的 2 條 `@media` 只防桌面窄視窗的浮層互蓋 |
 | 5 | 鍵盤可及性只有 ESC | **維持未修**。SVG 節點仍不可 focus、不能用鍵盤選取 |
@@ -206,17 +209,21 @@ Chrome <111 / Safari <15.4 不支援 oklch 時整份色票會落空——畫面�
 
 ## 五、資料契約
 
-| 項 | 改版前 | 改版後 |
-|---|---|---|
-| nodes | 84 | 84 |
-| edges | 103 | 103 |
-| phases | 15 | 15 |
-| node types | 8 | 8 |
-| `REFERENCE_DOCS` | 31 key | 31 key |
-| `NODE_DOCS` | 33 key（25 skill + 6 agent + RPT2 + RPT3） | 33 key（同一組） |
+| 項 | 改版前 | 改版後（初版） | 驗收後追加修正 |
+|---|---|---|---|
+| nodes | 84 | 84 | **88** |
+| edges | 103 | 103 | **111** |
+| phases | 15 | 15 | 15 |
+| node types | 8 | 8 | 8 |
+| `REFERENCE_DOCS` | 31 key | 31 key | **33 key** |
+| `NODE_DOCS` | 33 key | 33 key | **35 key** |
+| ambient 組數 | 2（9 + 5） | 2（9 + 5） | **3（9 + 6 + 5）** |
 
-`docs/js/data.js` ／ `layout.js` ／ `references-data.js` 三個檔**一個字元都沒動**，
-由契約 C8a 以 `git diff --exit-code` 機械保證。
+**改版本身（Task 1–5）沒有動過 `data.js` ／ `layout.js` ／ `references-data.js`。**
+右欄的變動來自視覺驗收之後 user 追加的第 5 條要求（全量校正流程圖），詳見下方第八節。
+
+`layout.js` 至今仍一字未動，由契約 C8d 以 `git diff --exit-code` 保證。
+`data.js` 與 `references-data.js` 解凍後改由 C8a（數值斷言）＋ C8c（圖完整性）守。
 
 ---
 
@@ -247,3 +254,75 @@ git revert <squash-commit-sha>   # squash merge 產生的那一顆，revert 即�
   （15 張截圖、`console-all.txt`、`network-all.txt`、`report.md`）
 - 移植來源：`docs/work/refactor/docs-site-redesign/source-rail-console.html`
   （`design-demos/` 被 gitignore，這份是入版控的副本）
+
+---
+
+## 八、視覺驗收之後的追加修正
+
+user 在視覺驗收 gate 回覆「對得上，但有一些小 Bug 要修」，列了五條。以下是處置。
+
+### 1–4：互動與樣式（commit `87391cf`）
+
+| # | 回報 | 根因 | 處置 |
+|---|---|---|---|
+| 1 | 面板開著時，點面板外任何地方都會讓清單重播進場動畫 | `setSelection()` 整段 `renderPanelBody()`，重建 innerHTML 讓 `.stag` 動畫重跑 | 改成 `syncPanelActive()` 只 toggle `is-active`；並移除型別按鈕點擊後那次多餘重繪 |
+| 2 | `#panel-pin` 的「釘」水平沒置中 | `button` reset 漏了 `padding: 0`，UA 預設 `1px 6px` 還在。30px 框扣掉 12px 只剩 18px content box，偏移被放大（44px 的 `.rail-btn` 餘裕大所以看不出來） | 補 `padding: 0`；`.icon-btn` 改 flex ＋ 明確 justify/align ＋ `line-height: 1` |
+| 3 | 暗色模式再亮一點 | — | 23 組明度上調（`--paper` 0.185→0.215、`--surface` 0.236→0.268、八型別填色 +0.03、邊框 +0.02）。**色相與 chroma 一律不動**——那是配色論證的一部分。24 行 hex fallback 依新值重算 |
+| 4 | 索引條要能按住拖曳 | 原本只有 `click` | 抽出 `panFromMinimap(p, animate)`：單擊走 320ms 過場、拖曳即時套用（拖曳時排 transition 會互相打斷、反而變頓）。`clickDistance(3)` 讓微小抖動仍算單擊 |
+
+### 5：全量校正流程圖（commit `e5b7248`）
+
+user 指出「前端設計的流程似乎沒有還原於流程圖中，且流程圖中也沒有出現所有 skill」。
+全量比對磁碟上的 **27 skill + 6 agent** 與圖上節點後，查到三類落差：
+
+**A. 文件可及性（＝ baseline 缺口 1 + 2）**
+
+27 個 skill 與 6 個 agent **全部都在圖上**——這點原本的判斷沒錯。但 `design-language`
+與 `design-direction` 是**全站唯一兩個「節點看得到、文件點不開」**的 skill：`NODE_DOCS`
+沒收、`references-data.js` 也沒有內嵌全文，所以在「檔」文件索引面板裡完全不出現。
+
+產出器 `build-references.ps1` 不在 repo（缺口 2 的本體），所以改自己做內嵌：
+讀 `SKILL.md` → 正規化成與既有條目相同的 `\r\n` 行尾 → `JSON.stringify` → 插入。
+`REFERENCE_DOCS` 31 → 33，`NODE_DOCS` 33 → 35。
+
+> 施工中踩到一個值得記的坑：`String.replace` 的**字串**替換值裡 `$&` `$`` `$'` 是特殊語法，
+> 而 `design-language/SKILL.md` 內含「```$``` / ```@``` 變數宣告」這段文字，其中的 `` $` ``
+> 會被當成「插入比對位置之前的全部內容」，把檔頭註解塞進字串裡並提前截斷它。
+> 一律改用 replacer function 才對。
+
+**B. 流程路徑補四條**（都是實際契約有、圖上沒有）
+
+| 補的 | 依據 | 原本的狀況 |
+|---|---|---|
+| 跳過三方向 | `brainstorm` §合併確認 第 3 題選項 2、`dev-workflow` §Track×Tier 路徑 | `TrackSplit` 只有 `→LoadWP「Dev」` 與 `→LoadDD「Dev+大改」`，大改一律被送去出三版 |
+| 小改的四項對齊檢查 | CLAUDE.md §設計語言對齊 ＋ `execute-plan` §前端檔處理 | 只有 `LeakRecheck`（verify-done 的漏網複查），常規小改路徑整條不存在 |
+| Agent Teams／§協作模式判定 gate | CLAUDE.md 明訂「觸發點只有一個」 | 圖上零命中 |
+| 三方向重跑上限 1 次 | `design-direction` §選定與落檔 | `UGDesign→ThreeWay` 是無限循環 |
+
+**C. ambient 的「CLAUDE.md 強制守則」列錯**
+
+CLAUDE.md「強制守則」章節實際 9 條：事實核實 ／ Task 追蹤 ／ 決策點選單 ／
+Branch safety ／ File-type 硬規則 ／ PII 安全底線 ／ DB 操作 ／ 設計語言對齊 ／ Docs 落檔。
+
+圖上**漏了 3 條**（事實核實＝最高指導原則、設計語言對齊、Docs 落檔），
+卻**多列 3 條**（Trace 標籤 ／ Auto-fix ／ Fail handling——那三條屬「開發流程」章節）。
+**數量剛好都是 9**，所以不逐條比對看不出來。
+
+改成正確的 9 條，另開「開發流程政策」組收 §Tier 機制 ／ §協作模式判定 ／ §Trace 標籤 ／
+§Auto-fix ／ §Fail handling ／ §Settings.json 六條。
+
+> **F20 因此再多一項改動說明**：ambient 從 2 組（9 + 5）變成 **3 組（9 + 6 + 5）**，
+> 且第一組的內容有 3 進 3 出。baseline F20 記的「兩組」不再成立。
+
+**契約同步**
+
+- C6a 基準 key 33 → 35；C8b 31 → 33
+- C8a 從「`git diff` 三個凍結檔」改成**直接斷言資料契約數值**（88/111/15/8）——
+  檔案已解凍，用 `git diff` 守只會永遠紅
+- 新增 C8c（圖完整性：無孤兒節點、無懸空邊）、C8d（`layout.js` 仍不得動）
+- **新增 C18**：磁碟上每個 skill ／ agent 都必須能在站上點開文件。
+  這是本次要求的本體，寫成契約之後，下次新增 skill 卻忘了補內嵌文件會當場紅
+
+**契約總數 27 → 30，ALL PASS。**
+
+---
