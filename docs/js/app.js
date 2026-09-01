@@ -466,6 +466,7 @@ function renderDetail() {
     '</div>';
 
   detailEl.classList.add('open');
+  centerGlyphs(detailEl); // 這顆 ✕ 每次重繪都是新的節點，要重量
   $('detail-close').onclick = function () { setSelection(null); };
   detailEl.querySelectorAll('[data-jump]').forEach(function (b) {
     b.onclick = function () { var t = b.getAttribute('data-jump'); setSelection({ kind: 'node', id: t }); panTo(t); };
@@ -723,6 +724,7 @@ function openDrawer(nodeId) {
   drawerEl.classList.add('open');
   backdropEl.classList.add('open');
   $('drawer-close').onclick = closeDrawer;
+  centerGlyphs(drawerEl); // 這顆 ✕ 是剛插進 DOM 的，沒被開站時那次掃到
 
   docText(d)
     .then(function (text) {
@@ -888,6 +890,131 @@ function renderStatus() {
 $('mast-sub').textContent =
   layout.nodes.length + ' 節點 · ' + layout.edges.length + ' 邊 · ' + FLOW.phases.length + ' 階段';
 
+/* ── 字面視覺置中 ──────────────────────────────────────────────────────── */
+
+/** 量過的偏移量快取，key 是「字 + 字型 + 字級 + 行高」。 */
+var GLYPH_OFFSET_CACHE = {};
+
+/**
+ * 量出一個字實際墨跡的中心，跟它所在行框的中心差多少。
+ *
+ * 為什麼要用畫布掃描而不是寫死數字：`align-items: center` 對齊的是**行框**，
+ * 不是字的墨跡。行框裡基線的位置由字型的 ascent / descent 決定，兩者不對稱時
+ * 墨跡就不會落在行框正中間——實測「釘」與「✕」都偏上約 2px。
+ * 而偏移量取決於這個字最後落到 fallback 鏈的哪一個字型，Windows / macOS / Linux
+ * 各不相同，寫死一個數字只會在我這台對、在別人那台歪掉。
+ *
+ * 為什麼不用 measureText 的 actualBoundingBox：對 CJK 字它回的是字身框（14x14）
+ * 不是真實墨跡框，拿來算「釘」會算出偏移 0，跟肉眼看到的不符。掃 alpha 才是真的。
+ *
+ * 水平取墨跡重心、垂直取墨跡外框——兩軸判準不同的理由寫在函式內的註解。
+ *
+ * @param {string} ch 單一字元
+ * @param {string} weight font-weight
+ * @param {number} fs 字級 px
+ * @param {number} lh 行高 px
+ * @param {string} family font-family 清單
+ * @returns {{dx:number, dy:number}|null} 需要位移的量；量不出來回 null（呼叫端不動它）
+ */
+function measureGlyphOffset(ch, weight, fs, lh, family) {
+  var key = ch + '|' + weight + '|' + fs + '|' + lh + '|' + family;
+  if (key in GLYPH_OFFSET_CACHE) return GLYPH_OFFSET_CACHE[key];
+  var res = null;
+  try {
+    var S = 8; // 放大 8 倍再掃，量到的中心誤差回推後小於 1/8 px
+    var cv = document.createElement('canvas');
+    var cx = cv.getContext('2d', { willReadFrequently: true });
+    cx.font = weight + ' ' + (fs * S) + 'px ' + family;
+    var m = cx.measureText(ch);
+    // fontBoundingBox* 是舊瀏覽器可能沒有的欄位；沒有就不硬猜，直接放棄置中
+    if (typeof m.fontBoundingBoxAscent !== 'number') { GLYPH_OFFSET_CACHE[key] = null; return null; }
+
+    var advS = m.width, lhS = lh * S;
+    // 瀏覽器排行框的算法：半行距 = (行高 - (ascent + descent)) / 2，基線 = 半行距 + ascent
+    var baseS = (lhS - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent;
+    var pad = Math.ceil(fs * S);
+    cv.width = Math.ceil(advS) + pad * 2;
+    cv.height = Math.ceil(lhS) + pad * 2;
+
+    // 設過 width/height 之後 context 會被重置，font 要重設
+    cx.font = weight + ' ' + (fs * S) + 'px ' + family;
+    cx.textAlign = 'left';
+    cx.textBaseline = 'alphabetic';
+    // 不設 fillStyle：canvas 預設就是不透明黑，而這裡只看 alpha 通道、顏色無關緊要。
+    // 順帶滿足契約 C13b「app.js 不寫顏色」——寫死一個 #000 在這裡沒有意義卻會踩線。
+    cx.fillText(ch, pad, pad + baseS);
+
+    var d = cx.getImageData(0, 0, cv.width, cv.height).data;
+    var minX = cv.width, maxX = -1, minY = cv.height, maxY = -1;
+    var wSum = 0, xSum = 0, ySum = 0;
+    for (var y = 0; y < cv.height; y++) {
+      for (var x = 0; x < cv.width; x++) {
+        var a = d[(y * cv.width + x) * 4 + 3];
+        if (a > 8) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+        // 重心用完整 alpha 加權（含邊緣的半透明像素），不套門檻
+        if (a) { wSum += a; xSum += a * (x + 0.5); ySum += a * (y + 0.5); }
+      }
+    }
+    if (maxX < 0) { GLYPH_OFFSET_CACHE[key] = null; return null; } // 空白字元，沒有墨跡
+
+    var bboxCX = (minX + maxX + 1) / 2 - pad;   // 墨跡外框中心
+    var bboxCY = (minY + maxY + 1) / 2 - pad;
+    var massCX = xSum / wSum - pad;             // 墨跡重心（依濃淡加權）
+
+    // 水平用重心、垂直用外框，兩軸判準刻意不同：
+    //   水平 — 按鈕裡只有一個字、左右沒有東西要對齊，該對的是「看起來的中間」。
+    //          實測「釘」外框完全置中（左右邊距各 0.25px）但重心偏左 0.8px——金部密、
+    //          丁部疏，所以外框置中的結果肉眼看就是偏左。這正是 user 回報的那一條。
+    //   垂直 — 一整排按鈕（型 / 段 / 環 / 檔）要落在同一高度，靠的是共同的字身框，
+    //          改用重心會讓筆畫分布不同的字各自高低不一，反而更亂。
+    // 上限 1.5px：重心法遇到極端字（例如只有一撇）會飛出按鈕外，設個閘門。
+    var clamp = function (v) { return Math.max(-1.5, Math.min(1.5, v)); };
+    // 取 0.5px 一格：再細下去看不出來，卻會讓字的次像素落點每次都不一樣
+    var q = function (v) { return Math.round(v * 2) / 2; };
+    res = { dx: q(clamp((advS / 2 - massCX) / S)), dy: q(clamp((lhS / 2 - bboxCY) / S)) };
+  } catch (e) {
+    // canvas 不可用（極舊瀏覽器 / 停用）就當作量不到，維持原本的行框置中
+    res = null;
+  }
+  GLYPH_OFFSET_CACHE[key] = res;
+  return res;
+}
+
+/**
+ * 把 root 底下所有 .icon-btn 的字改成「墨跡置中」。
+ *
+ * 只套 .icon-btn，不套 .rail-btn——rail 那顆的 ::after 是滑過才出現的名牌，
+ * 位移按鈕會連名牌一起拖走。rail 是 44px 見方、同樣有約 2px 的上偏，
+ * 要修得先把字包一層 span 再位移那層。
+ *
+ * @param {Element} [root=document] 掃描範圍；抽屜／詳情是後來才插進 DOM 的，要各自再叫一次
+ */
+function centerGlyphs(root) {
+  var list = (root || document).querySelectorAll('.icon-btn');
+  for (var i = 0; i < list.length; i++) {
+    var el = list[i];
+    var ch = (el.textContent || '').trim();
+    if (ch.length !== 1) continue; // 只處理單字元圖示鍵
+    var cs = getComputedStyle(el);
+    var fs = parseFloat(cs.fontSize);
+    var lh = cs.lineHeight === 'normal' ? fs : parseFloat(cs.lineHeight);
+    var off = measureGlyphOffset(ch, cs.fontWeight, fs, lh, cs.fontFamily);
+    if (!off) continue;
+    el.style.setProperty('--ink-dx', off.dx + 'px');
+    el.style.setProperty('--ink-dy', off.dy + 'px');
+  }
+}
+
+// 字型還沒下載完就量，量到的是 fallback 字型的墨跡，換字後又會歪掉，所以等 fonts.ready。
+// 不支援 document.fonts 的瀏覽器就直接量一次，至少比完全不量好。
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { centerGlyphs(); });
+else centerGlyphs();
+
 /* ── 主題（三態 auto / light / dark；屬性名鎖死）──────────────────────── */
 var THEME_GLYPH = { auto: '自', light: '明', dark: '暗' };
 var THEME_NAME = { auto: '自動', light: '明亮', dark: '暗色' };
@@ -897,6 +1024,28 @@ var THEME_NAME = { auto: '自動', light: '明亮', dark: '暗色' };
  * **這兩個屬性名是與 index.html 的防 FOUC inline script、以及 CSS 的共同契約，不可改名。**
  * @param {"auto"|"light"|"dark"} mode
  */
+var themeFadeTimer = null;
+
+/**
+ * 掛上 .theme-xfade 讓整棵樹的顏色漸變，動畫時間到了再拿掉。
+ *
+ * 一定要拿掉：那條規則是 `* { transition: ... !important }`，留著會蓋掉每個元件
+ * 自己的轉場節奏（.icon-btn 的 120ms、.panel 的 260ms 全被改成 380ms）。
+ * 連點主題鍵時重設計時器，不要讓前一次的 timer 提早把 class 拔掉。
+ * 這條過場刻意沒有降低動態偏好的分支——全站一律不加（user 指示「嚴格照原指示」）。
+ * 它只有顏色漸變、沒有任何位移，WCAG 2.3.3 管的是 motion，色彩淡入不在該條範圍內。
+ */
+function beginThemeFade() {
+  var root = document.documentElement;
+  root.classList.add('theme-xfade');
+  if (themeFadeTimer) clearTimeout(themeFadeTimer);
+  // 380ms 是 --t-large；多留 60ms 緩衝，免得最後一格還沒畫完就被拔掉造成跳色
+  themeFadeTimer = setTimeout(function () {
+    root.classList.remove('theme-xfade');
+    themeFadeTimer = null;
+  }, 440);
+}
+
 function applyThemeMode(mode) {
   var root = document.documentElement;
   var resolved = mode === 'auto'
@@ -920,12 +1069,15 @@ function applyThemeMode(mode) {
   try { stored = localStorage.getItem('dev-workflow-theme'); } catch (e) {}
   applyThemeMode(stored || 'auto');
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
-    if ((document.documentElement.getAttribute('data-theme-mode') || 'auto') === 'auto') applyThemeMode('auto');
+    if ((document.documentElement.getAttribute('data-theme-mode') || 'auto') !== 'auto') return;
+    beginThemeFade();
+    applyThemeMode('auto');
   });
   $('btn-theme').onclick = function () {
     var order = ['auto', 'light', 'dark'];
     var cur = document.documentElement.getAttribute('data-theme-mode') || 'auto';
     var next = order[(order.indexOf(cur) + 1) % order.length];
+    beginThemeFade();
     applyThemeMode(next);
     try { localStorage.setItem('dev-workflow-theme', next); } catch (e) {}
   };

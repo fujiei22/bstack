@@ -1,8 +1,15 @@
 /* dev-workflow flowchart explorer — rail-console 骨架 / 校樣配色 */
 /* 設計定案、token 論證與動畫節奏見 docs/archive/2026/docs-site-redesign/spec.md */
 /* 顏色只透過 [data-type="..."] 屬性選擇器套用；app.js 不寫任何顏色（F22 契約，見驗證器 C13b） */
-/* 每個 oklch 宣告上方那條 hex 是舊瀏覽器 fallback：Chrome <111 / Safari <15.4 不支援 oklch，
-   沒有 fallback 時整份色票會落空，畫面不是變醜而是看起來像壞掉。 */
+/* 色票寫兩份：:root 裡是 hex，@supports (color: oklch(...)) 裡是 oklch 覆寫。
+   Chrome <111 / Safari <15.4 不支援 oklch，沒有 fallback 時整份色票會落空，
+   畫面不是變醜而是看起來像壞掉。
+   **一定要用 @supports 隔開，不能寫成 `--paper: #hex; --paper: oklch(...)`。**
+   自訂屬性不做值驗證，兩行都收得下、後行必定蓋掉前行；接著 var() 展開出無效值，
+   消費端整條宣告作廢，顏色變成透明。實測（Chromium）：
+     自訂屬性雙宣告 --x: red; --x: notacolor(…)  → 算出 rgba(0, 0, 0, 0)
+     消費端雙宣告 background: red; background: notacolor(…) → 算出 rgb(255, 0, 0)
+   後者才是有效寫法，.backdrop 就是那種，不必動。 */
 
 /* ══════════════════════════════════════════════════════════════════════════
    rail-console — 設計 token
@@ -16,61 +23,37 @@
 :root {
   /* — 中性明度序列（紙 → 墨）— */
   --paper:      #F8F5F1;
-  --paper:      oklch(0.972 0.006 85);
   --paper-sunk: #EEEBE6;
-  --paper-sunk: oklch(0.941 0.008 85);
   --surface:    #FEFDFB;
-  --surface:    oklch(0.995 0.003 85);
   --ink:        #251F1B;
-  --ink:        oklch(0.245 0.012 60);
   --ink-2:      #5C5550;
-  --ink-2:      oklch(0.455 0.012 60);
   --ink-3:      #7E7772;
-  --ink-3:      oklch(0.575 0.011 60);
   --rule:       #DAD6D1;
-  --rule:       oklch(0.878 0.008 70);
   --rule-2:     #C2BDB7;
-  --rule-2:     oklch(0.800 0.010 70);
 
   /* — 強調（校對紅筆）— */
   --accent:      #C3352D;
-  --accent:      oklch(0.545 0.180 28);
   --accent-ink:  #FEFDFB;
-  --accent-ink:  oklch(0.995 0.003 85);
   --accent-wash: rgba(195, 53, 45, 0.1);
-  --accent-wash: oklch(0.545 0.180 28 / 0.10);
   --accent-line: rgba(195, 53, 45, 0.34);
-  --accent-line: oklch(0.545 0.180 28 / 0.34);
 
   /* — 圖的線 — */
   --edge:     #A1968B;
-  --edge:     oklch(0.680 0.020 70);
   --edge-dim: #DFDAD4;
-  --edge-dim: oklch(0.890 0.010 70);
 
   /* — 八型別：填色 + 邊框（結構鎖死，色值可換）— */
   --c-default: #EFECE8; --c-default-bd: #979287;
-  --c-default: oklch(0.945 0.006  85); --c-default-bd: oklch(0.660 0.016  85);
   --c-skill:   #CCF1D5; --c-skill-bd:   #3B8C56;
-  --c-skill:   oklch(0.925 0.055 152); --c-skill-bd:   oklch(0.575 0.115 152);
   --c-agent:   #CDEAFF; --c-agent-bd:   #337FC0;
-  --c-agent:   oklch(0.925 0.050 248); --c-agent-bd:   oklch(0.580 0.125 248);
   --c-gate:    #F9E7B3; --c-gate-bd:    #A38200;
-  --c-gate:    oklch(0.930 0.070  92); --c-gate-bd:    oklch(0.620 0.135  92);
   --c-impl:    #EDDFFF; --c-impl-bd:    #8B66B3;
-  --c-impl:    oklch(0.925 0.048 305); --c-impl-bd:    oklch(0.580 0.120 305);
   --c-policy:  #E4E8F0; --c-policy-bd:  #778093;
-  --c-policy:  oklch(0.930 0.012 265); --c-policy-bd:  oklch(0.600 0.030 265);
   --c-hook:    #FFDEBF; --c-hook-bd:    #BF6D1F;
-  --c-hook:    oklch(0.928 0.062  58); --c-hook-bd:    oklch(0.615 0.135  58);
   --c-stop:    #FFD9D5; --c-stop-bd:    #C04847;
-  --c-stop:    oklch(0.925 0.055  24); --c-stop-bd:    oklch(0.565 0.155  24);
 
   /* — 抬升（紙疊在紙上，不是玻璃浮在霓虹上）— */
   --lift-1: 0 1px 2px rgba(37, 31, 27, 0.06), 0 4px 14px rgba(37, 31, 27, 0.07);
-  --lift-1: 0 1px 2px oklch(0.245 0.012 60 / 0.06), 0 4px 14px oklch(0.245 0.012 60 / 0.07);
   --lift-2: 0 2px 6px rgba(37, 31, 27, 0.08), 0 18px 44px rgba(37, 31, 27, 0.13);
-  --lift-2: 0 2px 6px oklch(0.245 0.012 60 / 0.08), 0 18px 44px oklch(0.245 0.012 60 / 0.13);
 
   /* — 動畫節奏：三檔時長 × 進場減速 / 離場加速 — */
   --t-micro: 120ms;
@@ -94,61 +77,103 @@
   line-break: strict;
 }
 
+/* oklch 版覆寫。**必須用 @supports 包住**：自訂屬性不做值驗證，直接寫成
+   `--paper: #F8F5F1; --paper: oklch(...)` 的話，不支援 oklch 的瀏覽器一樣會收下
+   oklch 那行、把 hex 蓋掉，然後 var() 展開出無效值讓消費端整條宣告作廢（顏色變透明）。
+   實測：自訂屬性雙宣告 → rgba(0,0,0,0)；消費端雙宣告（如 .backdrop）→ 才會 fallback。 */
+@supports (color: oklch(0 0 0)) {
+  :root {
+    --paper:      oklch(0.972 0.006 85);
+    --paper-sunk: oklch(0.941 0.008 85);
+    --surface:    oklch(0.995 0.003 85);
+    --ink:        oklch(0.245 0.012 60);
+    --ink-2:      oklch(0.455 0.012 60);
+    --ink-3:      oklch(0.575 0.011 60);
+    --rule:       oklch(0.878 0.008 70);
+    --rule-2:     oklch(0.800 0.010 70);
+    --accent:      oklch(0.545 0.180 28);
+    --accent-ink:  oklch(0.995 0.003 85);
+    --accent-wash: oklch(0.545 0.180 28 / 0.10);
+    --accent-line: oklch(0.545 0.180 28 / 0.34);
+    --edge:     oklch(0.680 0.020 70);
+    --edge-dim: oklch(0.890 0.010 70);
+    --c-default: oklch(0.945 0.006  85); --c-default-bd: oklch(0.660 0.016  85);
+    --c-skill:   oklch(0.925 0.055 152); --c-skill-bd:   oklch(0.575 0.115 152);
+    --c-agent:   oklch(0.925 0.050 248); --c-agent-bd:   oklch(0.580 0.125 248);
+    --c-gate:    oklch(0.930 0.070  92); --c-gate-bd:    oklch(0.620 0.135  92);
+    --c-impl:    oklch(0.925 0.048 305); --c-impl-bd:    oklch(0.580 0.120 305);
+    --c-policy:  oklch(0.930 0.012 265); --c-policy-bd:  oklch(0.600 0.030 265);
+    --c-hook:    oklch(0.928 0.062  58); --c-hook-bd:    oklch(0.615 0.135  58);
+    --c-stop:    oklch(0.925 0.055  24); --c-stop-bd:    oklch(0.565 0.155  24);
+    --lift-1: 0 1px 2px oklch(0.245 0.012 60 / 0.06), 0 4px 14px oklch(0.245 0.012 60 / 0.07);
+    --lift-2: 0 2px 6px oklch(0.245 0.012 60 / 0.08), 0 18px 44px oklch(0.245 0.012 60 / 0.13);
+  }
+}
+
 :root[data-theme="dark"] {
   --paper:      #1C1916;
-  --paper:      oklch(0.215 0.008 65);
   --paper-sunk: #13100D;
-  --paper-sunk: oklch(0.176 0.008 65);
   --surface:    #292521;
-  --surface:    oklch(0.268 0.010 65);
   --ink:        #EBE8E3;
-  --ink:        oklch(0.932 0.008 80);
   --ink-2:      #A8A59E;
-  --ink-2:      oklch(0.722 0.010 80);
   --ink-3:      #7C7872;
-  --ink-3:      oklch(0.575 0.010 80);
   --rule:       #3F3A35;
-  --rule:       oklch(0.352 0.010 70);
   --rule-2:     #56504A;
-  --rule-2:     oklch(0.436 0.012 70);
 
   --accent:      #ED7761;
-  --accent:      oklch(0.700 0.150 32);
   --accent-ink:  #110C09;
-  --accent-ink:  oklch(0.160 0.010 60);
   --accent-wash: rgba(237, 119, 97, 0.14);
-  --accent-wash: oklch(0.700 0.150 32 / 0.14);
   --accent-line: rgba(237, 119, 97, 0.4);
-  --accent-line: oklch(0.700 0.150 32 / 0.40);
 
   --edge:     #6B6157;
-  --edge:     oklch(0.500 0.020 70);
   --edge-dim: #322D27;
-  --edge-dim: oklch(0.300 0.012 70);
 
   --c-default: #3B3935; --c-default-bd: #6E685D;
-  --c-default: oklch(0.345 0.008 85); --c-default-bd: oklch(0.520 0.018  85);
   --c-skill:   #2B4431; --c-skill-bd:   #5A9E6E;
-  --c-skill:   oklch(0.360 0.045 152); --c-skill-bd:   oklch(0.640 0.100 152);
   --c-agent:   #283F55; --c-agent-bd:   #5594CF;
-  --c-agent:   oklch(0.360 0.048 248); --c-agent-bd:   oklch(0.650 0.110 248);
   --c-gate:    #4A3F1B; --c-gate-bd:    #BDA24D;
-  --c-gate:    oklch(0.370 0.055 92); --c-gate-bd:    oklch(0.720 0.110  92);
   --c-impl:    #433750; --c-impl-bd:    #A181C6;
-  --c-impl:    oklch(0.360 0.045 305); --c-impl-bd:    oklch(0.660 0.105 305);
   --c-policy:  #393C42; --c-policy-bd:  #676F80;
-  --c-policy:  oklch(0.355 0.012 265); --c-policy-bd:  oklch(0.540 0.028 265);
   --c-hook:    #533722; --c-hook-bd:    #D48B52;
-  --c-hook:    oklch(0.365 0.052 58); --c-hook-bd:    oklch(0.700 0.115  58);
   --c-stop:    #57312F; --c-stop-bd:    #D46661;
-  --c-stop:    oklch(0.360 0.055 24); --c-stop-bd:    oklch(0.640 0.140  24);
 
   --lift-1: 0 1px 2px rgba(0, 0, 0, 0.34), 0 4px 16px rgba(0, 0, 0, 0.36);
-  --lift-1: 0 1px 2px oklch(0 0 0 / 0.34), 0 4px 16px oklch(0 0 0 / 0.36);
   --lift-2: 0 2px 8px rgba(0, 0, 0, 0.42), 0 20px 50px rgba(0, 0, 0, 0.52);
-  --lift-2: 0 2px 8px oklch(0 0 0 / 0.42), 0 20px 50px oklch(0 0 0 / 0.52);
 
   color-scheme: dark;
+}
+
+/* oklch 版覆寫。**必須用 @supports 包住**：自訂屬性不做值驗證，直接寫成
+   `--paper: #F8F5F1; --paper: oklch(...)` 的話，不支援 oklch 的瀏覽器一樣會收下
+   oklch 那行、把 hex 蓋掉，然後 var() 展開出無效值讓消費端整條宣告作廢（顏色變透明）。
+   實測：自訂屬性雙宣告 → rgba(0,0,0,0)；消費端雙宣告（如 .backdrop）→ 才會 fallback。 */
+@supports (color: oklch(0 0 0)) {
+  :root[data-theme="dark"] {
+    --paper:      oklch(0.215 0.008 65);
+    --paper-sunk: oklch(0.176 0.008 65);
+    --surface:    oklch(0.268 0.010 65);
+    --ink:        oklch(0.932 0.008 80);
+    --ink-2:      oklch(0.722 0.010 80);
+    --ink-3:      oklch(0.575 0.010 80);
+    --rule:       oklch(0.352 0.010 70);
+    --rule-2:     oklch(0.436 0.012 70);
+    --accent:      oklch(0.700 0.150 32);
+    --accent-ink:  oklch(0.160 0.010 60);
+    --accent-wash: oklch(0.700 0.150 32 / 0.14);
+    --accent-line: oklch(0.700 0.150 32 / 0.40);
+    --edge:     oklch(0.500 0.020 70);
+    --edge-dim: oklch(0.300 0.012 70);
+    --c-default: oklch(0.345 0.008 85); --c-default-bd: oklch(0.520 0.018  85);
+    --c-skill:   oklch(0.360 0.045 152); --c-skill-bd:   oklch(0.640 0.100 152);
+    --c-agent:   oklch(0.360 0.048 248); --c-agent-bd:   oklch(0.650 0.110 248);
+    --c-gate:    oklch(0.370 0.055 92); --c-gate-bd:    oklch(0.720 0.110  92);
+    --c-impl:    oklch(0.360 0.045 305); --c-impl-bd:    oklch(0.660 0.105 305);
+    --c-policy:  oklch(0.355 0.012 265); --c-policy-bd:  oklch(0.540 0.028 265);
+    --c-hook:    oklch(0.365 0.052 58); --c-hook-bd:    oklch(0.700 0.115  58);
+    --c-stop:    oklch(0.360 0.055 24); --c-stop-bd:    oklch(0.640 0.140  24);
+    --lift-1: 0 1px 2px oklch(0 0 0 / 0.34), 0 4px 16px oklch(0 0 0 / 0.36);
+    --lift-2: 0 2px 8px oklch(0 0 0 / 0.42), 0 20px 50px oklch(0 0 0 / 0.52);
+  }
 }
 
 /* ── reset ───────────────────────────────────────────────────────────────── */
@@ -334,10 +359,16 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 }
 .icon-btn {
   width: 30px; height: 30px;
-  /* flex + 明確 justify/align，不倚賴 grid 匿名項的置中行為；
-     line-height:1 讓 CJK 字的行框不帶額外上下偏移 */
+  /* flex-shrink:0 不可省：.panel-head 是 flex 容器，空間一緊就會把按鈕壓扁。
+     實測壓成 27.86x30——CSS 寫 30 但量到 27.86，圓角底色因此不是正方形。 */
+  flex: 0 0 30px;
   display: flex; align-items: center; justify-content: center;
   line-height: 1; text-align: center;
+  /* --ink-dx/dy 由 app.js 的 centerGlyphs() 實測填入（預設 0，量不到就維持原樣）。
+     align-items:center 對齊的是「行框」，不是字的墨跡；字面框 ascent 10 / descent 4
+     不對稱，所以「釘」「✕」都會偏上約 2px。偏移量隨實際落到哪個 fallback 字型而變，
+     寫死數字在別台機器上一定跑掉，只能量。 */
+  transform: translate(var(--ink-dx, 0px), var(--ink-dy, 0px));
   border-radius: 3px; color: var(--ink-3);
   font-family: var(--font-display); font-size: 14px;
   transition: background var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move);
@@ -488,6 +519,33 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .empty { padding: 4px 8px 8px; font-size: 12.5px; color: var(--ink-3); }
 
 /* ══ 文件抽屜 ════════════════════════════════════════════════════════════ */
+/* ══ 主題切換過場 ════════════════════════════════════════════════════════
+   切主題時 <html> 會被掛上 .theme-xfade 一段時間（app.js 掛、動畫完拿掉），
+   期間整棵樹的顏色一起漸變，不是瞬間跳色。
+
+   為什麼掛完要拿掉：這條是 * 選擇器 + !important，留著會蓋掉所有元件自己的
+   hover / 進場轉場節奏（.icon-btn 的 120ms、.panel 的 260ms 都會被改成 380ms）。
+
+   這裡刻意沒有 prefers-reduced-motion 分支：全站一律不加（user 指示「嚴格照原指示」，
+   契約 C5 斷言 prefers-reduced-motion 命中數為 0）。這條過場只有顏色漸變、沒有位移，
+   WCAG 2.3.3 管的是 motion，色彩淡入不在該條範圍內。
+
+   為什麼用 class 而不是 @property + transition 自訂屬性：@property 要逐一登記
+   30 個色彩 token（約 160 行），而且 Firefox 128 以前不支援；這條 16 行、每個
+   瀏覽器都吃。 */
+:root.theme-xfade *,
+:root.theme-xfade *::before,
+:root.theme-xfade *::after {
+  transition:
+    background-color var(--t-large) var(--e-move),
+    color            var(--t-large) var(--e-move),
+    border-color     var(--t-large) var(--e-move),
+    outline-color    var(--t-large) var(--e-move),
+    fill             var(--t-large) var(--e-move),
+    stroke           var(--t-large) var(--e-move),
+    box-shadow       var(--t-large) var(--e-move) !important;
+}
+
 .backdrop {
   position: absolute; inset: 0; z-index: 60;
   background: rgba(37, 31, 27, 0.28);

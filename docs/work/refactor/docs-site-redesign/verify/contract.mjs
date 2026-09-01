@@ -35,7 +35,10 @@ const DOCS = join(dirname(fileURLToPath(import.meta.url)), '../../../..');
 const REPO = join(DOCS, '..');
 
 /** 讀 docs/ 底下的檔（相對 docs/ 根）。 */
-const read = (p) => readFileSync(join(DOCS, p), 'utf8');
+// 一律正規化成 LF 再比對。**這不是潔癖，是修一個真的 bug**：JS 的 `.` 不匹配行終止符，
+// 而 \r 算行終止符，所以 /^\s*\/\/.*$/ 這種去註解的 regex 在 CRLF 檔上完全不生效
+// （`.*` 停在 \r 前面，沒有 m 旗標的 `$` 又要求字串結尾）。C13b 就是這樣被繞過的。
+const read = (p) => readFileSync(join(DOCS, p), 'utf8').replace(/\r\n/g, '\n');
 
 let failed = 0;
 
@@ -123,15 +126,26 @@ const TYPES = ['default', 'gate', 'agent', 'skill', 'policy', 'impl', 'hook', 's
 
 /**
  * 取出一個 CSS 區塊的內容（區塊內不含巢狀大括號，所以簡單配對即可）。
+ *
+ * 色票拆成兩份放：頂層 :root 是 hex，@supports (color: oklch(...)) 裡的 :root 是 oklch 覆寫。
+ * 用縮排區分——頂層那份寫在第 0 欄，@supports 裡那份縮兩格。
+ *
  * @param {string} selector 例如 ':root' 或 ':root[data-theme="dark"]'
+ * @param {boolean} inSupports true 取 @supports 裡那份，false 取頂層那份
  * @returns {string}
  */
-function blockOf(selector) {
-  const i = css.indexOf(selector + ' {');
+function blockOf(selector, inSupports) {
+  const open = inSupports ? '  ' + selector + ' {' : '\n' + selector + ' {';
+  const close = inSupports ? '\n  }' : '\n}';
+  const i = css.indexOf(open);
   if (i === -1) return '';
-  return css.slice(i, css.indexOf('\n}', i));
+  return css.slice(i, css.indexOf(close, i));
 }
-const BLOCKS = { light: blockOf(':root'), dark: blockOf(':root[data-theme="dark"]') };
+// BASE = 頂層（hex）；OKL = @supports 裡的覆寫（oklch）。
+// 兩者相接就是支援 oklch 的瀏覽器實際看到的層疊順序，C4a 要的是這個。
+const BASE = { light: blockOf(':root', false), dark: blockOf(':root[data-theme="dark"]', false) };
+const OKL = { light: blockOf(':root', true), dark: blockOf(':root[data-theme="dark"]', true) };
+const BLOCKS = { light: BASE.light + '\n' + OKL.light, dark: BASE.dark + '\n' + OKL.dark };
 
 /**
  * 取一個區塊裡每個 --c-* 屬性的**生效值**（同名多次宣告時，CSS 取最後一條）。
@@ -161,24 +175,35 @@ check(
     `${notOklch.slice(0, 4).join(' / ')}（後果：配色沒換到，或 fallback 蓋過了正式值）`
 );
 
-// C4c：每個 --c-* 都要有 hex / rgba fallback 墊在前面（spec §已決事項 4）
-const noFallback = [];
-for (const [theme, block] of Object.entries(BLOCKS)) {
-  const seen = new Map();
-  for (const m of block.matchAll(/(--c-[a-z]+(?:-bd)?)\s*:\s*([^;]+);/g)) {
-    const list = seen.get(m[1]) || [];
-    list.push(m[2].trim());
-    seen.set(m[1], list);
+// C4c：fallback 必須靠 @supports 隔開，不能靠「同名宣告連寫兩行」。
+//
+// 這條守的是一個實測過的坑：`--paper: #F8F5F1; --paper: oklch(...)` 這種寫法**根本不會 fallback**。
+// 自訂屬性不做值驗證，不支援 oklch 的瀏覽器一樣把 oklch 那行收下、蓋掉 hex，
+// 接著 var() 展開出無效值讓消費端整條宣告作廢——顏色變透明，不是變回 hex。
+// Chromium 實測：
+//   --x: red; --x: notacolor(…);                 → 算出 rgba(0, 0, 0, 0)
+//   background: red; background: notacolor(…);   → 算出 rgb(255, 0, 0)   ← 只有消費端雙宣告有效
+// 所以斷言拆三段：hex 在 @supports 外、oklch 在 @supports 內、兩邊的 token 集合要對得起來。
+const fbErr = [];
+for (const theme of ['light', 'dark']) {
+  const grab = (block) => {
+    const m2 = new Map();
+    for (const m of block.matchAll(/(--c-[a-z]+(?:-bd)?)\s*:\s*([^;]+);/g)) m2.set(m[1], m[2].trim());
+    return m2;
+  };
+  const hexes = grab(BASE[theme]);
+  const okls = grab(OKL[theme]);
+  for (const [prop, val] of hexes) {
+    if (!/^(#[0-9A-Fa-f]{3,8}|rgba?\()/.test(val)) fbErr.push(`${theme}/${prop} 頂層值不是 hex：${val}`);
+    if (!okls.has(prop)) fbErr.push(`${theme}/${prop} 在 @supports 裡沒有 oklch 覆寫`);
   }
-  for (const [prop, vals] of seen) {
-    if (!vals.some((v) => /^(#[0-9A-Fa-f]{3,8}|rgba?\()/.test(v))) noFallback.push(`${theme}/${prop}`);
-  }
+  for (const prop of okls.keys()) if (!hexes.has(prop)) fbErr.push(`${theme}/${prop} 只有 oklch、頂層沒有 hex 墊底`);
 }
 check(
-  'C4c 八型別 token 都有 hex fallback',
-  noFallback.length === 0,
-  `期望每個 token 都有一條 hex/rgba 墊底，實際 ${noFallback.length} 個沒有：${noFallback.slice(0, 6).join(' / ')}` +
-    `（後果：Chrome <111 / Safari <15.4 上該 token 落空，節點會沒有底色或沒有邊框）`
+  'C4c hex 在 @supports 外、oklch 在 @supports 內',
+  fbErr.length === 0,
+  `期望 0 個結構問題，實際 ${fbErr.length} 個：${fbErr.slice(0, 4).join(' / ')}` +
+    `（後果：fallback 形同虛設，Chrome <111 / Safari <15.4 上節點不是變回 hex 而是變透明）`
 );
 const missing = TYPES.filter((t) => {
   const fill = (css.match(new RegExp(`--c-${t}\\s*:`, 'g')) || []).length;
@@ -193,7 +218,10 @@ check(
 );
 
 // ── C5：prefers-reduced-motion 必須維持 0 ────────────────────────────────────
-const prm = (css.match(/prefers-reduced-motion/g) || []).length;
+// 去掉註解再數：契約要測的是「有沒有這條規則」，不是「有沒有提到這個詞」。
+// 不去的話，連「這裡刻意不加這個分支」的說明都會讓契約紅掉。
+const cssNoComment = css.replace(/\/\*[\s\S]*?\*\//g, '');
+const prm = (cssNoComment.match(/prefers-reduced-motion/g) || []).length;
 check(
   'C5 prefers-reduced-motion == 0',
   prm === 0,
