@@ -1,4 +1,23 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="64" height="64" rx="5" fill="#C3352D"/>
-<path d="M5.288 42.5V38.944H7.136V26.428H5.288V22.9H12.4C14.808 22.9 16.6 23.4693 17.776 24.608C18.9707 25.7467 19.568 27.492 19.568 29.844V35.556C19.568 37.908 18.9707 39.6533 17.776 40.792C16.6 41.9307 14.808 42.5 12.4 42.5H5.288ZM10.832 38.972H12.4C13.688 38.972 14.584 38.6733 15.088 38.076C15.6107 37.46 15.872 36.508 15.872 35.22V29.844C15.872 28.724 15.6107 27.8747 15.088 27.296C14.584 26.7173 13.688 26.428 12.4 26.428H10.832V38.972ZM24.8405 42.5L24.1685 22.9H27.5285L27.9765 37.796V40.316H28.6485V37.796L29.5445 22.9H35.4805L36.3765 37.796V40.316H37.0485V37.796L37.4965 22.9H40.8565L40.1845 42.5H33.7445L32.8485 27.604V24.916H32.1765V27.604L31.2805 42.5H24.8405ZM46.3531 42.5V22.9H58.8971V26.428H50.0491V30.908H58.7291V34.436H50.0491V42.5H46.3531Z" fill="#FEFDFB"/>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="bstack">
+  <!-- 跟站上左上角那顆 bs 標記同一組值：底色 accent、字色 accent-ink、
+       Newsreader 600、圓角是邊長的 7.5%（40px 見方配 3px，換算 64 見方就是 4.8）。
+
+       字型鏈以 Newsreader 起頭但本機幾乎不會有，favicon 讀不到網頁字型，
+       所以退到 Georgia / Times；兩者跟 Newsreader 同屬過渡期襯線，16px 下看不出差別。
+
+       註解裡不要出現連續兩個減號，XML 會當成註解結束、整份解析失敗。 -->
+  <style>
+    .bg { fill: #C3352D; }
+    .fg { fill: #FEFDFB; }
+    /* 站上那顆標記會跟著主題換色，favicon 跟著換才是同一顆 */
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #ED7761; }
+      .fg { fill: #110C09; }
+    }
+  </style>
+  <rect class="bg" width="64" height="64" rx="4.8"/>
+  <text class="fg" x="32" y="43.5"
+        text-anchor="middle"
+        font-family="Newsreader, Georgia, 'Times New Roman', 'Noto Serif TC', serif"
+        font-weight="600" font-size="28" letter-spacing="-0.6">bs</text>
 </svg>
