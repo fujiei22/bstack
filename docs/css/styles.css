@@ -190,9 +190,10 @@
 ::view-transition-old(root) { animation: vtOut 220ms cubic-bezier(.55, .02, .86, .30) both; }
 ::view-transition-new(root) { animation: vtIn  380ms cubic-bezier(.16, .84, .44, 1) both; }
 
-/* 兩頁的 bs 標記共用同一個名字，換頁時會從 landing 頂列**移動**到 flow 的左側 rail。
-   一份文件裡同一個名字只能有一個元素，兩頁各只有一顆，成立。 */
-.topbar .mark, .rail-mark { view-transition-name: brandmark; }
+/* 兩頁的 bs 標記共用同一個名字，換頁時會**移動**過去而不是淡出再淡入。
+   一份文件裡同一個名字只能有一個元素——flow.html 是這裡的 .rail-mark，
+   index.html 那顆在 landing.css 裡（.lrail .mk），兩頁各只有一顆，成立。 */
+.rail-mark { view-transition-name: brandmark; }
 
 /* JS 兜底：沒有 View Transitions 時，導航前先掛這個 class 播淡出 */
 @keyframes pageOut { to { opacity: 0; transform: translateY(-10px); } }
@@ -804,9 +805,14 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .edge.is-highlighted .edge-path {
   stroke: var(--accent); stroke-width: 2.2px;
   stroke-dasharray: 8 4;
-  animation: dashmarch 720ms steps(6, end) infinite;
+  /* **這裡必須是 linear**，而且是全站唯一一處（契約 C12 就守這一條）。
+     流動的虛線是等速前進的東西，套任何緩動都會讓它一下快一下慢，看起來像卡住。
+     原本寫 steps(6, end)：一圈切成 6 段跳，每段位移 4px，而虛線週期是 8+4=12px——
+     每一跳都落在圖樣中間，所以是一格一格頓，不是流動。
+     位移量取一個完整週期 12px，循環才接得上；取 24px（兩週期）也接得上但沒必要。 */
+  animation: dashmarch 700ms linear infinite;
 }
-@keyframes dashmarch { to { stroke-dashoffset: -24; } }
+@keyframes dashmarch { to { stroke-dashoffset: -12; } }
 
 #arrow-normal path { fill: var(--edge); }
 #arrow-dim path    { fill: var(--edge-dim); }

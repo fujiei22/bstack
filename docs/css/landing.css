@@ -1,208 +1,311 @@
 /* landing 頁樣式。**必須排在 styles.css 之後載入**——token、字型、reset 全部沿用那份，
-   這裡只加版面，不重新定義任何顏色值。抽不到就用不到，不自己發明。 */
+   這裡只加版面，一個色值都不自己宣告（契約 C19d 守這條）。
 
-/* styles.css 是為「滿版不捲動的 app 外殼」寫的，landing 是一份會捲的文件，改掉這兩條。 */
+   class 一律加 l 前綴：styles.css 已經有 .rail / .stage / .topbar / .shell，
+   撞名的話得靠載入順序覆寫才會對，而那是會安靜壞掉的依賴。 */
+
+/* styles.css 是為「滿版不捲動的 app 外殼」寫的，landing 是一份會捲的文件 */
 html, body { height: auto; }
-body { overflow: visible; }
+body { overflow-x: hidden; overflow-y: auto; }
 
-/* ══ 版面 ════════════════════════════════════════════════════════════════
-   校樣紙的排版：正文一欄，左邊留出頁邊，節次編號印在頁邊上。
-   ≥1100px 才有左欄；窄螢幕時編號收進標題行內，不另外堆一層。 */
-.page {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 28px 96px;
+/* ══ rail ══════════════════════════════════════════════════════════════════ */
+.lrail {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 56px; z-index: 40;
+  display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 5px;
+  background: var(--paper); border-right: 1px solid var(--rule);
+}
+.lrail .mk {
+  width: 40px; height: 40px; display: grid; place-items: center; border-radius: 3px;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: var(--font-display); font-weight: 600; font-size: 19px;
+  letter-spacing: -.02em; margin-bottom: 12px; text-decoration: none;
+  /* 跟 flow.html 的 .rail-mark 同名，換頁時這顆字是移動過去，不是淡出再淡入 */
+  view-transition-name: brandmark;
+}
+.lrail .sp { flex: 1; }
+.lrail a:not(.mk) {
+  position: relative; width: 42px; height: 42px; display: grid; place-items: center;
+  border-radius: 3px; font-family: var(--font-display); font-size: 16px;
+  color: var(--ink-3); text-decoration: none;
+  transition: background var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move);
+}
+.lrail a:not(.mk):hover { background: var(--paper-sunk); color: var(--ink); }
+.lrail a.on { color: var(--accent); background: var(--accent-wash); }
+.lrail a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 滑過才出現的名牌，沿用 flow.html 的 .rail-btn::after 做法 */
+.lrail [data-label]::after {
+  content: attr(data-label); position: absolute; left: calc(100% + 10px); top: 50%;
+  transform: translate(-4px, -50%); padding: 4px 9px; border-radius: 3px;
+  white-space: nowrap; z-index: 5;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--t-micro) var(--e-exit), transform var(--t-micro) var(--e-exit);
+}
+.lrail [data-label]:hover::after,
+.lrail [data-label]:focus-visible::after {
+  opacity: 1; transform: translate(0, -50%);
+  transition-timing-function: var(--e-enter); transition-duration: 180ms;
 }
 
-/* ── 頂列 ── */
-.topbar {
-  position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; gap: 12px;
-  height: 52px; margin-bottom: 4px;
-  /* 不用半透明 + blur：那是玻璃的語彙，這套配色的立意是校樣紙，紙不透。
-     實測捲動時也真的會看到正文從列後面透出來。 */
-  background: var(--paper);
-  border-bottom: 1px solid var(--rule);
+/* ══ 兩欄格線 ══════════════════════════════════════════════════════════════
+   左正文、右節點鏈。超寬螢幕封頂 1680px——不封的話兩欄會一路撐開，
+   正文行長與卡片都失去比例。 */
+.ldoc {
+  margin-left: 56px; padding: 0 clamp(24px, 3vw, 56px) 16vh 0; max-width: 1680px;
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(400px, 1fr);
+  gap: 0 clamp(40px, 4vw, 72px);
 }
-.topbar .mark {
-  width: 30px; height: 30px; flex: none;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; background: var(--accent); color: var(--accent-ink);
-  font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: .02em;
-}
-.topbar .wordmark { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
-.topbar .spacer { flex: 1; }
+@media (max-width: 1180px) { .ldoc { display: block; padding-right: 0; max-width: none; } }
 
-/* ── 按鈕 ── */
-.btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  height: 32px; padding: 0 13px;
-  border: 1px solid var(--rule-2); border-radius: 4px;
-  font-size: 13px; font-weight: 500; color: var(--ink-2);
-  text-decoration: none; white-space: nowrap;
-  transition: background var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move),
-              border-color var(--t-micro) var(--e-move);
-}
-.btn:hover { background: var(--paper-sunk); color: var(--ink); border-color: var(--ink-3); }
-.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.btn.primary {
-  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
-  height: 38px; padding: 0 18px; font-size: 14px;
-}
-.btn.primary:hover { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.btn .arw { transition: transform var(--t-micro) var(--e-move); }
-.btn:hover .arw { transform: translateX(3px); }
+.lcol { padding-left: clamp(24px, 3vw, 48px); }
 
-/* ── masthead ── */
-.mast { padding: 72px 0 56px; border-bottom: 1px solid var(--rule); }
-.mast h1 {
+/* ── 首屏 ── */
+.hero { min-height: 96vh; display: flex; flex-direction: column; justify-content: center; }
+.kicker {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+}
+h1 {
   font-family: var(--font-display); font-weight: 600;
-  font-size: clamp(46px, 8vw, 86px); line-height: .96; letter-spacing: -.03em;
+  font-size: clamp(38px, 4.6vw, 66px); line-height: 1.06; letter-spacing: -.022em; margin: 0;
 }
-.mast .lede {
-  max-width: 46ch; margin-top: 20px;
-  font-size: clamp(15px, 1.5vw, 17.5px); line-height: 1.62; color: var(--ink-2);
+.hero .sub { margin-top: 22px; font-size: 17px; line-height: 1.74; color: var(--ink-2); max-width: 60ch; }
+.hero .stat {
+  display: flex; flex-wrap: wrap; gap: 0; margin-top: 32px;
+  border-top: 1px solid var(--rule); max-width: 560px;
 }
-.mast .facts {
-  display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 28px;
-  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .07em;
+.hero .stat div { flex: 1 1 96px; padding: 13px 14px 13px 0; border-bottom: 1px solid var(--rule); }
+.hero .stat b {
+  display: block; font-family: var(--font-display); font-weight: 600; font-size: 28px;
+  letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.hero .stat span {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .13em;
   text-transform: uppercase; color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-.mast .facts b { color: var(--ink); font-weight: 500; }
-.mast .acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
-
-/* ── 節 ── */
-.sec {
-  display: grid; grid-template-columns: 1fr; gap: 0;
-  padding: 44px 0; border-bottom: 1px solid var(--rule);
-}
-.sec:last-of-type { border-bottom: 0; }
-.sec > .no {
-  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-  letter-spacing: .12em; color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-.sec > .body { min-width: 0; max-width: 68ch; }
-.sec h2 {
-  margin: 6px 0 14px;
-  font-family: var(--font-display); font-size: 25px; font-weight: 600; letter-spacing: -.012em;
-}
-.sec p { color: var(--ink-2); font-size: 14.5px; line-height: 1.72; }
-.sec p strong, .sec li strong { color: var(--ink); font-weight: 600; }
-.sec code {
-  font-family: var(--font-mono); font-size: .9em;
-  background: var(--paper-sunk); padding: 1px 5px; border-radius: 3px;
 }
 
-@media (min-width: 1100px) {
-  /* 頁邊欄：節次編號印在正文左側，像校樣紙上的行號 */
-  .sec { grid-template-columns: 92px 1fr; gap: 0 32px; }
-  .sec > .no { padding-top: 12px; }
+/* ── 段落 ── */
+.beat { padding: 11vh 0; border-top: 1px solid var(--rule); }
+.beat:first-of-type { border-top: 0; }
+.beat h2 {
+  font-family: var(--font-display); font-weight: 600; font-size: clamp(26px, 2.7vw, 36px);
+  line-height: 1.24; letter-spacing: -.014em; margin: 0 0 16px;
 }
+/* 72ch 約等於 40 個中文字一行；60ch 只有 33 個，欄寬給了卻用不到 */
+.beat p { font-size: 15.5px; line-height: 1.84; color: var(--ink-2); margin: 0 0 14px; max-width: 72ch; }
+.beat p.lead { font-size: 17px; line-height: 1.72; color: var(--ink); }
+.beat p em { font-style: normal; color: var(--ink); font-weight: 600; box-shadow: inset 0 -8px 0 var(--accent-wash); }
+.beat .tag {
+  display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.beat .tag i { width: 8px; height: 8px; border: 1.5px solid; border-radius: 2px; font-style: normal; }
 
-/* ── 清單 ── */
-.spec { margin: 0; border-top: 1px solid var(--rule); }
-.spec > li {
-  display: flex; align-items: baseline; gap: 12px;
-  padding: 9px 2px; border-bottom: 1px solid var(--rule);
+/* 捲動進場：逐項浮起，離開視口不倒放 */
+.rise {
+  opacity: 0; transform: translateY(16px);
+  transition: opacity 600ms var(--e-enter), transform 600ms var(--e-enter);
 }
-.spec .dot {
-  width: 9px; height: 9px; flex: none; align-self: center;
-  border: 1.5px solid; border-radius: 2px;
-}
-/* 型別色沿用流程圖那套語意色，只透過 [data-type] 屬性選擇器套用 */
-.spec .dot[data-type="skill"]  { background: var(--c-skill);  border-color: var(--c-skill-bd); }
-.spec .dot[data-type="agent"]  { background: var(--c-agent);  border-color: var(--c-agent-bd); }
-.spec .dot[data-type="hook"]   { background: var(--c-hook);   border-color: var(--c-hook-bd); }
-.spec .dot[data-type="policy"] { background: var(--c-policy); border-color: var(--c-policy-bd); }
-.spec .dot[data-type="impl"]   { background: var(--c-impl);   border-color: var(--c-impl-bd); }
-.spec .k {
-  flex: none; width: 96px;
-  font-family: var(--font-mono); font-size: 12px; color: var(--ink);
-}
-.spec .n {
-  flex: none; width: 44px; text-align: right;
-  font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-.spec .d { flex: 1; min-width: 0; font-size: 13.5px; color: var(--ink-2); }
+.in .rise { opacity: 1; transform: none; }
+.in .rise:nth-child(2) { transition-delay: 60ms; }
+.in .rise:nth-child(3) { transition-delay: 120ms; }
+.in .rise:nth-child(4) { transition-delay: 180ms; }
 
-/* ── 階段序列 ── */
-.phases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.phases li {
-  display: flex; align-items: center; gap: 7px;
-  padding: 5px 11px 5px 8px;
-  border: 1px solid var(--rule-2); border-radius: 3px;
-  font-size: 13px; color: var(--ink-2);
-  transition: border-color var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move);
+/* ── 前後對照卡 ── */
+.vs {
+  display: grid; grid-template-columns: 1fr; gap: 1px; margin-top: 24px;
+  background: var(--rule); border: 1px solid var(--rule); border-radius: 6px;
+  overflow: hidden; box-shadow: var(--lift-1);
 }
-.phases li:hover { border-color: var(--accent-line); color: var(--ink); }
-.phases li i {
-  font-family: var(--font-mono); font-size: 10.5px; font-style: normal;
-  color: var(--ink-3); font-variant-numeric: tabular-nums;
+@media (min-width: 700px) { .vs { grid-template-columns: 1fr 1fr; } }
+.vs > div { background: var(--surface); padding: 17px 19px 19px; min-height: 140px; opacity: 0; transform: translateY(14px); }
+.in .vs > div { opacity: 1; transform: none; transition: opacity 560ms var(--e-enter), transform 560ms var(--e-enter); }
+.in .vs .now { transition-delay: 220ms; }
+.vs .was { background: var(--paper-sunk); }
+.vs .lbl {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--ink-3);
 }
+.vs .lbl b { font-family: var(--font-display); font-size: 13px; font-weight: 600; }
+.vs .was .lbl b { color: var(--ink-3); }
+.vs .now .lbl b { color: var(--accent); }
+.vs p { margin: 0; font-size: 14.5px; line-height: 1.78; color: var(--ink-2); max-width: none; }
+.vs .now p { color: var(--ink); }
+.vs .now p strong { font-weight: 600; box-shadow: inset 0 -8px 0 var(--accent-wash); }
+.vs:hover .was { background: var(--paper); transition: background 260ms var(--e-move); }
+.vs:hover .now { box-shadow: inset 0 0 0 2px var(--accent-line); transition: box-shadow 260ms var(--e-move); }
 
-/* ── 表 ── */
-.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.tbl th, .tbl td { padding: 9px 12px 9px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); }
-.tbl th {
-  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-  letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
+/* ── 資料段 ── */
+.data { padding: 11vh 0; border-top: 1px solid var(--rule); }
+.data h2 {
+  font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 2.4vw, 32px);
+  line-height: 1.24; letter-spacing: -.014em; margin: 0 0 18px;
 }
-.tbl td { color: var(--ink-2); }
-.tbl td:first-child { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink); white-space: nowrap; }
-.tbl-wrap { overflow-x: auto; }
-
-/* ── 條列 ── */
-.rules { margin-top: 4px; }
-.rules li {
-  position: relative; padding: 6px 0 6px 20px;
-  font-size: 14px; color: var(--ink-2); line-height: 1.66;
+.inv { border-top: 1px solid var(--rule); }
+.inv li { display: flex; gap: 13px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--rule); }
+.inv .sw { width: 9px; height: 9px; flex: none; align-self: center; border: 1.5px solid; border-radius: 2px; }
+.inv .kk { flex: none; width: 104px; font-family: var(--font-mono); font-size: 12px; color: var(--ink); }
+.inv .vv { flex: 1; font-size: 14px; color: var(--ink-2); }
+.inv .nn { flex: none; font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px; }
+.chips li {
+  display: flex; gap: 7px; align-items: center; padding: 6px 11px;
+  border: 1px solid var(--rule-2); border-radius: 2px; font-size: 13px; color: var(--ink-2);
 }
-.rules li::before {
-  content: '§'; position: absolute; left: 0; top: 6px;
-  font-family: var(--font-display); color: var(--accent); font-size: 14px;
-}
-.rules li b { color: var(--ink); font-weight: 600; }
-
-/* ── 安裝步驟 ── */
-/* styles.css 只 reset 了 ul，ol 的預設編號還在——不關掉會變成「1. 01 取得 repo」兩層編號 */
+.chips i { font-style: normal; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
 .steps { counter-reset: st; list-style: none; margin: 0; padding: 0; }
-.steps > li { counter-increment: st; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.steps > li { counter-increment: st; padding: 15px 0; border-bottom: 1px solid var(--rule); }
 .steps > li:last-child { border-bottom: 0; }
-.steps > li > .h {
-  display: flex; align-items: baseline; gap: 10px;
-  font-size: 14.5px; color: var(--ink); font-weight: 600;
-}
-.steps > li > .h::before {
+.steps .h { display: flex; align-items: baseline; gap: 10px; font-size: 14.5px; color: var(--ink); font-weight: 600; }
+.steps .h::before {
   content: counter(st, decimal-leading-zero);
   font-family: var(--font-mono); font-size: 11px; font-weight: 500;
   color: var(--accent); letter-spacing: .08em;
 }
-.steps p { margin: 6px 0 0; font-size: 13.5px; }
+.steps p { margin: 6px 0 0; font-size: 13.5px; max-width: 52ch; }
 pre.cmd {
   margin: 10px 0 0; padding: 11px 13px; overflow-x: auto;
   background: var(--paper-sunk); border: 1px solid var(--rule); border-radius: 4px;
   font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; color: var(--ink);
 }
-pre.cmd .c { color: var(--ink-3); }
 
-/* ── 頁尾 ── */
+.cta {
+  display: inline-flex; align-items: center; gap: 12px; margin-top: 26px; padding: 14px 22px;
+  background: var(--ink); color: var(--paper); text-decoration: none; border-radius: 3px;
+  font-size: 15px; font-weight: 500; box-shadow: var(--lift-1);
+  transition: background var(--t-micro) var(--e-move), box-shadow var(--t-micro) var(--e-move);
+}
+.cta .ar { transition: transform var(--t-micro) var(--e-move); }
+.cta:hover { background: var(--accent); color: var(--accent-ink); box-shadow: var(--lift-2); }
+.cta:hover .ar { transform: translateX(5px); }
 .foot {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
-  padding-top: 28px; border-top: 1px solid var(--rule);
-  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .05em; color: var(--ink-3);
+  margin-top: 36px; padding-top: 26px; border-top: 1px solid var(--rule);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--ink-3);
 }
 .foot a { color: var(--ink-2); text-decoration: underline dotted var(--rule-2); text-underline-offset: 3px; }
 .foot a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
-/* ── 進場：由上往下逐段浮現，一次就好，不隨捲動反覆播 ── */
-@keyframes landIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.rise { animation: landIn 520ms var(--e-enter) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+/* ══ 右欄：一條從頭到尾只建一次的鏈 ════════════════════════════════════════
+   捲動只做兩件事：把該亮的那幾張展開、把整條鏈往上平移讓現在這段落在視窗中線。
+   走過的收合成一行留在上面，沒走到的留一個很淡的輪廓——一條連續往下走的路。
+   之所以不畫縮圖：整張圖 1925 x 11196，縮到看得完只剩 6%，節點只有幾 px。 */
+.ldeck { position: sticky; top: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+@media (max-width: 1180px) { .ldeck { display: none; } }
 
-@media (max-width: 640px) {
-  .page { padding: 0 18px 64px; }
-  .spec > li { flex-wrap: wrap; }
-  .spec .d { flex-basis: 100%; padding-left: 21px; }
+.ldeck .hd {
+  flex: none; display: flex; align-items: baseline; gap: 12px; padding: 24px 0 12px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--ink-3);
+  background: var(--paper); position: relative; z-index: 3;
 }
+.ldeck .hd .sp { flex: 1; }
+.ldeck .hd b { color: var(--accent); font-weight: 500; }
+/* 分母是全圖 88 個節點，不是右欄這幾張卡 */
+.ldeck .cnt { display: flex; align-items: baseline; gap: 6px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ldeck .cnt .n {
+  font-family: var(--font-display); font-size: 27px; font-weight: 600;
+  letter-spacing: -.03em; color: var(--ink); line-height: 1;
+}
+.ldeck .bar { flex: none; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; position: relative; z-index: 3; }
+.ldeck .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 760ms var(--e-enter); }
+
+.ldeck .vp { position: relative; flex: 1; overflow: hidden; }
+/* 上下淡出，讓鏈條看起來是穿過視窗而不是被切斷 */
+.ldeck .vp::before, .ldeck .vp::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 78px; z-index: 2; pointer-events: none;
+}
+.ldeck .vp::before { top: 0; background: linear-gradient(var(--paper), transparent); }
+.ldeck .vp::after { bottom: 0; background: linear-gradient(transparent, var(--paper)); }
+
+/* will-change + translate3d：把鏈條交給合成器，位移就不會每格重排 */
+.chain {
+  position: absolute; left: 0; right: 0; top: 0;
+  will-change: transform; transition: transform 860ms var(--e-move);
+}
+.chain .axis { position: absolute; left: 13px; top: 8px; bottom: 8px; width: 1px; background: var(--rule); }
+.chain .axis i {
+  position: absolute; left: 0; top: 0; width: 100%; height: 0;
+  background: var(--accent-line); transition: height 780ms var(--e-enter);
+}
+
+/* **只動 opacity 與 transform。**
+   對 font-size / padding / max-height / margin 掛 transition 的話，那四個每一格都要
+   重新排版、重新斷行，30 個元素一起跑就是卡的來源。尺寸切換是瞬間的，
+   由鏈條同時進行的滑行蓋掉。 */
+.step { position: relative; padding-left: 34px; margin-bottom: 8px; opacity: .13; transition: opacity 560ms var(--e-move); }
+.step.past { opacity: .52; }
+.step.now { opacity: 1; }
+
+.step .dot {
+  position: absolute; left: 8px; top: 14px; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--paper); border: 2px solid var(--rule-2); z-index: 2;
+  transition: border-color 420ms var(--e-move), background 420ms var(--e-move), transform 420ms var(--e-snap);
+}
+.step.past .dot { border-color: var(--ink-3); }
+.step.now .dot { border-color: var(--accent); background: var(--accent); transform: scale(1.24); }
+
+.step .card {
+  position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+  padding: 9px 18px 9px 20px;
+  /* 不含 padding：那條會讓每一格重排 */
+  transition: box-shadow 320ms var(--e-move), border-color 320ms var(--e-move);
+}
+.step.now .card { padding: 15px 20px 15px 22px; box-shadow: var(--lift-1); border-color: var(--rule-2); }
+.step .card::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--bd); transition: width 420ms var(--e-move);
+}
+.step.now .card::before { width: 4px; }
+
+/* display:none 而不是 max-height:0——後者要過渡就得逐格重排 */
+.step .card .top { display: none; align-items: center; gap: 9px; margin-bottom: 7px; opacity: 0; transition: opacity 360ms var(--e-move); }
+.step.now .card .top { display: flex; }
+.step.now .card .top.lit { opacity: 1; }
+.step .card .chip {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 3px;
+  background: var(--bg); border: 1px solid var(--bd); white-space: nowrap;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+.step .card .id { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--ink-3); }
+/* font-size 絕對不能過渡：那是每一格都要重新斷行的操作 */
+.step .card .t {
+  font-size: 13px; line-height: 1.5; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.step.now .card .t { font-size: 15px; line-height: 1.6; white-space: pre-line; overflow: visible; }
+
+/* ── 鏈條的收尾 ──────────────────────────────────────────────────────────
+   走到底之後不該只是「沒有了」。線收成一個結，下面一行襯線體的話當句點。 */
+.coda { position: relative; padding: 26px 0 0 34px; opacity: 0; transition: opacity 720ms var(--e-enter); }
+.coda.on { opacity: 1; }
+.coda .knot {
+  position: absolute; left: 5px; top: 30px; width: 17px; height: 17px; border-radius: 50%;
+  border: 1px solid var(--rule-2); background: var(--paper);
+  display: grid; place-items: center; color: var(--ink-3);
+  font-family: var(--font-display); font-size: 11px; line-height: 1;
+}
+.coda.on .knot { border-color: var(--accent); color: var(--accent); }
+.coda .hr { height: 1px; background: var(--rule); margin: 0 0 20px; }
+.coda .mark { font-family: var(--font-display); font-size: 20px; color: var(--accent); line-height: 1; margin-bottom: 14px; }
+.coda .say {
+  font-family: var(--font-display); font-size: 19px; line-height: 1.66;
+  color: var(--ink); letter-spacing: .01em; max-width: 26ch;
+}
+.coda .say em { font-style: normal; color: var(--ink-3); }
+.coda .meta {
+  margin-top: 16px; font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+.coda a {
+  display: inline-flex; align-items: center; gap: 9px; margin-top: 18px;
+  font-size: 14px; color: var(--ink-2); text-decoration: none;
+  border-bottom: 1px solid var(--rule-2); padding-bottom: 2px;
+  transition: color var(--t-micro) var(--e-move), border-color var(--t-micro) var(--e-move);
+}
+.coda a:hover { color: var(--accent); border-color: var(--accent); }
+.coda a .ar { transition: transform var(--t-micro) var(--e-move); }
+.coda a:hover .ar { transform: translateX(4px); }

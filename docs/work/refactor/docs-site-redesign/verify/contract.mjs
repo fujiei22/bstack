@@ -11,7 +11,7 @@
  *   C6  NODE_DOCS 的 key 集合 / shape / 能否命中 REFERENCE_DOCS（F12 F13 F14）
  *   C7  scaleExtent（F1）               C8  不動的檔與 REFERENCE_DOCS 筆數
  *   C9  F12/F14 四句原文                C10 vendor 與 references-data 載入（F13 F16）
- *   C11 骨架錨點                        C12 動畫語彙
+ *   C11 骨架錨點                        C12 動畫語彙（linear 只准給流動虛線）
  *   C13 三態 class / app.js 不寫顏色（F4 F22）
  *   C14 抽屜 DOM 與 .md 包裹            C15 @media 恰為 1080px + 860px 兩條（spec §已決事項 2）
  *   C16 docstring 密度                  C17 無文件節點的 else 分支
@@ -395,7 +395,14 @@ check(
 );
 
 // ── C12：動畫語彙 ────────────────────────────────────────────────────────────
-const linears = (css.match(/(transition|animation)[^;]*\blinear\b/g) || []).length;
+// linear 只准用在「流動的虛線」上，其餘一律禁。
+//
+// 這不是放寬，是把原本漏掉的例外寫清楚並且守住：等速前進的東西（marching ants）
+// 套任何緩動都會一下快一下慢，看起來像卡住；而 UI 的進出場套 linear 則是硬切。
+// 兩者要的曲線相反，所以不能只數次數，要看它出現在哪。
+const linearDecls = css.match(/(transition|animation)[^;]*\blinear\b[^;]*/g) || [];
+const badLinear = linearDecls.filter((d) => !/dashmarch/.test(d));
+const linears = badLinear.length;
 // 連 ease-in / ease-out / ease-in-out 一起擋：它們跟裸 ease 同屬預設曲線族，
 // spec 成功條件 5 要的是「非預設曲線」。另外也接住沒有時長前綴的
 // `transition-timing-function: ease;` 寫法。
@@ -405,8 +412,11 @@ const curves = new Set(css.match(/cubic-bezier\([^)]*\)/g) || []);
 check(
   'C12 動畫語彙',
   linears === 0 && bareEase === 0 && curves.size >= 4,
-  `期望 linear=0 裸ease=0 自訂曲線>=4，實際 linear=${linears} 裸ease=${bareEase} 曲線=${curves.size}` +
-    `（後果：「動畫流暢自然」是本次改版的核心訴求，硬切的 .1s ease 正是要換掉的東西）`
+  `期望 dashmarch 以外 linear=0、裸ease=0、自訂曲線>=4，` +
+    `實際越界的 linear=${linears}${linears ? '（' + badLinear.slice(0, 2).join(' / ') + '）' : ''} ` +
+    `裸ease=${bareEase} 曲線=${curves.size}` +
+    `（後果：「動畫流暢自然」是本次改版的核心訴求，硬切的 .1s ease 正是要換掉的東西。` +
+    `唯一的例外是流動虛線——它必須等速，套緩動會看起來像卡住）`
 );
 
 // ── C13：三態 class 與 app.js 不寫顏色 ───────────────────────────────────────

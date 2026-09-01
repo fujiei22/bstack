@@ -1351,6 +1351,16 @@ function applyThemeMode(mode) {
     beginThemeFade();
     applyThemeMode('auto');
   });
+  // 另一個分頁改了主題 → 這邊跟著換。
+  // 只讀開站那一次的話，只有「先切再導航」會同步，「兩邊都開著」不會。
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'dev-workflow-theme') return;
+    var v = e.newValue === 'light' || e.newValue === 'dark' || e.newValue === 'auto' ? e.newValue : 'auto';
+    if (v === (document.documentElement.getAttribute('data-theme-mode') || 'auto')) return;
+    beginThemeFade();
+    applyThemeMode(v);
+  });
+
   $('btn-theme').onclick = function () {
     var order = ['auto', 'light', 'dark'];
     var cur = document.documentElement.getAttribute('data-theme-mode') || 'auto';

@@ -35,234 +35,105 @@
 </head>
 <body>
 
-<div class="page">
+<!-- rail 由 landing.js 依段落生成：一個段落一顆字，加主題鍵與流程圖入口 -->
+<nav class="lrail" id="lrail" aria-label="主導覽"></nav>
 
-  <header class="topbar">
-    <div class="mark" aria-hidden="true">bs</div>
-    <div class="wordmark">bstack</div>
-    <div class="spacer"></div>
-    <button class="btn" id="btn-theme" aria-label="切換主題">
-      <span class="g" aria-hidden="true">自</span><span class="t">自動</span>
-    </button>
-    <a class="btn" href="https://github.com/fujiei22/bstack">GitHub</a>
-  </header>
-
-  <section class="mast">
-    <h1 class="rise">bstack</h1>
-    <p class="lede rise">
-      一套 Claude Code 的設定檔集合：27 個 skill、6 個 agent、2 個 PreToolUse hook，
-      加上一份 CLAUDE.md 規則書。裝法是把檔案同步到 <code>~/.claude/</code>，不經過 marketplace。
-    </p>
-    <div class="facts rise">
-      <span><b>27</b> skills</span>
-      <span><b>6</b> agents</span>
-      <span><b>2</b> hooks</span>
-      <span><b>9</b> phases</span>
-      <span>繁中台灣用語</span>
-      <span>MIT</span>
+<div class="ldoc">
+  <div class="lcol">
+  <section class="hero" id="top">
+    <div class="kicker rise">Claude Code 開發流程包 · 零 marketplace 依賴</div>
+    <h1 class="rise">讓它每一次<br>都用同一種方式聰明</h1>
+    <p class="sub rise">它本來就很會寫 code。麻煩的是同一句「改一下這裡」，它今天直接動手，明天卻先問你三個問題。bstack 是一份把這件事釘住的設定檔——27 個 skill、6 個 agent、2 個 PreToolUse hook，加上一份誰都繞不過的規則書，同步進 <code>~/.claude/</code> 就生效。</p>
+    <div class="stat rise">
+      <div><b>27</b><span>skills</span></div><div><b>6</b><span>agents</span></div>
+      <div><b>2</b><span>hooks</span></div><div><b>9</b><span>phases</span></div>
+      <div><b>88</b><span>節點</span></div>
     </div>
-    <div class="acts rise">
-      <a class="btn primary" href="./flow.html">開啟流程圖<span class="arw" aria-hidden="true">→</span></a>
-      <a class="btn" href="https://github.com/fujiei22/bstack#安裝">安裝步驟</a>
-    </div>
+    <a class="cta rise" href="./flow.html">開啟流程圖<span class="ar">→</span></a>
+    <p class="sub rise" style="margin-top:18px;font-size:14.5px;color:var(--ink-3)">往下讀，右邊那條鏈會一節一節接著往下走。</p>
   </section>
 
-  <!-- ══ 01 ══ -->
-  <section class="sec">
-    <div class="no">01</div>
-    <div class="body">
-      <h2>這是什麼</h2>
-      <p>
-        Claude Code 讀 <code>~/.claude/</code> 底下的 skill、agent、hook 與 CLAUDE.md 來決定怎麼工作。
-        bstack 就是這幾類檔案的一份具體內容。
-      </p>
-      <p>
-        它做的事是把「寫 / 改 / 修 / 加 / 重構」這類請求導進一條固定的九階段流程，
-        並依改動量體決定該跑多嚴：一行 typo 直接做；跨模組或動到 DB schema 的改動，
-        要先寫 spec、寫實作計畫、四個視角 review、跑 TDD 紅綠循環、做安全稽核，最後另外落一份 PR 詳解。
-      </p>
-      <p>
-        <strong>它是為單一使用者的日常開發習慣寫的</strong>，公開出來是因為結構本身可以被抄走改成自己的。
-        沒有版本相容性保證，也沒有安裝以外的支援。
-      </p>
-    </div>
+  <section class="beat" id="b1" data-upto="7" data-nodes="HBranch,HFile,StopBranch,StopFile">
+    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">兩個 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>branch-safety.ps1</code> 命中 <code>main / master / production / prod / release</code> 就擋掉寫入；<code>file-type-guard.ps1</code> 按副檔名與路徑分流——密鑰禁 commit、migration 自動載 db-access、lockfile 要二次確認、CI 與 infra 檔一出現就把嚴格度升到 T2 以上。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
   </section>
 
-  <!-- ══ 02 ══ -->
-  <section class="sec">
-    <div class="no">02</div>
-    <div class="body">
-      <h2>內容清單</h2>
-      <p>裝進 <code>~/.claude/</code> 的東西，全部在這裡：</p>
-      <ul class="spec">
-        <li>
-          <span class="dot" data-type="skill" aria-hidden="true"></span>
-          <span class="k">skills</span><span class="n">27</span>
-          <span class="d">主流程 12 條、跨流程觸發式 9 條、meta 4 條、設計 lane 2 條</span>
-        </li>
-        <li>
-          <span class="dot" data-type="agent" aria-hidden="true"></span>
-          <span class="k">agents</span><span class="n">6</span>
-          <span class="d">review / 安全稽核 / e2e / 假設驗證跑獨立 context，避免重 tool 噪音與球員兼裁判</span>
-        </li>
-        <li>
-          <span class="dot" data-type="hook" aria-hidden="true"></span>
-          <span class="k">hooks</span><span class="n">2</span>
-          <span class="d"><code>branch-safety.ps1</code> 擋 protected branch 寫入；<code>file-type-guard.ps1</code> 按檔案類型分流</span>
-        </li>
-        <li>
-          <span class="dot" data-type="policy" aria-hidden="true"></span>
-          <span class="k">CLAUDE.md</span><span class="n">1</span>
-          <span class="d">九條強制守則、Tier 機制、commit 與 branch 規範；優先於任何 skill</span>
-        </li>
-        <li>
-          <span class="dot" data-type="impl" aria-hidden="true"></span>
-          <span class="k">其他</span><span class="n">3</span>
-          <span class="d"><code>settings.json</code>（merge 安裝，本機值優先）、<code>statusline.sh</code>、<code>scripts/setup.ps1</code></span>
-        </li>
-      </ul>
-    </div>
+  <section class="beat" id="b2" data-upto="19" data-nodes="P0b,P0c,P0d">
+    <div class="tag rise"><i style="background:var(--c-gate);border-color:var(--c-gate-bd)"></i>判定</div><h2 class="rise">先估這件事有多大，<br>再決定要多認真</h2><p class="rise lead">一行 typo 跟改動資料庫結構，不該用同一套程序處理。</p><p class="rise">每個請求進來先跑 Phase 0：讀 memory、看 codebase、估影響檔、判是修 bug 還是做功能、判量體落在 T0 到 T3 哪一級。判完把三件事併成一張選單問你——而且是<strong>選項</strong>不是自由回答。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>每次不一樣</div><p>同一句「改一下這裡」，它今天直接動手，明天先寫一份規格再問你三個問題。你沒辦法預期這次會拿到什麼。</p></div><div class="now"><div class="lbl"><b>現在</b>先估量體再分流</div><p>T0 一行改動直接做完，T3 跨模組或動到 DB schema 要走完九個階段。<strong>「好」「OK」這種字一律不算通過</strong>——gate 只認選項。</p></div></div>
   </section>
 
-  <!-- ══ 03 ══ -->
-  <section class="sec">
-    <div class="no">03</div>
-    <div class="body">
-      <h2>九階段</h2>
-      <p>
-        Dev track 的完整順序。Bug track 走 <code>debug-systematic</code> 取代第 2、3 階段，其餘相同。
-        Tier 決定哪幾階段會被跳過。
-      </p>
-      <ul class="phases">
-        <li><i>01</i>brainstorm</li>
-        <li><i>02</i>write-plan</li>
-        <li><i>03</i>execute-plan</li>
-        <li><i>04</i>verify-done</li>
-        <li><i>05</i>request-review</li>
-        <li><i>06</i>security-audit</li>
-        <li><i>07</i>finish-branch</li>
-        <li><i>08</i>pr-explain</li>
-        <li><i>09</i>retro</li>
-      </ul>
-      <p style="margin-top:16px">
-        每輪回覆結尾會貼一行 <code>[Trace] Phase=… | Tier=… | Track=… | Skill=…</code>，
-        用途是讓「現在跑到哪、為什麼跑這條」隨時可查，而不是事後回想。
-      </p>
-    </div>
+  <section class="beat" id="b6" data-upto="27" data-nodes="DesignQ,DesignMap,LoadDD,ThreeWay">
+    <div class="tag rise"><i style="background:var(--c-policy);border-color:var(--c-policy-bd)"></i>設計</div><h2 class="rise">動前端檔之前，<br>先讀這一區原本長什麼樣</h2><p class="rise lead">改樣式最常見的壞法不是寫錯，是憑印象重畫——然後把前台的顏色套到後台。</p><p class="rise">碰到前端檔會先查這塊屬於哪一套設計語言、把實際的色碼與字級抄出來，抽不到就說抽不到。沿用既有 token 的小改直接做完再對四項檢查；新頁或改版屬於大改，會先出三個差異化方向、附真實視覺讓你挑，選定才落 code。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>憑印象重畫</div><p>「顏色我記得是那個藍」。做出來的東西單看沒問題，跟旁邊的畫面擺在一起就是不對，但說不出哪裡不對。</p></div><div class="now"><div class="lbl"><b>現在</b>從實際檔案抄值</div><p>色碼、字級、圓角、斷點全部照抄並記下來源檔與行號。<strong>抽不到就說抽不到，不拿別區的值頂替</strong>。</p></div></div>
   </section>
 
-  <!-- ══ 04 ══ -->
-  <section class="sec">
-    <div class="no">04</div>
-    <div class="body">
-      <h2>Tier 決定嚴格度</h2>
-      <p>量體在 brainstorm 階段判定，並用 <code>AskUserQuestion</code> 跟使用者確認過才算數。</p>
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead>
-            <tr><th>Tier</th><th>量體</th><th>會跑什麼</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>T0</td><td>1 行 / typo / 設定值</td><td>全跳，直接做</td></tr>
-            <tr><td>T1</td><td>≤2 檔 / 單模組小改</td><td>對話釐清、1–2 個關鍵測試、self review</td></tr>
-            <tr><td>T2</td><td>3–10 檔 / 單模組 feature</td><td>完整 spec 與計畫、Eng 視角 review、TDD 紅綠循環、subagent review</td></tr>
-            <tr><td>T3</td><td>&gt;10 檔 / 跨模組 / DB schema</td><td>再加四視角 plan review、雙視角 code review、安全稽核與 checklist</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <section class="beat" id="b3" data-upto="35" data-nodes="LoadWP,WritePlan,RPT3,UG1">
+    <div class="tag rise"><i style="background:var(--c-skill);border-color:var(--c-skill-bd)"></i>規劃</div><h2 class="rise">大改動要先把計畫<br>拆給四個人看</h2><p class="rise lead">判到 T3 時，它不會直接開始寫，會先把需求寫成規格、再拆成一條條可執行的 task。</p><p class="rise">計畫寫完派四個視角各看一遍：策略上該不該現在做、介面上會不會難用、架構上失敗了怎麼回退、接手的人讀不讀得懂。四份意見整合完、你點頭了才進實作。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>邊寫邊想</div><p>直接開始改，改到一半發現方向錯了，前面兩小時的產出跟著作廢——而且通常是在快寫完的時候才發現。</p></div><div class="now"><div class="lbl"><b>現在</b>計畫先被打槍</div><p>task 拆得夠細，每條都標好要動哪些檔、能不能跟別條平行跑。<strong>計畫被打槍的成本，遠低於實作被打槍</strong>。</p></div></div>
   </section>
 
-  <!-- ══ 05 ══ -->
-  <section class="sec">
-    <div class="no">05</div>
-    <div class="body">
-      <h2>強制守則</h2>
-      <p>這九條優先於任何 skill，衝突時以它們為準。</p>
-      <ul class="rules">
-        <li><b>事實核實</b>　下結論前並行驗「儲存的實際內容」與「codebase 使用點」，缺一不可。</li>
-        <li><b>Task 追蹤</b>　任務開始前先建 task，狀態隨進度更新。</li>
-        <li><b>決策點選單</b>　使用者的決策一律走 <code>AskUserQuestion</code>；禁止把「好」「OK」這類文字當成通過的信號。</li>
-        <li><b>Branch safety</b>　PreToolUse hook 直接擋掉對 <code>main / master / production</code> 的寫入。</li>
-        <li><b>File-type 硬規則</b>　密鑰禁 commit；migration、lockfile、CI、infra 各有對應處置。</li>
-        <li><b>PII 安全底線</b>　個資原值禁止落到對話、log 或 commit，輸出一律遮蔽或彙總。</li>
-        <li><b>DB 操作</b>　讀走唯讀 MCP，寫的部分產出 SQL 交由使用者執行。</li>
-        <li><b>設計語言對齊</b>　動前端檔之前先讀該區塊既有的設計語言，從實際檔案抄值，不憑印象重畫。</li>
-        <li><b>Docs 落檔</b>　流程產出的文件按壽命分目錄，不按文件類型分。</li>
-      </ul>
-    </div>
+  <section class="beat" id="b4" data-upto="50" data-nodes="LoadExec,LoadTDD,TDDLoop,MidPivotQ">
+    <div class="tag rise"><i style="background:var(--c-impl);border-color:var(--c-impl-bd)"></i>施工</div><h2 class="rise">先寫會失敗的測試，<br>再寫讓它過的 code</h2><p class="rise lead">每個 task 都走同一組五步，中間不許跳。</p><p class="rise">寫測試 → 跑到它紅 → 寫最小實作 → 跑到它綠 → commit。途中如果冒出計畫裡沒寫到的前端檔，它會停下來重新判定該區塊的設計語言，而不是順手改一改當作沒發生過。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>一次改一大包</div><p>一輪對話改了七個檔、湊成一個 commit，訊息寫「fix issues」。三個月後有人想知道其中一行為什麼那樣寫，沒有人答得出來。</p></div><div class="now"><div class="lbl"><b>現在</b>一個 commit 一件事</div><p>訊息用繁中寫清楚<strong>改了什麼、為什麼改</strong>，不寫怎麼做——怎麼做看 diff 就有。</p></div></div>
   </section>
 
-  <!-- ══ 06 ══ -->
-  <section class="sec">
-    <div class="no">06</div>
-    <div class="body">
-      <h2>安裝</h2>
-      <p>
-        需要 git、jq（statusline 用）、Node.js 與 npx（兩個 MCP 用）。
-        <strong>setup 會直接覆蓋 <code>~/.claude/</code> 裡的同名檔案且不備份</strong>，先自己備份再跑。
-      </p>
-      <ol class="steps">
-        <li>
-          <div class="h">取得 repo</div>
-<pre class="cmd">git clone https://github.com/fujiei22/bstack.git
-cd bstack</pre>
-        </li>
-        <li>
-          <div class="h">同步到 ~/.claude/</div>
-          <p><code>settings.json</code> 走 merge 而非覆蓋，<code>permissions.*</code> 以本機既有值為準。</p>
-<pre class="cmd">pwsh -File scripts/setup.ps1</pre>
-        </li>
-        <li>
-          <div class="h">裝兩個 MCP</div>
-          <p>mysql MCP 的三個寫入開關都設 <code>false</code>，並建議搭配唯讀權限的 DB user 做雙保險。</p>
-<pre class="cmd"><span class="c"># 依 db-access skill 的唯讀政策，寫入一律關閉</span>
-claude mcp add mysql --scope user \
-  --env MYSQL_HOST=127.0.0.1 --env MYSQL_PORT=3306 \
-  --env MYSQL_USER=&lt;readonly-user&gt; --env MYSQL_PASS=&lt;password&gt; \
-  --env ALLOW_INSERT_OPERATION=false \
-  --env ALLOW_UPDATE_OPERATION=false \
-  --env ALLOW_DELETE_OPERATION=false \
-  -- npx -y @benborla29/mcp-server-mysql
-
-claude mcp add playwright --scope user \
-  -- npx -y @playwright/mcp@latest</pre>
-        </li>
-        <li>
-          <div class="h">開新 session</div>
-          <p>既有的 Claude Code session 不會載入新裝的 skill，要開新的才生效。</p>
-        </li>
-      </ol>
-    </div>
+  <section class="beat" id="b5" data-upto="67" data-nodes="LoadReq,RevT3,LangAgent,AutoFixQ">
+    <div class="tag rise"><i style="background:var(--c-agent);border-color:var(--c-agent-bd)"></i>審查</div><h2 class="rise">審查的人<br>不知道你為什麼那樣寫</h2><p class="rise lead">review、安全稽核、e2e、假設驗證全部派給獨立 context 的 subagent。</p><p class="rise">六個 agent 各有專責：<code>lang-reviewer</code> 依改的檔自動派發、按語言抓對應的 idiom 與 pitfall；<code>security-auditor</code> 跑 OWASP 與 STRIDE；<code>db-reviewer</code> 看 schema 與 migration；<code>frontend-e2e-runner</code> 把 browser 那一大堆 log 隔在自己的 context 裡。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>自己審自己</div><p>同一段對話裡請它檢查剛才寫的 code。它知道每一行當初為什麼那樣寫，於是每一行看起來都很合理。</p></div><div class="now"><div class="lbl"><b>現在</b>換一個沒有記憶的人看</div><p>agent 在獨立 context 裡只拿得到成品，<strong>看不到實作過程</strong>。寫的人記得為什麼，讀的人不記得——過得了這一關才算真的寫清楚了。</p></div></div>
   </section>
 
-  <!-- ══ 07 ══ -->
-  <section class="sec">
-    <div class="no">07</div>
-    <div class="body">
-      <h2>關於流程圖那一頁</h2>
-      <p>
-        流程圖把上面這些規則畫成 88 個節點、111 條邊、15 個階段，
-        包含每個判斷分支與它的依據。點節點可以看上下游，也可以直接開對應的 skill 或 agent 全文。
-      </p>
-      <p>
-        全部 27 份 skill、6 份 agent 與 CLAUDE.md 的原文都內嵌在頁面裡，
-        所以整個 <code>docs/</code> 目錄下載下來用 <code>file://</code> 直接開也能用，不需要架伺服器。
-      </p>
-      <p style="margin-top:18px">
-        <a class="btn primary" href="./flow.html">開啟流程圖<span class="arw" aria-hidden="true">→</span></a>
-      </p>
-    </div>
+  <section class="beat" id="b7" data-upto="84" data-nodes="LoadPrEx,PrExAgent,DocsReviews,PostComment">
+    <div class="tag rise"><i style="background:var(--c-default);border-color:var(--c-default-bd)"></i>留痕</div><h2 class="rise">每一輪結尾<br>都告訴你它站在哪</h2><p class="rise lead">回覆的最後一行永遠是一條 Trace：現在在哪個階段、判定是哪一級、走的是修 bug 還是做功能。</p><p class="rise">PR 開完之後還有一個 agent 重讀一次 diff，寫成「為什麼改、怎麼做、跟哪裡有關」三層說明，落成獨立檔案再貼回 PR。它刻意不知道實作過程。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>往回翻對話</div><p>想知道它為什麼做了某個決定，只能往上捲，在幾十輪對話裡找那句話。</p></div><div class="now"><div class="lbl"><b>現在</b>每輪都留一行</div><p><code>[Trace] Phase=execute-plan | Tier=T2 | Track=Dev | Skill=execute-plan</code>——<strong>phase 透明、隨時可審</strong>。</p></div></div>
   </section>
 
-  <footer class="foot">
-    <span>MIT License © 2026 Tommy Sian</span>
-    <a href="https://github.com/fujiei22/bstack">github.com/fujiei22/bstack</a>
-    <a href="./flow.html">流程圖</a>
-  </footer>
+  <section class="data" id="inv">
+    <h2 class="rise">裝進 ~/.claude/ 的全部</h2>
+    <ul class="inv rise">
+      <li><span class="sw" style="background:var(--c-skill);border-color:var(--c-skill-bd)"></span><span class="kk">skills</span><span class="vv">主流程 12 條、跨流程觸發式 9 條、meta 4 條、設計 lane 2 條</span><span class="nn">27</span></li>
+      <li><span class="sw" style="background:var(--c-agent);border-color:var(--c-agent-bd)"></span><span class="kk">agents</span><span class="vv">review / 安全稽核 / e2e / 假設驗證，各自跑獨立 context</span><span class="nn">6</span></li>
+      <li><span class="sw" style="background:var(--c-hook);border-color:var(--c-hook-bd)"></span><span class="kk">hooks</span><span class="vv">branch-safety 與 file-type-guard，都是 PreToolUse</span><span class="nn">2</span></li>
+      <li><span class="sw" style="background:var(--c-policy);border-color:var(--c-policy-bd)"></span><span class="kk">CLAUDE.md</span><span class="vv">九條強制守則、Tier 機制、commit 與 branch 規範；優先於任何 skill</span><span class="nn">1</span></li>
+      <li><span class="sw" style="background:var(--c-impl);border-color:var(--c-impl-bd)"></span><span class="kk">其他</span><span class="vv">settings.json（merge 安裝、本機值優先）、statusline.sh、scripts/setup.ps1</span><span class="nn">3</span></li>
+    </ul>
+    <h2 class="rise" style="margin-top:38px">Dev track 的九個階段</h2>
+    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">Bug track 走 <code>debug-systematic</code> 取代第 2、3 階段，其餘相同。Tier 決定哪幾階段被跳過。</p>
+    <ul class="chips rise">
+      <li><i>01</i>brainstorm</li>
+      <li><i>02</i>write-plan</li>
+      <li><i>03</i>execute-plan</li>
+      <li><i>04</i>verify-done</li>
+      <li><i>05</i>request-review</li>
+      <li><i>06</i>security-audit</li>
+      <li><i>07</i>finish-branch</li>
+      <li><i>08</i>pr-explain</li>
+      <li><i>09</i>retro</li>
+    </ul>
+  </section>
 
+  <section class="data" id="install">
+    <h2 class="rise">裝起來要四步</h2>
+    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">需要 git、jq、Node.js 與 npx。mysql MCP 的連線目標可選。</p>
+    <ol class="steps rise">
+      <li><div class="h">取得 repo</div><pre class="cmd">git clone https://github.com/fujiei22/bstack.git
+cd bstack</pre></li>
+      <li><div class="h">同步到 ~/.claude/</div><p><strong>檔案直接覆蓋、不備份</strong>，先自己備份再跑。settings.json 走 merge：hooks 與 statusLine 以 repo 為準，permissions.* 與其他設定一律保留本機既有值。</p><pre class="cmd">pwsh -File scripts/setup.ps1</pre></li>
+      <li><div class="h">裝兩個 MCP</div><p>mysql MCP 的三個寫入開關都設 false，並建議搭配唯讀權限的 DB user 做雙保險。</p><pre class="cmd">claude mcp add mysql --scope user --env ALLOW_INSERT_OPERATION=false …
+claude mcp add playwright --scope user -- npx -y @playwright/mcp@latest</pre></li>
+      <li><div class="h">開新 session</div><p>既有的 Claude Code session 不會載入新裝的 skill，要開新的才生效。</p></li>
+    </ol>
+    <a class="cta rise" href="./flow.html">開啟流程圖<span class="ar">→</span></a>
+    <div class="foot rise">MIT LICENSE © 2026 TOMMY SIAN · <a href="https://github.com/fujiei22/bstack">GITHUB.COM/FUJIEI22/BSTACK</a></div>
+  </section>
+  </div>
+
+  <!-- 節點鏈：landing.js 依每個段落的 data-nodes 建一次，之後只平移不重建。
+       1180px 以下整欄收起，正文吃滿寬度。 -->
+  <aside class="ldeck" id="ldeck" aria-hidden="true">
+    <div class="hd">
+      <span id="deck-title">一句話進來之後</span><span class="sp"></span>
+      <span class="cnt"><span class="n" id="deck-n">0</span><span>/ 88 個節點</span></span>
+    </div>
+    <div class="bar"><i id="deck-bar"></i></div>
+    <div class="vp"><div class="chain" id="chain"><div class="axis"><i id="chain-fill"></i></div></div></div>
+  </aside>
 </div>
 
+<script src="./js/data.js"></script>
 <script src="./js/landing.js"></script>
 </body>
 </html>
