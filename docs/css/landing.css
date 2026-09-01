@@ -1,0 +1,208 @@
+/* landing 頁樣式。**必須排在 styles.css 之後載入**——token、字型、reset 全部沿用那份，
+   這裡只加版面，不重新定義任何顏色值。抽不到就用不到，不自己發明。 */
+
+/* styles.css 是為「滿版不捲動的 app 外殼」寫的，landing 是一份會捲的文件，改掉這兩條。 */
+html, body { height: auto; }
+body { overflow: visible; }
+
+/* ══ 版面 ════════════════════════════════════════════════════════════════
+   校樣紙的排版：正文一欄，左邊留出頁邊，節次編號印在頁邊上。
+   ≥1100px 才有左欄；窄螢幕時編號收進標題行內，不另外堆一層。 */
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 28px 96px;
+}
+
+/* ── 頂列 ── */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: 12px;
+  height: 52px; margin-bottom: 4px;
+  /* 不用半透明 + blur：那是玻璃的語彙，這套配色的立意是校樣紙，紙不透。
+     實測捲動時也真的會看到正文從列後面透出來。 */
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar .mark {
+  width: 30px; height: 30px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; background: var(--accent); color: var(--accent-ink);
+  font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: .02em;
+}
+.topbar .wordmark { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+.topbar .spacer { flex: 1; }
+
+/* ── 按鈕 ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 32px; padding: 0 13px;
+  border: 1px solid var(--rule-2); border-radius: 4px;
+  font-size: 13px; font-weight: 500; color: var(--ink-2);
+  text-decoration: none; white-space: nowrap;
+  transition: background var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move),
+              border-color var(--t-micro) var(--e-move);
+}
+.btn:hover { background: var(--paper-sunk); color: var(--ink); border-color: var(--ink-3); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+  height: 38px; padding: 0 18px; font-size: 14px;
+}
+.btn.primary:hover { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn .arw { transition: transform var(--t-micro) var(--e-move); }
+.btn:hover .arw { transform: translateX(3px); }
+
+/* ── masthead ── */
+.mast { padding: 72px 0 56px; border-bottom: 1px solid var(--rule); }
+.mast h1 {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(46px, 8vw, 86px); line-height: .96; letter-spacing: -.03em;
+}
+.mast .lede {
+  max-width: 46ch; margin-top: 20px;
+  font-size: clamp(15px, 1.5vw, 17.5px); line-height: 1.62; color: var(--ink-2);
+}
+.mast .facts {
+  display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 28px;
+  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.mast .facts b { color: var(--ink); font-weight: 500; }
+.mast .acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
+
+/* ── 節 ── */
+.sec {
+  display: grid; grid-template-columns: 1fr; gap: 0;
+  padding: 44px 0; border-bottom: 1px solid var(--rule);
+}
+.sec:last-of-type { border-bottom: 0; }
+.sec > .no {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .12em; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.sec > .body { min-width: 0; max-width: 68ch; }
+.sec h2 {
+  margin: 6px 0 14px;
+  font-family: var(--font-display); font-size: 25px; font-weight: 600; letter-spacing: -.012em;
+}
+.sec p { color: var(--ink-2); font-size: 14.5px; line-height: 1.72; }
+.sec p strong, .sec li strong { color: var(--ink); font-weight: 600; }
+.sec code {
+  font-family: var(--font-mono); font-size: .9em;
+  background: var(--paper-sunk); padding: 1px 5px; border-radius: 3px;
+}
+
+@media (min-width: 1100px) {
+  /* 頁邊欄：節次編號印在正文左側，像校樣紙上的行號 */
+  .sec { grid-template-columns: 92px 1fr; gap: 0 32px; }
+  .sec > .no { padding-top: 12px; }
+}
+
+/* ── 清單 ── */
+.spec { margin: 0; border-top: 1px solid var(--rule); }
+.spec > li {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 9px 2px; border-bottom: 1px solid var(--rule);
+}
+.spec .dot {
+  width: 9px; height: 9px; flex: none; align-self: center;
+  border: 1.5px solid; border-radius: 2px;
+}
+/* 型別色沿用流程圖那套語意色，只透過 [data-type] 屬性選擇器套用 */
+.spec .dot[data-type="skill"]  { background: var(--c-skill);  border-color: var(--c-skill-bd); }
+.spec .dot[data-type="agent"]  { background: var(--c-agent);  border-color: var(--c-agent-bd); }
+.spec .dot[data-type="hook"]   { background: var(--c-hook);   border-color: var(--c-hook-bd); }
+.spec .dot[data-type="policy"] { background: var(--c-policy); border-color: var(--c-policy-bd); }
+.spec .dot[data-type="impl"]   { background: var(--c-impl);   border-color: var(--c-impl-bd); }
+.spec .k {
+  flex: none; width: 96px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink);
+}
+.spec .n {
+  flex: none; width: 44px; text-align: right;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.spec .d { flex: 1; min-width: 0; font-size: 13.5px; color: var(--ink-2); }
+
+/* ── 階段序列 ── */
+.phases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.phases li {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 11px 5px 8px;
+  border: 1px solid var(--rule-2); border-radius: 3px;
+  font-size: 13px; color: var(--ink-2);
+  transition: border-color var(--t-micro) var(--e-move), color var(--t-micro) var(--e-move);
+}
+.phases li:hover { border-color: var(--accent-line); color: var(--ink); }
+.phases li i {
+  font-family: var(--font-mono); font-size: 10.5px; font-style: normal;
+  color: var(--ink-3); font-variant-numeric: tabular-nums;
+}
+
+/* ── 表 ── */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th, .tbl td { padding: 9px 12px 9px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); }
+.tbl th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
+}
+.tbl td { color: var(--ink-2); }
+.tbl td:first-child { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+.tbl-wrap { overflow-x: auto; }
+
+/* ── 條列 ── */
+.rules { margin-top: 4px; }
+.rules li {
+  position: relative; padding: 6px 0 6px 20px;
+  font-size: 14px; color: var(--ink-2); line-height: 1.66;
+}
+.rules li::before {
+  content: '§'; position: absolute; left: 0; top: 6px;
+  font-family: var(--font-display); color: var(--accent); font-size: 14px;
+}
+.rules li b { color: var(--ink); font-weight: 600; }
+
+/* ── 安裝步驟 ── */
+/* styles.css 只 reset 了 ul，ol 的預設編號還在——不關掉會變成「1. 01 取得 repo」兩層編號 */
+.steps { counter-reset: st; list-style: none; margin: 0; padding: 0; }
+.steps > li { counter-increment: st; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.steps > li:last-child { border-bottom: 0; }
+.steps > li > .h {
+  display: flex; align-items: baseline; gap: 10px;
+  font-size: 14.5px; color: var(--ink); font-weight: 600;
+}
+.steps > li > .h::before {
+  content: counter(st, decimal-leading-zero);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--accent); letter-spacing: .08em;
+}
+.steps p { margin: 6px 0 0; font-size: 13.5px; }
+pre.cmd {
+  margin: 10px 0 0; padding: 11px 13px; overflow-x: auto;
+  background: var(--paper-sunk); border: 1px solid var(--rule); border-radius: 4px;
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; color: var(--ink);
+}
+pre.cmd .c { color: var(--ink-3); }
+
+/* ── 頁尾 ── */
+.foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
+  padding-top: 28px; border-top: 1px solid var(--rule);
+  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .05em; color: var(--ink-3);
+}
+.foot a { color: var(--ink-2); text-decoration: underline dotted var(--rule-2); text-underline-offset: 3px; }
+.foot a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+/* ── 進場：由上往下逐段浮現，一次就好，不隨捲動反覆播 ── */
+@keyframes landIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.rise { animation: landIn 520ms var(--e-enter) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+
+@media (max-width: 640px) {
+  .page { padding: 0 18px 64px; }
+  .spec > li { flex-wrap: wrap; }
+  .spec .d { flex-basis: 100%; padding-left: 21px; }
+}

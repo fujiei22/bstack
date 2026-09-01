@@ -55,7 +55,10 @@ function check(name, ok, detail) {
   if (!ok) failed++;
 }
 
-const html = read('index.html');
+// 流程圖從 index.html 搬到 flow.html——index.html 現在是 landing 頁（GitHub Pages 的入口）。
+// 下面所有針對「app 外殼」的檢查一律對 flow.html，landing 另有 C19。
+const html = read('flow.html');
+const landing = read('index.html');
 const css = read('css/styles.css');
 const js = read('js/app.js');
 
@@ -63,7 +66,7 @@ const js = read('js/app.js');
 check(
   'C1a 無 ES module',
   !/type="module"/.test(html) && !/^\s*import\s/m.test(js),
-  `期望 index.html 無 type="module" 且 app.js 無裸 import，實際 ` +
+  `期望 flow.html 無 type="module" 且 app.js 無裸 import，實際 ` +
     `html.module=${/type="module"/.test(html)} js.import=${/^\s*import\s/m.test(js)}` +
     `（後果：file:// 下直接壞，而這個站的 references-data.js 內嵌就是為了 file:// 能開）`
 );
@@ -94,7 +97,7 @@ if (iScript === -1 || iLink === -1) {
   check(
     'C2a inline 主題 script 在 CSS 之前',
     false,
-    `期望 index.html 同時有主題 script 與 stylesheet link，實際 script=${iScript !== -1} link=${iLink !== -1}` +
+    `期望 flow.html 同時有主題 script 與 stylesheet link，實際 script=${iScript !== -1} link=${iLink !== -1}` +
       `（後果：找不到錨點，無法判定順序）`
   );
 } else {
@@ -516,6 +519,38 @@ check(
   missingDocs.length === 0,
   `期望 0 個漏掉，實際 ${missingDocs.length} 個：${missingDocs.slice(0, 6).join(' / ')}` +
     `（後果：那些 skill 的節點點下去只會顯示「無獨立文件」，站上查不到它的規格）`
+);
+
+// ── C19：landing 頁（GitHub Pages 的入口）───────────────────────────────────
+// landing 與 flow 是兩份獨立的 HTML，但共用同一組主題契約與同一份 token。
+// 這裡守的是「兩頁不會各走各的」——不然在 landing 切了暗色、進流程圖又跳回亮色。
+check(
+  'C19a landing 指得到流程圖',
+  /href="\.\/flow\.html"/.test(landing),
+  '期望 index.html 有指向 ./flow.html 的連結（後果：搬完網址之後流程圖從入口進不去）'
+);
+check(
+  'C19b landing 沿用同一組主題契約',
+  landing.includes("localStorage.getItem('dev-workflow-theme')") &&
+    landing.includes("setAttribute('data-theme'") &&
+    landing.includes("setAttribute('data-theme-mode'"),
+  '期望 index.html 的防 FOUC script 用同一個 localStorage key 與同兩個屬性名' +
+    '（後果：在 landing 選的主題進到流程圖就失效，兩頁各記各的）'
+);
+check(
+  'C19c landing 先載 styles.css 再載 landing.css',
+  landing.indexOf('css/styles.css') !== -1 &&
+    landing.indexOf('css/styles.css') < landing.indexOf('css/landing.css'),
+  '期望兩份 stylesheet 都在且順序不顛倒（後果：landing.css 沿用 styles.css 的 token 與 reset，' +
+    '順序反了會拿不到 --paper 這些值，整頁沒有底色）'
+);
+check(
+  'C19d landing 不自己定義色值',
+  !/^\s*--[\w-]+:\s*(#[0-9A-Fa-f]{3,8}|rgba?\(|oklch\()/m.test(
+    read('css/landing.css').replace(/\/\*[\s\S]*?\*\//g, '')
+  ),
+  '期望 landing.css 一個色值 token 都不自己宣告（後果：色票分兩處維護，' +
+    '改了 styles.css 的配色 landing 不會跟著變，就是「把別區的 token 頂替過來」那條紅線）'
 );
 
 // ── selftest：證明 fail 路徑有效 ─────────────────────────────────────────────

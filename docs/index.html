@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <title>bstack：dev-workflow flowchart explorer</title>
+  <title>bstack：Claude Code 開發流程包</title>
+  <meta name="description" content="27 個 skill、6 個 agent、2 個 PreToolUse hook 與一份 CLAUDE.md 規則書，把 Claude Code 的改動類請求導進固定的九階段流程。" />
 
-  <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC -->
+  <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC。
+       屬性名與 localStorage key 都跟 flow.html 一致，兩頁之間切換主題不會跳。 -->
   <script>
     (function () {
       try {
@@ -27,78 +29,240 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600&display=swap">
+  <!-- 順序不可對調：landing.css 沿用 styles.css 的 token 與 reset，只加版面 -->
   <link rel="stylesheet" href="./css/styles.css" />
-
-  <!-- vendor libs：本地 classic script，file:// 與離線均可用 -->
-  <script src="./js/vendor/d3.min.js"></script>
-  <script src="./js/vendor/dagre.min.js"></script>
-  <script src="./js/vendor/marked.min.js"></script>
-
-  <!-- layout helpers + FLOW_DATA + references bundle：classic script，file:// 相容 -->
-  <script src="./js/layout.js"></script>
-  <script src="./js/data.js"></script>
-  <script src="./js/references-data.js"></script>
+  <link rel="stylesheet" href="./css/landing.css" />
 </head>
 <body>
-<div class="shell">
 
-  <!-- ══ RAIL ══ -->
-  <nav class="rail" aria-label="主導覽">
-    <div class="rail-mark" aria-hidden="true">bs</div>
-    <div class="rail-group" id="rail-group">
-      <button class="rail-btn" data-sec="type" aria-label="節點型別"   data-label="節點型別（8）"      aria-expanded="false">型</button>
-      <button class="rail-btn" data-sec="phase" aria-label="階段傳送"  data-label="階段傳送（15）"     aria-expanded="false">段</button>
-      <button class="rail-btn" data-sec="amb" aria-label="環境規則與跨流程 skill"    data-label="環境規則 / 跨流程"  aria-expanded="false">環</button>
-      <button class="rail-btn" data-sec="docs" aria-label="文件索引"   data-label="文件索引（31）"     aria-expanded="false">檔</button>
+<div class="page">
+
+  <header class="topbar">
+    <div class="mark" aria-hidden="true">bs</div>
+    <div class="wordmark">bstack</div>
+    <div class="spacer"></div>
+    <button class="btn" id="btn-theme" aria-label="切換主題">
+      <span class="g" aria-hidden="true">自</span><span class="t">自動</span>
+    </button>
+    <a class="btn" href="https://github.com/fujiei22/bstack">GitHub</a>
+  </header>
+
+  <section class="mast">
+    <h1 class="rise">bstack</h1>
+    <p class="lede rise">
+      一套 Claude Code 的設定檔集合：27 個 skill、6 個 agent、2 個 PreToolUse hook，
+      加上一份 CLAUDE.md 規則書。裝法是把檔案同步到 <code>~/.claude/</code>，不經過 marketplace。
+    </p>
+    <div class="facts rise">
+      <span><b>27</b> skills</span>
+      <span><b>6</b> agents</span>
+      <span><b>2</b> hooks</span>
+      <span><b>9</b> phases</span>
+      <span>繁中台灣用語</span>
+      <span>MIT</span>
     </div>
-    <div class="rail-spacer"></div>
-    <div class="rail-group">
-      <button class="rail-btn" id="btn-fit" aria-label="回到流程起點"   data-label="回到起點">置</button>
-      <button class="rail-btn" id="btn-theme" aria-label="切換主題" data-label="主題：自動">自</button>
+    <div class="acts rise">
+      <a class="btn primary" href="./flow.html">開啟流程圖<span class="arw" aria-hidden="true">→</span></a>
+      <a class="btn" href="https://github.com/fujiei22/bstack#安裝">安裝步驟</a>
     </div>
-    <div class="rail-indicator" id="rail-ind"></div>
-  </nav>
+  </section>
 
-  <!-- ══ STAGE ══ -->
-  <main class="stage">
-    <svg id="flow" aria-label="dev-workflow 流程圖"></svg>
-
-    <div class="masthead">
-      <h1>dev-workflow</h1>
-      <div class="sub" id="mast-sub">—</div>
+  <!-- ══ 01 ══ -->
+  <section class="sec">
+    <div class="no">01</div>
+    <div class="body">
+      <h2>這是什麼</h2>
+      <p>
+        Claude Code 讀 <code>~/.claude/</code> 底下的 skill、agent、hook 與 CLAUDE.md 來決定怎麼工作。
+        bstack 就是這幾類檔案的一份具體內容。
+      </p>
+      <p>
+        它做的事是把「寫 / 改 / 修 / 加 / 重構」這類請求導進一條固定的九階段流程，
+        並依改動量體決定該跑多嚴：一行 typo 直接做；跨模組或動到 DB schema 的改動，
+        要先寫 spec、寫實作計畫、四個視角 review、跑 TDD 紅綠循環、做安全稽核，最後另外落一份 PR 詳解。
+      </p>
+      <p>
+        <strong>它是為單一使用者的日常開發習慣寫的</strong>，公開出來是因為結構本身可以被抄走改成自己的。
+        沒有版本相容性保證，也沒有安裝以外的支援。
+      </p>
     </div>
+  </section>
 
-    <div class="minimap-card" id="minimap-card"></div>
-
-    <div class="hud-bottom">
-      <div class="statusline" id="statusline">—</div>
+  <!-- ══ 02 ══ -->
+  <section class="sec">
+    <div class="no">02</div>
+    <div class="body">
+      <h2>內容清單</h2>
+      <p>裝進 <code>~/.claude/</code> 的東西，全部在這裡：</p>
+      <ul class="spec">
+        <li>
+          <span class="dot" data-type="skill" aria-hidden="true"></span>
+          <span class="k">skills</span><span class="n">27</span>
+          <span class="d">主流程 12 條、跨流程觸發式 9 條、meta 4 條、設計 lane 2 條</span>
+        </li>
+        <li>
+          <span class="dot" data-type="agent" aria-hidden="true"></span>
+          <span class="k">agents</span><span class="n">6</span>
+          <span class="d">review / 安全稽核 / e2e / 假設驗證跑獨立 context，避免重 tool 噪音與球員兼裁判</span>
+        </li>
+        <li>
+          <span class="dot" data-type="hook" aria-hidden="true"></span>
+          <span class="k">hooks</span><span class="n">2</span>
+          <span class="d"><code>branch-safety.ps1</code> 擋 protected branch 寫入；<code>file-type-guard.ps1</code> 按檔案類型分流</span>
+        </li>
+        <li>
+          <span class="dot" data-type="policy" aria-hidden="true"></span>
+          <span class="k">CLAUDE.md</span><span class="n">1</span>
+          <span class="d">九條強制守則、Tier 機制、commit 與 branch 規範；優先於任何 skill</span>
+        </li>
+        <li>
+          <span class="dot" data-type="impl" aria-hidden="true"></span>
+          <span class="k">其他</span><span class="n">3</span>
+          <span class="d"><code>settings.json</code>（merge 安裝，本機值優先）、<code>statusline.sh</code>、<code>scripts/setup.ps1</code></span>
+        </li>
+      </ul>
     </div>
-  </main>
+  </section>
 
-  <!-- ══ 召喚式面板 ══ -->
-  <aside class="panel" id="panel" aria-live="polite">
-    <div class="panel-head">
-      <div>
-        <div class="panel-title" id="panel-title">—</div>
-        <div class="panel-sub" id="panel-sub"></div>
+  <!-- ══ 03 ══ -->
+  <section class="sec">
+    <div class="no">03</div>
+    <div class="body">
+      <h2>九階段</h2>
+      <p>
+        Dev track 的完整順序。Bug track 走 <code>debug-systematic</code> 取代第 2、3 階段，其餘相同。
+        Tier 決定哪幾階段會被跳過。
+      </p>
+      <ul class="phases">
+        <li><i>01</i>brainstorm</li>
+        <li><i>02</i>write-plan</li>
+        <li><i>03</i>execute-plan</li>
+        <li><i>04</i>verify-done</li>
+        <li><i>05</i>request-review</li>
+        <li><i>06</i>security-audit</li>
+        <li><i>07</i>finish-branch</li>
+        <li><i>08</i>pr-explain</li>
+        <li><i>09</i>retro</li>
+      </ul>
+      <p style="margin-top:16px">
+        每輪回覆結尾會貼一行 <code>[Trace] Phase=… | Tier=… | Track=… | Skill=…</code>，
+        用途是讓「現在跑到哪、為什麼跑這條」隨時可查，而不是事後回想。
+      </p>
+    </div>
+  </section>
+
+  <!-- ══ 04 ══ -->
+  <section class="sec">
+    <div class="no">04</div>
+    <div class="body">
+      <h2>Tier 決定嚴格度</h2>
+      <p>量體在 brainstorm 階段判定，並用 <code>AskUserQuestion</code> 跟使用者確認過才算數。</p>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr><th>Tier</th><th>量體</th><th>會跑什麼</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>T0</td><td>1 行 / typo / 設定值</td><td>全跳，直接做</td></tr>
+            <tr><td>T1</td><td>≤2 檔 / 單模組小改</td><td>對話釐清、1–2 個關鍵測試、self review</td></tr>
+            <tr><td>T2</td><td>3–10 檔 / 單模組 feature</td><td>完整 spec 與計畫、Eng 視角 review、TDD 紅綠循環、subagent review</td></tr>
+            <tr><td>T3</td><td>&gt;10 檔 / 跨模組 / DB schema</td><td>再加四視角 plan review、雙視角 code review、安全稽核與 checklist</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div style="flex:1"></div>
-      <button class="icon-btn" id="panel-pin" title="釘住：選節點時不自動收起">釘</button>
-      <button class="icon-btn" id="panel-close" title="關閉（Esc）">✕</button>
     </div>
-    <div class="panel-body" id="panel-body"></div>
-  </aside>
+  </section>
 
-  <!-- ══ DETAIL ══ -->
-  <aside class="detail" id="detail"></aside>
+  <!-- ══ 05 ══ -->
+  <section class="sec">
+    <div class="no">05</div>
+    <div class="body">
+      <h2>強制守則</h2>
+      <p>這九條優先於任何 skill，衝突時以它們為準。</p>
+      <ul class="rules">
+        <li><b>事實核實</b>　下結論前並行驗「儲存的實際內容」與「codebase 使用點」，缺一不可。</li>
+        <li><b>Task 追蹤</b>　任務開始前先建 task，狀態隨進度更新。</li>
+        <li><b>決策點選單</b>　使用者的決策一律走 <code>AskUserQuestion</code>；禁止把「好」「OK」這類文字當成通過的信號。</li>
+        <li><b>Branch safety</b>　PreToolUse hook 直接擋掉對 <code>main / master / production</code> 的寫入。</li>
+        <li><b>File-type 硬規則</b>　密鑰禁 commit；migration、lockfile、CI、infra 各有對應處置。</li>
+        <li><b>PII 安全底線</b>　個資原值禁止落到對話、log 或 commit，輸出一律遮蔽或彙總。</li>
+        <li><b>DB 操作</b>　讀走唯讀 MCP，寫的部分產出 SQL 交由使用者執行。</li>
+        <li><b>設計語言對齊</b>　動前端檔之前先讀該區塊既有的設計語言，從實際檔案抄值，不憑印象重畫。</li>
+        <li><b>Docs 落檔</b>　流程產出的文件按壽命分目錄，不按文件類型分。</li>
+      </ul>
+    </div>
+  </section>
 
-  <!-- ══ 文件抽屜 ══ -->
-  <div class="backdrop" id="backdrop"></div>
-  <aside class="drawer" id="drawer" aria-label="文件"></aside>
+  <!-- ══ 06 ══ -->
+  <section class="sec">
+    <div class="no">06</div>
+    <div class="body">
+      <h2>安裝</h2>
+      <p>
+        需要 git、jq（statusline 用）、Node.js 與 npx（兩個 MCP 用）。
+        <strong>setup 會直接覆蓋 <code>~/.claude/</code> 裡的同名檔案且不備份</strong>，先自己備份再跑。
+      </p>
+      <ol class="steps">
+        <li>
+          <div class="h">取得 repo</div>
+<pre class="cmd">git clone https://github.com/fujiei22/bstack.git
+cd bstack</pre>
+        </li>
+        <li>
+          <div class="h">同步到 ~/.claude/</div>
+          <p><code>settings.json</code> 走 merge 而非覆蓋，<code>permissions.*</code> 以本機既有值為準。</p>
+<pre class="cmd">pwsh -File scripts/setup.ps1</pre>
+        </li>
+        <li>
+          <div class="h">裝兩個 MCP</div>
+          <p>mysql MCP 的三個寫入開關都設 <code>false</code>，並建議搭配唯讀權限的 DB user 做雙保險。</p>
+<pre class="cmd"><span class="c"># 依 db-access skill 的唯讀政策，寫入一律關閉</span>
+claude mcp add mysql --scope user \
+  --env MYSQL_HOST=127.0.0.1 --env MYSQL_PORT=3306 \
+  --env MYSQL_USER=&lt;readonly-user&gt; --env MYSQL_PASS=&lt;password&gt; \
+  --env ALLOW_INSERT_OPERATION=false \
+  --env ALLOW_UPDATE_OPERATION=false \
+  --env ALLOW_DELETE_OPERATION=false \
+  -- npx -y @benborla29/mcp-server-mysql
+
+claude mcp add playwright --scope user \
+  -- npx -y @playwright/mcp@latest</pre>
+        </li>
+        <li>
+          <div class="h">開新 session</div>
+          <p>既有的 Claude Code session 不會載入新裝的 skill，要開新的才生效。</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ══ 07 ══ -->
+  <section class="sec">
+    <div class="no">07</div>
+    <div class="body">
+      <h2>關於流程圖那一頁</h2>
+      <p>
+        流程圖把上面這些規則畫成 88 個節點、111 條邊、15 個階段，
+        包含每個判斷分支與它的依據。點節點可以看上下游，也可以直接開對應的 skill 或 agent 全文。
+      </p>
+      <p>
+        全部 27 份 skill、6 份 agent 與 CLAUDE.md 的原文都內嵌在頁面裡，
+        所以整個 <code>docs/</code> 目錄下載下來用 <code>file://</code> 直接開也能用，不需要架伺服器。
+      </p>
+      <p style="margin-top:18px">
+        <a class="btn primary" href="./flow.html">開啟流程圖<span class="arw" aria-hidden="true">→</span></a>
+      </p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>MIT License © 2026 Tommy Sian</span>
+    <a href="https://github.com/fujiei22/bstack">github.com/fujiei22/bstack</a>
+    <a href="./flow.html">流程圖</a>
+  </footer>
 
 </div>
 
-<!-- 主程式：d3 + dagre，無框架；classic script，file:// 相容 -->
-<script src="./js/app.js"></script>
+<script src="./js/landing.js"></script>
 </body>
 </html>
