@@ -1,0 +1,6 @@
+Console messages（全程監看，跨所有 scenario）
+============================================
+Level=warning, all=true: Total messages: 0 (Errors: 0, Warnings: 0)
+Level=error,   all=true: Total messages: 0 (Errors: 0, Warnings: 0)
+
+結論：F1–F22 + N1–N4 全程無 console error / warning。
