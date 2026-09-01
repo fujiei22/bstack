@@ -374,7 +374,10 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .row.is-active { background: var(--accent-wash); color: var(--accent); }
 .row.is-static { cursor: default; }
 .row.is-static:hover { background: none; }
-.row-main { flex: 1; min-width: 0; }
+/* 名稱與描述要各佔一行。兩者都是 inline span，.row-main 沒有 display:flex 的話
+   會流在同一行黏成一串（.row-desc 上的 margin-top 對 inline 元素也無效——
+   那條 margin 正說明原本就打算換行）。ambient 面板是唯一同時用到兩者的地方。 */
+.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .row-name { font-size: 13.5px; font-weight: 500; }
 .row-desc { font-size: 12px; color: var(--ink-3); line-height: 1.45; margin-top: 1px; }
 .row.is-active .row-desc { color: var(--accent); opacity: .8; }
