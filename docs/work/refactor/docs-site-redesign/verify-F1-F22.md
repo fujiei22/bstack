@@ -215,7 +215,7 @@ Chrome <111 / Safari <15.4 不支援 oklch 時整份色票會落空——畫面�
 | edges | 103 | 103 | **111** |
 | phases | 15 | 15 | 15 |
 | node types | 8 | 8 | 8 |
-| `REFERENCE_DOCS` | 31 key | 31 key | **33 key** |
+| `REFERENCE_DOCS` | 31 key | 31 key | **33 key**（第二批再 → **34 key**，收進 CLAUDE.md） |
 | `NODE_DOCS` | 33 key | 33 key | **35 key** |
 | ambient 組數 | 2（9 + 5） | 2（9 + 5） | **3（9 + 6 + 5）** |
 
@@ -244,6 +244,125 @@ git revert <squash-commit-sha>   # squash merge 產生的那一顆，revert 即�
 ```
 
 `docs/` 是 GitHub Pages 來源，revert 進 main 之後同樣會自動重新發布。
+
+---
+
+## 九、第二批追加修正（landing 頁與交叉引用）
+
+user 在第一批修正驗收後又提四項。以下是處置與連帶影響。
+
+### 1. 文件正文的交叉引用變成可點連結
+
+`§對外契約` 這類章節引用與 code span 裡的文件名，改寫成連結。全站 **427 條**。
+
+**判準是「連得到才連」**：目標章節必須真的存在於內嵌文件裡，否則維持純文字。
+不做指向空處的連結——一個點下去沒反應的連結比純文字更糟。
+
+| 引用形式 | 解析成 |
+|---|---|
+| `§對外契約`（前面沒有文件名） | 目前這份文件的同名章節 |
+| `` `design-language` `` §兩根尺 | design-language 的該章節，換抽屜後捲過去 |
+| 「套用 CLAUDE.md 強制守則（§PII / §Branch safety…）」 | CLAUDE.md 的對應章節 |
+| `§文件結構標準`（指的是 agent 的 system prompt，不在包裡） | **不連**，維持純文字 |
+
+實作上兩個要點：
+
+- 章節名本身含空白（`§Red Flags` / `§File-type 硬規則`），所以不能用空白當終止；
+  但正文又常只寫標題前半（正文 `§Phase 0a`、標題是「§Phase 0a — 對話釐清」）。
+  作法是從 `§` 起切出一串**由長到短的候選**，逐一對標題做前綴比對，取最長命中。
+- 文件名不必緊貼在 `§` 前面。原本要求只能隔空白，結果 pr-explain 那句
+  「套用 CLAUDE.md 強制守則（§PII…）」整份一條都連不出來。改成取前 40 字內
+  最後一個認得的文件名，只當**優先候選**，該文件沒有那個章節就退回目前這份。
+
+**CLAUDE.md 收進內嵌包**（`REFERENCE_DOCS` 33 → 34）。它是被引用最多次的一份，
+不收的話 `§決策點選單` / `§Docs 落檔` 這類引用一律連不到。文件索引面板因此多一組「根規則」。
+
+**抽屜加返回鍵**：有了跨文件跳轉，沒有返回鍵的話使用者會找不回原本那份。
+
+> **F13 因此多一項改動說明**：抽屜正文除了 marked 的輸出，還會再跑一次 `enhanceXrefs()`
+> 改寫 DOM。純文字內容不變，只加 `<a class="xref">` 與標題上的 `data-sec-anchor`。
+
+### 2. `.icon-btn` 的字沒有置中
+
+user 回報第二次。這次用量測而不是目視，查到**兩個各自獨立**的原因：
+
+| 症狀 | 量到的值 | 原因 |
+|---|---|---|
+| 按鈕不是正方形 | `27.86 x 30`（CSS 寫 30x30） | `.panel-head` 是 flex 容器，按鈕沒設 `flex-shrink: 0`，空間一緊就被壓扁 |
+| 字偏上約 2px | 「釘」`dy=+2.0`、「✕」`dy=+1.5` | `line-height: 1` 下字面框 ascent 10 / descent 4 不對稱，`align-items: center` 對齊的是行框不是墨跡 |
+| 「釘」還偏左 | 外框左右邊距各 `0.25px`（**已經是幾何置中**），但墨跡重心偏左 `0.80px` | 金部密、丁部疏，重心不在外框中心。這是光學問題，不是幾何問題 |
+
+處置：`flex: 0 0 30px`，加上 `app.js` 的 `centerGlyphs()`——把字放大 8 倍畫進
+offscreen canvas、掃 alpha 求墨跡外框與重心，算出的偏移寫進 `--ink-dx` / `--ink-dy`。
+
+**為什麼不寫死數字**：偏移量取決於這個字最後落到 fallback 鏈的哪一個字型，
+Windows / macOS / Linux 各不相同。寫死只會在開發機上對。
+
+**為什麼水平取重心、垂直取外框**：水平方向按鈕裡只有一個字、左右沒有東西要對齊，
+該對的是「看起來的中間」；垂直方向一整排按鈕要落在同一高度，靠的是共同的字身框，
+改用重心會讓筆畫分布不同的字各自高低不一。
+
+**為什麼不用 `measureText` 的 `actualBoundingBox`**：對 CJK 字它回的是字身框（14x14），
+不是真實墨跡框，拿來算「釘」會算出偏移 0，跟肉眼看到的不符。
+
+`.rail-btn` 有同樣約 2px 的上偏，**未修**——它的 `::after` 是滑過才出現的名牌，
+位移按鈕會連名牌一起拖走，要修得先把字包一層 `span`。
+
+### 3. 主題切換過場
+
+切換時 `<html>` 掛 `.theme-xfade`，`* { transition: background-color / color /
+border-color / outline-color / fill / stroke / box-shadow }`，380ms 後拿掉。
+SVG 節點的 `fill` / `stroke` 一併過場。實測中途取樣：body 明度 `0.972 → 0.674 → 0.215`。
+
+**掛完一定要拿掉**：那條是 `*` + `!important`，留著會蓋掉所有元件自己的轉場節奏。
+
+**沒有 `prefers-reduced-motion` 分支**——全站一律不加（user 指示「嚴格照原指示」，
+契約 C5 斷言命中數為 0）。這條過場只有顏色漸變、沒有位移，WCAG 2.3.3 管的是 motion。
+
+### 4. landing 頁，流程圖搬到 `flow.html`
+
+`docs/index.html` 換成 landing，流程圖移到 `docs/flow.html`。
+`rail-mark`（左上那顆 bs）改成回首頁的連結。
+
+**設計路徑**：走 CLAUDE.md §設計語言對齊 的「大改」判定，
+user 在 `AskUserQuestion` 選「跳過三方向、直接做一版」——理由是設計語言已定案、
+色彩字型元件全部鎖死，可變的只剩版面結構。
+
+`landing.css` **一個色值 token 都不自己宣告**，全部沿用 `styles.css`。
+契約 C19d 守這條：色票分兩處維護的話，改了配色 landing 不會跟著變。
+
+文案的數字全部對過磁碟（27 skill / 6 agent / 2 hook），九階段與 Tier 表照 CLAUDE.md，
+安裝步驟照 README 的實際指令。
+
+### 連帶：一個失效的 fallback（**這一條是修正，不是新功能**）
+
+第一批交付時我說「補了 oklch 的 hex fallback」。**那些 fallback 完全沒有生效。**
+
+`--paper: #F8F5F1; --paper: oklch(...)` 這種「自訂屬性連寫兩行」的寫法不會 fallback：
+自訂屬性不做值驗證，不支援 oklch 的瀏覽器一樣把 oklch 那行收下並蓋掉 hex，
+接著 `var()` 展開出無效值讓消費端整條宣告作廢——**顏色變透明，不是變回 hex**。
+
+Chromium 實測：
+
+```
+--x: red; --x: notacolor(…);                 → 算出 rgba(0, 0, 0, 0)
+background: red; background: notacolor(…);   → 算出 rgb(255, 0, 0)
+```
+
+只有**消費端**雙宣告有效（`.backdrop` 就是那種，本來就對）。
+處置是把 48 行 oklch 宣告搬進 `@supports (color: oklch(0 0 0))`，
+契約 C4c 改成守這個結構而不只是「有沒有 hex 那一行」。
+
+### 連帶：驗證器自身的兩個缺陷
+
+| 契約 | 缺陷 | 後果 |
+|---|---|---|
+| C13b | `read()` 沒正規化 CRLF。JS 的 `.` 不匹配行終止符而 `\r` 算行終止符，所以去註解的 `/^\s*\/\/.*$/` 在 CRLF 檔上**從未生效** | 註解裡的色碼會被當成硬編色。一直沒被發現只是因為以前剛好沒有哪行註解出現色碼 |
+| C5 | 直接對整份 CSS 數 `prefers-reduced-motion` 出現次數，連註解一起數 | 「刻意不加這個分支」的說明寫進註解就會讓契約自己紅掉 |
+
+### 契約總數
+
+**31 → 35，ALL PASS**（C8b 33→34、新增 C8e、C19a–d；C1a / C2 / C11 那批改讀 `flow.html`）。
 
 ---
 
