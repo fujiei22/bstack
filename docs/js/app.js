@@ -104,6 +104,7 @@ var NODE_DOCS = {
  * @returns {string}
  */
 function docKey(entry) {
+  if (entry.key) return entry.key; // 圖外文件自帶完整路徑，不走底下的推導
   return entry.k === 'agent' ? 'references/' + entry.p + '.md' : 'references/' + entry.p + '/SKILL.md';
 }
 
@@ -497,6 +498,32 @@ var panelSec = null, panelOpen = false, panelPinned = false;
  * 這個站的主題就是流程資料本身，硬編數字一旦跟實際清單對不上，
  * 讀的人會開始懷疑圖上其他數字——e2e 就抓到 rail 寫「31」而面板列 33 項。
  */
+/**
+ * 不在流程圖上、但文件之間會互相引用的文件。
+ *
+ * CLAUDE.md 是全站被引用最多次的一份（§事實核實 / §決策點選單 / §Docs 落檔 / §Tier 機制…），
+ * 但它不是 skill 也不是 agent、圖上沒有對應節點，所以另立一張表。
+ * `key` 欄用來蓋掉 docKey() 的路徑推導——它既不在 skills/ 也不在 agents/ 底下。
+ */
+var EXTRA_DOCS = {
+  CLAUDE: { p: 'CLAUDE', n: 'CLAUDE.md', k: 'policy', key: 'references/CLAUDE.md' }
+};
+
+/** 抽屜能開的全部文件：圖上的節點 + 圖外的 CLAUDE.md。 */
+var ALL_DOCS = (function () {
+  var m = {};
+  Object.keys(NODE_DOCS).forEach(function (k) { m[k] = NODE_DOCS[k]; });
+  Object.keys(EXTRA_DOCS).forEach(function (k) { m[k] = EXTRA_DOCS[k]; });
+  return m;
+})();
+
+/** 文件名 → 文件 id。用來把正文裡的 `design-language` 這種寫法認出來。 */
+var DOC_ID_BY_NAME = (function () {
+  var m = {};
+  Object.keys(ALL_DOCS).forEach(function (id) { m[ALL_DOCS[id].n] = id; });
+  return m;
+})();
+
 var DOC_COUNTS = (function () {
   var c = { skill: 0, agent: 0 };
   Object.keys(NODE_DOCS).forEach(function (k) { c[NODE_DOCS[k].k]++; });
@@ -631,6 +658,13 @@ function renderPanelBody() {
     });
 
   } else if (panelSec === 'docs') {
+    // CLAUDE.md 不是 skill 也不是 agent、圖上沒有節點，但它是被引用最多次的一份，
+    // 不放進索引的話使用者只能靠別份文件裡的交叉引用碰巧點到。
+    html += '<div class="sect-label"' + stag() + '>根規則 · 1</div>';
+    html += '<ul><li' + stag() + '><button class="row" data-doc="CLAUDE">' +
+            '<span class="row-main"><span class="row-name">CLAUDE.md</span>' +
+            '<span class="row-desc">強制守則 / Tier / 流程政策；其餘文件都引用它</span></span>' +
+            '</button></li></ul>';
     var ids = Object.keys(NODE_DOCS);
     [['skill', 'Skills'], ['agent', 'Agents']].forEach(function (grp) {
       var list = ids.filter(function (id) { return NODE_DOCS[id].k === grp[0]; });
@@ -680,8 +714,218 @@ $('panel-pin').onclick = function () {
   $('panel-pin').setAttribute('title', panelPinned ? '已釘住：選節點時保持展開' : '釘住：選節點時不自動收起');
 };
 
+/* ── 交叉引用（§章節 / 文件名 → 可點連結）───────────────────────────────── */
+
+/**
+ * 每份文件有哪些 § 章節標題，依原文順序。第一次用到才建，之後走快取。
+ *
+ * 只認**內嵌**的全文（window.REFERENCE_DOCS）。HTTP fetch 那條 fallback 路徑是非同步的，
+ * 這裡需要同步查表；查不到就當那份文件沒有章節，引用維持純文字——寧可少連，不要連到空的。
+ */
+var DOC_SECTIONS = null;
+function docSections(id) {
+  if (!DOC_SECTIONS) {
+    DOC_SECTIONS = {};
+    Object.keys(ALL_DOCS).forEach(function (k) {
+      var text = window.REFERENCE_DOCS ? window.REFERENCE_DOCS[docKey(ALL_DOCS[k])] : null;
+      var list = [];
+      if (text) {
+        var re = /^#{1,6}[ \t]+(§[^\r\n]+?)[ \t]*$/gm, m;
+        while ((m = re.exec(text))) list.push(m[1]);
+      }
+      DOC_SECTIONS[k] = list;
+    });
+  }
+  return DOC_SECTIONS[id] || [];
+}
+
+/**
+ * 從正文某個 § 的位置，切出「這個引用最多可能寫到哪」的候選字串，由長到短。
+ *
+ * 章節名本身含空白（§Red Flags、§File-type 硬規則、§hand-off state），所以不能用空白當終止；
+ * 但引用也常只寫章節名的前半（正文寫 §Phase 0a、標題是「§Phase 0a — 對話釐清」），
+ * 所以要把每個空白邊界都當成一個候選、由長往短試。
+ *
+ * @param {string} text 整個文字節點
+ * @param {number} pos § 的索引
+ * @returns {string[]} 候選字串，長的在前
+ */
+function refCandidates(text, pos) {
+  var stop = /[，。、；：！？「」『』【】（）()｜,;:!?\r\n]/;
+  var end = pos + 1;
+  while (end < text.length && !stop.test(text.charAt(end))) end++;
+  var span = text.slice(pos, end).replace(/\s+$/, '');
+  var outs = [span];
+  for (var i = span.length - 1; i > 1; i--) {
+    if (/\s/.test(span.charAt(i))) outs.push(span.slice(0, i).replace(/\s+$/, ''));
+  }
+  return outs.filter(function (t) { return t.length >= 3; });
+}
+
+/**
+ * 判斷某個 § 引用指向哪份文件的哪個章節。
+ *
+ * @param {string} text 文字節點內容
+ * @param {number} pos § 的索引
+ * @param {string[]} docIds 候選文件，依優先序（正文指名的那份在前、目前這份在後）
+ * @returns {{docId:string, heading:string, len:number}|null} 找不到就 null，呼叫端維持純文字
+ */
+function resolveXref(text, pos, docIds) {
+  var cands = refCandidates(text, pos);
+  for (var ci = 0; ci < cands.length; ci++) {
+    var c = cands[ci];
+    for (var di = 0; di < docIds.length; di++) {
+      var heads = docSections(docIds[di]);
+      for (var hi = 0; hi < heads.length; hi++) {
+        var h = heads[hi];
+        if (h === c) return { docId: docIds[di], heading: h, len: c.length };
+        // 引用只寫了標題前半（§Phase 0a ↔「§Phase 0a — 對話釐清」）也算命中，
+        // 但要切在標題自己的詞界上，避免 §Task 誤命中 §Tasks 之類
+        if (h.indexOf(c) === 0 && /[\s—–-]/.test(h.charAt(c.length))) {
+          return { docId: docIds[di], heading: h, len: c.length };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 把渲染好的 markdown 裡的交叉引用換成可點連結，並給 § 標題掛上錨點。
+ *
+ * 順序不可對調：先處理 code span（文件名），§ 那一輪才看得到「前面那顆是不是文件名」。
+ *
+ * @param {Element} md 放 markdown 的容器
+ * @param {string} curDocId 目前這份文件的 id，用來解析同文件的章節引用
+ */
+function enhanceXrefs(md, curDocId) {
+  // (a) § 標題掛錨點，供捲動定位
+  md.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (h) {
+    var t = (h.textContent || '').trim();
+    if (t.charAt(0) === '§') h.setAttribute('data-sec-anchor', t);
+  });
+
+  // (b) 內容剛好是文件名的 code span → 包成連結
+  md.querySelectorAll('code').forEach(function (c) {
+    if (c.closest('pre') || c.closest('a')) return;
+    var id = DOC_ID_BY_NAME[(c.textContent || '').trim()];
+    if (!id || id === curDocId) return;
+    var a = document.createElement('a');
+    a.className = 'xref';
+    a.setAttribute('data-doc', id);
+    a.setAttribute('role', 'button');
+    a.setAttribute('tabindex', '0');
+    a.title = '開啟 ' + ALL_DOCS[id].n;
+    c.parentNode.insertBefore(a, c);
+    a.appendChild(c);
+  });
+
+  // (c) 文字節點裡的 §章節引用
+  var walker = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, {
+    acceptNode: function (n) {
+      if (!n.nodeValue || n.nodeValue.indexOf('§') === -1) return NodeFilter.FILTER_REJECT;
+      if (n.parentNode.closest('pre, code, a')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  var targets = [];
+  for (var n = walker.nextNode(); n; n = walker.nextNode()) targets.push(n);
+
+  targets.forEach(function (node) {
+    var text = node.nodeValue;
+    var frag = document.createDocumentFragment();
+    var last = 0, pos;
+    for (pos = text.indexOf('§'); pos !== -1; pos = text.indexOf('§', pos + 1)) {
+      if (pos < last) continue;
+      // 正文指名的文件：先看同一段文字前面 40 字內有沒有文件名，
+      // 再看前一個兄弟節點（`design-language` §兩根尺 這種寫法，名字在 code span 裡）
+      var named = null;
+      var before = text.slice(Math.max(0, pos - 40), pos);
+      // 取視窗內**最後一個**認得的文件名，中間隔著什麼都沒關係——
+      // 「套用 CLAUDE.md 強制守則（§PII / §Branch safety…）」這種寫法很常見，
+      // 要求緊貼的話整份 pr-explain 會一個連結都連不出來。
+      var toks = before.match(/[A-Za-z][A-Za-z0-9._-]*/g) || [];
+      for (var ti = toks.length - 1; ti >= 0 && !named; ti--) {
+        if (DOC_ID_BY_NAME[toks[ti]]) named = DOC_ID_BY_NAME[toks[ti]];
+      }
+      if (!named && /^\s*$/.test(before)) {
+        var prev = node.previousSibling;
+        var pt = prev ? (prev.textContent || '').trim() : '';
+        if (DOC_ID_BY_NAME[pt]) named = DOC_ID_BY_NAME[pt];
+      }
+      var order = named && named !== curDocId ? [named, curDocId] : [curDocId];
+      var hit = resolveXref(text, pos, order);
+      if (!hit) continue;
+
+      if (pos > last) frag.appendChild(document.createTextNode(text.slice(last, pos)));
+      var a = document.createElement('a');
+      a.className = 'xref';
+      a.setAttribute('data-sec', hit.heading);
+      if (hit.docId !== curDocId) a.setAttribute('data-doc', hit.docId);
+      a.setAttribute('role', 'button');
+      a.setAttribute('tabindex', '0');
+      a.title = hit.docId === curDocId ? '跳到 ' + hit.heading
+                                       : ALL_DOCS[hit.docId].n + ' 的 ' + hit.heading;
+      a.textContent = text.substr(pos, hit.len);
+      frag.appendChild(a);
+      last = pos + hit.len;
+      pos = last - 1;
+    }
+    if (!frag.childNodes.length) return;
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+
+  // (d) 綁事件。用一顆委派的 handler，不逐個掛。
+  md.addEventListener('click', onXrefActivate);
+  md.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (e.target.classList && e.target.classList.contains('xref')) { e.preventDefault(); onXrefActivate(e); }
+    }
+  });
+}
+
+/** 點到 / 按 Enter 在交叉引用上時的動作。 */
+function onXrefActivate(e) {
+  var a = e.target.closest ? e.target.closest('.xref') : null;
+  if (!a) return;
+  e.preventDefault();
+  var doc = a.getAttribute('data-doc');
+  var sec = a.getAttribute('data-sec');
+  if (doc) openDrawer(doc, { push: true, section: sec });
+  else scrollToSection(sec);
+}
+
+/**
+ * 在目前抽屜裡捲到指定章節，並閃一下讓人看見落點。
+ *
+ * 用 scrollTop 而不是 scrollIntoView：後者會連帶捲動所有可捲的祖先，
+ * 在這種「抽屜疊在流程圖上」的版面會把底下的圖也一起拖走。
+ *
+ * @param {string} heading 章節標題原文
+ */
+function scrollToSection(heading) {
+  var body = drawerEl.querySelector('.drawer-body');
+  if (!body || !heading) return;
+  var t = null;
+  body.querySelectorAll('[data-sec-anchor]').forEach(function (h) {
+    if (!t && h.getAttribute('data-sec-anchor') === heading) t = h;
+  });
+  if (!t) return;
+  var top = t.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - 12;
+  body.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  t.classList.remove('sec-hit');
+  void t.offsetWidth; // 強制重排，讓同一個標題連點兩次也會重播
+  t.classList.add('sec-hit');
+}
+
 /* ── 文件抽屜 ──────────────────────────────────────────────────────────── */
 var drawerEl = $('drawer'), backdropEl = $('backdrop');
+
+/** 跨文件跳轉的來源堆疊，供抽屜麵包屑上的返回鍵用。 */
+var drawerStack = [];
+/** 目前抽屜顯示的是哪份文件；返回鍵與「同文件章節引用」都要靠它。 */
+var drawerCurrent = null;
 
 /**
  * 開啟文件抽屜並渲染該節點對應的 markdown。
@@ -690,23 +934,35 @@ var drawerEl = $('drawer'), backdropEl = $('backdrop');
  * 內嵌資料其實同步可得，但保留兩段式是為了 fetch fallback 路徑（HTTP 模式）也能用。
  * 正文渲染前會去掉第一個 H1（標題列已經顯示過名稱）。
  *
- * @param {string} nodeId 節點 id；NODE_DOCS 查無此 id 就直接 return（不開空抽屜）
+ * @param {string} nodeId 文件 id；ALL_DOCS 查無此 id 就直接 return（不開空抽屜）
+ * @param {{push?:boolean, section?:string}} [opts]
+ *        push=true 代表這次是從另一份文件的交叉引用跳過來的，把來源推進返回堆疊；
+ *        section 是要捲到的章節標題，正文渲染完才會生效。
  */
-function openDrawer(nodeId) {
-  var d = NODE_DOCS[nodeId];
+function openDrawer(nodeId, opts) {
+  var d = ALL_DOCS[nodeId];
   if (!d) {
     // 不要靜默 return：使用者只會覺得按鈕壞了然後一直點，而 console 什麼都沒有。
     // 正常路徑走不到這裡（有按鈕才有 key），會走到就代表資料不一致。
     console.warn('[docs] NODE_DOCS 查無此節點，抽屜未開啟：', nodeId);
     return;
   }
+  opts = opts || {};
+  if (opts.push && drawerCurrent && drawerCurrent !== nodeId) drawerStack.push(drawerCurrent);
+  else if (!opts.push) drawerStack.length = 0; // 從側欄／節點重新開一份，堆疊歸零
+  drawerCurrent = nodeId;
+
   var type = FLOW.nodes[nodeId] ? (FLOW.nodes[nodeId].type || 'default') : d.k;
 
   drawerEl.innerHTML =
     '<div class="drawer-head">' +
       '<div class="crumb">' +
+        (drawerStack.length
+          ? '<button class="icon-btn back" id="drawer-back" title="返回 ' +
+            esc(ALL_DOCS[drawerStack[drawerStack.length - 1]].n) + '">←</button>'
+          : '') +
         '<span>references</span><span class="sep">/</span>' +
-        '<span>' + esc(d.k === 'agent' ? 'agents' : 'skills') + '</span><span class="sep">/</span>' +
+        (d.key ? '' : '<span>' + esc(d.k === 'agent' ? 'agents' : 'skills') + '</span><span class="sep">/</span>') +
         '<span>' + esc(d.n) + '</span>' +
         '<button class="icon-btn close" id="drawer-close" title="關閉（Esc）">✕</button>' +
       '</div>' +
@@ -724,7 +980,13 @@ function openDrawer(nodeId) {
   drawerEl.classList.add('open');
   backdropEl.classList.add('open');
   $('drawer-close').onclick = closeDrawer;
-  centerGlyphs(drawerEl); // 這顆 ✕ 是剛插進 DOM 的，沒被開站時那次掃到
+  centerGlyphs(drawerEl); // 這兩顆字是剛插進 DOM 的，沒被開站時那次掃到
+  var backBtn = $('drawer-back');
+  if (backBtn) backBtn.onclick = function () {
+    var prev = drawerStack.pop();
+    // 這裡不能走 push 分支，否則會把剛離開的那份又推回去，變成兩份互跳
+    if (prev) { drawerCurrent = null; openDrawer(prev); }
+  };
 
   docText(d)
     .then(function (text) {
@@ -750,7 +1012,10 @@ function openDrawer(nodeId) {
       // 順序反了，所以 baseline F13 寫的「去掉第一個 H1」從來沒有真的生效過。
       var body = parsed.body.trim().replace(/^#\s+.+\r?\n?/, '').trim();
       var mdEl = drawerEl.querySelector('#drawer-md');
-      if (mdEl) mdEl.innerHTML = window.marked.parse(body);
+      if (!mdEl) return;
+      mdEl.innerHTML = window.marked.parse(body);
+      enhanceXrefs(mdEl, nodeId);
+      if (opts.section) scrollToSection(opts.section);
     })
     .catch(function (err) {
       var mdEl = drawerEl.querySelector('#drawer-md');
@@ -759,6 +1024,8 @@ function openDrawer(nodeId) {
 }
 /** 關閉文件抽屜與其 backdrop。ESC、✕、點 backdrop 三個入口共用。 */
 function closeDrawer() {
+  drawerStack.length = 0;
+  drawerCurrent = null;
   drawerEl.classList.remove('open');
   backdropEl.classList.remove('open');
 }

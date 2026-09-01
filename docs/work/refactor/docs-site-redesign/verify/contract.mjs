@@ -339,10 +339,18 @@ check(
     `（後果：孤兒節點在圖上是無法抵達的島，懸空邊會讓 dagre layout 直接爆）`
 );
 
+// 34 = 27 skill + 6 agent + CLAUDE.md。CLAUDE.md 是後來為了交叉引用收進來的：
+// 文件正文裡「CLAUDE.md §決策點選單」這類引用最多，不收就一律連不到。
 check(
-  'C8b REFERENCE_DOCS 有 33 個 key',
-  refKeys.size === 33,
-  `期望 33，實際 ${refKeys.size}（後果：內嵌文件集合被動過，F13/F14 的資料底變了）`
+  'C8b REFERENCE_DOCS 有 34 個 key',
+  refKeys.size === 34,
+  `期望 34，實際 ${refKeys.size}（後果：內嵌文件集合被動過，F13/F14 的資料底變了）`
+);
+check(
+  'C8e CLAUDE.md 在內嵌包裡',
+  refKeys.has('references/CLAUDE.md'),
+  '期望 references/CLAUDE.md 存在（後果：文件索引面板的「根規則」那列點下去載入失敗，' +
+    '且所有指向 CLAUDE.md 章節的交叉引用都解析不到、退回純文字）'
 );
 
 // layout.js 仍然不該被動——它是 dagre 參數，不在本次 scope

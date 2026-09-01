@@ -574,6 +574,8 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 }
 .crumb .sep { opacity: .55; }
 .crumb .close { margin-left: auto; }
+/* 返回鍵放最前面，跟瀏覽器上一頁的位置慣例一致；只有跨文件跳過來時才會出現 */
+.crumb .back { margin: -4px 2px -4px -4px; }
 .drawer-title {
   font-family: var(--font-display); font-size: 27px; font-weight: 600;
   letter-spacing: -.015em; line-height: 1.2;
@@ -605,6 +607,26 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   font-family: var(--font-mono); font-size: 13px;
   background: var(--paper-sunk); padding: 1px 5px; border-radius: 2px;
 }
+/* 交叉引用：用虛線底線標示「這是指向別處的指標」，不搶正文的注意力。
+   刻意不用藍色連結——這份設計語言裡的強調色只有校對紅一支。 */
+.xref {
+  color: inherit; cursor: pointer;
+  text-decoration: underline dotted var(--accent-line);
+  text-underline-offset: 3px;
+  border-radius: 2px;
+  transition: background var(--t-micro) var(--e-move), text-decoration-color var(--t-micro) var(--e-move);
+}
+.xref:hover { background: var(--accent-wash); text-decoration-color: var(--accent); }
+.xref:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.xref > code { cursor: pointer; }
+
+/* 跳到章節之後閃一下，讓人看得見落點在哪 */
+@keyframes secHit {
+  from { background: var(--accent-wash); box-shadow: -8px 0 0 0 var(--accent-wash); }
+  to   { background: transparent; box-shadow: -8px 0 0 0 transparent; }
+}
+.md [data-sec-anchor].sec-hit { animation: secHit 1400ms var(--e-exit); }
+
 .md .note {
   margin-top: 20px; padding: 12px 14px;
   border-top: 1.5px solid var(--rule-2);
