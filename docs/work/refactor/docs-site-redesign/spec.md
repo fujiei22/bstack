@@ -34,8 +34,9 @@ user 要的是**更有設計感、動畫流暢自然**，同時**功能與互動
   無 `prefers-reduced-motion`。
   > 第 6 條（`prefers-reduced-motion`）與本次「動畫流暢自然」的目標直接對撞——改版會**增加**
   > 動畫量。已就此獨立詢問 user，決定為 **一律不加**（見「已決事項」1）。
-- `app.js:686` 硬編的 app 標題 `bastck`（疑似 `bstack` 拼錯）。不在 6 條缺口內，但同理會弄髒
-  比對，**照抄不改**。
+- ~~`app.js:686` 硬編的 app 標題 `bastck`，照抄不改。~~
+  **本條已由 §已決事項 4 取代**：正確位置是 `app.js:697`（686 是舊行號），
+  且該字串在 demo 命中 **0**——照抄反而會讓它消失。改為列進驗證表當改動說明。
 - `docs/js/data.js`（84 nodes / 103 edges 的內容）、`docs/js/references-data.js`（202KB 內嵌全文）、
   `docs/js/layout.js`（dagre 參數）、`docs/js/vendor/*` 三個 lib——一律不動。
 - 不換框架、不引入 bundler、不引入 CDN JS。
@@ -47,7 +48,8 @@ user 要的是**更有設計感、動畫流暢自然**，同時**功能與互動
 | `docs/css/styles.css`（940 行） | 整份 rewrite | **高**。F4／F22 的高亮與節點配色全靠這裡的 `--c-*` token × `data-type` 屬性選擇器；改壞 = 8 種型別 × light/dark 兩套全爛 |
 | `docs/js/app.js`（901 行） | 局部 edit | **高**。`HL_COLOR` / `EDGE_CLR` / `DIM_CLR` 三個常數是 JS 硬編（`app.js:21-23`），同時餵給 `defArrow()` 的 marker fill 與 `applyHighlight()` 的 stroke。CSS 改色而 JS 沒跟 = 邊與箭頭對不上 |
 | `docs/index.html`（74 行） | 局部 edit | **中**。`<head>` 的 inline theme script 順序不能動（F19）；vendor script 為 classic、順序有依賴 |
-| `docs/reference/design-map.md` | new | 低 |
+| `docs/reference/design-map.md` | new | 低。**已完成**，commit `6863a69` |
+| `docs/favicon.svg` | edit | 低。唯一 `fill="#4040C4"` 換成新配色墨色（§已決事項 4）|
 | `docs/reference/docs-site-baseline.md` | append-only | 低 |
 
 ### 不可破壞的資料契約（實測確認）
@@ -61,7 +63,7 @@ user 要的是**更有設計感、動畫流暢自然**，同時**功能與互動
 | phases | 15 |
 | node types | 8（default 20 / skill 22 / impl 14 / agent 11 / gate 9 / policy 4 / hook 2 / stop 2） |
 | ambient | 2 組（policy 9 項純文字 / skill 5 項可點開 drawer） |
-| `NODE_DOCS` | 31 筆（25 skill + 6 agent，另 RPT2 / RPT3 指回 review-plan） |
+| `NODE_DOCS` | **33 個 key**（25 skill + 6 agent + `RPT2` + `RPT3`）／對應 **31 個相異文件路徑**（RPT2 與 RPT3 共用 review-plan 的路徑）|
 | `REFERENCE_DOCS` | 31 個內嵌 key |
 | `window.FLOW_DATA_VERSIONS` | **`undefined`**（缺口 3 屬實，`pickFlowData()` 永遠 fallback） |
 
@@ -211,21 +213,30 @@ user 要的是**更有設計感、動畫流暢自然**，同時**功能與互動
 3. **JS 硬編顏色與 CSS token 的雙軌**：`HL_COLOR` / `EDGE_CLR` / `DIM_CLR` 在 JS，其餘在 CSS。
    改版若只改 CSS，邊與箭頭會與新配色脫節；若把三者搬進 CSS 則要處理 SVG `<marker>` 無法繼承
    `currentColor` 的限制。→ 這是實作決策，留給 write-plan 拆。
-4. **動畫增量 vs 無 `prefers-reduced-motion`**：見「待釐清」。
+4. **動畫增量 vs 無 `prefers-reduced-motion`**：已處置，見 §已決事項 1（user 知情後選擇不加）。
 5. **改版與缺口的邊界容易模糊**：例如「加響應式」既是缺口 4 也很像設計感的一部分。
    → 本 spec 明定：缺口 4「零響應式」**不修**，改版產出在桌面寬度下驗；窄視窗行為維持「未定義」。
 
 ## 已決事項
 
-0. **F2 初始視圖：改成對齊起點的可讀比例，fit-all 移到按鈕。**
-   user 選項原話：「改成對齊起點、可讀比例，fit-all 移到按鈕（推薦）」。
+0. **F2 初始視圖：預設對齊起點的可讀比例；fit-all 能力移除。**
+   user 選項原話（第二輪，`review-plan` D1）：「認能力移除，改 spec 與驗證表措辭」。
+
+   **前一版 spec 在這裡寫錯過，記下來免得後人以為那句話成立**：原本寫的是
+   「F2 的能力不刪：fit-all 移到標題列按鈕」。`review-plan` 的 Design 視角實查發現
+   demo 的 `fitView()` 內容就是 `var t = landingTransform();`——與落地視野是**同一個 transform**，
+   只是加了動畫；rail 那顆鈕的 `data-label` 是「回到起點」而非「全圖」。
+   **demo 裡沒有任何入口能看到整張圖**，那句承諾從一開始就不成立。
+
    依據（**實測**，非推斷）：以 stock dagre 參數跑 `buildLayout` 得 `gw 1925 × gh 11196`、
    縱橫比 **0.172**。baseline F2 的「整張圖置中、留 8% padding」在 1920×1080 視口算出
    scale = **8.1%**，`NODE_H` 80px 的節點只會畫成 **6.5px** 高，一個字都讀不到。
-   三個 subagent 各自量測後都獨立把它改掉了。
-   → **F2 的能力不刪**：fit-all 移到標題列按鈕，索引條也仍可用；只是不再是預設。
-   → 驗證表上這條標「**改動說明**」而非 ✅，不假裝沒動過。
+   三個 subagent 各自量測後都獨立把它拿掉——因為它沒有使用價值。
 
+   > 縱橫比另有一個數字：demo 註解寫「實測 1978×12398」（0.160）。差異來自 demo 把節點高度
+   > 改成依文字量測、並把 dagre `rankSep` 從 100 收到 64。兩個都是實測，量的不是同一組參數。
+
+   → **F2 是 F1–F22 裡唯一一項真的被移除的能力。** 驗證表標「**能力移除 ＋ 理由**」，不標 ✅。
 
 1. **`prefers-reduced-motion`：一律不加。**
    user 選項原話：「一律不加，嚴格照原指示」。
@@ -234,7 +245,74 @@ user 要的是**更有設計感、動畫流暢自然**，同時**功能與互動
    → **實作端硬規則**：`docs/css/styles.css` 改版後 `grep -c 'prefers-reduced-motion'` 必須仍為 **0**。
    缺口 6 維持未修狀態。
 
+2. **兩條 `@media`：只留 `max-width: 860px`，砍掉 `max-width: 1080px`。**
+   user 選項原話：「只留 860px 那條（推薦）」。
+
+   定案的 demo 自帶兩條 `@media`（`rail-console.html:568` 與 `:572`），與 spec §範圍 明訂
+   「缺口 4 零響應式不修」正面衝突。實際影響已用 **820px 實拍對照**確認：
+
+   | 斷點 | 拿掉會怎樣 | 性質 |
+   |---|---|---|
+   | `860px` | 視窗 <844px 時 `.panel` 與 `.detail` **實體重疊**，detail 的標題與上下游被蓋掉一半 | **結構必需** |
+   | `1080px` | 只是 minimap 不再被藏起來；實算 detail 右緣 `vw-150`、minimap 左緣 `vw-119`，本就不重疊 | 貼心，非必需 |
+
+   幾何依據：`.panel` 是 `left: calc(56px + 10px); width: 306px`（右緣 372px），
+   `.detail` 是 `right: 150px; width: 322px`（左緣 `vw - 472`），兩者在 `vw ≈ 844` 開始重疊。
+   **這是新骨架把面板從 flex 欄位改成絕對定位浮層的後果**，舊版三欄 flex 會擠但不會疊。
+
+   → 留 `860px` **不會**讓這個站變成響應式、也不會變得能用手機看，只防桌面窄視窗的浮層互蓋。
+   → 驗證表註明：「新增 1 條 `@media`，僅防新骨架的浮層重疊；手機與窄視窗行為仍未定義，
+   **缺口 4 未修**」。baseline 記的「全檔 `@media` 0 命中」變成 **1 命中**，這個事實要寫明。
+
+3. **五項行為改動：接受 demo 的行為，五項都標「改動說明」。**
+   user 選項原話：「接受 demo 行為，五項都標改動說明（推薦）」。
+
+   | F 項 | 改版前（baseline） | 改版後（demo，實測） |
+   |---|---|---|
+   | F2 | 整圖 fit（實算 8.1%） | 對齊起點的可讀比例；fit-all 移除 |
+   | F8 | 350ms 平移；縮放 <0.35 拉到 0.35 | **560ms**；下限 **0.85** |
+   | F16 | minimap 點擊 180ms 平移 | **320ms** |
+   | F17 | 三顆 SVG icon 對應三態 | 「**自 / 明 / 暗**」單字 |
+   | F21 | 三句提示原文 | `renderStatus()` 三種狀態行（帶計數，資訊量為原文超集） |
+
+   理由：demo 的數值是配合新的三檔時長體系（`--t-micro 120ms` / `--t-panel 260ms` /
+   `--t-large 380ms`）調過的，硬還原成 350/180ms 會跟新的緩動體系打架，而「動畫流暢自然」
+   正是本次改版的核心訴求。F21 的原文在新語境也讀不通——「點 **type** 或 **phase** 快速導覽」
+   指的是舊左欄兩個常駐清單，新骨架裡它們叫「型」「段」且藏在 rail 後面，
+   **畫面上沒有任何地方出現 type 或 phase 這兩個字**。
+
+   → **F21 的契約從「三句原文都在」改成「三種狀態各有分支」**：F 項的價值是分支存在，不是那 24 個字。
+   → F12 / F14 的四句原文（`載入中⋯` / `（無描述）` / `（載入失敗）` / `載入失敗：`）**維持原文**
+   並補上契約——那四句在新語境語意不變，沒有改的理由。這兩者標準不同是刻意的，不是疏漏。
+
+4. **三個掉出所有清單的項目：全部處理。**
+   user 選項原話：「補 oklch 的 hex fallback、把 favicon 換成新配色、處理 bastck 拼字消失這件事」。
+
+   - **oklch hex fallback**：demo 的 `<style>` 有 `oklch()` **69 次、hex 0 次**（實測）。
+     Chrome <111 / Safari <15.4 會把整份色票宣告視為無效 → `--paper` / `--ink` / 八型別色全落空，
+     結果是黑字透明底無框節點，**看起來像壞掉**。配上「merge 即上線、無預覽環境」，
+     失效模式是「不會收到錯誤回報，只會有人默默關掉分頁」。
+     → 在 `:root` 與 dark 區塊各補一組**同名 hex 前置宣告**（先 hex、後 oklch；
+     不支援的瀏覽器吃第一條，支援的被第二條覆蓋）。
+
+   - **favicon**：`docs/favicon.svg` 唯一的 `fill="#4040C4"` 是舊 periwinkle 藍。
+     改版後它會是全站唯一還帶舊識別的東西，而且就在瀏覽器分頁上、使用者看最久。
+     → 換成新配色的墨色（`--ink` = `oklch(0.245 0.012 60)` 的 hex 近似值）。
+
+   - **`bastck`**：`docs/js/app.js:697` 硬編，demo 命中 **0**。照抄就會無聲消失，
+     頁首從站名變成「dev-workflow」這個主題名。
+     → **列進驗證表當第 6 項改動說明**，不靜默掉。§範圍 原本寫「照抄不改」，本條取代之。
+
+
 ## 待釐清
 
-1. **字體要不要換？** baseline 標「可換」。Space Grotesk / Space Mono 是現有識別的一部分，
-   換掉視覺差異最大、但也離現況最遠。→ 由三方向具體提案，user 挑版時一併定案。
+**無。** 四輪決策後全部收斂：
+
+| 原待釐清項 | 落點 |
+|---|---|
+| `prefers-reduced-motion` 要不要加 | §已決事項 1（一律不加） |
+| 字體要不要換 | 已定案。`design-direction` 第 1 題選「連色彩與字體一起換」，配色第 1 題選 P1「校樣」→ Newsreader ＋ IBM Plex Sans ＋ IBM Plex Mono。詳見 §定案設計的可重建規格 |
+| F2 初始視圖 | §已決事項 0（能力移除） |
+| 兩條 `@media` | §已決事項 2（只留 860px） |
+| 五項行為改動 | §已決事項 3（全標改動說明） |
+| oklch fallback / favicon / `bastck` | §已決事項 4（全部處理） |
