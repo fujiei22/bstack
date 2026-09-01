@@ -609,24 +609,103 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 }
 .pill b { font-weight: 500; color: var(--ink-3); }
 .drawer-body { overflow-y: auto; padding: 20px 18px 40px; }
-.md { max-width: 62ch; font-size: 14.5px; line-height: 1.75; }
-.md h3 {
-  margin: 22px 0 8px; font-family: var(--font-display);
-  font-size: 17px; font-weight: 600;
+/* 欄寬拆兩種：散文照 62ch 的易讀行長，表格與 code block 用滿整個抽屜寬度。
+   這兩類內容擠在 62ch 裡只會換行到看不懂，跟「行長超過 75 字會累」是相反的問題。 */
+.md { font-size: 14.5px; line-height: 1.75; }
+.md > p,
+.md > ul,
+.md > ol,
+.md > blockquote { max-width: 62ch; }
+
+.md h1, .md h2, .md h3, .md h4 {
+  font-family: var(--font-display); font-weight: 600;
+  line-height: 1.35; letter-spacing: -.008em;
 }
-.md h3:first-child { margin-top: 0; }
-.md ul { margin: 0 0 14px; padding-left: 0; }
-.md li {
-  position: relative; padding-left: 18px; margin-bottom: 5px;
-}
-.md li::before {
+.md h1 { margin: 26px 0 10px; font-size: 21px; }
+.md h2 { margin: 26px 0 10px; font-size: 19px; }
+.md h3 { margin: 22px 0 8px;  font-size: 17px; }
+.md h4 { margin: 18px 0 6px;  font-size: 15px; color: var(--ink-2); }
+.md h1:first-child, .md h2:first-child, .md h3:first-child, .md h4:first-child { margin-top: 0; }
+.md > h2 { padding-top: 10px; border-top: 1px solid var(--rule); }
+.md > h2:first-child { padding-top: 0; border-top: 0; }
+
+.md ul, .md ol { margin: 0 0 14px; padding-left: 0; }
+.md li { position: relative; padding-left: 18px; margin-bottom: 5px; }
+.md ul > li::before {
   content: ""; position: absolute; left: 3px; top: .68em;
   width: 5px; height: 1.5px; background: var(--ink-3);
 }
+/* ol 要編號，不能沿用 ul 的短破折號 */
+.md ol { counter-reset: mdol; padding-left: 4px; }
+.md ol > li { counter-increment: mdol; padding-left: 26px; }
+.md ol > li::before {
+  content: counter(mdol) ".";
+  position: absolute; left: 0; top: 0;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.md li > ul, .md li > ol { margin: 5px 0 0; }
+
+.md strong { font-weight: 600; color: var(--ink); }
+.md hr { margin: 22px 0; border: 0; border-top: 1px solid var(--rule); }
+.md blockquote {
+  margin: 0 0 14px; padding: 2px 0 2px 14px;
+  border-left: 2px solid var(--accent-line);
+  color: var(--ink-2);
+}
+.md blockquote > :last-child { margin-bottom: 0; }
+
+/* 行內 code：藥丸樣式。**只給行內用**——code block 那條在下面覆寫掉。 */
 .md code {
   font-family: var(--font-mono); font-size: 13px;
   background: var(--paper-sunk); padding: 1px 5px; border-radius: 2px;
+  overflow-wrap: anywhere;
 }
+
+/* ── code block ────────────────────────────────────────────────────────────
+   pre 原本一條樣式都沒有，裡面的 code 卻吃到上面那條行內藥丸，結果是一塊塊
+   斷開的灰片、沒有 padding、而且實測 551/539 會把抽屜撐出橫向捲軸。 */
+.md pre {
+  margin: 0 0 16px; padding: 12px 14px;
+  overflow-x: auto;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  line-height: 1.6;
+}
+.md pre code {
+  display: block;
+  background: none; padding: 0; border-radius: 0;
+  font-size: 12.5px; color: var(--ink);
+  white-space: pre;            /* 不折行；要看長行用橫向捲，折了反而讀不出結構 */
+  overflow-wrap: normal;
+}
+
+/* ── 表格 ──────────────────────────────────────────────────────────────────
+   這些文件的規格幾乎都寫在表裡。原本零樣式，欄位會黏成一句話。
+   .tbl-scroll 由 app.js 的 enhanceXrefs() 包上去，窄視窗才有東西可捲。 */
+.md .tbl-scroll { margin: 0 0 16px; overflow-x: auto; }
+.md table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13.5px; line-height: 1.6;
+}
+.md th, .md td {
+  padding: 7px 12px 7px 0;
+  text-align: left; vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+.md th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--rule-2);
+  white-space: nowrap;
+}
+.md td { color: var(--ink-2); }
+/* 第一欄通常是「項目名」，給它墨色與不換行，一眼看得出列的主詞 */
+.md td:first-child { color: var(--ink); font-weight: 500; }
+.md tbody tr:last-child th, .md tbody tr:last-child td { border-bottom: 0; }
+.md td code, .md th code { white-space: nowrap; }
 /* 交叉引用：用虛線底線標示「這是指向別處的指標」，不搶正文的注意力。
    刻意不用藍色連結——這份設計語言裡的強調色只有校對紅一支。 */
 .xref {

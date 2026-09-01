@@ -799,6 +799,17 @@ function resolveXref(text, pos, docIds) {
  * @param {string} curDocId 目前這份文件的 id，用來解析同文件的章節引用
  */
 function enhanceXrefs(md, curDocId) {
+  // (a0) 表格包一層可橫捲的容器。
+  // 桌機寬度下這些表其實放得下（實測 311 / 473 / 533 對上 539 的欄寬），
+  // 但窄視窗時抽屜只有 100vw - 56px，沒有這層就會把整個抽屜撐出橫向捲軸。
+  md.querySelectorAll('table').forEach(function (t) {
+    if (t.parentNode && t.parentNode.classList.contains('tbl-scroll')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'tbl-scroll';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+
   // (a) § 標題掛錨點，供捲動定位
   md.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (h) {
     var t = (h.textContent || '').trim();

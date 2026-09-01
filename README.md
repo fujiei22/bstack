@@ -13,11 +13,12 @@
 - **Subagent 隔離** — review / 安全稽核 / e2e / hypothesis 驗證跑獨立 context，避免重 tool 噪音與球員兼裁判
 - **Hooks** — `branch-safety`（protected branch 寫入 block）、`file-type-guard`（密鑰 / migration / lockfile / CI / infra 自動把關）
 - **Trace 標籤** — 每輪 AI 回覆結尾貼 `[Trace] Phase=… | Tier=… | Track=… | Skill=…`，phase 透明、隨時可審
+- **設計 lane** — 動前端檔前先讀該區既有的設計語言、從實際檔案抄值；新頁 / 改版先出三個方向讓你挑，選定才落 code
 - **繁中台灣用語** — 對話 / 註解 / commit / PR 全繁中，英文專有名詞（brainstorm / Tier / TDD / PR）保留原文
 
 ---
 
-## Skills（25）
+## Skills（27）
 
 ### Phase 主流程
 
@@ -42,6 +43,8 @@
 |---|---|
 | **debug-systematic** | 修 bug 用的固定步驟，從重現到防回歸 |
 | **incident-investigate** | 線上 incident 找根因用、可以平行驗多個假設 |
+| **design-language** | 動前端檔前先查這塊屬於哪套設計語言、把實際的色碼字級抄出來 |
+| **design-direction** | 新頁或改版時產三個差異化方向、附真實視覺讓你選 |
 | **frontend-test** | 改前端時用 Playwright 跑 e2e |
 | **db-access** | 動 DB / 寫 SQL 時的規範（唯讀、量限、PII 要 mask） |
 | **cmd-guard** | 跑危險指令前（rm -rf / drop / force push）跳出來叫你二次確認 |
