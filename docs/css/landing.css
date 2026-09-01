@@ -52,11 +52,18 @@ body { overflow-x: hidden; overflow-y: auto; }
    左正文、右節點鏈。超寬螢幕封頂 1680px——不封的話兩欄會一路撐開，
    正文行長與卡片都失去比例。 */
 .ldoc {
-  margin-left: 56px; padding: 0 clamp(24px, 3vw, 56px) 16vh 0; max-width: 1680px;
+  /* **padding-bottom 必須是 0。** 格線容器的 padding 落在格線區域之外，
+     而 .ldeck 的 sticky 容器就是那個格線列——留 16vh 的話，列的底部會比文件底部
+     早 152px 結束，deck 提早脫離、整塊連同 .hd 被推出視窗上緣。
+     要留白就留在欄位裡面（見 .data:last-of-type），那才算在格線列的高度內。 */
+  margin-left: 56px; padding: 0 clamp(24px, 3vw, 56px) 0 0; max-width: 1680px;
   display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(400px, 1fr);
   gap: 0 clamp(40px, 4vw, 72px);
 }
-@media (max-width: 1180px) { .ldoc { display: block; padding-right: 0; max-width: none; } }
+/* 窄螢幕沒有右欄、也就沒有 sticky 要顧，下留白補回來才不會頁尾貼著螢幕底 */
+@media (max-width: 1180px) {
+  .ldoc { display: block; padding-right: 0; padding-bottom: 10vh; max-width: none; }
+}
 
 .lcol { padding-left: clamp(24px, 3vw, 48px); }
 
@@ -140,6 +147,8 @@ h1 {
 
 /* ── 資料段 ── */
 .data { padding: 11vh 0; border-top: 1px solid var(--rule); }
+/* 最後一段收尾：11vh 的下留白加上頁尾自己的間距，捲到底會空掉一大截 */
+.data:last-of-type { padding-bottom: 48px; }
 .data h2 {
   font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 2.4vw, 32px);
   line-height: 1.24; letter-spacing: -.014em; margin: 0 0 18px;
