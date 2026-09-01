@@ -176,6 +176,28 @@
   }
 }
 
+/* ══ 換頁轉場（index.html ↔ flow.html）════════════════════════════════════
+   跨文件 View Transitions：**兩頁都要宣告才生效**，所以寫在兩頁共用的這份裡。
+   不支援的瀏覽器（目前 Firefox）會忽略整段，換頁行為回到原本的直接跳頁，
+   再由 landing.js / app.js 的 JS 兜底補一段淡出。 */
+@view-transition { navigation: auto; }
+
+/* 舊頁往上淡、新頁從下面推上來，時長對齊 --t-large 的節奏。
+   ::view-transition-old/new(root) 是整頁快照，只做位移與淡入淡出，不做縮放——
+   縮放會讓文字在過場中途變糊。 */
+@keyframes vtOut { to { opacity: 0; transform: translateY(-10px); } }
+@keyframes vtIn  { from { opacity: 0; transform: translateY(14px); } }
+::view-transition-old(root) { animation: vtOut 220ms cubic-bezier(.55, .02, .86, .30) both; }
+::view-transition-new(root) { animation: vtIn  380ms cubic-bezier(.16, .84, .44, 1) both; }
+
+/* 兩頁的 bs 標記共用同一個名字，換頁時會從 landing 頂列**移動**到 flow 的左側 rail。
+   一份文件裡同一個名字只能有一個元素，兩頁各只有一顆，成立。 */
+.topbar .mark, .rail-mark { view-transition-name: brandmark; }
+
+/* JS 兜底：沒有 View Transitions 時，導航前先掛這個 class 播淡出 */
+@keyframes pageOut { to { opacity: 0; transform: translateY(-10px); } }
+body.leaving { animation: pageOut 220ms cubic-bezier(.55, .02, .86, .30) both; }
+
 /* ── reset ───────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
 html, body { height: 100%; }

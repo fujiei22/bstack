@@ -1361,6 +1361,36 @@ function applyThemeMode(mode) {
   };
 })();
 
+/* ── 換頁轉場的兜底 ────────────────────────────────────────────────────── */
+(function () {
+/**
+ * 沒有跨文件 View Transitions 時的兜底：導航前先播一段淡出。
+ *
+ * 有支援就什麼都不做——瀏覽器自己會處理，這裡再攔一次會變成播兩遍。
+ * 只攔本站的 .html 連結；外部連結、新分頁、修飾鍵點擊一律放行。
+ */
+function setupPageExit() {
+  if (CSS.supports && CSS.supports('view-transition-name', 'none')) return;
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a || a.target === '_blank') return;
+    var href = a.getAttribute('href');
+    if (!href || !/^\.\/[\w-]+\.html$/.test(href)) return;
+    e.preventDefault();
+    document.body.classList.add('leaving');
+    // 220ms 是 pageOut 的時長；animationend 收不到就靠這個 timeout 保底導航，
+    // 不然動畫被中斷時使用者會卡在原地
+    var go = function () { window.location.href = href; };
+    var done = false;
+    var once = function () { if (!done) { done = true; go(); } };
+    document.body.addEventListener('animationend', once, { once: true });
+    setTimeout(once, 320);
+  });
+}
+setupPageExit();
+})();
+
 /* ── 鍵盤 ──────────────────────────────────────────────────────────────── */
 window.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape') return;
