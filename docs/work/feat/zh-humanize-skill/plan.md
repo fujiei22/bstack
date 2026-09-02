@@ -4,7 +4,7 @@
 > 對應 review: `docs/work/feat/zh-humanize-skill/review.md`（四視角，11 Critical / 17 Major）
 > Track: Dev | Tier: T3
 > 建立: 2026-09-02（v1 → v2 同日重寫）
-> 並行最大 group: **9（全部串行，理由見 §為什麼不並行）**
+> 並行最大 group: **10（全部串行，理由見 §為什麼不並行）**
 
 **Goal**：把上游繁中去 AI 味能力搬進 `skills/zh-humanize/`，上游身分字串全面移除、第三方歸屬原樣保留，場景層換成開發者情境，三個機制衝突各有明文處置且**有斷言擋得住**。
 
@@ -33,7 +33,7 @@ Raymondhou0917/speak-human-tw @ 1146d868a3e05dd21168ab9fca6ece153563d581
 | # | v1 | v2 |
 |---|---|---|
 | 1 | `gh api` 解析 default branch 當下狀態 | **一律 pin `?ref=<sha>`** |
-| 2 | 8 task、5 group（並行是假的） | **9 task 全部串行** |
+| 2 | 8 task、5 group（並行是假的） | **10 task 全部串行** |
 | 3 | 只換 `references/scenes.md` | **同時處理 `SKILL.md` 內的權威力度表**（K1） |
 | 4 | 去識別斷言 6/8 是空砲 | **只在真有識別字串的三個檔下該斷言**，其餘改為正向內容斷言 |
 | 5 | 沒有 `NOTICE` / README / docs 數字 | **獨立成 Task 1** |
@@ -435,8 +435,11 @@ grep -qE "^name: zh-humanize$" "$f" || { echo "MISS: name 欄"; ok=0; }
 grep -qF "不要觸發" "$f" || { echo "MISS: 缺不要觸發段"; ok=0; }
 grep -qF "SKILL.md 與 CLAUDE.md 這類給 AI 讀的 prompt 檔" "$f" || { echo "MISS: 未排除 prompt 檔"; ok=0; }
 grep -qF "commit message 與 PR 標題" "$f" || { echo "MISS: 未排除 commit message"; ok=0; }
-# 【K11】載入 != 改寫
+# 【K11】兩條路徑必須明文分開，各有斷言
 grep -qF "載入不等於改寫" "$f" || { echo "MISS: 缺 載入不等於改寫"; ok=0; }
+grep -qF "使用者主動呼叫" "$f" || { echo "MISS(K11): 缺主動呼叫路徑"; ok=0; }
+grep -qF "被 verify-done 自動載入時" "$f" || { echo "MISS(K11): 缺自動載入路徑"; ok=0; }
+grep -qF "只列清單，不問、不改、不停" "$f" || { echo "MISS(K11): 自動載入路徑的行為沒寫死"; ok=0; }
 # 【衝突 1】四選項 ＋ 推薦 ＋ Other
 for p in "全部套用" "全部不套用" "我指定編號" "只標問題不改"; do
   grep -qF "$p" "$f" || { echo "MISS(衝突1): $p"; ok=0; }
@@ -512,6 +515,15 @@ grep -rniE "speak-human|Raymond|雷蒙" "$f" && { echo "MISS: 識別字串殘留
 8. **輸出格式加第五欄「命中規則」**（J12）：值域 `patterns #N` / `taiwan-localization` / `scenes:<情境>` / `humanize`。上游 `patterns.md` 本來就是 `### 1.`–`### 38.` 穩定編號，這欄不新增內容、只是把已有的編號帶到輸出上。
 9. **補 bstack 形狀**（J2 / J10）：`§使用契約`、`§檔案路徑解析`（照 `design-direction:81-88` 形制，含「解析不到就明說解析不到」）、`§單檔兜底`（保留上游的降級路徑）、`§Red Flags`、`§hand-off state`、結尾 `[Trace]`。
 
+10. **兩條路徑明文分開**（K11）：
+
+    | 路徑 | 觸發 | 行為 |
+    |---|---|---|
+    | `使用者主動呼叫` | 顯式要求去 AI 味 / 潤稿 | 列清單 → `AskUserQuestion` 四選項 → 依選擇動筆 |
+    | `被 verify-done 自動載入時` | 本輪改動含對外文字檔 | **`只列清單，不問、不改、不停`** |
+
+    第 4-7 點的四選項與動筆紀律**只適用第一條路徑**。混在一起會出現「驗收階段卡住等人回答」或「自動改了你的 README」，兩種都不可接受。
+
 **動工前先載入 `write-skill`**（`dev-workflow:256` 明列「user 要加 skill」是它的觸發條件，v1 全程沒載），跑它的 §Skill 結構模板 與 §Self-review checklist。
 
 - [ ] **Step 4: 跑驗證確認通過** → `PASS`
@@ -563,9 +575,56 @@ done
 
 ---
 
-## Task 9: 驗收 ＋ 全域同步
+## Task 9: `verify-done` 偵測點
 
 **parallel-group**: 9
+**files**: modify `skills/verify-done/SKILL.md`
+
+> **排在 Task 7 之後**：它要引用 skill 的自動載入行為，而那在 Task 7 才定稿。
+> **這是所有 task 裡風險最高的一個**——動的是每個 task 必經的驗收關卡本身。
+
+- [ ] **Step 1: 寫驗證指令**
+
+```bash
+cd "$(git rev-parse --show-toplevel)" && f=skills/verify-done/SKILL.md; ok=1
+grep -qF "§對外文字複查" "$f" || { echo "MISS: 缺章節"; ok=0; }
+for p in "README" "CHANGELOG" "docs/**/*.md"; do
+  grep -qF "$p" "$f" || { echo "MISS(觸發清單): $p"; ok=0; }
+done
+# 排除規則 —— 漏掉的話本 branch 自己寫的每份 spec/plan 都會觸發它
+grep -qF "排除 \`docs/work/\` 與 \`docs/archive/\`" "$f" || { echo "MISS: 缺施工文件排除"; ok=0; }
+grep -qF "只列清單，不問、不改、不停" "$f" || { echo "MISS: 動作沒寫死"; ok=0; }
+# 反向：不得升 blocker、不得改寫（與 §漏網複查 對大改的處置刻意不同）
+grep -qF "對外文字複查" "$f" && grep -A12 "§對外文字複查" "$f" | grep -qF "blocker"   && { echo "MISS: 對外文字複查不得升 blocker"; ok=0; }
+# regression guard：既有的 §漏網複查 不得被動到
+grep -qF "不在 verify-done 補做三方向" "$f" || { echo "MISS(reg): §漏網複查 界線被動到"; ok=0; }
+grep -qF "**全 tier 都跑**" "$f" || { echo "MISS(reg): 全 tier 規則被動到"; ok=0; }
+[ $ok = 1 ] && echo PASS || echo FAIL
+```
+
+- [ ] **Step 2: 跑驗證確認失敗**
+
+```
+# Expected: FAIL —— 章節不存在，前 6 條 MISS
+# 兩條 regression guard 現況已綠（實測 verify-done 現有內容），本輪須保持綠
+```
+
+- [ ] **Step 3: 寫內容**
+
+`§使用契約` 加一步（照 2.5 的形制，成本同樣是 1 個 `git diff`），並新增 `§對外文字複查`：
+
+- **觸發清單**：`README*`、`CHANGELOG*`、`docs/**/*.md`，**排除 `docs/work/` 與 `docs/archive/`**（那是 spec / plan / review 等施工文件，不是對外文字——不排除的話本 branch 自己寫的每份文件都會觸發它）
+- **動作**：載入 `zh-humanize`，**只列清單，不問、不改、不停**，結果記進 verify 結果
+- **與 §漏網複查 刻意不同的一點**：`§漏網複查` 補判出大改會**升 blocker**；本節**不升**。理由：文案好壞沒有客觀門檻，升 blocker 會讓每次改 README 都要回答一次，很快變成閃電點掠過的東西
+
+- [ ] **Step 4: 跑驗證確認通過** → `PASS`
+- [ ] **Step 5: commit** `feat: verify-done 加入對外文字複查偵測點`
+
+---
+
+## Task 10: 驗收 ＋ 全域同步
+
+**parallel-group**: 10
 **files**: create `docs/work/feat/zh-humanize-skill/verify.md`；modify `spec.md`
 
 - [ ] **Step 1: 寫驗證指令（spec V1-V11 全覆蓋）**
@@ -646,7 +705,6 @@ evals/run-eval.md                   3570  f13a28d6b9401c29
 
 | # | 問題 | 為什麼不在 v2 |
 |---|---|---|
-| 1 | **K11 的動機矛盾只解了一半** | v2 採「載入 ≠ 改寫」，讓 skill 可被自動載入分析。但 spec 動機說的「沒有一關會攔」要真正關上，得在 `verify-done` 加一個偵測點（改到 README / CHANGELOG / `docs/**/*.md` 就載入做只標不改）。**那超出目前 success criteria，是另一個 branch。** |
 | 2 | `docs/js/references-data.js` 少兩個 skill、產出器不在 repo | merge 後 repo 28 個 skill、docs 站文件抽屜 27 個。follow-up |
 | 3 | `review-plan` 的四個視角模板全是 code 導向 | 本次靠手動改寫繞過，下一個 markdown 類 T3 會再撞。follow-up |
 | 4 | `skills/` 內標「這部分是自寫的」（J13） | **已納入**：Task 5 / 6 的 Step 3 要在檔頭自陳，形制照 `design-language:152`。但沒有斷言鎖住，可能被後續編輯順手刪掉 |

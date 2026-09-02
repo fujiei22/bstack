@@ -24,7 +24,8 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 - 三個機制衝突各有明文處置，且處置理由寫進 skill 本體（不是只寫在 spec）
 - `dev-workflow` 觸發表新增一列，說明何時載入
 - 對既有 27 個 skill **零行為改動**（除 `dev-workflow` 觸發表加一列外）
-- **載入 ≠ 改寫**：可被自動載入去分析、列清單，但沒有 `AskUserQuestion` 的明確選擇就不動任何一個字
+- **兩條路徑分開**：使用者主動呼叫 → 列清單 → `AskUserQuestion` 四選項 → 依選擇動筆；`verify-done` 自動載入 → **只列清單進 verify 結果**，不問、不改、不停
+- **`verify-done` 加偵測點**：本輪改動含 `README*` / `CHANGELOG*` / `docs/**/*.md`（排除 `docs/work/` 與 `docs/archive/`）→ 自動載入列清單
 - 拿兩份稿跑一次（一份已知有 AI 味、一份是 `docs/index.html` 的 hero），能列出可稽核的問題清單
 
 ## 範圍 / Scope
@@ -35,6 +36,7 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 - 三個機制衝突的改寫（見 §機制衝突與處置）
 - 全面去識別：目錄名、frontmatter 九個額外欄位、作者姓名與內文人名指涉
 - `skills/dev-workflow/SKILL.md` 觸發表加一列
+- `skills/verify-done/SKILL.md` 新增 §對外文字複查（照 §漏網複查 形制）
 - 搬 `evals/benchmark.md`（42 條）與 `evals/run-eval.md`（怎麼跑的說明書）
 - **repo root 新增 `NOTICE`**：交代 MIT 上游與 `patterns.md` 自陳的第三方（CC BY-SA）歸屬
 - `README.md` 跨流程表加一列、`Skills（27）` → `（28）`
@@ -65,6 +67,7 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 | `skills/zh-humanize/evals/benchmark.md` | new（~21KB） | 中——42 條用例的文本是電子報／銷售頁情境，見 §已知限制 |
 | `skills/zh-humanize/evals/run-eval.md` | new（~4KB） | 低——怎麼跑的說明書，無腳本 |
 | `skills/dev-workflow/SKILL.md` | edit（+1 列） | 中——所有 task 必經之路 |
+| `skills/verify-done/SKILL.md` | edit（+1 節、§使用契約 +1 步） | **高——所有 task 必經之路，且動的是驗收關卡本身** |
 | `NOTICE` | new | 低——五到十行，交代兩層來源與 pinned SHA |
 | `README.md` | edit（+1 列、27→28） | 低——但這是 clone 下來的人唯一的目錄，不改等於沒交付 |
 | `docs/index.html` | edit（`:8`、`:46` 兩處數字） | 低——改的是事實數字，不觸及文案 |
@@ -182,6 +185,23 @@ date   2026-09-02T04:02:38Z  （對應 v1.4.0 之後的 master）
 
 **同時移除上游的孿生條款。** 上游 `SKILL.md` 另有一條「使用者在這次請求裡已明確授權跳過確認（例：『不用列清單，直接幫我改』）→ 可直接動筆」。**那條例外的判定方式就是拿自由文字當 gate 信號**，與衝突 1 被禁的是同一件事、寫在同一份檔裡。v1 的 spec 曾把它引用成衝突 2 的解法——那是錯的，等於前門上鎖後門大開。呼叫端要自動化 → **那是呼叫端不該用這個 skill**，不是 skill 該開後門。
 
+### 兩條路徑的分工（K11 的設計解，非衝突）
+
+原本擔心的衝突是：`verify-done` 自動載入 → skill 說「停下來等 `AskUserQuestion`」→ **每次改 README 驗收就卡住**。
+
+實查 `verify-done §漏網複查` 的界線硬規則，這個衝突不存在：
+
+> **不在 verify-done 補做三方向。**⋯⋯verify-done 的職責是**把漏網這件事變成看得見的**，不是把它就地補完。
+
+`verify-done` 要的只是一份清單。所以：
+
+| 路徑 | 觸發 | 行為 |
+|---|---|---|
+| 使用者主動呼叫 | 顯式要求去 AI 味 / 潤稿 | 列清單 → `AskUserQuestion` 四選項 → 依選擇動筆 |
+| `verify-done` 自動載入 | 本輪改動含對外文字檔 | **只列清單進 verify 結果**，不問、不改、不停、不升 blocker |
+
+**這兩條路徑必須在 `SKILL.md` 內明文分開，並各有斷言鎖住。** 混在一起就會出現「驗收階段卡住等人回答」或「自動改了你的 README」——兩種都不可接受。
+
 ### 衝突 3 · 識別字串
 
 見 §上游來源與授權立場 的去識別範圍。
@@ -201,7 +221,8 @@ date   2026-09-02T04:02:38Z  （對應 v1.4.0 之後的 master）
 | V8 | 保護清單涵蓋開發者情境 | `protected-list.md` 含上游**五類**（第 5 類原文是「承諾**類文字**」不是「承諾條款」）＋ 新增的指令 / 路徑 / 版本號 / error message / code block；用 V7 的實跑驗證 |
 | V9 | `NOTICE` 存在且交代兩層 | repo root 有 `NOTICE`，內含上游 repo、MIT、pinned commit SHA，以及 `patterns.md` 的 CC BY-SA 來源 |
 | V10 | `27` 全部改對 | `README.md:21`、`docs/index.html:8`、`docs/index.html:46` 三處數字改為 28；`grep -rn "27 個 skill\|Skills（27）" README.md docs/index.html` 零命中 |
-| V11 | 既有 skill 零行為改動 | `git diff --name-only main -- skills/` 扣掉 `zh-humanize/` 與 `dev-workflow/SKILL.md` 後須為空 |
+| V11 | 既有 skill 零行為改動 | `git diff --name-only main -- skills/` 扣掉 `zh-humanize/`、`dev-workflow/SKILL.md`、`verify-done/SKILL.md` 後須為空 |
+| V12 | `verify-done` 偵測點生效 | `verify-done` 含 §對外文字複查，觸發清單為 `README*` / `CHANGELOG*` / `docs/**/*.md` 且**明文排除 `docs/work/` 與 `docs/archive/`**；動作是「列清單進 verify 結果」，**不得出現升 blocker 或改寫**。反向驗證：`docs/work/` 排除規則若漏掉，本 branch 自己寫的每份 spec/plan 都會觸發它 |
 
 ## 風險與 trade-off
 
