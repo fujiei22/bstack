@@ -76,11 +76,20 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 
 ## 設計方向
 
-**不適用**：`design.involved=false`。
+**v2.1 起 `involved` 改為 `true`。** v1/v2 寫的是 `false`，依據是「改動檔為 `skills/**/*.md` 與 `docs/**/*.md`」——那是把 `docs/index.html` 加進 scope（K10）**之前**的判定，已過期。
 
-判定依據：改動檔為 `skills/**/*.md` 與 `docs/**/*.md`，**無前端副檔名命中**（`.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`）；且 `skills/**` 本來就被 `design-language` §使用契約 第 1 步排除（skill 定義目錄是工具範本，不是專案介面）。
+| 欄位 | 值 | 依據 |
+|---|---|---|
+| `involved` | **`true`** | `docs/index.html` 命中 `design-language §前端副檔名`，且不在 skill 定義目錄底下（不適用第 1 步排除） |
+| `scope` | 文件站 | `docs/reference/design-map.md`（`d73d674` 進版控，docs 改版那輪 user 確認後寫入） |
+| `scope_evidence` | `docs/css/styles.css` | 同上（唯一 importer 是 `docs/index.html`） |
+| `size` | **小改** | 只改兩處文字數字（`27` → `28`），**沿用既有 token 與元件、零新視覺決策**。依 §兩根尺，`size` 不從 Tier 推導——本 task 是 T3，但 `size` 仍是小改 |
+| `precedent` | `true` | 地圖存在且經 §失效檢查 三條全過 |
+| `map_status` | **`ok`** | §失效檢查實跑：① token 來源 `docs/css/styles.css` 存在 ② `docs/index.html` 在 `docs/**` 內 ③ 實際 import 與地圖那列對得上 |
 
-`scope: null` / `scope_evidence: null` / `size: null` / `precedent: false` / `map_status: unknown`。
+**§失效檢查第 3 條的細節**（值得記，因為差一點就判成過期）：`docs/index.html:34` 另外 import 了 `docs/css/landing.css`，而地圖只記 `styles.css`。實查 `landing.css`：**自宣告 `--` 變數 0 個、無 `:root`、`var(--)` 引用 115 次**——它是 token 的**消費者**不是來源，所以地圖那列仍然正確，不算過期。
+
+**小改路徑**：Task 1 改完跑 `design-language §對齊檢查清單` 四項，結果記進 `verify.md`。
 
 ## DB 影響
 

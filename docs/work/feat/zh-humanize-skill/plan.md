@@ -104,7 +104,9 @@ if [ -f NOTICE ]; then
   done
 fi
 # README：表加一列 ＋ 數字改對
-grep -qF "\`zh-humanize\`" README.md || { echo "MISS: README 無 zh-humanize"; ok=0; }
+# 注意：README 那張表的慣例是**粗體**（| **debug-systematic** |），不是 backtick。
+# backtick 是 dev-workflow 觸發表的慣例——兩張表樣式不同，實抓過才知道
+grep -qF "| **zh-humanize** |" README.md || { echo "MISS: README 無 zh-humanize"; ok=0; }
 grep -qF "## Skills（28）" README.md || { echo "MISS: README 標題未改 28"; ok=0; }
 grep -qF "## Skills（27）" README.md && { echo "MISS: README 舊數字殘留"; ok=0; }
 # docs 站兩處
