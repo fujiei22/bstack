@@ -10,7 +10,7 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 
 | 缺口 | 現況 | 本 spec 的處置 |
 |---|---|---|
-| **繁中「AI 味」的辨識與改寫** | 已有成熟方案（繁中台灣用語、38 種痕跡、40 條 benchmark、季度維護） | **搬進來，不重造** |
+| **繁中「AI 味」的辨識與改寫** | 已有成熟方案（繁中台灣用語、38 種痕跡、42 條 benchmark、季度維護） | **搬進來，不重造** |
 | **開源工具站的文案文體** | 全生態系沒有人做 | **不在本 branch**，另立 |
 
 **為什麼不自己寫去 AI 味那塊**：它需要的是長期累積的「痕跡樣本庫」（38 種模式、60+ 中國用語對照），不是靠推理能寫出來的東西。自己寫會得到一份看起來合理、但漏掉大半實際模式的清單。
@@ -34,6 +34,7 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 - 三個機制衝突的改寫（見 §機制衝突與處置）
 - 全面去識別：目錄名、frontmatter 九個額外欄位、作者姓名與內文人名指涉
 - `skills/dev-workflow/SKILL.md` 觸發表加一列
+- 搬 `evals/benchmark.md`（42 條）與 `evals/run-eval.md`（怎麼跑的說明書）
 - `docs/work/feat/zh-humanize-skill/` 的 spec / plan / review / 驗收記錄
 
 **排除**（明寫避免 scope creep）：
@@ -43,6 +44,7 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 - **修 `docs/index.html` 的文案** —— 那是本 skill 建好之後的應用，不是建置工作
 - **孤兒偵測的外部 skill 白名單** —— follow-up。vendor 進 repo 後本次不會踩到
 - **`references-data.js` 的產出器** —— follow-up
+- **自動化跑分** —— user 決定照上游做法用自然語言 ＋ 人工對照。實查上游全 repo 只有一支 `.py`（產 README 星數圖）與一個 workflow（跑那支圖），**`evals/` 底下 4 個檔全是 `.md`，沒有 test runner、沒有 assert、沒有 CI 跑 benchmark**
 - 上游的 `install/`（各平台安裝腳本）、`scripts/generate_star_history.py`、`assets/`
 
 ## 影響檔案 / Codebase impact
@@ -51,12 +53,13 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 |---|---|---|
 | `skills/zh-humanize/SKILL.md` | new | 中——需重寫確認機制與非互動判定，不是照抄 |
 | `skills/zh-humanize/references/patterns.md` | new（~28KB） | 低——樣本庫，改動最少 |
-| `skills/zh-humanize/references/examples.md` | new（~19KB） | **高——場景是否改成開發者情境未定，見 §待釐清 1** |
+| `skills/zh-humanize/references/examples.md` | new（~19KB） | **高——13 組實例要重寫成開發者情境（已定 1）** |
 | `skills/zh-humanize/references/humanize.md` | new（~7KB） | 低 |
 | `skills/zh-humanize/references/taiwan-localization.md` | new（~5KB） | 低 |
-| `skills/zh-humanize/references/scenes.md` | new（~5KB） | **高——同 examples.md** |
+| `skills/zh-humanize/references/scenes.md` | new（~5KB） | **高——五個情境的力度表要整片換掉（已定 1）** |
 | `skills/zh-humanize/references/protected-list.md` | new（~4KB） | 中——保護清單要加開發者情境項（指令 / 路徑 / 版本號 / error message） |
-| `skills/zh-humanize/references/benchmark.md` | new | 低——當回歸基準用 |
+| `skills/zh-humanize/evals/benchmark.md` | new（~21KB） | 中——42 條用例的文本是電子報／銷售頁情境，見 §已知限制 |
+| `skills/zh-humanize/evals/run-eval.md` | new（~4KB） | 低——怎麼跑的說明書，無腳本 |
 | `skills/dev-workflow/SKILL.md` | edit（+1 列） | 中——所有 task 必經之路 |
 
 **未動**：`CLAUDE.md`、`scripts/setup.ps1`（它同步整個 `skills/` 目錄，`design-direction` 已驗證能處理 `references/` 子目錄）、其餘 26 個 skill。
@@ -83,7 +86,7 @@ bstack 目前 27 個 skill **沒有任何一個處理「給人讀的文字」**�
 star 920 · MIT · default branch master · 最後更新 2026-09-02
 v1.4.0 · maturity: governed · review_cadence: quarterly
 SKILL.md 20,872 bytes ＋ references 6 檔 68,580 bytes ＋ evals/ ＋ install/
-38 種 AI 痕跡 · 40 條 benchmark · 60+ 中國用語→台灣用語對照
+38 種 AI 痕跡 · 42 條 benchmark（27 SF ＋ 15 SNF）· 60+ 中國用語→台灣用語對照
 ```
 
 **選它的理由**：唯一一個**從頭以繁體中文與台灣用語校準**的，跟 bstack 全套語言設定一致；MIT；活躍維護；且它自己把邊界劃在「只去 AI 味、不加個人風格」，與 bstack 未來的文體 skill 不重疊。
@@ -157,20 +160,33 @@ user 決定：**改名、全面去識別**，不保留作者姓名、不放版�
 | 風險 | 說明 | 緩解 |
 |---|---|---|
 | **上游會繼續更新，我們的副本不會** | 上游季度 review、今天還在更新 v1.4.0。全面去識別後**使用者追不到上游**，維護者也容易忘記 | `docs/work/` 的 spec 記下來源與版本；follow-up 排一個「定期比對上游」的機制 |
-| **場景層可能整片不適用** | 上游五個情境是電子報 / 社群 / 銷售頁 / 客服信 / 辦公文書，**沒有一個是開發者的對外內容** | 見 §待釐清 1，這是本 task 最大的未定項 |
+| **場景層整片重寫，等於自寫一個判斷層** | 上游五個情境沒有一個是開發者的對外內容，已定改成開發者情境（已定 1）。重寫的部分**沒有上游驗證過**，是本 branch 自己的產出 | benchmark 驗不到這一層（見 §已知限制）；靠 V7 實跑 ＋ review 把關 |
 | **89KB 進 repo，其中 47KB 是樣本庫** | `patterns.md` 28KB ＋ `examples.md` 19KB。skill body 走按需載入、不進每個 session；但 repo 體積與 review 成本是真的 | reference 分檔，SKILL.md 只放路由；review 時樣本庫可抽樣審 |
 | **T3 的 security-audit 產出會很空** | 全部是 markdown，OWASP 那套幾乎全 N/A | 不為了填表湊風險。**但上游那段 prompt injection 防護正是 security 視角該看的**——即使本 branch 不升 `CLAUDE.md`，審的時候要看它在 skill 內是否保留 |
 | **改名後與上游的雙向可追溯性斷裂** | `zh-humanize` 與上游之間沒有任何字串連結 | 同第一列 |
 
-## 待釐清
+## 已知限制
 
-1. **場景層要不要換成開發者情境**（本 task 最大的未定項，影響 `scenes.md` ＋ `examples.md` 共 24KB）：
-   - **(a) 照搬上游五個情境**（電子報 / 社群貼文 / 銷售頁 / 客服回信 / 辦公文書）——工作量小，但 bstack 的使用者是拿它去開發專案的人，這五個情境**沒有一個是他們的日常**
-   - **(b) 換成開發者情境**（README / release notes / 文件 / issue 與 PR 回覆 / 產品站文案）——貼合實際用途，但等於重寫 `scenes.md` 的力度表與 `examples.md` 的 13 組實例，工作量是本 task 的一半以上
-   - **(c) 兩套並存**——上游五個保留、另加開發者五個。檔案變大，但兩種用途都接得住
+**benchmark 的 42 條用例量不到重寫過的場景層。**
 
-   **傾向 (b)**，理由：照搬的話這個 skill 在 bstack 的實際使用情境下**沒有一條力度規則適用**，等於搬了一個用不到的判斷層。但這是 user 決定。
+用例文本全是電子報 / 社群貼文 / 銷售頁 / 客服信情境。它們驗得到的是**規則層**——AI 痕跡有沒有被抓到（`patterns.md`）、保護清單有沒有漂移（`protected-list.md`），而這兩份我們基本照搬，所以驗證仍然成立。
 
-2. **`benchmark.md` 搬不搬、搬了怎麼跑**：bstack 目前沒有跑 eval 的機制。傾向搬進來當**回歸基準的文字紀錄**（改寫規則時對照用），不建自動化跑分——那會是另一個 T2。
+驗不到的是**場景層**：改寫力度的判定（`scenes.md`）與實例（`examples.md`）換成開發者情境之後，**沒有任何一條用例測得到新的力度表**。
 
-3. **名字 `zh-humanize` 是否合意**：bstack 其餘 27 個 skill 都沒有語言前綴，但這個 skill 的規則**只對中文成立**（省略主詞、全形標點、中國用語對照），前綴是有資訊量的。備選：`zh-tw-polish`、`text-humanize`。
+這是明知的取捨，不是遺漏。處置：
+
+- 本 branch **不補開發者情境的用例**（補一條 SF 就要配一條 SNF，那是另一個量體）
+- 靠 V7 的實跑（拿 `docs/index.html` 的真實文案跑一次）＋ T3 的雙視角 review 把關
+- **follow-up**：補開發者情境的 SF/SNF 成對用例
+
+## 已定事項（原待釐清）
+
+1. ~~場景層要不要換成開發者情境~~ → **已定**：**換成開發者情境**（README / release notes / 文件 / issue 與 PR 回覆 / 產品站文案）。上游五個情境沒有一個是 bstack 使用者的日常，照搬等於搬一個用不到的判斷層。代價見 §已知限制。
+
+2. ~~`benchmark.md` 搬不搬、搬了怎麼跑~~ → **已定**：**搬，含 `run-eval.md`，照上游做法用自然語言 ＋ 人工對照，不建腳本。**
+
+   實查依據（`gh api git/trees?recursive=1`）：上游全 repo 只有一支 `.py`（`scripts/generate_star_history.py`，產 README 星數圖）與一個 workflow（跑那支圖），`evals/` 底下 4 個檔全是 `.md`。**沒有 test runner、沒有 assert、沒有 CI 跑 benchmark。** 它的 96% / 0 誤殺是「`codex exec` 跑改寫端 → 另一個模型當判分端 → 人工終判 → 手寫進 results 檔」得到的。
+
+   評估過的自動化選項與否決理由：**能機械判定的只有「保真」（保護 span 逐字比對）與「不換湯」（同族詞表比對）兩項**，而且兩項都需要先做前置工作——42 條用例逐條加結構化欄位、自建同族詞表——且「承諾條款只能調語氣不能調意思」這類保護項本身就是語意判斷、機械檢查不了。命中率與誤殺率天生要模型或人判。**分數的主體部分自動不了**，因此不做。
+
+3. ~~名字~~ → **已定**：`zh-humanize`。語言前綴有資訊量——這個 skill 的規則只對中文成立（省略主詞、全形標點、中國用語對照）。
