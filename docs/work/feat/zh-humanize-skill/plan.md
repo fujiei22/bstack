@@ -1,9 +1,9 @@
-# `zh-humanize` Implementation Plan **v2**
+# `zh-humanize` Implementation Plan **v2.2**
 
 > 對應 spec: `docs/work/feat/zh-humanize-skill/spec.md`
 > 對應 review: `docs/work/feat/zh-humanize-skill/review.md`（四視角，11 Critical / 17 Major）
 > Track: Dev | Tier: T3
-> 建立: 2026-09-02（v1 → v2 同日重寫）
+> 建立: 2026-09-02（v1 → v2 → v2.1 → v2.2，同日三輪；每輪的依據見 `review.md`）
 > 並行最大 group: **10（全部串行，理由見 §為什麼不並行）**
 
 **Goal**：把上游繁中去 AI 味能力搬進 `skills/zh-humanize/`，上游身分字串全面移除、第三方歸屬原樣保留，場景層換成開發者情境，三個機制衝突各有明文處置且**有斷言擋得住**。
@@ -51,6 +51,9 @@ v1 四條照舊：pattern 必須在 Step 3 原文逐字找得到、backtick 一�
 |---|---|---|
 | 5 | **搬檔 task 的斷言對「什麼都沒做」給 PASS**（實測 Task 1 把上游原封不動放進去也全綠） | 每個搬檔 task 至少一條**正向內容斷言**（節數、逐字關鍵句），不能只有「檔案存在＋位元組下限」 |
 | 6 | **反向斷言在檔案不存在時假綠** | 每條反向 grep 前加 `[ -f "$f" ] \|\| { echo "MISS: 檔案不存在，反向斷言無效"; ok=0; }`，用機制不用註解 |
+| 8 | **反向斷言鎖的字串在目標檔內不唯一** → 刪掉關鍵那一處，另一處還在、guard 全綠（實測：刪掉 `verify-done:25` 的掛載行可靜默停用整個 §漏網複查） | regression guard 鎖**完整的那一行**，不鎖出現在多處的片語 |
+| 9 | **反向斷言鎖的 token 出現在 Step 3 自己要求寫的文字裡** → 永遠紅（實測：Task 9 要求寫一句「為什麼不升 blocker」，卻用「不准出現 blocker」當斷言） | 鎖**正向措辭**（「本節不升 blocker」），不鎖 token 的存在與否 |
+| 10 | **bash 區塊語法錯但沒人發現** | 全檔 `bash -n` 逐塊檢查（v2.2 實測 11 塊全過） |
 | 7 | **Step 3 描述一個還沒讀過的外部檔案** → 敘述與上游實情不符（四類 vs 五類、第三段標題、刪除指示指錯檔） | Step 3 引用上游結構時，**必須是從 pinned SHA 實抓後寫下的**，不得憑印象 |
 
 ---
@@ -329,12 +332,12 @@ grep -qF "文體選擇不歸本 skill 管" "$f" 2>/dev/null || { echo "MISS: 文
 [ -f "$f" ] || { echo "MISS: 反向斷言無效（檔案不存在）"; ok=0; }
 # 上游【五個】情境必須全部換掉 —— v1 只擋三個，殘留兩節仍全綠（已實測）
 for p in "社群貼文" "電子報" "銷售頁" "客服" "辦公文書"; do
-  grep -qE "^\| $p" "$f" && { echo "MISS: 上游情境列殘留: $p"; ok=0; }
+  grep -qE "^## $p" "$f" && { echo "MISS: 上游情境節殘留: $p"; ok=0; }
 done
 [ $ok = 1 ] && echo PASS || echo FAIL
 ```
 
-> 反向斷言用 `^\| ` 行首錨定表格列，不鎖裸關鍵字——否則寫一句「上游原本的『銷售頁』情境換成產品站文案」這種遷移註記就會誤紅。
+> 反向斷言用 `^## ` 錨定**章節標題**——**實測上游是 `## 社群貼文（力度：輕）` 這種 H2，不是表格列**。v2.1 用 `^\| ` 錨定命中 0/5，比 v1 的裸 grep（3/5）更糟：修「誤紅」把「漏抓」修壞了。錨 H2 兩件事同時成立。
 
 - [ ] **Step 2: 跑驗證確認失敗**
 
@@ -386,12 +389,13 @@ n_c=$(grep -c '^\*\*改了什麼\*\*' "$f" 2>/dev/null); n_c=${n_c:-0}
 # 至少一組示範保護清單生效
 grep -qF "保護清單生效" "$f" 2>/dev/null || { echo "MISS: 缺保護清單示範"; ok=0; }
 [ -f "$f" ] || { echo "MISS: 反向斷言無效（檔案不存在）"; ok=0; }
-for p in "社群貼文" "電子報" "銷售頁" "客服" "辦公文書"; do
+for p in "社群貼文" "電子報" "銷售頁" "客服" "辦公文書" "個人品牌貼文" "電商產品文案" "自我介紹"; do
   grep -qE "^## $p" "$f" && { echo "MISS: 上游情境節殘留: $p"; ok=0; }
 done
 [ $ok = 1 ] && echo PASS || echo FAIL
 ```
 
+> **上游 `examples.md` 實測有八節**，v2.1 只守五個。
 > **第三段標題是「改了什麼」不是「為什麼這樣改」。** 實測上游 `examples.md`：`改寫前` 13 次、`改寫後` 13 次、`為什麼這樣改` **0 次**。v1 的 Step 3 寫「沿用上游三段式（改寫前 / 改寫後 / 為什麼這樣改）」，照上游做會紅、照斷言做那句話就是錯的。
 
 - [ ] **Step 2: 跑驗證確認失敗**
@@ -440,6 +444,10 @@ grep -qF "載入不等於改寫" "$f" || { echo "MISS: 缺 載入不等於改寫
 grep -qF "使用者主動呼叫" "$f" || { echo "MISS(K11): 缺主動呼叫路徑"; ok=0; }
 grep -qF "被 verify-done 自動載入時" "$f" || { echo "MISS(K11): 缺自動載入路徑"; ok=0; }
 grep -qF "只列清單，不問、不改、不停" "$f" || { echo "MISS(K11): 自動載入路徑的行為沒寫死"; ok=0; }
+# 【C3】四條「字串存在」斷言擋不住「兩條路徑混在一起」——實測可造出表格完整、
+# 但 §使用契約 無條件走四選項的版本，37 條斷言全綠而驗收階段會卡住。要鎖綁定不是存在：
+grep -qF "四選項只適用 \`使用者主動呼叫\` 這條路徑" "$f" || { echo "MISS(C3): 四選項未綁定路徑"; ok=0; }
+grep -qF "被 verify-done 自動載入時不問、不等、直接把清單寫進 verify 結果" "$f" || { echo "MISS(C3): 自動載入路徑未寫進使用契約"; ok=0; }
 # 【衝突 1】四選項 ＋ 推薦 ＋ Other
 for p in "全部套用" "全部不套用" "我指定編號" "只標問題不改"; do
   grep -qF "$p" "$f" || { echo "MISS(衝突1): $p"; ok=0; }
@@ -482,6 +490,11 @@ for p in "非互動環境" "codex exec" "claude -p" "沒有後續對話輪次" \
          "跳過確認、事後摘要" "自動化工作流模式" "保留確認清單"; do
   grep -qF "$p" "$f" && { echo "MISS(衝突2): 殘留 $p"; ok=0; }
 done
+# 【C4】孿生後門條款 —— 實測上游 :65-68「例外：可以跳過清單、直接動手的情況」
+# 含上面七個關鍵詞的 0 個。衝突 2 守住了「環境偵測」那一半，漏掉「自由文字當 gate」這一半
+for p in "明確授權跳過確認" "可以跳過清單、直接動手" "直接幫我改"; do
+  grep -qF "$p" "$f" && { echo "MISS(後門): 殘留 $p"; ok=0; }
+done
 # 【K1】上游的權威力度表必須整張換掉（v1 完全沒管，兩張矛盾的表會一起出貨）
 for p in "社群貼文" "電子報" "銷售頁" "客服" "辦公文書"; do
   grep -qF "$p" "$f" && { echo "MISS(K1): SKILL.md 內殘留上游情境 $p"; ok=0; }
@@ -513,7 +526,7 @@ grep -rniE "speak-human|Raymond|雷蒙" "$f" && { echo "MISS: 識別字串殘留
 6. **非互動段落整段刪除**（衝突 2 / K2），改為一句「**不做環境偵測**。沒有人回答就停在這裡等。」**上游的孿生後門條款（『明確授權跳過確認』）一併刪除**——spec §衝突 2 已定。
 7. **`確認之前不得寫入或覆蓋原始檔案`**（J11）：bstack 實測 auto mode 下無 hook 攔 `Bash`，這條是唯一防線。
 8. **輸出格式加第五欄「命中規則」**（J12）：值域 `patterns #N` / `taiwan-localization` / `scenes:<情境>` / `humanize`。上游 `patterns.md` 本來就是 `### 1.`–`### 38.` 穩定編號，這欄不新增內容、只是把已有的編號帶到輸出上。
-9. **補 bstack 形狀**（J2 / J10）：`§使用契約`、`§檔案路徑解析`（照 `design-direction:81-88` 形制，含「解析不到就明說解析不到」）、`§單檔兜底`（保留上游的降級路徑）、`§Red Flags`、`§hand-off state`、結尾 `[Trace]`。
+9. **補 bstack 形狀**（J2 / J10）：`§使用契約`、`§檔案路徑解析`（照 `design-direction:81-88` 形制，含「解析不到就明說解析不到」）、`§單檔兜底`（**改寫上游的降級路徑，不是照搬**——上游那節第一條 bullet 逐字含「有什麼地方是你覺得需要修改的嗎」與「等使用者回覆」，兩者都是本 task 的反向斷言，照搬會直接紅。要改寫成四選項版本）、`§Red Flags`、`§hand-off state`、結尾 `[Trace]`。
 
 10. **兩條路徑明文分開**（K11）：
 
@@ -594,11 +607,16 @@ done
 # 排除規則 —— 漏掉的話本 branch 自己寫的每份 spec/plan 都會觸發它
 grep -qF "排除 \`docs/work/\` 與 \`docs/archive/\`" "$f" || { echo "MISS: 缺施工文件排除"; ok=0; }
 grep -qF "只列清單，不問、不改、不停" "$f" || { echo "MISS: 動作沒寫死"; ok=0; }
-# 反向：不得升 blocker、不得改寫（與 §漏網複查 對大改的處置刻意不同）
-grep -qF "對外文字複查" "$f" && grep -A12 "§對外文字複查" "$f" | grep -qF "blocker"   && { echo "MISS: 對外文字複查不得升 blocker"; ok=0; }
-# regression guard：既有的 §漏網複查 不得被動到
+# 【M2】掛載點 —— 章節寫得再完整，沒有一步會叫它就是孤兒（實測：只加章節不加掛載點也全綠）
+grep -qF "2.6 **跑 §對外文字複查 的觸發判斷**" "$f" || { echo "MISS: 新章節沒有掛載點"; ok=0; }
+# 【C1】改鎖正向措辭。v2.1 用「這 12 行內不准出現 blocker」，
+# 而 Step 3 要求寫的正是一句解釋為什麼不升 blocker 的話 —— 斷言永遠紅
+grep -qF "本節不升 blocker" "$f" || { echo "MISS: 未明寫本節不升 blocker"; ok=0; }
+# 【M1】regression guard 鎖完整掛載行 —— 「**全 tier 都跑**」在檔內出現兩次（:25 掛載點、:105 內文），
+# 只鎖那個字串的話，刪掉 :25 會靜默停用整個 §漏網複查 而 guard 全綠（已實測）
+grep -qF "2.5 **跑 §漏網複查 的觸發判斷**" "$f" || { echo "MISS(reg): §漏網複查 的掛載點被動到"; ok=0; }
 grep -qF "不在 verify-done 補做三方向" "$f" || { echo "MISS(reg): §漏網複查 界線被動到"; ok=0; }
-grep -qF "**全 tier 都跑**" "$f" || { echo "MISS(reg): 全 tier 規則被動到"; ok=0; }
+grep -qF "已被 \`design_rejudge\` 處理過的檔不重複觸發" "$f" || { echo "MISS(reg): §漏網複查 觸發條件被動到"; ok=0; }
 [ $ok = 1 ] && echo PASS || echo FAIL
 ```
 
@@ -611,11 +629,11 @@ grep -qF "**全 tier 都跑**" "$f" || { echo "MISS(reg): 全 tier 規則被動�
 
 - [ ] **Step 3: 寫內容**
 
-`§使用契約` 加一步（照 2.5 的形制，成本同樣是 1 個 `git diff`），並新增 `§對外文字複查`：
+`§使用契約` 加第 **2.6** 步，逐字寫成 `2.6 **跑 §對外文字複查 的觸發判斷**`（照 2.5 的形制，成本同樣是 1 個 `git diff`），並新增 `§對外文字複查`：
 
 - **觸發清單**：`README*`、`CHANGELOG*`、`docs/**/*.md`，**排除 `docs/work/` 與 `docs/archive/`**（那是 spec / plan / review 等施工文件，不是對外文字——不排除的話本 branch 自己寫的每份文件都會觸發它）
 - **動作**：載入 `zh-humanize`，**只列清單，不問、不改、不停**，結果記進 verify 結果
-- **與 §漏網複查 刻意不同的一點**：`§漏網複查` 補判出大改會**升 blocker**；本節**不升**。理由：文案好壞沒有客觀門檻，升 blocker 會讓每次改 README 都要回答一次，很快變成閃電點掠過的東西
+- **與 §漏網複查 刻意不同的一點**：`§漏網複查` 補判出大改會升 blocker；**本節不升 blocker**。理由：文案好壞沒有客觀門檻，升 blocker 會讓每次改 README 都要回答一次，很快變成閃電點掠過的東西
 
 - [ ] **Step 4: 跑驗證確認通過** → `PASS`
 - [ ] **Step 5: commit** `feat: verify-done 加入對外文字複查偵測點`
@@ -655,7 +673,7 @@ grep -qF "1146d868a3e05dd21168ab9fca6ece153563d581" NOTICE || { echo "MISS V9: N
 grep -rn "27 個 skill" docs/index.html && { echo "MISS V10: docs 舊數字"; ok=0; }
 grep -qF "## Skills（27）" README.md && { echo "MISS V10: README 舊數字"; ok=0; }
 # V11 零行為改動
-git diff --name-only main -- skills/ | grep -v '^skills/zh-humanize/' | grep -v '^skills/dev-workflow/SKILL.md$' \
+git diff --name-only main -- skills/ | grep -v '^skills/zh-humanize/'   | grep -v '^skills/dev-workflow/SKILL.md$' | grep -v '^skills/verify-done/SKILL.md$' \
   && { echo "MISS V11: 動到不該動的 skill"; ok=0; }
 [ $ok = 1 ] && echo PASS || echo FAIL
 ```
@@ -727,4 +745,4 @@ evals/run-eval.md                   3570  f13a28d6b9401c29
 | 每個搬檔 task 有正向內容斷言（紀律 5） | ✅ Task 2 的 38 節、Task 3 的五類、Task 4 的 SF/SNF 計數 |
 | 去識別斷言只下在真有識別字串的檔 | ✅ Task 4、7；Task 2/3/5/6 改為正向內容斷言 |
 | 所有 `gh api` 帶 `?ref=` | ✅ Task 2 Step 3 |
-| 對齊 spec 的 12 個驗收項 | ✅ V1/V2/V4/V4b/V6/V9/V10/V11 在 Task 9；V3 在 Task 8；V5 在 Task 7；V7 在 Task 9 Step 3；V8 在 Task 3 |
+| 對齊 spec 的 **13** 個驗收項 | ✅ V1/V2/V4/V4b/V6/V9/V10/V11 在 **Task 10**；V3 在 Task 8；V5 在 Task 7；V7 在 **Task 10** Step 3；V8 在 Task 3；**V12 在 Task 9 ＋ Task 10 複跑** |
