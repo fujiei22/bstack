@@ -1,6 +1,6 @@
 # 整合繁中去 AI 味能力（`zh-humanize`）
 
-> Track: Dev | Tier: T3 | 建立: 2026-09-02
+> Track: Dev | Tier: T3 | 建立: 2026-09-02 | **驗收完成: 2026-09-03（見 `verify.md`，13 項全綠）**
 
 ## 動機 / Why
 
@@ -219,19 +219,19 @@ date   2026-09-02T04:02:38Z  （對應 v1.4.0 之後的 master）
 
 | # | 驗收項 | 怎麼驗 |
 |---|---|---|
-| V1 | skill 能被同步 | 跑 `setup.ps1`，確認 `~/.claude/skills/zh-humanize/` 出現且 `references/` 完整，`diff -rq` 與 repo 一致 |
-| V2 | 既有行為不壞 | 跑 `setup.ps1`，確認既有 27 skill、2 hook、6 agent 全在，`settings.json` merge 行為照舊；skill 總數變 28 |
-| V3 | 觸發表接上 | `dev-workflow` 觸發表含 `zh-humanize` 一列，且觸發條件與 skill 的 `description` 一致（**兩處措辭要能互相 grep 到**，這是 B2 那輪吃過虧的地方） |
-| V4 | **上游身分字串**清乾淨 | `grep -rniE "speak-human｜Raymond｜雷蒙" skills/` 須零命中。**注意：識別字串在上游只存在於 `SKILL.md`(4)、`benchmark.md`(1)、`run-eval.md`(1)，`references/` 六個檔全部 0**——所以這條斷言只在那三個檔有作用，別拿它給 `references/` 的 task 充數 |
-| V4b | **第三方歸屬**保住 | `patterns.md` 須含「中文維基百科」與「朱宥勳」——反向驗證去識別沒有清過頭 |
-| V5 | 衝突 1 的處置真的不違禁 | skill 本體含粗粒度 `AskUserQuestion` 選項清單，且**沒有任何一處**把自由文字當推進信號。反向斷言：搜「等使用者回覆…才」這類措辭應為零命中 |
-| V6 | 衝突 2 的處置真的不做偵測 | 搜「非互動環境 / codex exec / claude -p / 沒有後續對話輪次 / **跳過確認、事後摘要 / 自動化工作流模式 / 保留確認清單**」全部零命中。**後三個是 v1 漏掉的**——只刪含「非互動」字眼的句子、保留兩個模式 bullet，v1 的斷言會全綠而禁止行為仍在（已實測重現） |
-| V7 | 實跑一次 | 拿 `docs/index.html` 的 hero ＋ 一個 beat 段落餵給它，確認產出的是可稽核的編號清單（含原句與原因），且**沒有動到數字、指令、`<code>` 內容** |
-| V8 | 保護清單涵蓋開發者情境 | `protected-list.md` 含上游**五類**（第 5 類原文是「承諾**類文字**」不是「承諾條款」）＋ 新增的指令 / 路徑 / 版本號 / error message / code block；用 V7 的實跑驗證 |
-| V9 | `NOTICE` 存在且交代兩層 | repo root 有 `NOTICE`，內含上游 repo、MIT、pinned commit SHA，以及 `patterns.md` 的 CC BY-SA 來源 |
-| V10 | `27` 全部改對 | `README.md:21`、`docs/index.html:8`、`docs/index.html:46` 三處數字改為 28；`grep -rn "27 個 skill\|Skills（27）" README.md docs/index.html` 零命中 |
-| V11 | 既有 skill 零行為改動 | `git diff --name-only main -- skills/` 扣掉 `zh-humanize/`、`dev-workflow/SKILL.md`、`verify-done/SKILL.md` 後須為空 |
-| V12 | `verify-done` 偵測點生效 | `verify-done` 含 §對外文字複查，觸發清單為 `README*` / `CHANGELOG*` / `docs/**/*.md` 且**明文排除 `docs/work/` 與 `docs/archive/`**；動作是「列清單進 verify 結果」，**不得出現升 blocker 或改寫**。反向驗證：`docs/work/` 排除規則若漏掉，本 branch 自己寫的每份 spec/plan 都會觸發它 |
+| V1 ✅ | skill 能被同步 | 跑 `setup.ps1`，確認 `~/.claude/skills/zh-humanize/` 出現且 `references/` 完整，`diff -rq` 與 repo 一致 |
+| V2 ✅ | 既有行為不壞 | 跑 `setup.ps1`，確認既有 27 skill、2 hook、6 agent 全在，`settings.json` merge 行為照舊；skill 總數變 28 |
+| V3 ✅ | 觸發表接上 | `dev-workflow` 觸發表含 `zh-humanize` 一列，且觸發條件與 skill 的 `description` 一致（**兩處措辭要能互相 grep 到**，這是 B2 那輪吃過虧的地方） |
+| V4 ✅ | **上游身分字串**清乾淨 | `grep -rniE "speak-human｜Raymond｜雷蒙" skills/` 須零命中。**注意：識別字串在上游只存在於 `SKILL.md`(4)、`benchmark.md`(1)、`run-eval.md`(1)，`references/` 六個檔全部 0**——所以這條斷言只在那三個檔有作用，別拿它給 `references/` 的 task 充數 |
+| V4b ✅ | **第三方歸屬**保住 | `patterns.md` 須含「中文維基百科」與「朱宥勳」——反向驗證去識別沒有清過頭 |
+| V5 ✅ | 衝突 1 的處置真的不違禁 | skill 本體含粗粒度 `AskUserQuestion` 選項清單，且**沒有任何一處**把自由文字當推進信號。反向斷言：搜「等使用者回覆…才」這類措辭應為零命中 |
+| V6 ✅ | 衝突 2 的處置真的不做偵測 | 搜「非互動環境 / codex exec / claude -p / 沒有後續對話輪次 / **跳過確認、事後摘要 / 自動化工作流模式 / 保留確認清單**」全部零命中。**後三個是 v1 漏掉的**——只刪含「非互動」字眼的句子、保留兩個模式 bullet，v1 的斷言會全綠而禁止行為仍在（已實測重現） |
+| V7 ✅ | 實跑一次 | 拿 `docs/index.html` 的 hero ＋ 一個 beat 段落餵給它，確認產出的是可稽核的編號清單（含原句與原因），且**沒有動到數字、指令、`<code>` 內容** |
+| V8 ✅ | 保護清單涵蓋開發者情境 | `protected-list.md` 含上游**五類**（第 5 類原文是「承諾**類文字**」不是「承諾條款」）＋ 新增的指令 / 路徑 / 版本號 / error message / code block；用 V7 的實跑驗證 |
+| V9 ✅ | `NOTICE` 存在且交代兩層 | repo root 有 `NOTICE`，內含上游 repo、MIT、pinned commit SHA，以及 `patterns.md` 的 CC BY-SA 來源 |
+| V10 ✅ | `27` 全部改對 | `README.md:21`、`docs/index.html:8`、`docs/index.html:46` 三處數字改為 28；`grep -rn "27 個 skill\|Skills（27）" README.md docs/index.html` 零命中 |
+| V11 ✅ | 既有 skill 零行為改動 | `git diff --name-only main -- skills/` 扣掉 `zh-humanize/`、`dev-workflow/SKILL.md`、`verify-done/SKILL.md` 後須為空 |
+| V12 ✅ | `verify-done` 偵測點生效 | `verify-done` 含 §對外文字複查，觸發清單為 `README*` / `CHANGELOG*` / `docs/**/*.md` 且**明文排除 `docs/work/` 與 `docs/archive/`**；動作是「列清單進 verify 結果」，**不得出現升 blocker 或改寫**。反向驗證：`docs/work/` 排除規則若漏掉，本 branch 自己寫的每份 spec/plan 都會觸發它 |
 
 ## 風險與 trade-off
 
