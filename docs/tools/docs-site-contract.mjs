@@ -325,14 +325,14 @@ const nodeCount = Object.keys(FD.nodes).length;
 const edgeCount = FD.edges.length;
 const phaseCount = FD.phases.length;
 const typeCount = new Set(Object.values(FD.nodes).map((n) => n.type || 'default')).size;
-const EXPECT = { nodes: 88, edges: 111, phases: 15, types: 8 };
+const EXPECT = { nodes: 100, edges: 138, phases: 15, types: 8 };
 check(
-  'C8a 資料契約 88 nodes / 111 edges / 15 phases / 8 types',
+  'C8a 資料契約 100 nodes / 138 edges / 15 phases / 8 types',
   nodeCount === EXPECT.nodes && edgeCount === EXPECT.edges &&
     phaseCount === EXPECT.phases && typeCount === EXPECT.types,
   `期望 ${EXPECT.nodes}/${EXPECT.edges}/${EXPECT.phases}/${EXPECT.types}，` +
     `實際 ${nodeCount}/${edgeCount}/${phaseCount}/${typeCount}` +
-    `（後果：改動 data.js 時數字無聲跑掉；改版前是 84/103/15/8）`
+    `（後果：改動 data.js 時數字無聲跑掉；歷次基線：84/103 → 88/111 → 90/115）`
 );
 
 // 圖的完整性：沒有孤兒節點、沒有指向不存在節點的邊

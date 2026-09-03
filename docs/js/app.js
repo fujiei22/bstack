@@ -48,8 +48,10 @@ FLOW.phases.forEach(function (p) { PHASE_LABEL[p.id] = p.label; });
  * node ID → 文件識別。
  *
  * `p` 不含 `references/` 前綴也不含副檔名，實際的 REFERENCE_DOCS key 由 docKey() 組出來
- * （skill 補 /SKILL.md、agent 補 .md）。33 個 key 對應 31 個相異文件——
- * RPT2 與 RPT3 共用 review-plan 的路徑。
+ * （skill 補 /SKILL.md、agent 補 .md）。**36 個 key 對應 34 個相異文件**——
+ * LoadRP / RPT2 / RPT3 三個 key 共用 review-plan 的路徑。
+ * 對外報數字一律報「相異文件數」（28 skill + 6 agent），不報 key 數：
+ * key 數會把同一份 SKILL.md 重複計，使用者實際點得開的就是 34 份。
  *
  * design-language / design-direction 兩筆是後來補的：它們的節點一直都在圖上，但先前
  * references-data.js 沒有內嵌全文（baseline 既有缺口 2），所以是全站唯一點不開文件的兩個
@@ -526,14 +528,19 @@ var DOC_ID_BY_NAME = (function () {
 })();
 
 var DOC_COUNTS = (function () {
-  var c = { skill: 0, agent: 0 };
-  Object.keys(NODE_DOCS).forEach(function (k) { c[NODE_DOCS[k].k]++; });
+  // 依 p（文件路徑）去重再數。直接數 key 會把 LoadRP / RPT2 / RPT3 三個指向同一份
+  // review-plan 的節點各算一次，skill 數就被灌成 30——磁碟上其實只有 28 個 skill。
+  var seen = { skill: {}, agent: {} };
+  Object.keys(NODE_DOCS).forEach(function (k) { seen[NODE_DOCS[k].k][NODE_DOCS[k].p] = true; });
+  var c = { skill: Object.keys(seen.skill).length, agent: Object.keys(seen.agent).length };
   return c;
 })();
 
 var SECTIONS = {
-  type:  { title: '節點型別', sub: '8 型別 · 點一個 highlight 同型別節點' },
-  phase: { title: '階段傳送', sub: '15 階段 · 點一個把視野帶到該段入口' },
+  type:  { title: '節點型別', sub: FLOW.legend.length + ' 型別 · 點一個 highlight 同型別節點' },
+  // 「區段」不是「階段」：FLOW.phases 有 15 筆，含 prelude / hook / Track-Tier 分流 /
+  // T0 直送 這些版面分組，跟對外講的 9 個開發階段不是同一件事，刻意用不同的詞。
+  phase: { title: '區段傳送', sub: FLOW.phases.length + ' 區段 · 點一個把視野帶到該段入口' },
   amb:   { title: '環境與跨流程', sub: '不在主線上、但全程適用的規則與 skill' },
   docs:  { title: '文件索引', sub: DOC_COUNTS.skill + ' skill + ' + DOC_COUNTS.agent + ' agent · 點開右側抽屜' }
 };
@@ -586,7 +593,7 @@ function moveIndicator(btn) {
 }
 
 /**
- * 依目前分區重繪面板內容（型別 / 階段 / 環境 / 文件索引四種版型），
+ * 依目前分區重繪面板內容（型別 / 區段 / 環境 / 文件索引四種版型），
  * 並重新綁定其中的點擊行為。selection 變動時也會重繪，讓 active 標記跟著更新。
  */
 /**
@@ -624,7 +631,7 @@ function renderPanelBody() {
   function stag() { return ' class="stag" style="--i:' + (i++) + '"'; }
 
   if (panelSec === 'type') {
-    html += '<div class="sect-note">' + layout.nodes.length + ' 個節點依角色分成 8 型別；顏色只由 <code>data-type</code> 決定。</div>';
+    html += '<div class="sect-note">' + layout.nodes.length + ' 個節點依角色分成 ' + FLOW.legend.length + ' 型別；顏色只由 <code>data-type</code> 決定。</div>';
     html += '<ul>' + FLOW.legend.map(function (l) {
       var on = selection && selection.kind === 'type' && selection.type === l.type;
       return '<li' + stag() + '><button class="row' + (on ? ' is-active' : '') + '" data-type-pick="' + esc(l.type) + '">' +
@@ -1045,11 +1052,24 @@ backdropEl.onclick = closeDrawer;
 
 /* ── minimap ───────────────────────────────────────────────────────────── */
 MM_W = Math.max(56, Math.min(112, Math.round((MM_H - 10) * (layout.gw / layout.gh)) + 10));
+
+// 高度收成「圖實際佔用的高度」，不要固定吃滿視口給的 MM_H。
+//
+// 為什麼：MM_W 有 112px 上限。圖一寬，MM_W 的公式算出來的值就會超過上限被砍掉，
+// 於是 mmScale 改由寬度決定，剩下的高度全變成空白邊框——而且是**看不出來是空白**的
+// 那種，因為卡片有底色與邊框，使用者只覺得「這條怎麼這麼長」。
+// 實測（100 節點）：圖 5543x11291，MM_W 公式要 280px 才吃得滿高度，被砍到 112 之後
+// scale=0.0184，圖只佔 102x208，560px 的卡片裡有 352px（63%）是空的。
+// 收完之後才真的符合本檔開頭那句「minimap 跟主圖同比例」。
+//
+// 順序很重要：scale 要先算（用視口給的 MM_H 當可用高度上限），再拿 scale 回頭收 MM_H。
+var mmScale = Math.min((MM_W - 10) / layout.gw, (MM_H - 10) / layout.gh);
+MM_H = Math.round(layout.gh * mmScale) + 10;
+
 document.documentElement.style.setProperty('--mm-w', MM_W + 'px');
 
 var mmSvg = d3.select($('minimap-card')).append('svg')
   .attr('class', 'minimap').attr('width', MM_W).attr('height', MM_H);
-var mmScale = Math.min((MM_W - 10) / layout.gw, (MM_H - 10) / layout.gh);
 var mmOX = (MM_W - layout.gw * mmScale) / 2;
 var mmOY = (MM_H - layout.gh * mmScale) / 2;
 var mmG = mmSvg.append('g').attr('transform', 'translate(' + mmOX + ',' + mmOY + ') scale(' + mmScale + ')');
@@ -1167,7 +1187,7 @@ function renderStatus() {
   }
 }
 $('mast-sub').textContent =
-  layout.nodes.length + ' 節點 · ' + layout.edges.length + ' 邊 · ' + FLOW.phases.length + ' 階段';
+  layout.nodes.length + ' 節點 · ' + layout.edges.length + ' 邊 · ' + FLOW.phases.length + ' 區段';
 
 /* ── 字面視覺置中 ──────────────────────────────────────────────────────── */
 
@@ -1417,8 +1437,8 @@ window.addEventListener('resize', function () { updateMinimapViewport(); });
 (function syncRailLabels() {
   var m = {
     type:  '節點型別（' + FLOW.legend.length + '）',
-    phase: '階段傳送（' + FLOW.phases.length + '）',
-    docs:  '文件索引（' + Object.keys(NODE_DOCS).length + '）'
+    phase: '區段傳送（' + FLOW.phases.length + '）',
+    docs:  '文件索引（' + (DOC_COUNTS.skill + DOC_COUNTS.agent) + '）'
   };
   Object.keys(m).forEach(function (sec) {
     var b = document.querySelector('.rail-btn[data-sec="' + sec + '"]');
