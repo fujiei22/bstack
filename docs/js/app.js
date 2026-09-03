@@ -80,6 +80,7 @@ var NODE_DOCS = {
   LoadDD:    {p:'skills/design-direction',    n:'design-direction',    k:'skill'},
   LoadLock:  {p:'skills/lock-files',          n:'lock-files',          k:'skill'},
   LoadCmdG:  {p:'skills/cmd-guard',           n:'cmd-guard',           k:'skill'},
+  LoadZhH:   {p:'skills/zh-humanize',         n:'zh-humanize',         k:'skill'},
   LoadCtxS:  {p:'skills/context-snapshot',    n:'context-snapshot',    k:'skill'},
   LoadCtxR:  {p:'skills/context-resume',      n:'context-resume',      k:'skill'},
   LoadWS:    {p:'skills/write-skill',         n:'write-skill',         k:'skill'},
