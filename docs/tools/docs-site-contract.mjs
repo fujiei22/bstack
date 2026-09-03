@@ -325,9 +325,9 @@ const nodeCount = Object.keys(FD.nodes).length;
 const edgeCount = FD.edges.length;
 const phaseCount = FD.phases.length;
 const typeCount = new Set(Object.values(FD.nodes).map((n) => n.type || 'default')).size;
-const EXPECT = { nodes: 90, edges: 115, phases: 15, types: 8 };
+const EXPECT = { nodes: 100, edges: 138, phases: 15, types: 8 };
 check(
-  'C8a 資料契約 90 nodes / 115 edges / 15 phases / 8 types',
+  'C8a 資料契約 100 nodes / 138 edges / 15 phases / 8 types',
   nodeCount === EXPECT.nodes && edgeCount === EXPECT.edges &&
     phaseCount === EXPECT.phases && typeCount === EXPECT.types,
   `期望 ${EXPECT.nodes}/${EXPECT.edges}/${EXPECT.phases}/${EXPECT.types}，` +

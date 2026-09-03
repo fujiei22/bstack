@@ -47,37 +47,37 @@
     <div class="stat rise">
       <div><b>28</b><span>skills</span></div><div><b>6</b><span>agents</span></div>
       <div><b>2</b><span>hooks</span></div><div><b>9</b><span>phases</span></div>
-      <div><b>90</b><span>節點</span></div>
+      <div><b>100</b><span>節點</span></div>
     </div>
     <a class="cta rise" href="./flow.html">開啟流程圖<span class="ar">→</span></a>
     <p class="sub rise" style="margin-top:18px;font-size:14.5px;color:var(--ink-3)">往下讀，右邊那條鏈會一節一節接著往下走。</p>
   </section>
 
   <section class="beat" id="b1" data-upto="7" data-nodes="HBranch,HFile,StopBranch,StopFile">
-    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">兩個 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>branch-safety.ps1</code> 命中 <code>main / master / production / prod / release</code> 就擋掉寫入；<code>file-type-guard.ps1</code> 按副檔名與路徑分流——密鑰禁 commit、migration 自動載 db-access、lockfile 要二次確認、CI 與 infra 檔一出現就把嚴格度升到 T2 以上。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
+    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">兩個 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>branch-safety.ps1</code> 在 project repo 內、當前 branch 命中 <code>main / master / production / prod / release</code> 時擋掉寫入。<code>file-type-guard.ps1</code> 按副檔名與路徑分兩級——密鑰類（<code>.env</code>、<code>*.key</code>、<code>*.pem</code>、<code>credentials.*</code>）直接擋、沒有放行管道；敏感類（migration、lockfile、CI、infra）也擋，但你確認過之後可以建一張一次性 token 放行。至於「migration 要載 db-access」「CI 檔要升到 T2」那些，是攔下來之後 CLAUDE.md 要求它做的處置——hook 只負責讓那個動作沒有發生過。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
   </section>
 
-  <section class="beat" id="b2" data-upto="19" data-nodes="P0b,P0c,P0d">
+  <section class="beat" id="b2" data-upto="22" data-nodes="P0b,P0c,P0d">
     <div class="tag rise"><i style="background:var(--c-gate);border-color:var(--c-gate-bd)"></i>判定</div><h2 class="rise">先估這件事有多大，<br>再決定要多認真</h2><p class="rise lead">一行 typo 跟改動資料庫結構，不該用同一套程序處理。</p><p class="rise">每個請求進來先跑 Phase 0：讀 memory、看 codebase、估影響檔、判是修 bug 還是做功能、判量體落在 T0 到 T3 哪一級。判完把三件事併成一張選單問你——而且是<strong>選項</strong>不是自由回答。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>每次不一樣</div><p>同一句「改一下這裡」，它今天直接動手，明天先寫一份規格再問你三個問題。你沒辦法預期這次會拿到什麼。</p></div><div class="now"><div class="lbl"><b>現在</b>先估量體再分流</div><p>T0 一行改動直接做完，T3 跨模組或動到 DB schema 要走完九個階段。<strong>「好」「OK」這種字一律不算通過</strong>——gate 只認選項。</p></div></div>
   </section>
 
-  <section class="beat" id="b6" data-upto="27" data-nodes="DesignQ,DesignMap,LoadDD,ThreeWay">
+  <section class="beat" id="b6" data-upto="30" data-nodes="DesignQ,DesignMap,LoadDD,ThreeWay">
     <div class="tag rise"><i style="background:var(--c-policy);border-color:var(--c-policy-bd)"></i>設計</div><h2 class="rise">動前端檔之前，<br>先讀這一區原本長什麼樣</h2><p class="rise lead">改樣式最常見的壞法不是寫錯，是憑印象重畫——然後把前台的顏色套到後台。</p><p class="rise">碰到前端檔會先查這塊屬於哪一套設計語言、把實際的色碼與字級抄出來，抽不到就說抽不到。沿用既有 token 的小改直接做完再對四項檢查；新頁或改版屬於大改，會先出三個差異化方向、附真實視覺讓你挑，選定才落 code。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>憑印象重畫</div><p>「顏色我記得是那個藍」。做出來的東西單看沒問題，跟旁邊的畫面擺在一起就是不對，但說不出哪裡不對。</p></div><div class="now"><div class="lbl"><b>現在</b>從實際檔案抄值</div><p>色碼、字級、圓角、斷點全部照抄並記下來源檔與行號。<strong>抽不到就說抽不到，不拿別區的值頂替</strong>。</p></div></div>
   </section>
 
-  <section class="beat" id="b3" data-upto="35" data-nodes="LoadWP,WritePlan,RPT3,UG1">
+  <section class="beat" id="b3" data-upto="38" data-nodes="LoadWP,WritePlan,RPT3,UG1">
     <div class="tag rise"><i style="background:var(--c-skill);border-color:var(--c-skill-bd)"></i>規劃</div><h2 class="rise">大改動要先把計畫<br>拆給四個人看</h2><p class="rise lead">判到 T3 時，它不會直接開始寫，會先把需求寫成規格、再拆成一條條可執行的 task。</p><p class="rise">計畫寫完派四個視角各看一遍：策略上該不該現在做、介面上會不會難用、架構上失敗了怎麼回退、接手的人讀不讀得懂。四份意見整合完、你點頭了才進實作。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>邊寫邊想</div><p>直接開始改，改到一半發現方向錯了，前面兩小時的產出跟著作廢——而且通常是在快寫完的時候才發現。</p></div><div class="now"><div class="lbl"><b>現在</b>計畫先被打槍</div><p>task 拆得夠細，每條都標好要動哪些檔、能不能跟別條平行跑。<strong>計畫被打槍的成本，遠低於實作被打槍</strong>。</p></div></div>
   </section>
 
-  <section class="beat" id="b4" data-upto="50" data-nodes="LoadExec,LoadTDD,TDDLoop,MidPivotQ">
+  <section class="beat" id="b4" data-upto="55" data-nodes="LoadExec,LoadTDD,TDDLoop,MidPivotQ">
     <div class="tag rise"><i style="background:var(--c-impl);border-color:var(--c-impl-bd)"></i>施工</div><h2 class="rise">先寫會失敗的測試，<br>再寫讓它過的 code</h2><p class="rise lead">每個 task 都走同一組五步，中間不許跳。</p><p class="rise">寫測試 → 跑到它紅 → 寫最小實作 → 跑到它綠 → commit。途中如果冒出計畫裡沒寫到的前端檔，它會停下來重新判定該區塊的設計語言，而不是順手改一改當作沒發生過。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>一次改一大包</div><p>一輪對話改了七個檔、湊成一個 commit，訊息寫「fix issues」。三個月後有人想知道其中一行為什麼那樣寫，沒有人答得出來。</p></div><div class="now"><div class="lbl"><b>現在</b>一個 commit 一件事</div><p>訊息用繁中寫清楚<strong>改了什麼、為什麼改</strong>，不寫怎麼做——怎麼做看 diff 就有。</p></div></div>
   </section>
 
-  <section class="beat" id="b5" data-upto="69" data-nodes="LoadReq,RevT3,LangAgent,AutoFixQ">
+  <section class="beat" id="b5" data-upto="75" data-nodes="LoadReq,RevT3,LangAgent,AutoFixQ">
     <div class="tag rise"><i style="background:var(--c-agent);border-color:var(--c-agent-bd)"></i>審查</div><h2 class="rise">審查的人<br>不知道你為什麼那樣寫</h2><p class="rise lead">review、安全稽核、e2e、假設驗證全部派給獨立 context 的 subagent。</p><p class="rise">六個 agent 各有專責：<code>lang-reviewer</code> 依改的檔自動派發、按語言抓對應的 idiom 與 pitfall；<code>security-auditor</code> 跑 OWASP 與 STRIDE；<code>db-reviewer</code> 看 schema 與 migration；<code>frontend-e2e-runner</code> 把 browser 那一大堆 log 隔在自己的 context 裡。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>自己審自己</div><p>同一段對話裡請它檢查剛才寫的 code。它知道每一行當初為什麼那樣寫，於是每一行看起來都很合理。</p></div><div class="now"><div class="lbl"><b>現在</b>換一個沒有記憶的人看</div><p>agent 在獨立 context 裡只拿得到成品，<strong>看不到實作過程</strong>。寫的人記得為什麼，讀的人不記得——過得了這一關才算真的寫清楚了。</p></div></div>
   </section>
 
-  <section class="beat" id="b7" data-upto="86" data-nodes="LoadPrEx,PrExAgent,DocsReviews,PostComment">
+  <section class="beat" id="b7" data-upto="96" data-nodes="LoadPrEx,PrExAgent,DocsReviews,PostComment">
     <div class="tag rise"><i style="background:var(--c-default);border-color:var(--c-default-bd)"></i>留痕</div><h2 class="rise">每一輪結尾<br>都告訴你它站在哪</h2><p class="rise lead">回覆的最後一行永遠是一條 Trace：現在在哪個階段、判定是哪一級、走的是修 bug 還是做功能。</p><p class="rise">PR 開完之後還有一個 agent 重讀一次 diff，寫成「為什麼改、怎麼做、跟哪裡有關」三層說明，落成獨立檔案再貼回 PR。它刻意不知道實作過程。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>往回翻對話</div><p>想知道它為什麼做了某個決定，只能往上捲，在幾十輪對話裡找那句話。</p></div><div class="now"><div class="lbl"><b>現在</b>每輪都留一行</div><p><code>[Trace] Phase=execute-plan | Tier=T2 | Track=Dev | Skill=execute-plan</code>——<strong>phase 透明、隨時可審</strong>。</p></div></div>
   </section>
 
@@ -126,7 +126,7 @@ claude mcp add playwright --scope user -- npx -y @playwright/mcp@latest</pre></l
   <aside class="ldeck" id="ldeck" aria-hidden="true">
     <div class="hd">
       <span id="deck-title">一句話進來之後</span><span class="sp"></span>
-      <span class="cnt"><span class="n" id="deck-n">0</span><span>/ 90 個節點</span></span>
+      <span class="cnt"><span class="n" id="deck-n">0</span><span>/ 100 個節點</span></span>
     </div>
     <div class="bar"><i id="deck-bar"></i></div>
     <div class="vp"><div class="chain" id="chain"><div class="axis"><i id="chain-fill"></i></div></div></div>

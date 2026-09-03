@@ -48,8 +48,10 @@ FLOW.phases.forEach(function (p) { PHASE_LABEL[p.id] = p.label; });
  * node ID → 文件識別。
  *
  * `p` 不含 `references/` 前綴也不含副檔名，實際的 REFERENCE_DOCS key 由 docKey() 組出來
- * （skill 補 /SKILL.md、agent 補 .md）。33 個 key 對應 31 個相異文件——
- * RPT2 與 RPT3 共用 review-plan 的路徑。
+ * （skill 補 /SKILL.md、agent 補 .md）。**36 個 key 對應 34 個相異文件**——
+ * LoadRP / RPT2 / RPT3 三個 key 共用 review-plan 的路徑。
+ * 對外報數字一律報「相異文件數」（28 skill + 6 agent），不報 key 數：
+ * key 數會把同一份 SKILL.md 重複計，使用者實際點得開的就是 34 份。
  *
  * design-language / design-direction 兩筆是後來補的：它們的節點一直都在圖上，但先前
  * references-data.js 沒有內嵌全文（baseline 既有缺口 2），所以是全站唯一點不開文件的兩個
@@ -526,14 +528,17 @@ var DOC_ID_BY_NAME = (function () {
 })();
 
 var DOC_COUNTS = (function () {
-  var c = { skill: 0, agent: 0 };
-  Object.keys(NODE_DOCS).forEach(function (k) { c[NODE_DOCS[k].k]++; });
+  // 依 p（文件路徑）去重再數。直接數 key 會把 LoadRP / RPT2 / RPT3 三個指向同一份
+  // review-plan 的節點各算一次，skill 數就被灌成 30——磁碟上其實只有 28 個 skill。
+  var seen = { skill: {}, agent: {} };
+  Object.keys(NODE_DOCS).forEach(function (k) { seen[NODE_DOCS[k].k][NODE_DOCS[k].p] = true; });
+  var c = { skill: Object.keys(seen.skill).length, agent: Object.keys(seen.agent).length };
   return c;
 })();
 
 var SECTIONS = {
-  type:  { title: '節點型別', sub: '8 型別 · 點一個 highlight 同型別節點' },
-  phase: { title: '階段傳送', sub: '15 階段 · 點一個把視野帶到該段入口' },
+  type:  { title: '節點型別', sub: FLOW.legend.length + ' 型別 · 點一個 highlight 同型別節點' },
+  phase: { title: '階段傳送', sub: FLOW.phases.length + ' 階段 · 點一個把視野帶到該段入口' },
   amb:   { title: '環境與跨流程', sub: '不在主線上、但全程適用的規則與 skill' },
   docs:  { title: '文件索引', sub: DOC_COUNTS.skill + ' skill + ' + DOC_COUNTS.agent + ' agent · 點開右側抽屜' }
 };
@@ -624,7 +629,7 @@ function renderPanelBody() {
   function stag() { return ' class="stag" style="--i:' + (i++) + '"'; }
 
   if (panelSec === 'type') {
-    html += '<div class="sect-note">' + layout.nodes.length + ' 個節點依角色分成 8 型別；顏色只由 <code>data-type</code> 決定。</div>';
+    html += '<div class="sect-note">' + layout.nodes.length + ' 個節點依角色分成 ' + FLOW.legend.length + ' 型別；顏色只由 <code>data-type</code> 決定。</div>';
     html += '<ul>' + FLOW.legend.map(function (l) {
       var on = selection && selection.kind === 'type' && selection.type === l.type;
       return '<li' + stag() + '><button class="row' + (on ? ' is-active' : '') + '" data-type-pick="' + esc(l.type) + '">' +
@@ -1418,7 +1423,7 @@ window.addEventListener('resize', function () { updateMinimapViewport(); });
   var m = {
     type:  '節點型別（' + FLOW.legend.length + '）',
     phase: '階段傳送（' + FLOW.phases.length + '）',
-    docs:  '文件索引（' + Object.keys(NODE_DOCS).length + '）'
+    docs:  '文件索引（' + (DOC_COUNTS.skill + DOC_COUNTS.agent) + '）'
   };
   Object.keys(m).forEach(function (sec) {
     var b = document.querySelector('.rail-btn[data-sec="' + sec + '"]');
