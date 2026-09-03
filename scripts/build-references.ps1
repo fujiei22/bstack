@@ -52,6 +52,11 @@ function ConvertTo-JsStringBody {
   順序固定為 CLAUDE.md → skills（字母序）→ agents（字母序）。
   固定順序是為了讓「內容沒變就逐 byte 相同」成立——目錄列舉的順序在不同
   檔案系統上不保證一致，所以明確排序。
+
+  `Sort-Object Name` 預設吃系統 locale，跨機器結果會不同（實測 tr-TR 與 en-US
+  對含大小寫的名字排出不同順序）。釘 `-Culture 'en-US'` 讓它決定性。
+  **注意要傳字串**——傳 `[CultureInfo]::InvariantCulture` 物件無效。
+  目前 skill 名全是小寫 ASCII kebab、踩不到，但只要有人加一個帶大寫的就會。
 #>
 function Get-ReferenceSources {
     param([Parameter(Mandatory)][string]$RepoRoot)
@@ -65,7 +70,7 @@ function Get-ReferenceSources {
     $map['references/CLAUDE.md'] = $claudeMd
 
     $skillsDir = Join-Path $RepoRoot 'skills'
-    foreach ($d in Get-ChildItem -LiteralPath $skillsDir -Directory | Sort-Object Name) {
+    foreach ($d in Get-ChildItem -LiteralPath $skillsDir -Directory | Sort-Object Name -Culture 'en-US') {
         $f = Join-Path $d.FullName 'SKILL.md'
         if (Test-Path -LiteralPath $f) {
             $map["references/skills/$($d.Name)/SKILL.md"] = $f
@@ -75,7 +80,7 @@ function Get-ReferenceSources {
     }
 
     $agentsDir = Join-Path $RepoRoot 'agents'
-    foreach ($f in Get-ChildItem -LiteralPath $agentsDir -Filter '*.md' | Sort-Object Name) {
+    foreach ($f in Get-ChildItem -LiteralPath $agentsDir -Filter '*.md' | Sort-Object Name -Culture 'en-US') {
         $map["references/agents/$($f.Name)"] = $f.FullName
     }
 
@@ -90,8 +95,19 @@ $sb = [System.Text.StringBuilder]::new()
 [void]$sb.AppendLine('/** 內嵌所有 references markdown，供 file:// 直接存取（無需 fetch）。產出器：scripts/build-references.ps1（PowerShell 自動 inline）。 */')
 [void]$sb.AppendLine('window.REFERENCE_DOCS = {')
 
+$replacementChar = [char]0xFFFD
+
 foreach ($key in $sources.Keys) {
     $text = Get-Content -LiteralPath $sources[$key] -Raw -Encoding UTF8
+
+    # 非 UTF-8 的位元組會被解碼器靜默換成 U+FFFD。不擋的話：內容毀損、產出仍是
+    # 合法 JS、-Check 兩邊算出同一個 U+FFFD 所以判 PASS —— 全綠而文件站顯示一片問號。
+    # 原始碼本來就不該有 U+FFFD，所以直接當錯誤。
+    if ($text -and $text.IndexOf($replacementChar) -ge 0) {
+        $bad = ($text.ToCharArray() | Where-Object { $_ -eq $replacementChar }).Count
+        throw "$($sources[$key]) 含 $bad 個 U+FFFD —— 該檔不是合法 UTF-8（存成 Big5 或 UTF-16 了？）。修好編碼再跑，不要讓毀損的內容進產出物。"
+    }
+
     $body = ConvertTo-JsStringBody -Text $text
     [void]$sb.AppendLine("  `"$key`": `"$body`",")
 }
