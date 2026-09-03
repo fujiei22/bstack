@@ -341,9 +341,10 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   position: absolute; left: 20px; bottom: 16px; z-index: 12;
   display: flex; align-items: flex-end; gap: 12px;
 }
-/* minimap 是右緣的直立索引條：這張圖實測 1978x12398（1:6.3 的直幅長卷），
-   塞進橫幅小框只會變成一條 20px 的細線，所以讓它跟圖同比例、貼右緣直立，
-   跟左邊的 rail 形成兩道細框把圖夾在中間。 */
+/* minimap 是右緣的索引條，尺寸完全由 app.js 依圖的實際比例算，這裡不設寬高。
+   圖是直幅（2026-09-03 實測 5543x11291，約 1:2），塞進橫幅小框會太扁，
+   所以貼右緣直立，跟左邊的 rail 形成兩道細框把圖夾在中間。
+   （早期註解記的 1978x12398 / 1:6.3 是節點數還少時的舊值，圖長胖之後已不適用。） */
 .minimap-card {
   position: absolute; right: 16px; top: 50%; translate: 0 -50%; z-index: 12;
   background: var(--surface);

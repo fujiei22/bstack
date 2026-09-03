@@ -20,8 +20,12 @@
  */
 const FLOW_DATA = {
   /**
-   * Phase 分組（給可摺疊 phase block + legend 用）
+   * 版面分組（給可摺疊 phase block + legend 用）
    * order 決定 legend 垂直順序（不影響 dagre layout）
+   *
+   * **這 15 筆不是「9 階段」。** 對外講的 9 階段是 brainstorm→retro 那條開發流程；
+   * 這裡多出 prelude（前導）、hook、Track/Tier 分流、T0 直送、design lane 這些
+   * 純版面用的分組。UI 上一律叫「區段」，把「階段」留給那 9 個。
    */
   phases: [
     { id: 'prelude',      label: '前導：user prompt + 強制守則',       order: -2 },

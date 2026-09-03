@@ -538,7 +538,9 @@ var DOC_COUNTS = (function () {
 
 var SECTIONS = {
   type:  { title: '節點型別', sub: FLOW.legend.length + ' 型別 · 點一個 highlight 同型別節點' },
-  phase: { title: '階段傳送', sub: FLOW.phases.length + ' 階段 · 點一個把視野帶到該段入口' },
+  // 「區段」不是「階段」：FLOW.phases 有 15 筆，含 prelude / hook / Track-Tier 分流 /
+  // T0 直送 這些版面分組，跟對外講的 9 個開發階段不是同一件事，刻意用不同的詞。
+  phase: { title: '區段傳送', sub: FLOW.phases.length + ' 區段 · 點一個把視野帶到該段入口' },
   amb:   { title: '環境與跨流程', sub: '不在主線上、但全程適用的規則與 skill' },
   docs:  { title: '文件索引', sub: DOC_COUNTS.skill + ' skill + ' + DOC_COUNTS.agent + ' agent · 點開右側抽屜' }
 };
@@ -591,7 +593,7 @@ function moveIndicator(btn) {
 }
 
 /**
- * 依目前分區重繪面板內容（型別 / 階段 / 環境 / 文件索引四種版型），
+ * 依目前分區重繪面板內容（型別 / 區段 / 環境 / 文件索引四種版型），
  * 並重新綁定其中的點擊行為。selection 變動時也會重繪，讓 active 標記跟著更新。
  */
 /**
@@ -1050,11 +1052,24 @@ backdropEl.onclick = closeDrawer;
 
 /* ── minimap ───────────────────────────────────────────────────────────── */
 MM_W = Math.max(56, Math.min(112, Math.round((MM_H - 10) * (layout.gw / layout.gh)) + 10));
+
+// 高度收成「圖實際佔用的高度」，不要固定吃滿視口給的 MM_H。
+//
+// 為什麼：MM_W 有 112px 上限。圖一寬，MM_W 的公式算出來的值就會超過上限被砍掉，
+// 於是 mmScale 改由寬度決定，剩下的高度全變成空白邊框——而且是**看不出來是空白**的
+// 那種，因為卡片有底色與邊框，使用者只覺得「這條怎麼這麼長」。
+// 實測（100 節點）：圖 5543x11291，MM_W 公式要 280px 才吃得滿高度，被砍到 112 之後
+// scale=0.0184，圖只佔 102x208，560px 的卡片裡有 352px（63%）是空的。
+// 收完之後才真的符合本檔開頭那句「minimap 跟主圖同比例」。
+//
+// 順序很重要：scale 要先算（用視口給的 MM_H 當可用高度上限），再拿 scale 回頭收 MM_H。
+var mmScale = Math.min((MM_W - 10) / layout.gw, (MM_H - 10) / layout.gh);
+MM_H = Math.round(layout.gh * mmScale) + 10;
+
 document.documentElement.style.setProperty('--mm-w', MM_W + 'px');
 
 var mmSvg = d3.select($('minimap-card')).append('svg')
   .attr('class', 'minimap').attr('width', MM_W).attr('height', MM_H);
-var mmScale = Math.min((MM_W - 10) / layout.gw, (MM_H - 10) / layout.gh);
 var mmOX = (MM_W - layout.gw * mmScale) / 2;
 var mmOY = (MM_H - layout.gh * mmScale) / 2;
 var mmG = mmSvg.append('g').attr('transform', 'translate(' + mmOX + ',' + mmOY + ') scale(' + mmScale + ')');
@@ -1172,7 +1187,7 @@ function renderStatus() {
   }
 }
 $('mast-sub').textContent =
-  layout.nodes.length + ' 節點 · ' + layout.edges.length + ' 邊 · ' + FLOW.phases.length + ' 階段';
+  layout.nodes.length + ' 節點 · ' + layout.edges.length + ' 邊 · ' + FLOW.phases.length + ' 區段';
 
 /* ── 字面視覺置中 ──────────────────────────────────────────────────────── */
 
@@ -1422,7 +1437,7 @@ window.addEventListener('resize', function () { updateMinimapViewport(); });
 (function syncRailLabels() {
   var m = {
     type:  '節點型別（' + FLOW.legend.length + '）',
-    phase: '階段傳送（' + FLOW.phases.length + '）',
+    phase: '區段傳送（' + FLOW.phases.length + '）',
     docs:  '文件索引（' + (DOC_COUNTS.skill + DOC_COUNTS.agent) + '）'
   };
   Object.keys(m).forEach(function (sec) {

@@ -159,7 +159,7 @@
       '<div class="hr"></div>' +
       '<div class="mark">❦</div>' +
       '<div class="say">一句話從這裡進去，<br>走完了整條流程<em>。</em></div>' +
-      '<div class="meta">' + TOTAL.nodes + ' 節點 · ' + TOTAL.edges + ' 條邊 · ' + TOTAL.phases + ' 階段</div>' +
+      '<div class="meta">' + TOTAL.nodes + ' 節點 · ' + TOTAL.edges + ' 條邊 · ' + TOTAL.phases + ' 區段</div>' +
       '<a href="./flow.html">把整張圖打開<span class="ar">→</span></a>';
     chain.appendChild(coda);
 
