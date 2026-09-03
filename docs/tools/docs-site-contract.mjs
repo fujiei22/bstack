@@ -30,8 +30,11 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-// verify/ -> docs-site-redesign -> refactor -> work -> docs
-const DOCS = join(dirname(fileURLToPath(import.meta.url)), '../../../..');
+// tools/ -> docs
+// （原本住在 docs/work/refactor/docs-site-redesign/verify/，那時是 '../../../..'。
+//  2026-09-03 隨施工文件歸檔時移到 docs/tools/，路徑深度從 4 層變 1 層。
+//  移動當下實測炸掉：ENOENT open 'D:low.html' —— 少算三層會爬到磁碟根。）
+const DOCS = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(DOCS, '..');
 
 /** 讀 docs/ 底下的檔（相對 docs/ 根）。 */
@@ -241,6 +244,9 @@ const BASELINE_KEYS = [
   // 後補：這兩個節點一直都在圖上，但先前沒有內嵌全文（baseline 既有缺口 1+2），
   // 是全站唯一點不開文件的兩個 skill。已補進內嵌包。
   'LoadDLang', 'LoadDD',
+  // 後補：zh-humanize（2026-09-03）。它是跨流程 skill、圖上沒有節點，
+  // 靠 ambient 區塊的 docKey 點開——NODE_DOCS 有這筆才點得到。
+  'LoadZhH',
 ].sort();
 
 const ndStart = js.search(/(?:const|var|let)\s+NODE_DOCS\s*=\s*\{/);
@@ -344,10 +350,15 @@ check(
 
 // 34 = 27 skill + 6 agent + CLAUDE.md。CLAUDE.md 是後來為了交叉引用收進來的：
 // 文件正文裡「CLAUDE.md §決策點選單」這類引用最多，不收就一律連不到。
+// 期望值從磁碟推導，不寫死數字。寫死的話每加一個 skill 都要手改這裡，
+// 而「忘了手改」與「內嵌集合真的被動過」兩種紅燈長得一模一樣。
+const expectedRefCount = 1 // CLAUDE.md
+  + readdirSync(join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).length
+  + readdirSync(join(REPO, 'agents')).filter((f) => f.endsWith('.md')).length;
 check(
-  'C8b REFERENCE_DOCS 有 34 個 key',
-  refKeys.size === 34,
-  `期望 34，實際 ${refKeys.size}（後果：內嵌文件集合被動過，F13/F14 的資料底變了）`
+  `C8b REFERENCE_DOCS 有 ${expectedRefCount} 個 key`,
+  refKeys.size === expectedRefCount,
+  `期望 ${expectedRefCount}（磁碟推導），實際 ${refKeys.size}（後果：內嵌文件集合與磁碟對不上，F13/F14 的資料底變了）`
 );
 check(
   'C8e CLAUDE.md 在內嵌包裡',
@@ -524,6 +535,23 @@ for (const name of diskAgents) {
   if (!refKeys.has(`references/agents/${name}.md`)) missingDocs.push('agent:' + name + '(無內嵌全文)');
   else if (!docNames.has(name)) missingDocs.push('agent:' + name + '(無 NODE_DOCS)');
 }
+// C18b 是 C18 的反向。為什麼需要它：C8b 的期望值從磁碟推導，所以磁碟上多出
+// 垃圾目錄時，期望與實際同向移動 —— 產出器把垃圾內嵌進去、C8b 照樣 PASS。
+// 這不是假設：2026-09-03 的 review 期間，reviewer 在 skills/ 底下造了 9 個
+// zz-* fixture，正式 repo 的 references-data.js 一度變成 44 個 key，而契約全綠。
+// 反向檢查抓得到，因為垃圾目錄不會有 NODE_DOCS 條目。
+const strayRefs = [...refKeys].filter((k) => {
+  const m = k.match(/^references\/(skills\/([^/]+)\/SKILL\.md|agents\/([^/]+)\.md)$/);
+  if (!m) return k !== 'references/CLAUDE.md';   // CLAUDE.md 是唯一合法的例外
+  return !docNames.has(m[2] || m[3]);
+});
+check(
+  'C18b 內嵌的每一份都對得到 NODE_DOCS（反向，抓磁碟垃圾）',
+  strayRefs.length === 0,
+  `期望 0 個，實際 ${strayRefs.length} 個：${strayRefs.slice(0, 6).join(' / ')}` +
+    `（後果：產出器把不該收的目錄內嵌進去了，而 C8b 因為期望值同樣從磁碟推導所以不會紅）`
+);
+
 check(
   `C18 磁碟 ${diskSkills.length} skill + ${diskAgents.length} agent 都能點開文件`,
   missingDocs.length === 0,

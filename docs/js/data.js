@@ -370,6 +370,7 @@ const FLOW_DATA = {
         { name: 'context-snapshot', docKey: 'LoadCtxS',  desc: '中斷 / 跨 session 暫停存進度' },
         { name: 'context-resume',   docKey: 'LoadCtxR',  desc: '接續上次進度' },
         { name: 'write-skill',      docKey: 'LoadWS',    desc: 'meta：新增 / 改 skill' },
+        { name: 'zh-humanize',      docKey: 'LoadZhH',   desc: '去中文的 AI 味、校正中國用語與半形標點' },
       ],
     },
   ],
