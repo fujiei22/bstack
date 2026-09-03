@@ -632,7 +632,7 @@ grep -qF "已被 \`design_rejudge\` 處理過的檔不重複觸發" "$f" || { ec
 - [ ] **Step 2: 跑驗證確認失敗**
 
 ```
-# Expected: FAIL —— 章節不存在，前 6 條 MISS
+# Expected: FAIL —— 章節不存在，8 條 MISS（v2.2 補了掛載點與 blocker 兩條斷言）
 # 兩條 regression guard 現況已綠（實測 verify-done 現有內容），本輪須保持綠
 ```
 
