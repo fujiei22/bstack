@@ -9,8 +9,8 @@ description: |
   browser test / 跑 browser / 跑 e2e / 看畫面對不對。
   涵蓋：規劃測試矩陣、spawn frontend-e2e-runner agent 跑 Playwright（隔離
   browser tool 噪音）、收結構化 summary、處置 PASS / FAIL / INCONCLUSIVE。
-  上游：verify-done（偵測前端檔改動）/ execute-plan（單 task 完前自檢）/
-  user 顯式呼叫。下游：回 verify-done（整合 e2e 結果）→ request-review。
+  上游：verify-done（偵測前端檔改動；§UI / browser e2e）/ user 顯式呼叫。
+  下游：回 verify-done（整合 e2e 結果）→ request-review。
 ---
 
 # frontend-test

@@ -5,8 +5,10 @@ description: |
   start coding / 開工 / 進 implementation / 寫 code。
   涵蓋：讀 plan、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
   task fail 處置、blocker 升級。
-  上游：review-plan（user accept）或 brainstorm（T0 直接進）。
+  上游：review-plan（user accept）；T1 依 CLAUDE.md §Tier「plan 跳」由 brainstorm 直接交棒。
   下游：verify-done（全 task 完）。
+  **T0 不進本 skill**：CLAUDE.md §Tier 表的 T0 是「brainstorm / plan / TDD / review / security 全跳」，
+  dev-workflow 與 brainstorm 皆明訂 T0 直接實作後進 finish-branch。
 ---
 
 # execute-plan
@@ -132,9 +134,16 @@ step 失敗 / verify 失敗時：
    - retry — 適暫態 / flaky test
    - adjust + retry — AI 提具體調整、user 點頭跑（如改 plan step）
    - rollback 該 task 的修改、回前一個 commit
-   - 退到 write-plan 改 plan
+   - 退到 write-plan 重寫 plan — plan 有**結構性問題**（task 拆錯 / 順序錯 / 漏依賴 /
+     並行 group 分錯 / 某個 task 的五個 step 根本寫不出來）
+   - 退回 brainstorm 重釐清需求 — **需求理解就錯**（scope 定錯 / Track / Tier 判錯 /
+     `design.size` 判錯），照 plan 做下去只會做出不該做的東西
    - escalate
 4. 選後執行；`state.fail_history` append
+
+**退 write-plan 還是退 brainstorm，用這句當場判**：「把 plan 改對，這件事就對了嗎？」
+會對 → 退 write-plan；改對 plan 還是在做錯的東西 → 退 brainstorm。措辭與判準跟
+`review-plan` §User gate 的選項 3 / 4、`verify-done` §Verify fail 的對應選項一致，三處刻意同一套。
 
 ---
 

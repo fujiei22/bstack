@@ -5,7 +5,8 @@ description: |
   column / SELECT / INSERT / UPDATE / DELETE / DDL / migration / EXPLAIN / index /
   JOIN / 跑 SQL / 抓資料 / 看 schema / mysql MCP / 改資料 / 加欄位 / 改表 / DB 設計 /
   連 DB / 資料表結構。涵蓋：MCP 唯讀、讀寫分流、查詢量限、PII mask、產 SQL 交付格式。
-  **強制**：dev-workflow Phase 2 triage / Phase 8c DB reviewer 涉 DB 時亦須載入。
+  **強制**：brainstorm Phase 0b 偵測到 DB 關鍵詞時必載；debug-systematic 的 Triage
+  與 security-audit（Phase 6）的 db-reviewer 涉 DB 時亦適用本規則。
 ---
 
 # db-access
@@ -79,6 +80,11 @@ SELECT DATE(created_at) AS d, COUNT(*) AS n FROM users GROUP BY d;
 
 ## 與 dev-workflow 銜接
 
-- **Phase 2 triage** 涉 DB → 此 skill 規則生效
-- **Phase 8c DB reviewer** 跑 `database-reviewer`；reviewer 摘要含 PII 須依本 skill mask
+- **brainstorm Phase 0b** 偵測到 DB 關鍵詞 → 載入本 skill（唯一的固定載入點）
+- **debug-systematic 的 Triage** 涉 DB → 此 skill 規則生效
+- **security-audit（Phase 6）派 `db-reviewer`** → reviewer 摘要含 PII 須依本 skill mask
 - **風險表「DB schema / migration」命中** → 升一級
+
+> **phase 編號以 `dev-workflow` §Track × Tier × Phase 路徑為準**：Phase 2 是 write-plan、
+> Phase 6 是 security-audit、Phase 8 是 pr-explain。舊版本檔寫的「Phase 2 triage」與
+> 「Phase 8c DB reviewer」兩個編號都是錯的，已更正。

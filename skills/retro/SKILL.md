@@ -6,7 +6,8 @@ description: |
   看模式 / weekly summary / monthly summary / period summary / recap。
   涵蓋：載入時用 AskUserQuestion 取得期間 → 抓 git log + PR + TaskList 分析 →
   識別模式 → 產 retro 報告 → Memory hook 寫入（補 memory；見 dev-workflow body §Memory hook 點）。
-  使用：**user 主動觸發**，不在 9 階段流程中；不限週、可任意期間。
+  使用：9 階段的**第 9 階段**，但**由 user 主動觸發**、不綁 tier、不接在 pr-explain 後面
+  自動跑；不限週、可任意期間。
 ---
 
 # retro

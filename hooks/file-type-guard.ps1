@@ -123,6 +123,8 @@ foreach ($b in $blockPatterns) {
 
 # === WARN 類：敏感配置（confirm token 機制）===
 $warnPatterns = @(
+    # .gitignore 刻意不列：它改動頻繁（新增 build 產物、暫存目錄都要動），
+    # 每次都要 confirm token 的干擾大於收益。.dockerignore 動得少，保留。
     @{ p = '/\.dockerignore$';                    tag = 'dockerignore' },
     @{ p = '/\.github/workflows/.+\.ya?ml$';      tag = 'GitHub Actions CI' },
     @{ p = '/\.gitlab-ci\.ya?ml$';                tag = 'GitLab CI' },

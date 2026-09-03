@@ -32,6 +32,9 @@ description: |
 
 ## §Verify 套餐（按 tier）
 
+**T0 不進本 skill**：CLAUDE.md §Tier 表的 T0 全跳，dev-workflow 與 brainstorm 明訂
+T0 直接實作後進 finish-branch。下面只定義 T1-T3。
+
 ### T1 套餐
 ```
 1. 跑動到的測試檔

@@ -58,7 +58,10 @@ description: |
    - 既有 pattern / 命名慣例 → 後續實作對齊
    - 既有 lint / test / build script → 提前知道後續 verify 要跑什麼
    - 既有問題（巨型檔 / 模糊邊界）若**直接影響本 task**，列入 spec；無關 refactor 不主動納入
-4. 不需要 100% 看完，估到能評 tier 即可。
+4. **Track 預判為 Bug 時額外收集**：症狀原文、錯誤訊息 / stack trace、重現步驟、
+   最近一次正常的時間點或 commit。寫進 `state.bug_context`，交給 `debug-systematic`
+   的 Triage 用——不在這裡收，Triage 第一步就得回頭再問使用者一次。
+5. 不需要 100% 看完，估到能評 tier 即可。
 
 ---
 
@@ -224,11 +227,15 @@ T0 / T1 / T2 / T3。Heuristic：
 3. ambiguous 要求 → 收斂、選一個
 4. scope 太大 → 提示 user 拆 sub-task
 
-self-review 完 → user 看 spec：
+self-review 完 → user 看 spec。**走 `AskUserQuestion`，不要用自由文字問**——
+CLAUDE.md §決策點選單 禁止拿文字回覆當 gate 信號，這裡是決策點：
 
 ```
-spec 已寫至 docs/work/<branch-name>/spec.md。
-請 review，若需修改告知；否則直接進 <write-plan|debug-systematic>。
+問：spec 已寫至 docs/work/<branch-name>/spec.md，請看一下。
+選項：
+  1. spec 正確，進 <write-plan|debug-systematic>（推薦）
+  2. 我要改 spec（告訴我改哪裡）
+  3. 退回 0a 重新釐清需求
 ```
 
 ---
@@ -247,6 +254,11 @@ state:
     files: [...]
     modules: [...]
     db_involved: <bool>
+  bug_context:                # 0b 第 4 點；只在 Track=Bug 時有值，給 debug-systematic Triage 用
+    symptom: <症狀原文|null>
+    error: <錯誤訊息 / stack trace|null>
+    repro_steps: [...]
+    last_known_good: <時間點或 commit|null>
   design:                     # 0b′；欄位語意見 design-language §對外契約
     involved: <bool>
     scope: <區塊名|null>
