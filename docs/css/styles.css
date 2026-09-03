@@ -652,7 +652,9 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .md > h2 { padding-top: 10px; border-top: 1px solid var(--rule); }
 .md > h2:first-child { padding-top: 0; border-top: 0; }
 
-.md ul, .md ol { margin: 0 0 14px; padding-left: 0; }
+.md ul, .md ol { margin: 0 0 14px; padding-left: 0; list-style: none; }
+/* list-style: none 對 ol 是必要的：:218 的 `ul { list-style: none }` 沒涵蓋 ol，
+   而下面 .md ol > li::before 又畫了一次編號 —— 兩者疊起來會顯示成「1. 1.」。 */
 .md li { position: relative; padding-left: 18px; margin-bottom: 5px; }
 .md ul > li::before {
   content: ""; position: absolute; left: 3px; top: .68em;
