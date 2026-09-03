@@ -535,6 +535,23 @@ for (const name of diskAgents) {
   if (!refKeys.has(`references/agents/${name}.md`)) missingDocs.push('agent:' + name + '(無內嵌全文)');
   else if (!docNames.has(name)) missingDocs.push('agent:' + name + '(無 NODE_DOCS)');
 }
+// C18b 是 C18 的反向。為什麼需要它：C8b 的期望值從磁碟推導，所以磁碟上多出
+// 垃圾目錄時，期望與實際同向移動 —— 產出器把垃圾內嵌進去、C8b 照樣 PASS。
+// 這不是假設：2026-09-03 的 review 期間，reviewer 在 skills/ 底下造了 9 個
+// zz-* fixture，正式 repo 的 references-data.js 一度變成 44 個 key，而契約全綠。
+// 反向檢查抓得到，因為垃圾目錄不會有 NODE_DOCS 條目。
+const strayRefs = [...refKeys].filter((k) => {
+  const m = k.match(/^references\/(skills\/([^/]+)\/SKILL\.md|agents\/([^/]+)\.md)$/);
+  if (!m) return k !== 'references/CLAUDE.md';   // CLAUDE.md 是唯一合法的例外
+  return !docNames.has(m[2] || m[3]);
+});
+check(
+  'C18b 內嵌的每一份都對得到 NODE_DOCS（反向，抓磁碟垃圾）',
+  strayRefs.length === 0,
+  `期望 0 個，實際 ${strayRefs.length} 個：${strayRefs.slice(0, 6).join(' / ')}` +
+    `（後果：產出器把不該收的目錄內嵌進去了，而 C8b 因為期望值同樣從磁碟推導所以不會紅）`
+);
+
 check(
   `C18 磁碟 ${diskSkills.length} skill + ${diskAgents.length} agent 都能點開文件`,
   missingDocs.length === 0,

@@ -27,6 +27,17 @@ param([switch]$Check)
 
 $ErrorActionPreference = 'Stop'
 
+# PowerShell 5.1 與 7 的 ConvertTo-Json 跳脫規則不同，會產出不同 bytes：
+#   5.1（JavaScriptSerializer）："<script> & 'q'"
+#   7  （Newtonsoft）           ："<script> & 'q'"
+# 被內嵌的 35 份文件裡有 925 個 < & ' —— 換直譯器跑一次，產出檔就多出約
+# 4,600 bytes 的無謂 diff，而且所有人的 -Check 都會 FAIL、看不出原因。
+# `powershell -File` 與 `pwsh -File` 差別只在有沒有打那個 w，太容易踩。
+# 5.1 的 Set-Content -Encoding UTF8 還會多寫 BOM，同樣是靜默的位元組差異。
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw "本腳本需要 PowerShell 7+（目前 $($PSVersionTable.PSVersion)）。請用 pwsh 而不是 powershell —— 5.1 的 ConvertTo-Json 跳脫規則不同，產出的檔會與 repo 內的不一致。"
+}
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $outPath  = Join-Path $repoRoot 'docs/js/references-data.js'
 
@@ -42,7 +53,15 @@ $outPath  = Join-Path $repoRoot 'docs/js/references-data.js'
 function ConvertTo-JsStringBody {
     param([Parameter(Mandatory)][AllowEmptyString()][string]$Text)
     $json = $Text | ConvertTo-Json -Compress -Depth 1
-    return $json.Substring(1, $json.Length - 2)
+    $body = $json.Substring(1, $json.Length - 2)
+
+    # 把 `</` 寫成 `<\/`：在 JS 字串裡 `\/` 就是 `/`，**解出來的值一個字元都沒變**，
+    # 但 HTML parser 不再認得 `</script`。目前 docs/flow.html 是 <script src=> 外部
+    # 載入、不受影響，這是為了 docstring 講的「把 docs/ 複製到任何地方直接開」——
+    # design-demos/*.html 那批正是 inline 寫法，哪天有人照做就會咬。
+    # 只跳脫 `</` 不跳脫所有 `<`：全跳脫要動 818 個字元、多 4KB，而只有 `</`
+    # 會提前關閉標籤（實測全 repo 只有 2 個 `</`）。
+    return $body -replace '</', '<\/'
 }
 
 <#
@@ -97,6 +116,8 @@ $sb = [System.Text.StringBuilder]::new()
 
 $replacementChar = [char]0xFFFD
 
+# key 也要跳脫。目前所有 key 都是 ASCII 路徑，但目錄名在 macOS / Linux 可以含 `"`，
+# 那會讓產出的 JS 在該處提前收尾。跟值走同一條路徑，不另寫規則。
 foreach ($key in $sources.Keys) {
     $text = Get-Content -LiteralPath $sources[$key] -Raw -Encoding UTF8
 
@@ -109,10 +130,17 @@ foreach ($key in $sources.Keys) {
     }
 
     $body = ConvertTo-JsStringBody -Text $text
-    [void]$sb.AppendLine("  `"$key`": `"$body`",")
+    $safeKey = ConvertTo-JsStringBody -Text $key
+    [void]$sb.AppendLine("  `"$safeKey`": `"$body`",")
 }
 
 [void]$sb.AppendLine('};')
+
+# 行尾刻意用 AppendLine（平台原生），不要改成寫死的 "`n"。
+# 這個 repo 的 core.autocrlf = true：git 存 LF、checkout 出 CRLF。
+# AppendLine 在 Windows 產 CRLF、在 Linux 產 LF，剛好與工作區一致，
+# -Check 兩邊才對得上。寫死 LF 會讓 Windows 上「產出 LF vs 工作區 CRLF」
+# 永遠 FAIL。**這條看起來像 bug，其實是對的，改之前先看 core.autocrlf。**
 
 # 最後一個 key 後面的逗號留著——JS 物件字面值允許 trailing comma，
 # 而特別處理最後一項會讓 diff 在「新增一個 skill」時多出一行無關改動。
@@ -129,7 +157,11 @@ if ($Check) {
         exit 0
     }
     Write-Host "FAIL  references-data.js 過期" -ForegroundColor Red
-    Write-Host "      磁碟上有 $($sources.Count) 份文件；現有檔內嵌 $((Select-String -Path $outPath -Pattern '"references/' -AllMatches).Matches.Count) 個 key"
+    # 行首錨定：文件正文裡若出現 `"references/...` 這種字樣（本 repo 的 skill 互相
+    # 引用時很常見），不錨定的話診斷會把它們一起數進去，印出「內嵌 20 個 key」
+    # 而實際只有 17 —— 讓人以為少了 3 個 skill。判定本身用整檔字串比對、不受影響。
+    $existingKeys = (Select-String -Path $outPath -Pattern '^  "references/' -AllMatches).Matches.Count
+    Write-Host "      磁碟上有 $($sources.Count) 份文件；現有檔內嵌 $existingKeys 個 key"
     Write-Host "      修法：pwsh -NoProfile -File scripts/build-references.ps1"
     exit 1
 }
