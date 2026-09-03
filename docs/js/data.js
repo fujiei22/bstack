@@ -89,7 +89,7 @@ const FLOW_DATA = {
     LoadWP:       { phase: 'phase_plan', type: 'skill',   shape: 'rect',    label: '載入 skill：write-plan' },
     WritePlan:    { phase: 'phase_plan', type: 'impl',    shape: 'rect',    label: '寫 docs/work/<branch-name>/plan.md\nbite-sized task + 並行性分析' },
     LoadRP:       { phase: 'phase_plan', type: 'skill',   shape: 'rect',    label: '載入 skill：review-plan' },
-    RPSplit:      { phase: 'phase_plan', type: 'default', shape: 'diamond', label: '依 Tier 分視角' },
+    RPSplit:      { phase: 'phase_plan', type: 'default', shape: 'diamond', label: '依 Tier 分視角\n（review-plan 只定義 T2 / T3）' },
     RPT2:         { phase: 'phase_plan', type: 'agent',   shape: 'rect',    label: 'T2：Eng-only review\n（spawn subagent 評 plan）' },
     RPT3:         { phase: 'phase_plan', type: 'agent',   shape: 'rect',    label: 'T3：4 視角\nCEO + Design + Eng + DX' },
     UG1:          { phase: 'phase_plan', type: 'gate',    shape: 'diamond', label: 'USER GATE 1\nAskUserQuestion: 核准 plan？' },
@@ -122,6 +122,8 @@ const FLOW_DATA = {
     FEAgent:      { phase: 'phase_verify', type: 'agent',   shape: 'rect',    label: '派 agent：frontend-e2e-runner\n（Playwright 隔離 context）' },
     LeakQ:        { phase: 'phase_verify', type: 'default', shape: 'diamond', label: '§使用契約 2.5 漏網複查（全 Tier）\n實改含前端檔但 involved=false / scope 對不上？' },
     LeakRecheck:  { phase: 'phase_verify', type: 'impl',    shape: 'rect',    label: '重跑 design-language 判定 + 四項對齊檢查\n已在 design_rejudge 的檔不重複觸發' },
+    TextQ:        { phase: 'phase_verify', type: 'default', shape: 'diamond', label: '§使用契約 2.6 對外文字複查（全 Tier）\n本輪改到 README / release notes / 使用文件？\n排除 docs/work/ 與 docs/archive/（施工文件不算）' },
+    LoadZhH:      { phase: 'phase_verify', type: 'skill',   shape: 'rect',    label: '載入 skill：zh-humanize\n走「被 verify-done 自動載入」路徑\n只負責列清單；改不改不在 verify-done 做' },
 
     // ───────── Phase 5：request-review + receive-review ─────────
     LoadReq:      { phase: 'phase_review', type: 'skill',   shape: 'rect',    label: '載入 skill：request-review' },
@@ -211,7 +213,10 @@ const FLOW_DATA = {
     ['IncidentQ',    'LoadVerify',   'no',                          'solid'],
 
     // Dev Track
-    ['TrackSplit',   'LoadWP',       'Dev',                         'solid'],
+    // T1 依 CLAUDE.md §Tier 機制「plan：跳」直送 execute-plan——review-plan 也只定義
+    // T2 / T3 視角，T1 進了 Phase 2 會無視角可派。
+    ['TrackSplit',   'LoadExec',     'Dev + T1\n跳 Phase 2（CLAUDE.md §Tier：plan 跳）', 'solid'],
+    ['TrackSplit',   'LoadWP',       'Dev + T2 / T3',               'solid'],
     ['LoadWP',       'WritePlan',    '',                            'solid'],
     ['WritePlan',    'LoadRP',       '',                            'solid'],
     ['LoadRP',       'RPSplit',      '',                            'solid'],
@@ -235,8 +240,11 @@ const FLOW_DATA = {
     ['VerifyRun',    'LeakQ',        '',                            'solid'],
     ['UIQ',          'LoadFE',       'T3 + UI',                     'solid'],
     ['LoadFE',       'FEAgent',      '',                            'solid'],
-    ['FEAgent',      'LoadReq',      '',                            'solid'],
-    ['UIQ',          'LoadReq',      '否',                          'solid'],
+    ['FEAgent',      'TextQ',        '',                            'solid'],
+    ['UIQ',          'TextQ',        '否',                          'solid'],
+    ['TextQ',        'LoadZhH',      'yes',                         'solid'],
+    ['LoadZhH',      'LoadReq',      '列清單交 user 定',            'solid'],
+    ['TextQ',        'LoadReq',      'no',                          'solid'],
 
 
     // 設計 lane：Phase 0b′ 判定（純後端在 DesignQ 就結束）
@@ -301,16 +309,19 @@ const FLOW_DATA = {
     ['LoadFin',      'Commit',       '',                            'solid'],
     ['Commit',       'LoadSafety',   'commit 前掃描',               'dashed'],
     ['Commit',       'PushPR',       '',                            'solid'],
-    ['PushPR',       'MergeGate',    '',                            'solid'],
-    ['MergeGate',    'Squash',       'user 授權',                   'solid'],
-    ['MergeGate',    'End',          '交 user 自行 merge',          'solid'],
-    ['Squash',       'LoadPrEx',     '',                            'solid'],
+    // pr-explain 接在「PR 開好」之後，不是接在 merge 之後：finish-branch 使用契約
+    // 第 6 步是「印 PR URL + 交棒 pr-explain」，且明訂 merge 由 user 觸發、預設不自動
+    // merge。掛在 Squash 後面會讓「交 user 自行 merge」這條預設路徑跳過整個 Phase 8。
+    ['PushPR',       'LoadPrEx',     'PR 開好即交棒',               'solid'],
 
     // pr-explain
     ['LoadPrEx',     'PrExAgent',    '',                            'solid'],
     ['PrExAgent',    'DocsReviews',  '',                            'solid'],
     ['DocsReviews',  'PostComment',  '',                            'solid'],
-    ['PostComment',  'End',          '',                            'solid'],
+    ['PostComment',  'MergeGate',    '',                            'solid'],
+    ['MergeGate',    'Squash',       'user 授權',                   'solid'],
+    ['MergeGate',    'End',          '交 user 自行 merge',          'solid'],
+    ['Squash',       'End',          '',                            'solid'],
 
     // retro（手動，不接 End）
     ['LoadRetro',    'RetroPeriod',  '',                            'solid'],
@@ -362,7 +373,7 @@ const FLOW_DATA = {
     {
       id: 'crosscut',
       title: '跨流程 skill（按需載入）',
-      desc: 'user 顯式觸發或特定情境載入；不在主線、無固定銜接點',
+      desc: 'user 顯式觸發或特定情境載入；多數不在主線（zh-humanize 例外，見下）',
       kind: 'skill',
       items: [
         { name: 'lock-files',       docKey: 'LoadLock',  desc: 'user 顯式鎖檔禁改' },
@@ -370,7 +381,7 @@ const FLOW_DATA = {
         { name: 'context-snapshot', docKey: 'LoadCtxS',  desc: '中斷 / 跨 session 暫停存進度' },
         { name: 'context-resume',   docKey: 'LoadCtxR',  desc: '接續上次進度' },
         { name: 'write-skill',      docKey: 'LoadWS',    desc: 'meta：新增 / 改 skill' },
-        { name: 'zh-humanize',      docKey: 'LoadZhH',   desc: '去中文的 AI 味、校正中國用語與半形標點' },
+        { name: 'zh-humanize',      docKey: 'LoadZhH',   desc: '去中文的 AI 味、校正中國用語與半形標點；verify-done 2.6 對外文字複查會自動載入它，主圖上有節點' },
       ],
     },
   ],

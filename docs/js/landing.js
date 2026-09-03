@@ -111,6 +111,14 @@
   var TYPE_LABEL = {};
   (window.FLOW_DATA ? window.FLOW_DATA.legend : []).forEach(function (l) { TYPE_LABEL[l.type] = l.label; });
 
+  /** 規模數字一律從 FLOW_DATA 算，不寫死——與 app.js 的 syncRailLabels 同一個理由：
+      加一個節點就要記得回頭改三處字串的話，遲早會漏一處。 */
+  var TOTAL = {
+    nodes:  window.FLOW_DATA ? Object.keys(window.FLOW_DATA.nodes).length : 0,
+    edges:  window.FLOW_DATA ? window.FLOW_DATA.edges.length  : 0,
+    phases: window.FLOW_DATA ? window.FLOW_DATA.phases.length : 0
+  };
+
   /** 首屏：一句話進來之後最先經過的三個節點，免得一進站右半邊是空的。 */
   var OPENING = ['Start', 'ClaudeMd', 'DevWfSkill'];
   var steps = [], coda = null, RANGE = { top: [0, OPENING.length] };
@@ -150,8 +158,8 @@
       '<span class="knot">§</span>' +
       '<div class="hr"></div>' +
       '<div class="mark">❦</div>' +
-      '<div class="say">一句話從這裡進去，<br>走完了八十八個節點<em>。</em></div>' +
-      '<div class="meta">88 節點 · 111 條邊 · 15 階段</div>' +
+      '<div class="say">一句話從這裡進去，<br>走完了整條流程<em>。</em></div>' +
+      '<div class="meta">' + TOTAL.nodes + ' 節點 · ' + TOTAL.edges + ' 條邊 · ' + TOTAL.phases + ' 階段</div>' +
       '<a href="./flow.html">把整張圖打開<span class="ar">→</span></a>';
     chain.appendChild(coda);
 
@@ -187,7 +195,7 @@
         fillEl.style.height = (coda.offsetTop + 30) + 'px';
       });
       titleEl.innerHTML = '主流程完 · <b>9</b> 個階段';
-      countTo(88);
+      countTo(TOTAL.nodes);
       barEl.style.width = '100%';
       return;
     }
@@ -225,11 +233,11 @@
       titleEl.innerHTML = (tag ? tag.textContent.trim() : '') + ' · <b>' + cnt + '</b> 個節點';
       var upto = parseInt(b.getAttribute('data-upto'), 10) || 0;
       countTo(upto);
-      barEl.style.width = (upto / 88 * 100) + '%';
+      barEl.style.width = (upto / TOTAL.nodes * 100) + '%';
     } else {
       titleEl.textContent = '一句話進來之後';
       countTo(OPENING.length);
-      barEl.style.width = (OPENING.length / 88 * 100) + '%';
+      barEl.style.width = (OPENING.length / TOTAL.nodes * 100) + '%';
     }
   }
 
@@ -255,8 +263,8 @@
       });
     }, { rootMargin: '-20% 0px -70% 0px' }).observe(document.querySelector('.hero'));
 
-    // 文末的資料段不是 beat：讀到那裡表示整條流程走完了，計數要收在 88/88，
-    // 不然會停在 84 看起來像沒跑完。
+    // 文末的資料段不是 beat：讀到那裡表示整條流程走完了，計數要收滿，
+    // 不然會停在最後一段的 data-upto 上，看起來像沒跑完。
     var install = document.getElementById('install');
     if (install) {
       new IntersectionObserver(function (es) {
