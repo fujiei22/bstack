@@ -123,10 +123,8 @@ foreach ($b in $blockPatterns) {
 
 # === WARN 類：敏感配置（confirm token 機制）===
 $warnPatterns = @(
-    # .gitignore 與 .dockerignore 同一類：改動它們會讓檔案從版控 / build context 消失，
-    # 而「消失」在 diff 上看不見。CLAUDE.md §File-type 硬規則 本來就列了這兩個，
-    # 但 .gitignore 之前漏在 code 裡沒實作（文件說會二次確認、實際完全不管）。
-    @{ p = '/\.gitignore$';                       tag = 'gitignore' },
+    # .gitignore 刻意不列：它改動頻繁（新增 build 產物、暫存目錄都要動），
+    # 每次都要 confirm token 的干擾大於收益。.dockerignore 動得少，保留。
     @{ p = '/\.dockerignore$';                    tag = 'dockerignore' },
     @{ p = '/\.github/workflows/.+\.ya?ml$';      tag = 'GitHub Actions CI' },
     @{ p = '/\.gitlab-ci\.ya?ml$';                tag = 'GitLab CI' },

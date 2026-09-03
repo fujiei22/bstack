@@ -55,7 +55,7 @@ user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」
 | 類型 | 範例 | 處置 |
 |---|---|---|
 | 密鑰 / secret | `.env`、`*.key`、`*.pem`、`credentials.*` | **禁 commit**、hook block |
-| gitignore | `.gitignore`、`.dockerignore` | 二次確認 |
+| ignore 檔 | `.dockerignore` | 二次確認（`.gitignore` 刻意不列：改動頻繁，攔它的干擾大於收益） |
 | CI / CD | `.github/workflows/*.yml`、`.gitlab-ci.yml` | 升 T2+、套 review |
 | DB migration | `migrations/*.sql`、`prisma/migrations/`、`alembic/versions/` | 載 `db-access` + `db-reviewer`；DDL 大表 warn |
 | 鎖檔 | `package-lock.json`、`bun.lock`、`poetry.lock` | 列 diff、二次確認 |
