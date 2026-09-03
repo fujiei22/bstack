@@ -682,7 +682,10 @@ grep -qF "1146d868a3e05dd21168ab9fca6ece153563d581" NOTICE || { echo "MISS V9: N
 # 【實測修正】原本只鎖「27 個 skill」這個完整字串，而 stat block 與 inventory
 # 用的是裸數字 27 —— 斷言全綠但兩處沒改到。V10 說的是「27 全部改對」，
 # 斷言檢查的範圍比需求窄。改成掃所有孤立的 27
-grep -nE '(^|[^0-9])27([^0-9]|$)' docs/index.html && { echo "MISS V10: docs 仍有 27"; ok=0; }
+# 排除 data-upto="27" —— 那是 landing.js 讀去建節點鏈的進度屬性，不是 skill 數。
+# 太窄會漏抓（只鎖「27 個 skill」），太寬會誤報（掃到 data-upto）——
+# 正確的斷言需要知道那個 27 是什麼
+grep -nE '(^|[^0-9])27([^0-9]|$)' docs/index.html | grep -v 'data-upto='   && { echo "MISS V10: docs 仍有 27"; ok=0; }
 grep -qF "主流程 12 條、跨流程觸發式 10 條、meta 4 條、設計 lane 2 條" docs/index.html || { echo "MISS V10: inventory 細項加總不等於 28"; ok=0; }
 grep -qF "## Skills（27）" README.md && { echo "MISS V10: README 舊數字"; ok=0; }
 # V11 零行為改動
