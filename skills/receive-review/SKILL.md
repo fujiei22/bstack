@@ -23,6 +23,8 @@ review subagent 把 finding 丟回來後，**主 agent 處置**：自動修 / �
 5. **T3 全程**：即使「不危險類」也要 user 看 diff 才 commit（不強制 prompt、但顯式）。
 6. 全部處置完 → 整理 `review_summary_path` 為定稿 → 交下個 phase。
 
+**T0 不進本 skill**：它的上游 request-review 對 T0 就不啟動（CLAUDE.md §Tier 表 T0 review 欄是「跳」）。
+
 ---
 
 ## §不危險 vs 危險分類

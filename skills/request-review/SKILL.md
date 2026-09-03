@@ -17,7 +17,7 @@ description: |
 **載入後立即動作**：
 
 1. **讀 hand-off state** 取 `tier`、`commits`、`codebase_impact.files`。
-2. **依 tier dispatch review**：
+2. **依 tier dispatch review**（**T0 不進本 skill**：CLAUDE.md §Tier 表 T0 的 review 欄是「跳」）：
    - T1 = self review（主 agent 自己讀 diff）
    - T2 = 1 subagent（綜合 review）+ ECC lang-reviewer（依檔副檔名動態）
    - T3 = 2 subagent（架構 × 除錯雙視角）+ lang-reviewer

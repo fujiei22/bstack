@@ -47,6 +47,8 @@ user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」
 ### §Branch safety
 `~/.claude/hooks/branch-safety.ps1` 自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。`git checkout / merge / push` 受同 hook。
 
+**豁免（實測 code 行為，非設計缺陷）**：hook 只管 `$CLAUDE_PROJECT_DIR` **底下**的檔。目標檔在 project repo 之外（例如全域 `~/.claude/` 的 skill、CLAUDE.md、hook 本身）一律放行，不論當前在哪個 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也都放行——hook 不因自身錯誤擋人。**意思是：改全域設定沒有 branch 保護，那是靠自律的區域。**
+
 ### §File-type 硬規則
 `~/.claude/hooks/file-type-guard.ps1` 偵測；Hook 報的**不能跳**。
 

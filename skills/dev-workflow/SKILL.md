@@ -64,6 +64,10 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 | 改 3-10 檔 / 單模組 feature / 中型 refactor | T2 |
 | >10 檔 / 跨模組 / 新建 module / DB schema / API 介面 / 架構決策 | T3 |
 
+**Tier 自動升級（覆蓋上表的預判）**：改動命中 CLAUDE.md §File-type 硬規則的
+DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量體多小。
+理由：這幾類的爆炸半徑與行數無關。細則見 `brainstorm` §Phase 0d。
+
 **0b′／0c／0d 三者合併成一個 `AskUserQuestion` 一次確認**（推薦選項 = AI 預判結果）。
 
 ---
@@ -241,7 +245,7 @@ Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 
 | Skill | 觸發 |
 |---|---|
-| `db-access` | prompt 含 DB 關鍵詞 / brainstorm 0b 偵測 DB / write-plan 涉 schema / execute-plan 動 DB / review 涉 SQL |
+| `db-access` | **固定載入點**：brainstorm 0b 偵測到 DB 關鍵詞。其餘（write-plan 涉 schema、execute-plan 動 DB、review 涉 SQL）是**規則適用範圍**，那些 skill 本身沒有載入它的步驟 |
 | `design-language` | brainstorm 0b′（**必跑**，含純後端 task）／ `design.involved=true` 且 `size=小改` 時，execute-plan **動到前端檔的 task 前後**／ execute-plan §前端檔處理 的中途轉進補判／ verify-done §漏網複查 的補判／ user 顯式問設計語言 |
 | `design-direction` | brainstorm 0c/0d 合併確認第 3 題選「出三版」，且 **branch 已建立、`spec.md` 已落檔**／ user 顯式要求出方向、評審設計。**選「跳過三方向」不載入** |
 | `lock-files` | user 顯式要鎖某些檔（動 prod / 敏感模組）|

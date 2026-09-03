@@ -216,7 +216,8 @@ EOF
 
 - spec: docs/work/<branch-name>/spec.md
 - plan: docs/work/<branch-name>/plan.md
-- review: docs/work/<branch-name>/review.md
+- review: <hand-off state 的 review_summary_path 實際值；
+  request-review 寫的是 docs/work/<branch-name>/_temp/<task-slug>.md，不要寫死 review.md>
 - (issue) #<N>
 ```
 
