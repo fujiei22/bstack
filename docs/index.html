@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <title>bstack：Claude Code 開發流程包</title>
-  <meta name="description" content="27 個 skill、6 個 agent、2 個 PreToolUse hook 與一份 CLAUDE.md 規則書，把 Claude Code 的改動類請求導進固定的九階段流程。" />
+  <meta name="description" content="28 個 skill、6 個 agent、2 個 PreToolUse hook 與一份 CLAUDE.md 規則書，把 Claude Code 的改動類請求導進固定的九階段流程。" />
 
   <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC。
        屬性名與 localStorage key 都跟 flow.html 一致，兩頁之間切換主題不會跳。 -->
@@ -43,9 +43,9 @@
   <section class="hero" id="top">
     <div class="kicker rise">Claude Code 開發流程包 · 零 marketplace 依賴</div>
     <h1 class="rise">讓它每一次<br>都用同一種方式聰明</h1>
-    <p class="sub rise">它本來就很會寫 code。麻煩的是同一句「改一下這裡」，它今天直接動手，明天卻先問你三個問題。bstack 是一份把這件事釘住的設定檔——27 個 skill、6 個 agent、2 個 PreToolUse hook，加上一份誰都繞不過的規則書，同步進 <code>~/.claude/</code> 就生效。</p>
+    <p class="sub rise">它本來就很會寫 code。麻煩的是同一句「改一下這裡」，它今天直接動手，明天卻先問你三個問題。bstack 是一份把這件事釘住的設定檔——28 個 skill、6 個 agent、2 個 PreToolUse hook，加上一份誰都繞不過的規則書，同步進 <code>~/.claude/</code> 就生效。</p>
     <div class="stat rise">
-      <div><b>27</b><span>skills</span></div><div><b>6</b><span>agents</span></div>
+      <div><b>28</b><span>skills</span></div><div><b>6</b><span>agents</span></div>
       <div><b>2</b><span>hooks</span></div><div><b>9</b><span>phases</span></div>
       <div><b>88</b><span>節點</span></div>
     </div>
@@ -84,7 +84,7 @@
   <section class="data" id="inv">
     <h2 class="rise">裝進 ~/.claude/ 的全部</h2>
     <ul class="inv rise">
-      <li><span class="sw" style="background:var(--c-skill);border-color:var(--c-skill-bd)"></span><span class="kk">skills</span><span class="vv">主流程 12 條、跨流程觸發式 9 條、meta 4 條、設計 lane 2 條</span><span class="nn">27</span></li>
+      <li><span class="sw" style="background:var(--c-skill);border-color:var(--c-skill-bd)"></span><span class="kk">skills</span><span class="vv">主流程 12 條、跨流程觸發式 10 條、meta 4 條、設計 lane 2 條</span><span class="nn">28</span></li>
       <li><span class="sw" style="background:var(--c-agent);border-color:var(--c-agent-bd)"></span><span class="kk">agents</span><span class="vv">review / 安全稽核 / e2e / 假設驗證，各自跑獨立 context</span><span class="nn">6</span></li>
       <li><span class="sw" style="background:var(--c-hook);border-color:var(--c-hook-bd)"></span><span class="kk">hooks</span><span class="vv">branch-safety 與 file-type-guard，都是 PreToolUse</span><span class="nn">2</span></li>
       <li><span class="sw" style="background:var(--c-policy);border-color:var(--c-policy-bd)"></span><span class="kk">CLAUDE.md</span><span class="vv">九條強制守則、Tier 機制、commit 與 branch 規範；優先於任何 skill</span><span class="nn">1</span></li>

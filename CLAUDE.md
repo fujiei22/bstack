@@ -72,6 +72,10 @@ PII（email / phone / 身分證 / 信用卡 / 地址 / id_number）原值**禁�
 ### §設計語言對齊
 動任何**前端檔**（`.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`）之前，**先讀該區塊的既有設計語言**——載 `design-language`，從實際檔案抄 exact values，不憑印象重畫。
 
+> **豁免：只改文字節點時不適用。** 改的是 HTML／JSX 裡的**文字內容**，完全不碰 token、class、屬性、標籤結構、版面——這種改動 `design-language` 管不到（它管色碼、字級、斷點、dark mode），載了也只會得到一份用不上的設計語言摘要。
+> **邊界**：只要動到 `class` / `style` / 任何屬性值 / 標籤增刪，就不算文字節點改動，規則照舊適用。判不出來就當作適用。
+> 實測依據：2026-09-03 用 `zh-humanize` 潤 `docs/index.html` 文案時撞到——規則字面命中 `.html`，實質完全不適用，而執行的 agent 只能自己推豁免理由。
+
 - **判定** brainstorm Phase 0b′ 產出 `design.{involved, scope, scope_evidence, size, precedent, map_status}`，與 Track / Tier 合併一個 `AskUserQuestion` 一次確認。**0b′ 必跑**（含純後端 task；第一步是零成本的副檔名比對，不命中就結束）
 - **小改**（沿用既有 token、無新視覺決策）→ 直接改 code，改完跑**四項對齊檢查**（元件狀態 / 斷點 / 表單 / dark mode；該區客觀上無此維度 → 標 N/A 並附依據）
 - **大改**（新頁 / 新區塊 / 改版）→ 先出三方向真實視覺讓 user 選，選定才落 code
