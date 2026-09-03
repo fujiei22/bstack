@@ -254,6 +254,7 @@ Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 | `db-reviewer` | T3 + DB 改動，security 階段內 |
 | `frontend-test` | verify-done 偵測前端檔改動（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）；T3 UI 改動必載、T2 可選；user 顯式呼叫 e2e 也載 |
 | `write-skill` | user 要加 / 改 / 評 skill 本身 |
+| `zh-humanize` | user 顯式要求**去 AI 味 / 說人話 / 潤稿 / 校對**對外文字；或改 README、release notes、使用文件、產品站文案等給人讀的內容時。另由 `verify-done` §對外文字複查 自動載入。**載入不等於改寫**——可載入分析並列清單，但沒有 `AskUserQuestion` 的明確選擇就不動任何一個字 |
 
 ---
 
