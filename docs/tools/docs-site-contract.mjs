@@ -552,6 +552,26 @@ check(
     `（後果：產出器把不該收的目錄內嵌進去了，而 C8b 因為期望值同樣從磁碟推導所以不會紅）`
 );
 
+// C18c 守的是一種在 Windows 上完全靜默的失效：產出器若不把內嵌內容正規化成 LF，
+// 產出就跟著 checkout 狀態走——core.autocrlf=true 的機器內嵌 CRLF、Linux 內嵌 LF。
+// 那些 CR 是字串值裡的跳脫字元、git 的 autocrlf 碰不到，所以同一份 commit 在
+// 兩種平台不可能同時通過 -Check。
+// **為什麼 -Check 自己抓不到**：它拿「現在產的」比對「檔案裡的」，同一台機器兩邊
+// 用同一種行尾，永遠一致。在 Windows 上刪掉正規化那行，-Check 照樣全綠，只有
+// Linux / macOS 的人會踩到。所以這條必須驗產出物本身，不能靠 round-trip。
+// 對應 scripts/build-references.ps1 內嵌迴圈裡的 -replace 那一行。
+// 掃原始文字而不是 eval：本檔全程只對 refSrc 做 regex，不載入那份 JS。
+// 負向後顧排掉 `\\r`——那是原文裡真的寫了字面 \r（regex 範例很常見），
+// 它跳脫後是「跳脫過的反斜線 + r」，不是換行。
+const crEscapes = (refSrc.match(/(?<!\\)\\r/g) || []).length;
+check(
+  'C18c 內嵌內容一律 LF（跨平台決定性）',
+  crEscapes === 0,
+  `期望 0 個 CR 跳脫，實際 ${crEscapes} 個` +
+    `（後果：產出器少了 LF 正規化，這份 commit 在非 Windows 上 -Check 永遠 FAIL，` +
+    `而在 Windows 上看起來全綠、查不出原因）`
+);
+
 check(
   `C18 磁碟 ${diskSkills.length} skill + ${diskAgents.length} agent 都能點開文件`,
   missingDocs.length === 0,

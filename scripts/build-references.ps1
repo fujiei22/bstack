@@ -129,6 +129,15 @@ foreach ($key in $sources.Keys) {
         throw "$($sources[$key]) 含 $bad 個 U+FFFD —— 該檔不是合法 UTF-8（存成 Big5 或 UTF-16 了？）。修好編碼再跑，不要讓毀損的內容進產出物。"
     }
 
+    # 內嵌值裡的行尾釘死 LF。**這與檔尾那條「不要寫死 LF」方向相反，兩條都對**，
+    # 差別在 git 管不管得到：
+    #   產出檔自己的行尾  = 真正的 CR LF 位元組 → core.autocrlf 會正規化 → 交給 AppendLine
+    #   內嵌字串值裡的     = `\` `r` `\` `n` 四個普通字元 → git 完全碰不到 → 只能自己釘
+    # 不釘的話產出隨 checkout 狀態浮動：Windows（autocrlf=true）內嵌 \r\n、
+    # Linux / macOS 內嵌 \n，同一份 commit 在兩邊 -Check 不可能同時綠。
+    # 實測本 repo 35 份文件曾內嵌 6,868 個 \r，而 -Check 在非 Windows 上是永遠 FAIL 的。
+    $text = $text -replace "`r`n", "`n"
+
     $body = ConvertTo-JsStringBody -Text $text
     $safeKey = ConvertTo-JsStringBody -Text $key
     [void]$sb.AppendLine("  `"$safeKey`": `"$body`",")
@@ -141,6 +150,10 @@ foreach ($key in $sources.Keys) {
 # AppendLine 在 Windows 產 CRLF、在 Linux 產 LF，剛好與工作區一致，
 # -Check 兩邊才對得上。寫死 LF 會讓 Windows 上「產出 LF vs 工作區 CRLF」
 # 永遠 FAIL。**這條看起來像 bug，其實是對的，改之前先看 core.autocrlf。**
+#
+# 注意這與上面 foreach 裡「內嵌值釘死 LF」那條**方向相反，而且必須相反**。
+# 兩者都在講換行，但管轄權不同：這裡是 git 會正規化的真行尾，那裡是 git
+# 碰不到的跳脫字元。**看到不一致想統一之前，先讀那一段的理由。**
 
 # 最後一個 key 後面的逗號留著——JS 物件字面值允許 trailing comma，
 # 而特別處理最後一項會讓 diff 在「新增一個 skill」時多出一行無關改動。
