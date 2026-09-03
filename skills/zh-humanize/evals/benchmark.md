@@ -437,7 +437,7 @@
 # 本專案自寫：開發者情境（13 條 · 7 SF ＋ 6 SNF）
 
 > **這一整節是本專案自寫的，上游沒有。** 上方 42 條是上游用來調規則、且有 v1.4.0
-> 跑分背書（SF 96% / SNF 誤殺 0）的用例；這 12 條**沒有任何跑分背書**，是為了讓
+> 跑分背書（SF 96% / SNF 誤殺 0）的用例；這 13 條**沒有任何跑分背書**，是為了讓
 > `scenes.md`、`examples.md`、`protected-list.md` 的自寫部分有東西可測而補的。
 >
 > **編號刻意用 `DEV-` 前綴**，讓 `^### SF-` 與 `^### SNF-` 的上游計數維持 27 / 15
@@ -546,8 +546,11 @@
 
 > `claude mcp add mysql --scope user --env ALLOW_INSERT_OPERATION=false --env ALLOW_UPDATE_OPERATION=false --env ALLOW_DELETE_OPERATION=false`
 
-**不能動的理由**：三個 flag 看起來重複，但缺一個就少一道保護。指令是 code block，整塊不進改寫範圍。
+**不能動的理由**：指令是 code block，**整塊不進改寫範圍**——這條的判準只有這一條。三個 flag 是使用者自己打進去的字，指令本身該不該精簡不歸本 skill 判斷。
 **預期行為**：原樣放行。**不得縮寫、不得換行改排版、不得用「⋯」省略中間的 flag**。
+**清單項數期望**：0（見 `run-eval.md` §判分標準第 5 項）。
+
+> **不要拿「缺一個 flag 就少一道保護」當理由——那句話是錯的。** 實查 `@benborla29/mcp-server-mysql` v2.0.9：這三個 `ALLOW_*` 的預設值本來就是 false。`dist/src/config/index.js:36-38` 寫的是 `process.env.ALLOW_INSERT_OPERATION === "true"`（嚴格比對字串 `"true"`，環境變數沒設就是 `undefined`、結果 false），同包 `README.md:66` 也寫「All write operations are disabled by default」。所以 fixture 裡那三個 `=false` 都是 no-op，刪掉任何一個都不會少一道保護。這不影響本條的判定（code block 那條理由就夠），但把錯的理由留在用例裡，等於用一條假的道理去教「看起來冗長的東西不能砍」。
 
 ### DEV-SNF-03 release notes 的限定詞
 
@@ -586,3 +589,6 @@
 
 **不能動的理由**：這是 `SKILL.md` / `CLAUDE.md` 這類給 AI 讀的 prompt 檔，在 `不要觸發` 清單裡。
 **預期行為**：**整段不進改寫範圍，連清單都不該列**。把「禁 / 必 / 一律」當成命令腔砍掉，會直接跟 `write-skill` 的用字要求打架。
+**清單項數期望**：0（見 `run-eval.md` §判分標準第 5 項）。
+
+> **這條與其他 SNF 的差別在「進沒進範圍」，不在「改沒改字」。** 其他 SNF 是進了範圍、判定放行，容許極輕提示；這條是根本不該被處理。兩者的輸出文字長得一模一樣（都與原文逐字相同），所以只量輸出文字的話，「有列清單但沒動筆」會被判成通過——這條真正要測的東西就量不到了。判分時必須另外報第一輪編號清單的項數。
