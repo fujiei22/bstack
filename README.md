@@ -104,6 +104,16 @@
 | **bash + jq** | 只有選了 statusLine 才需要（`winget install jqlang.jq` / `brew install jq`） |
 | **Node.js + npx** | 只有選了 MCP 才需要 |
 
+### 一站式（推薦第一次裝的人）
+
+```pwsh
+git clone https://github.com/fujiei22/bstack.git
+cd bstack
+pwsh -File scripts/install.ps1
+```
+
+五步逐一問你：前置檢查 → 清舊 setup.ps1 副本（搬進備份目錄不刪）→ 裝 plugin（問使用者層級 / 目前專案 / 只印試用指令）→ 個人偏好四項逐項選 → 驗證並提醒重開 Claude Code。每步都能跳過；它自己不寫任何檔，寫入都交給 extras.ps1（可 `-Uninstall`）與 claude CLI（可 `/plugin uninstall`）。非互動：`-Yes -Scope user`；只看會做什麼：`-WhatIf`。下面 A / B / C 是它每一步各自的手動版。
+
 ### A. 啟用 plugin
 
 三種方式，依推薦順序：

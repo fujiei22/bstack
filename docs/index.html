@@ -107,7 +107,7 @@
 
   <section class="data" id="install">
     <h2 class="rise">裝起來要三步</h2>
-    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">需要 pwsh 7+（hook 必需，缺了不會報錯、保護直接不存在）。statusLine 另需 bash 與 jq，MCP 另需 Node.js。</p>
+    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">需要 pwsh 7+（hook 必需，缺了不會報錯、保護直接不存在）。statusLine 另需 bash 與 jq，MCP 另需 Node.js。懶得逐步做：clone 後跑 <code>pwsh -File scripts/install.ps1</code>，它會把下面三步一步一步問完。</p>
     <ol class="steps rise">
       <li><div class="h">啟用 plugin（推薦專案層級）</div><p>把 <code>templates/project-settings.json</code> 複製成你專案的 <code>.claude/settings.json</code>，開 session 後若沒自動裝再手動裝一次；前面是 plugin 名、後面是 marketplace 名。只想試試就用 <code>--plugin-dir</code> 指向 clone 下來的目錄，只在那個 session 生效。裝在使用者層級的話，兩支 hook 會在你所有專案生效。</p><pre class="cmd">/plugin marketplace add fujiei22/bstack
 /plugin install bstack@bstack</pre></li>

@@ -173,6 +173,7 @@ const p5 = {
   'scripts/setup.ps1 已刪': !exists('scripts/setup.ps1'),
   'state/ 已刪': !exists('state'),
   'scripts/extras.ps1 存在': exists('scripts/extras.ps1'),
+  'scripts/install.ps1 存在': exists('scripts/install.ps1'),
   'extras/statusline.sh 存在': exists('extras/statusline.sh'),
   'templates/project-settings.json 合法且 allow 含 Read': !tmpl.__err && Array.isArray(tmpl.permissions?.allow) && tmpl.permissions.allow.includes('Read') && tmpl.enabledPlugins?.['bstack@bstack'] === true,
 };
