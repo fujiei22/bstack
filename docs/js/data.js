@@ -134,10 +134,10 @@ const FLOW_DATA = {
 
     // ───────── Phase 5：request-review + receive-review ─────────
     LoadReq:      { phase: 'phase_review', type: 'skill',   shape: 'rect',    label: '載入 skill：request-review' },
-    ReviewQ:      { phase: 'phase_review', type: 'default', shape: 'diamond', label: '依 Tier 分流' },
+    ReviewQ:      { phase: 'phase_review', type: 'default', shape: 'diamond', label: '依副檔名 × Tier 分流\n（純文件 diff 跳 code-review；T2 只做 spec 自檢、T3 對齊 subagent 照派）' },
     RevT1:        { phase: 'phase_review', type: 'impl',    shape: 'rect',    label: 'T1：self review' },
-    RevT2:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T2：1 subagent\n（prompt 附語言 idiom）' },
-    RevT3:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T3：雙視角 subagent\n（架構 × 除錯，各附語言 idiom）' },
+    RevT2:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T2：內建 /code-review medium\n（不帶 --fix）+ 主 agent 對 spec 自檢' },
+    RevT3:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T3：內建 /code-review high\n+ 1 個 spec / 架構對齊 subagent（附語言 idiom）' },
     LoadRecv:     { phase: 'phase_review', type: 'skill',   shape: 'rect',    label: '載入 skill：receive-review' },
     AutoFixQ:     { phase: 'phase_review', type: 'default', shape: 'diamond', label: '危險類問題？\n（DB / 認證 / payment / infra）' },
     AutoFix:      { phase: 'phase_review', type: 'impl',    shape: 'rect',    label: '不危險：AI 自動修\n（typo / lint / 格式 / rename）' },
