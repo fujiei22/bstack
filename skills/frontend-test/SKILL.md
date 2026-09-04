@@ -1,12 +1,8 @@
 ---
 name: frontend-test
 description: |
-  前端自動化驗證（繁中）。觸發：前端 / frontend / UI / 頁面 / 排版 / layout /
-  樣式 / style / CSS / HTML / React / Vue / Svelte / Next / Nuxt / 元件 / component /
-  page / form / button / 按鈕 / 互動 / interaction / responsive / 響應式 /
-  跨瀏覽器 / cross-browser / visual / 視覺 / 視覺回歸 / .tsx / .jsx / .vue /
-  .svelte / .html / .css / .scss / .sass / 改 UI / 改前端 / playwright / e2e /
-  browser test / 跑 browser / 跑 e2e / 看畫面對不對。
+  前端自動化驗證（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（verify-done 偵測前端檔改動；
+  T3 UI 改動必載、T2 可選）；亦可由使用者顯式呼叫跑 e2e。
   涵蓋：規劃測試矩陣、spawn frontend-e2e-runner agent 跑 Playwright（隔離
   browser tool 噪音）、收結構化 summary、處置 PASS / FAIL / INCONCLUSIVE。
   上游：verify-done（偵測前端檔改動；§UI / browser e2e）/ user 顯式呼叫。

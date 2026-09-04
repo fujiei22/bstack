@@ -1,9 +1,7 @@
 ---
 name: security-checklist
 description: |
-  安全實作 checklist（繁中）。觸發：security checklist / 安全檢查 / 跑 checklist /
-  寫認證 / 寫 API endpoint / 處理 user input / 處理 secret / 上傳 / payment /
-  涉敏感資料 / 涉 PII。
+  安全實作 checklist（繁中）。載入：dev-workflow Phase 6（security-audit 跑 STRIDE 後）；亦可由使用者顯式呼叫。
   涵蓋：secret 管理、input validation、SQL injection、XSS / CSRF、auth、
   session、file upload、rate limit、secure header、error handling、log mask。
   附 FAIL / PASS 範例。security-audit 跑 STRIDE 後載此 skill 做具體實作對齊。
@@ -258,7 +256,7 @@ catch (err) {
 
 ## §12. Log / PII mask
 
-依 CLAUDE.md「§PII 安全底線」：
+依 rules.md「§PII 安全底線」：
 
 ### ❌ FAIL
 ```ts

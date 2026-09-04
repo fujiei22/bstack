@@ -1,9 +1,8 @@
 ---
 name: design-direction
 description: |
-  定設計方向（繁中）。觸發：brainstorm 0c/0d 合併確認第 3 題選「出三版」時自動載入；
-  或 user 顯式提三方向 / 設計方向 / 出幾版 / 視覺提案 / mockup / 改版 /
-  新頁面 / 新區塊 / 反 slop / 設計評審 / 這樣好不好看。
+  定設計方向（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0c/0d 合併確認選「出三版」
+  且 branch 已建立、spec 已落檔）；亦可由使用者顯式要求出方向、評審設計。
   涵蓋：三方向硬門、可變維度（有無先例）、三 subagent 並行、產出落檔、
   反 AI slop、React+Babel 技術紅線、6 維度評審。
   分工：既有事實（這區長什麼樣）→ `design-language`；新設計決策 → 本 skill；
@@ -40,7 +39,7 @@ description: |
 **禁止**：
 - 讓 user 在「只有文字、沒看到真實視覺」時選方向——沒有依據的選擇是無效的
 - 自行選定後繼續執行（含 autonomous / 無人值守情境）
-- 從對話文字推斷 user 想跳過（違反 CLAUDE.md §決策點選單「**禁文字 token NLP**」）
+- 從對話文字推斷 user 想跳過（違反 rules.md §決策點選單「**禁文字 token NLP**」）
 
 ---
 
@@ -82,7 +81,7 @@ user_choice_quote: <user 選擇原話>                         # 回寫 spec.md
 
 本 skill 是多檔結構（`references/` / `assets/` / `scripts/`）。**本節路徑相對於本 skill 目錄**：
 
-- 全域安裝時：`~/.claude/skills/design-direction/<相對路徑>`
+- plugin 安裝時：`${CLAUDE_PLUGIN_ROOT}/skills/design-direction/<相對路徑>`
 - repo 內開發時：`<repo>/skills/design-direction/<相對路徑>`
 
 Read 工具需要絕對路徑，**引用 reference 前先解析成絕對路徑**。解析不到就明說解析不到，**不要拿 SKILL.md 的摘要當作已讀過細則**。
@@ -202,7 +201,7 @@ Read 工具需要絕對路徑，**引用 reference 前先解析成絕對路徑**
 
 **用 subagent 平行，不開 Agent Teams，也不問 user。**
 
-依據 CLAUDE.md §協作模式判定三判準：可切 3 塊 ✓、不同檔（`design-demos/*.html`）✓、T2+ ✓，但判準 2「工作者之間需要互相反駁或交換發現」**明確不成立**——三版必須**獨立 context、互不參考**才不會趨同。§協作模式判定 也明訂「唯讀 fan-out 一律 subagent、不開隊友也不問」。
+依據 rules.md §協作模式判定三判準：可切 3 塊 ✓、不同檔（`design-demos/*.html`）✓、T2+ ✓，但判準 2「工作者之間需要互相反駁或交換發現」**明確不成立**——三版必須**獨立 context、互不參考**才不會趨同。§協作模式判定 也明訂「唯讀 fan-out 一律 subagent、不開隊友也不問」。
 
 **spawn 範本**（三個各一，只換 `<方向名>` 與可變維度的指派）：
 
@@ -252,7 +251,7 @@ npx playwright screenshot "file:///<絕對路徑>.html" "<輸出>.png" "--viewpo
 
 **三版全部完成後一起攤出來**，每版標明：可變維度上做了什麼選擇、骨架差在哪、一句話說為什麼。並排展示用 `assets/design_canvas.jsx`（讀取內容 → inline 進一份展示 HTML 的 `<script>` 標籤 → 把三版 slot 進去）。
 
-**走 `AskUserQuestion`**（CLAUDE.md §決策點選單；**禁文字 token NLP**——不得從對話裡的「就這個吧」「不錯」推斷選擇）：
+**走 `AskUserQuestion`**（rules.md §決策點選單；**禁文字 token NLP**——不得從對話裡的「就這個吧」「不錯」推斷選擇）：
 
 1. A 版 —— `<骨架差異一句話>`
 2. B 版 —— `<骨架差異一句話>`
@@ -260,7 +259,7 @@ npx playwright screenshot "file:///<絕對路徑>.html" "<輸出>.png" "--viewpo
 4. 混合（選了之後我再問你要取哪版的哪部分）
 5. 都不對，重跑三版
 
-> **本選單刻意不標推薦**：三版是等價的，標其中一版等於預先替 user 做選擇，違背 §核心哲學 3。CLAUDE.md §決策點選單 的「推薦選項放第一」規則在此不適用。
+> **本選單刻意不標推薦**：三版是等價的，標其中一版等於預先替 user 做選擇，違背 §核心哲學 3。rules.md §決策點選單 的「推薦選項放第一」規則在此不適用。
 
 **重跑上限**：同一次 task 內**最多重跑 1 次**。第 2 次仍全否 → 走 `AskUserQuestion`：① 改由 user 描述想要的方向、我做一版 ② 退回 `brainstorm` 重釐清需求 ③ 暫停。三版重跑的成本是 3 個 subagent ＋ 截圖，不設上限會無限迴圈。
 

@@ -1,10 +1,8 @@
 ---
 name: db-access
 description: |
-  資料庫存取規範（繁中）。觸發：DB / SQL / mysql / schema / query / table / 表 / 欄位 /
-  column / SELECT / INSERT / UPDATE / DELETE / DDL / migration / EXPLAIN / index /
-  JOIN / 跑 SQL / 抓資料 / 看 schema / mysql MCP / 改資料 / 加欄位 / 改表 / DB 設計 /
-  連 DB / 資料表結構。涵蓋：MCP 唯讀、讀寫分流、查詢量限、PII mask、產 SQL 交付格式。
+  資料庫存取規範（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0b 偵測到 DB 關鍵詞）。
+  涵蓋：MCP 唯讀、讀寫分流、查詢量限、PII mask、產 SQL 交付格式。
   **強制**：brainstorm Phase 0b 偵測到 DB 關鍵詞時必載；debug-systematic 的 Triage
   與 security-audit（Phase 6）的 db-reviewer 涉 DB 時亦適用本規則。
 ---
@@ -59,7 +57,7 @@ DDL / migration 額外提醒：
 - 大表加欄位 → online DDL 工具（pt-osc / gh-ost）
 - 改 PK / unique → replication 風險
 
-## PII（全域底線見 CLAUDE.md，此節為 DB 場景）
+## PII（全域底線見 rules.md §PII 安全底線，此節為 DB 場景）
 
 | 場景 | 處置 |
 |---|---|

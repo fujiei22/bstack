@@ -1,9 +1,7 @@
 ---
 name: incident-investigate
 description: |
-  System incident 根因調查（繁中）。觸發：incident / production 壞 /
-  服務異常 / 不易重現 / intermittent / flaky / 跨系統 bug / log 散落 /
-  oncall / 多人受影響 / outage。
+  System incident 根因調查（繁中）。載入：dev-workflow Bug track Phase 3'（T2+ 與 debug-systematic 配對）。
   涵蓋：Observe → Hypothesize → Test → Conclude 四階段。Test 階段在
   ≥3 假設時**平行** spawn hypothesis-tester agents（Variant C fan-out）；
   ≤2 假設退主 context 順序驗。產 incident report（postmortem 半成品）。

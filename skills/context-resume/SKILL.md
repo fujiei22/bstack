@@ -1,8 +1,7 @@
 ---
 name: context-resume
 description: |
-  進度快照讀回（繁中）。觸發：context-resume / resume context / 接續進度 /
-  繼續上次 / 接回來 / load snapshot / 上次做到哪 / 繼續做。
+  進度快照讀回（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（新 session 接續舊 task）；亦可由使用者顯式呼叫。
   涵蓋：找最新 snapshot、Read 還原 state、印 progress 給 user、
   確認下一步、接續對應 phase skill。
   上游：context-snapshot（前次 session 存的）。

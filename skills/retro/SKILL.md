@@ -1,12 +1,10 @@
 ---
 name: retro
 description: |
-  期間回顧（繁中）。觸發：retro / 回顧 / 回顧一下 / 看一下最近 / 最近做了什麼 /
-  本週 / 本月 / 本季 / 自上次 retro / since last retro / 看習慣 /
-  看模式 / weekly summary / monthly summary / period summary / recap。
+  期間回顧（繁中）。載入：dev-workflow Phase 9；由使用者顯式呼叫，不自動接在 pr-explain 後。
   涵蓋：載入時用 AskUserQuestion 取得期間 → 抓 git log + PR + TaskList 分析 →
   識別模式 → 產 retro 報告 → Memory hook 寫入（補 memory；見 dev-workflow body §Memory hook 點）。
-  使用：9 階段的**第 9 階段**，但**由 user 主動觸發**、不綁 tier、不接在 pr-explain 後面
+  使用：9 階段的**第 9 階段**，但**由 user 主動呼叫**、不綁 tier、不接在 pr-explain 後面
   自動跑；不限週、可任意期間。
 ---
 
@@ -135,7 +133,7 @@ description: |
 |---|---|
 | 把 retro 結果直接 commit 進 repo（如 `.claude/retro/<period>.md`） | retro 是給 user 看的、不該污染 repo（除非 user 明說要 commit） |
 | 直接寫 CLAUDE.md | CLAUDE.md 是聖旨；改要走 review |
-| 把 PII / 敏感 commit 內容貼進 retro 報告 | 對話歷史可能被 share；CLAUDE.md §PII 適用 |
+| 把 PII / 敏感 commit 內容貼進 retro 報告 | 對話歷史可能被 share；rules.md §PII 適用 |
 | 在 retro 動 code / 改 plan | retro 只反思、不執行 |
 | 跑超頻（一週 3+ 次本週 retro） | 太頻會雜訊；本週 retro 建議 ≤1 / 週、本月 ≤1 / 月 |
 

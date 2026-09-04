@@ -1,8 +1,8 @@
 ---
 name: security-auditor
 description: |
-  安全特化 reviewer（繁中）。觸發：T2 涉認證 / 授權 / 資料層 / API 邊界 / payment /
-  上傳 / PII；T3 必跑。涵蓋：OWASP Top 10、STRIDE 六類威脅、security-checklist
+  安全特化 reviewer（繁中）。載入：dev-workflow Phase 6 security-audit 由主 agent spawn；
+  T2 涉認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII，T3 必跑。涵蓋：OWASP Top 10、STRIDE 六類威脅、security-checklist
   逐項對、PII 違規、File-type 硬規則命中。獨立 context、避免球員兼裁判。
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
@@ -91,7 +91,7 @@ STRIDE 抓架構威脅 → checklist 抓實作 bug。對改動命中的主題逐
 
 ## §PII 安全底線（必檢）
 
-依 CLAUDE.md「§PII 安全底線」對改動 grep：
+依 rules.md「§PII 安全底線」對改動 grep：
 
 - output / log / error message 是否含 email / phone / 身分證 / 信用卡 / 地址 / id_number 原值？
 - DB query 是否 SELECT PII 欄位但無 mask？
@@ -103,7 +103,7 @@ PII 違規 = **Critical**。
 
 ## §File-type 硬規則命中（必檢）
 
-依 CLAUDE.md「§File-type 硬規則」：
+依 rules.md「§File-type 硬規則」：
 - 改動是否含密鑰類檔（.env / *.key / *.pem ...）？→ Critical
 - 改動是否含 CI / migration / lock / infra？→ 必須有對應的 verification 證據（如 migration dry-run 結果、CI workflow 測試過）
 

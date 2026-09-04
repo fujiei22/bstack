@@ -1,8 +1,7 @@
 ---
 name: request-review
 description: |
-  自動 code review 派發（繁中）。觸發：review / code review / 評 code /
-  審 PR / 看一下 diff / 跑 review。
+  自動 code review 派發（繁中）。載入：dev-workflow Phase 5（verify-done 之後）；亦可由使用者顯式呼叫。
   涵蓋：T1 self review / T2 subagent + lang-reviewer dispatch /
   T3 雙視角 subagent（架構 × 除錯）+ lang-reviewer / 結果交棒 receive-review。
   上游：verify-done。下游：receive-review。
@@ -17,7 +16,7 @@ description: |
 **載入後立即動作**：
 
 1. **讀 hand-off state** 取 `tier`、`commits`、`codebase_impact.files`。
-2. **依 tier dispatch review**（**T0 不進本 skill**：CLAUDE.md §Tier 表 T0 的 review 欄是「跳」）：
+2. **依 tier dispatch review**（**T0 不進本 skill**：rules.md §Tier 表 T0 的 review 欄是「跳」）：
    - T1 = self review（主 agent 自己讀 diff）
    - T2 = 1 subagent（綜合 review）+ ECC lang-reviewer（依檔副檔名動態）
    - T3 = 2 subagent（架構 × 除錯雙視角）+ lang-reviewer
@@ -30,7 +29,7 @@ description: |
 主 agent 跑：
 - `git diff <base>...HEAD` 看完整 diff
 - 對 spec / plan 看 coverage
-- 對 CLAUDE.md「§程式註解」看註解完整
+- 對 rules.md「§程式註解」看註解完整
 - 列「值得 user 注意」清單（簡短）
 - 不另開 subagent
 
@@ -66,7 +65,7 @@ Verify 全綠: <yes/no>
 2. **品質**：命名、結構、邊界、可讀性？
 3. **風險**：error handling、race condition、edge case？
 4. **測試**：每個改動都有測？測有測對的東西？
-5. **CLAUDE.md 一致**：註解、PII、DB rule、commit 格式是否合？
+5. **rules.md 一致**：註解、PII、DB rule、commit 格式是否合？
 
 回報格式（無 preamble）：
 ## 主 reviewer 結論
@@ -102,7 +101,7 @@ Verify 全綠: <yes/no>
 
 對每個命中的語言、spawn `Agent` with `subagent_type: lang-reviewer` + prompt body 內帶 `language: <tag>`，agent 依該 tag 套對應「§語言檢查焦點」段。
 
-> 為何不每語言一個 agent 檔：agent 多會分散 maintenance、且大部分通用框架（正確性 / error handling / safety / testing / CLAUDE.md 一致）跨語言相同。動態 dispatch 一個 agent 處理全部、語言特化在 §語言檢查焦點 內分段。
+> 為何不每語言一個 agent 檔：agent 多會分散 maintenance、且大部分通用框架（正確性 / error handling / safety / testing / rules.md 一致）跨語言相同。動態 dispatch 一個 agent 處理全部、語言特化在 §語言檢查焦點 內分段。
 
 > 注意：SQL 改動同時涉 DB schema / migration 時、`security-audit` phase 會另派 `db-reviewer`（有 mysql MCP 存取、做深度 review）；lang-reviewer SQL 是 surface 層、db-reviewer 是 deep 層、互補不重複。
 

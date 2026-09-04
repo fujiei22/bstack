@@ -1,8 +1,7 @@
 ---
 name: debug-systematic
 description: |
-  系統性 bug fix（繁中）。觸發：debug / 修 bug / 壞了 / 不對 / 異常 / 失敗 /
-  沒反應 / 報錯 / 跑不起來 / regression / 行為不如預期 / unexpected behavior。
+  系統性 bug fix（繁中）。載入：dev-workflow Bug track Phase 3'（brainstorm 判 Track=Bug 後交棒）。
   涵蓋：Triage / Reproduce / Min Repro / 專注 Fix / 專注 Test 五步驟，
   每 bug fix 必有測證明 + 防回歸。
   上游：brainstorm（Bug track 進此）。下游：verify-done。
@@ -112,7 +111,7 @@ Min repro 失敗 → 仍要 simplify 直到能；別跳直接 fix。
 
 ## §commit 規範
 
-依 CLAUDE.md：
+依 rules.md §Commit 訊息：
 
 ```
 fix: <bug 簡述、繁中、50 字內>

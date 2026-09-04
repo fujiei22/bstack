@@ -1,9 +1,8 @@
 ---
 name: design-language
 description: |
-  既有專案設計語言辨識與對齊（繁中）。觸發：設計語言 / design token /
-  設計對齊 / 樣式一致 / 這區長什麼樣 / 誤植 / 前台後台樣式 / 抄錯樣式 /
-  沿用既有樣式 / 區塊地圖 / design-map。
+  既有專案設計語言辨識與對齊（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0b′ 必跑；
+  execute-plan 動前端檔的 task 前後）；亦可由使用者顯式問設計語言。
   涵蓋：前端副檔名唯一真相、區塊邊界偵測、設計語言抽取（exact values）、
   design-map.md 產／查／失效檢查、四項對齊檢查清單。
   **強制**：brainstorm Phase 0b′ 必載；execute-plan 動前端檔的 task 前後必載。
@@ -20,9 +19,9 @@ description: |
 
 **載入後依序執行，不跳步**：
 
-1. **先算 `involved`（零成本，必為第一步）**：拿呼叫端給的改動檔清單，**先剔除落在 skill 定義目錄底下的檔**（`~/.claude/skills/**`，或 repo 內含 `*/SKILL.md` 的 `skills/**`）——那些是**工具範本**（元件骨架、腳本），不是這個專案的介面——再比對 §前端副檔名。
+1. **先算 `involved`（零成本，必為第一步）**：拿呼叫端給的改動檔清單，**先剔除落在 skill 定義目錄底下的檔**（任何路徑含 `skills/<name>/SKILL.md` 的 skill 定義目錄——plugin 快取、專案 `.claude/skills/`、repo `skills/` 都算）——那些是**工具範本**（元件骨架、腳本），不是這個專案的介面——再比對 §前端副檔名。
    **剩下的全部不命中 → 立即回傳且不讀地圖**：`{involved:false, scope:null, scope_evidence:null, size:null, precedent:false, map_status:unknown}`，結束。
-   > 為什麼這步必須在最前面：本 skill 由 `setup.ps1` 同步到 `~/.claude/skills/`，**全域生效**。若把讀地圖／偵測放在前面，這台機器上每個專案的每個 task（含純後端）都要付一次偵測成本。
+   > 為什麼這步必須在最前面：本 skill 隨 plugin 在啟用它的每個專案生效。若把讀地圖／偵測放在前面，這台機器上每個專案的每個 task（含純後端）都要付一次偵測成本。
    > 為什麼錨定「含 `*/SKILL.md`」而非裸 `skills/`：某個專案可能有叫 `skills/` 的產品目錄（例如做技能系統的產品），裸比對會把真實介面靜默排除。
 2. **判 `size`**：依 §兩根尺 的判準表判小改／大改。**不看 Tier**。
 3. 讀 `<專案>/docs/reference/design-map.md`；不存在 → 進 §首次偵測。
@@ -125,7 +124,7 @@ design:
 
 ## §`design-map.md` 格式
 
-落在**被施工的專案**：`<專案>/docs/reference/design-map.md`（**入版控**；該專案的 `docs/` 若被 gitignore 則不 `git add`，依 CLAUDE.md §Docs 落檔）。
+落在**被施工的專案**：`<專案>/docs/reference/design-map.md`（**入版控**；該專案的 `docs/` 若被 gitignore 則不 `git add`，依 rules.md §Docs 落檔）。
 
 ```markdown
 # 設計語言區塊地圖
