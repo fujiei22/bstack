@@ -15,7 +15,7 @@
 
 ## 目標 / Success criteria
 
-- 11 檔合計行數 ≤ 1,520（2,533 × 0.6）；`wc -l` 前後對照寫進 spec §施工紀錄
+- 11 檔合計行數 ≤ 1,520（2,533 × 0.6）且 bytes ≤ 68,500（97,861 × 0.7，證明不是刪空行灌水）；前後對照寫進 spec §施工紀錄
 - **行為零改變**：`node scripts/plugin-contract.mjs` P9a-i 全綠（它斷言的正是行為敘述）、`--selftest` 綠；`node docs/tools/docs-site-contract.mjs` 全綠；`pwsh -File scripts/build-references.ps1` 重產後 `-Check` exit 0
 - 不動：每檔「使用契約」的步驟數與順序、AskUserQuestion 選單文字（review-plan §User gate、receive-review §危險處置、execute-plan §前端檔處理六選項、verify-done §verify 失敗處置、security-audit §Critical-finding、finish-branch §Conflict）、rules.md、frontmatter `description`
 - 兩個 reviewer nit：brainstorm §交棒 T1「自拆 1-3 task」改成不寫數字；「≤ 8 列」只留 rules.md §Tier 表一處，rules.md 說明句、brainstorm §施工清單規則、execute-plan 第 1 步改成引用「rules.md §Tier 表 的列數上限」
@@ -57,4 +57,4 @@
 
 ## 待釐清
 
-- 無。
+- 無（本次）。**留給下一支**：dev-workflow §Skill hand-off state 第 175 行寫 `review_summary` / `verify_result`，實檔欄名是 `review_summary_path` / `verify_results`（review-plan DX 視角 C1 發現）。
