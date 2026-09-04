@@ -79,7 +79,7 @@ scripts/extras.ps1                setup.ps1 改寫：plugin 帶不了的個人�
 scripts/plugin-contract.mjs       新：plugin 結構契約（見 §5）
 ```
 
-刪除：`scripts/setup.ps1`（改寫為 extras.ps1）、根目錄 `settings.json`（內容拆進 extras.ps1 的項目定義）、`state/`。
+刪除：`scripts/setup.ps1`（改寫為 extras.ps1）、根目錄 `settings.json`（`permissions.allow` 進 `templates/project-settings.json` 當唯一來源；`env` 只留 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`，`ENABLE_TODO_TOOLS` 無 skill 依賴故丟；`attribution` 是作者個人偏好、不接）、`state/`。
 
 ### 4b 入口 skill `devwork`
 
@@ -105,7 +105,9 @@ body 內的「觸發」段落若只是重述描述，一併改；流程邏輯不
 - `app.js` NODE_DOCS 加 `LoadDevwork: {p:'skills/devwork', n:'devwork', k:'skill'}`。
 - `index.html`：`#install` 改為三步（clone 或 marketplace add → `/plugin install bstack@bstack` 或 `--plugin-dir` → 開 session 輸入 `/devwork`）；「裝進 ~/.claude/ 的全部」改「plugin 裡有什麼」；計數 27 → 28；meta description 同步。**只改文字節點與 `<li>` 內容，不動 class / style。**
 - README：§安裝 重寫（三種載入方式：試用 `--plugin-dir`、個人 `/plugin install`、團隊 template）；新增 §從舊版遷移 指向 `uninstall-global.ps1`；Skills 計數 28；Hooks 段落改 plugin 路徑。
-- 契約：C6 BASELINE_KEYS 加 `LoadDevwork`；C8a 改 99 nodes / 137 edges（+1 節點、`Start→LoadDevwork→DevWfSkill` 取代 `Start→DevWfSkill`，淨 +2 邊；execute 時以實際數為準）；重跑 `build-references.ps1`。
+- 契約：C6 BASELINE_KEYS 加 `LoadDevwork`；C8a 改 99 nodes / 136 edges（+1 節點；拿掉 `Start→ClaudeMd`、`ClaudeMd→DevWfSkill` 兩邊、加 `Start→LoadDevwork→ClaudeMd→DevWfSkill` 三邊，淨 +1）；重跑 `build-references.ps1`。
+- landing hero `:44`「零 marketplace 依賴」、`:46`「誰都繞不過的規則書」、`:61`「每個請求先跑 Phase 0」與新模型矛盾，一併改文字（h1 不動）。
+- 主推薦**專案層級**啟用（template），個人 `/plugin install` 列第二並附後果「hooks 會在你所有專案生效」；公開站指令碼寫 `/bstack:devwork`，文案叫它 `/devwork`。
 
 ### 4e hook 調整
 
@@ -122,12 +124,14 @@ body 內的「觸發」段落若只是重述描述，一併改；流程邏輯不
 | statusLine | `statusLine: {type: command, command: bash "<絕對路徑>/extras/statusline.sh"}` | 使用者層級（`~/.claude/settings.json`） |
 | permissions.allow 唯讀白名單 | 原 settings.json 的 25 條唯讀 / 查詢類 | 專案層級（`<project>/.claude/settings.json`） |
 | env 開關 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`、`CLAUDE_CODE_ENABLE_TODO_TOOLS=1` | 使用者層級 |
-| MCP | `claude mcp add playwright --scope <user|project> -- npx -y @playwright/mcp@latest`；mysql 由使用者輸入連線環境變數後同法加入 | 使用者層級 |
+| MCP | 只代跑 `claude mcp add playwright --scope <user|project> -- npx -y @playwright/mcp@latest`；mysql 含帳密，只印指令範本讓使用者自填。**注意 `--scope project` 寫的是專案根 `.mcp.json`（會進 git、隊友共用），不是 `.claude/settings.json`**，選單提示要講明 | 使用者層級 |
 
 **行為**：
 - 每項各問一次：`[U] 使用者層級 / [P] 目前專案（cwd 的 .claude/settings.json） / [S] 跳過`；預設 S，**沒選就什麼都不寫**。
 - 寫入走 merge（沿用舊 setup.ps1 的 `Merge-Settings` 邏輯：只加本項 key，其他一律保留），寫前備份 `settings.json.bak-<yyyyMMddHHmmss>`。
-- 每次寫入記到 manifest `~/.claude/bstack-extras.json`：`{item, scope, file, keys_added, ts}`。
+- 每次寫入記到 manifest `~/.claude/bstack-extras.json`：`{item, scope, file, keys（merge 前後 diff 出來**真的新增的**）, status, ts}`；本機已有的 key 不覆蓋、不記、印「你本機已有設定，未覆蓋」。這是本腳本唯一主動寫進 `~/.claude/` 的檔，README 加註。
+- 每次執行共用一個時間戳、每檔只備份一次；寫檔走 temp → Move-Item 原子替換；先寫 manifest（pending）再寫 settings，中途炸也拆得回來。
+- 已裝過的項目顯示「[R] 重裝 / [S] 略過」；statusLine 重裝時覆蓋（clone 搬家後修路徑）。壞 JSON 跳過該項並繼續。cwd 等於家目錄時拒絕 [P]。
 - `-Uninstall`：讀 manifest，只移除自己加過的 key / MCP，settings 其他內容不動；manifest 清空。
 - `-Migrate`：舊版遷移（§6）併成選單第一項「偵測到舊 setup.ps1 的副本，要清掉嗎？」。
 - 非互動：`-Yes -Items statusLine,env -Scope user` 直接套用，供 CI / 自動化。
@@ -137,6 +141,7 @@ body 內的「觸發」段落若只是重述描述，一併改；流程邏輯不
 
 - 不做 per-project 複製模式（user 選 plugin only）。
 - 不做 SessionStart 注入守則。
+- 不做「hook 只在本 session 跑過 `/devwork` 才生效」的 session 標記 gating：hook 無法可靠得知本 session 是否載入過 devwork（token 會跨 session 殘留、多 session 互相干擾）。改以「主推薦專案層級啟用 + README 明講 + `/plugin disable` 出口」處理。
 - 不改 hook 為跨平台 shell（仍是 pwsh；README prerequisites 保留 pwsh 7+）。
 - 不改 27 個 skill 的流程邏輯，只改描述與路徑字樣。
 
@@ -160,7 +165,10 @@ body 內的「觸發」段落若只是重述描述，一併改；流程邏輯不
 
 ## 6. 遷移（已用舊 setup.ps1 的機器，含作者本機）
 
-`scripts/extras.ps1 -Migrate`（選單第一項）：
+`scripts/extras.ps1 -Migrate`（選單第一項；無舊副本時一行都不印）：
+- `~/.claude/CLAUDE.md`：含 bstack 簽名（`§事實核實` + `dev-workflow 為骨幹`）且標題行與現版 rules.md 相同 ≥ 90% → 改名 `CLAUDE.md.bstack-bak-<ts>`；被改過 → 不動，印出「一律進 dev-workflow」那行的行號請使用者自行拿掉。**理由：那一行會讓自動攔截復活，是遷移最大的雷。**
+- `~/.claude/state/file-guard/` 一併列入。
+- settings.json 只拔 `hooks[]` 內指向舊 hook 的元素，使用者自己的 hook 留著。
 - 列出 `~/.claude/skills/<repo 27 名>`、`~/.claude/agents/<6 名>`、`~/.claude/hooks/{branch-safety,file-type-guard}.ps1`、`~/.claude/statusline.sh`，以及 `~/.claude/settings.json` 內指向這些 hook 的 `hooks` 條目與 `statusLine`
 - 預設只列；互動選 Y 或 `-Yes` 才刪 / 移除條目；settings.json 先備份 `settings.json.bak-<ts>`
 - `~/.claude/CLAUDE.md` **不自動刪**：印出「若內容與 bstack 舊版相同可自行刪除」與 diff 摘要（可能已被使用者改過）
