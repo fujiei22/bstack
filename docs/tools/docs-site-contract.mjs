@@ -16,14 +16,15 @@
  *   C14 抽屜 DOM 與 .md 包裹            C15 @media 恰為 1080px + 860px 兩條（spec §已決事項 2）
  *   C16 docstring 密度                  C17 無文件節點的 else 分支
  *   C18 磁碟上的 skill / agent 全部能在站上點開文件
+ *   C19 landing 頁                      C20 social meta 與 OG 圖（og:* / twitter:* 齊且與 title / description 同文、og.png 1200×630）
  *
  * **刻意不測 F2 與 F21。** 前一版 plan 曾用 `/function fitView/` 當 F2 的契約，但定案 demo 的
  * fitView() 內容就是 landingTransform()——函式名在、行為沒了，契約照樣綠。這兩項一律以
  * e2e 與人工驗收為準，見 verify-F1-F22.md。契約只該測機械可判的事實，不該假裝能測行為。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在）：
- *   node docs/work/refactor/docs-site-redesign/verify/contract.mjs
- *   node docs/work/refactor/docs-site-redesign/verify/contract.mjs --selftest   # 驗 fail 路徑
+ *   node docs/tools/docs-site-contract.mjs
+ *   node docs/tools/docs-site-contract.mjs --selftest   # 驗 fail 路徑
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -645,6 +646,105 @@ check(
   ),
   '期望 landing.css 一個色值 token 都不自己宣告（後果：色票分兩處維護，' +
     '改了 styles.css 的配色 landing 不會跟著變，就是「把別區的 token 頂替過來」那條紅線）'
+);
+
+// ── C20：social meta 與 OG 圖 ────────────────────────────────────────────────
+// 貼連結到 LINE / Slack / FB 沒預覽圖，就是這幾行沒有。守三件事：兩頁 meta 齊、
+// og:image 是絕對網址且真的指到 docs/ 底下存在的檔、那個檔是 1200×630 的 PNG。
+// 尺寸不能只看檔案存在——截圖時視窗尺寸或 DPR 一偏，圖就是 2400×1260 或 1200×663，
+// 平台照樣顯示但會裁掉邊。
+const SITE = 'https://fujiei22.github.io/bstack/';
+/**
+ * 取一個 meta 的 content。
+ * 契約假設：只認 `<meta property|name="…" content="…"`——屬性 property/name 在前、雙引號。
+ * 屬性順序反過來或用單引號會回 null 而紅，這是刻意的：兩頁的 meta 格式固定，
+ * 契約不替不存在的寫法買保險。
+ * @param {string} src  HTML 原文（已 LF 正規化）
+ * @param {string} prop property 或 name 的值，例 'og:image'、'description'
+ * @returns {string|null} content 值；找不到回 null
+ */
+const metaOf = (src, prop) => {
+  const m = src.match(new RegExp(`<meta\\s+(?:property|name)="${prop}"\\s+content="([^"]*)"`));
+  return m ? m[1] : null;
+};
+const OG_REQUIRED = ['og:type', 'og:site_name', 'og:locale', 'og:url', 'og:title', 'og:description',
+  'og:image', 'og:image:width', 'og:image:height', 'og:image:alt',
+  'twitter:card', 'twitter:title', 'twitter:description', 'twitter:image'];
+const ogPages = { 'index.html': landing, 'flow.html': html };
+for (const [name, src] of Object.entries(ogPages)) {
+  // 不叫 missing：C4b 區塊已有一個同名 const（缺的型別 token），同檔兩個 missing 對照著讀會對錯行。
+  const missingOg = OG_REQUIRED.filter((p) => !metaOf(src, p));
+  check(
+    `C20a ${name} 的 og:* / twitter:* 齊全`,
+    missingOg.length === 0,
+    `期望 ${OG_REQUIRED.length} 個都在，實際缺 ${missingOg.length} 個：${missingOg.join(' / ')}` +
+      `（後果：缺 og:image 就沒預覽圖，缺 twitter:card 在 X 上退成小卡）`
+  );
+  const img = metaOf(src, 'og:image') || '';
+  // 檔名要先剝掉 ?v=N 這種快取破壞用的 query string 再去磁碟找——og-card.html 檔頭寫的換圖
+  // 做法就是加 ?v=，不剝的話照著 repo 自己的說明做會被這條誤判成「檔不存在」。
+  // twitter:image 的同值比對維持含 query 的完整字串，兩邊要一起換版號。
+  const file = img.startsWith(SITE) ? img.slice(SITE.length).split('?')[0] : null;
+  check(
+    `C20b ${name} 的 og:image 是絕對網址且檔案存在`,
+    !!file && !file.includes('/') && existsSync(join(DOCS, file)) &&
+      metaOf(src, 'twitter:image') === img,
+    `期望 og:image 以 ${SITE} 開頭、指向 docs/ 根下存在的檔（?v= 之後不算檔名）、且 twitter:image 同值，實際 og:image=${img}` +
+      `（後果：相對路徑爬蟲不解析、檔不存在就 404，兩種都是沒圖）`
+  );
+  const selfUrl = SITE + (name === 'index.html' ? '' : name);
+  check(
+    `C20c ${name} 的 og:url 指向自己`,
+    metaOf(src, 'og:url') === selfUrl,
+    `期望 og:url=${selfUrl}，實際 ${metaOf(src, 'og:url')}（後果：兩頁分享出去指到同一頁）`
+  );
+  // 宣告尺寸與 og:url 分開守：兩件事不相關，綁在一條裡 FAIL 時看名稱會找錯方向。
+  check(
+    `C20g ${name} 宣告 og:image 為 1200×630`,
+    metaOf(src, 'og:image:width') === '1200' && metaOf(src, 'og:image:height') === '630',
+    `期望 og:image:width=1200 og:image:height=630，實際 ${metaOf(src, 'og:image:width')}×${metaOf(src, 'og:image:height')}` +
+      `（後果：平台按錯尺寸預留版位，圖被裁或留白）`
+  );
+  // C20f 守三份同文不漂移：<title> / og:title / twitter:title 一組，
+  // <meta name="description"> / og:description / twitter:description 一組。C20a 只驗存在，
+  // 日後改了 description 忘了改 og 版，分享卡跟頁面講的是兩套話而契約照綠。
+  const titleTag = (src.match(/<title>([^<]*)<\/title>/) || [])[1] || null;
+  check(
+    `C20f ${name} 的 og / twitter title、description 與 <title> / description 同文`,
+    !!titleTag && metaOf(src, 'og:title') === titleTag && metaOf(src, 'twitter:title') === titleTag &&
+      !!metaOf(src, 'description') && metaOf(src, 'og:description') === metaOf(src, 'description') &&
+      metaOf(src, 'twitter:description') === metaOf(src, 'description'),
+    `期望 og:title / twitter:title == <title>「${titleTag}」且 og:description / twitter:description == meta description，` +
+      `實際 og:title=${metaOf(src, 'og:title')} twitter:title=${metaOf(src, 'twitter:title')} ` +
+      `og:description 同文=${metaOf(src, 'og:description') === metaOf(src, 'description')} ` +
+      `twitter:description 同文=${metaOf(src, 'twitter:description') === metaOf(src, 'description')}` +
+      `（後果：分享卡與頁面講兩套話，改了一處另一處不跟）`
+  );
+}
+// 直接讀 byte，不用 read()——read() 會把 CRLF 換成 LF，二進位檔會被改壞。
+const ogPngPath = join(DOCS, 'og.png');
+const ogPng = existsSync(ogPngPath) ? readFileSync(ogPngPath) : Buffer.alloc(0);
+const isPng = ogPng.length >= 24 && ogPng.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+const pngW = isPng ? ogPng.readUInt32BE(16) : 0;
+const pngH = isPng ? ogPng.readUInt32BE(20) : 0;
+const OG_PNG_MAX = 512000;   // bytes；訊息與名稱都用這個數，不再一邊寫 KB 一邊寫 bytes
+check(
+  `C20d og.png 是 1200×630 的 PNG 且 < ${OG_PNG_MAX} bytes`,
+  isPng && pngW === 1200 && pngH === 630 && ogPng.length < OG_PNG_MAX,
+  `期望 PNG 1200×630 且 < ${OG_PNG_MAX} bytes，實際 isPng=${isPng} ${pngW}×${pngH} ${ogPng.length} bytes` +
+    `（後果：尺寸不對平台會裁邊；太大 LINE 這類平台可能不抓）`
+);
+// 剝掉 CSS 註解與 HTML 註解後整檔掃色值字面。不限 color / background 屬性——
+// border / box-shadow 裡的 hex / rgb / hsl / oklch 都算漏，原稿本來就該零色值字面、全靠 var(--*)。
+// 具名色只擋 white / black 這兩個最常手滑的；其餘 140 多個 CSS 具名色不列，
+// 列了會誤中正文（red / gray 這類字也會出現在說明文字裡），這是刻意的取捨。
+const ogCard = existsSync(join(DOCS, 'tools/og-card.html')) ? read('tools/og-card.html') : '';
+const ogCardBare = ogCard.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+check(
+  'C20e og-card.html 連 ../css/styles.css 且不自己定義色值',
+  ogCard.includes('href="../css/styles.css"') &&
+    !/#[0-9A-Fa-f]{3,8}\b|rgba?\(|hsla?\(|oklch\(|:\s*(white|black)\b/.test(ogCardBare),
+  '期望 OG 卡原稿只用 var(--*) 取色、零色值字面（後果：站上換配色時 OG 圖原稿不跟著變，重產出來的圖跟站不同色）'
 );
 
 // ── selftest：證明 fail 路徑有效 ─────────────────────────────────────────────
