@@ -117,7 +117,7 @@ EOF
 
 ## 測試 / Test
 
-- [x] verify-done 全綠（test / lint / build / type-check）
+- [x] verify-done 全綠（test / lint / build / type-check；e2e: <pass | smoke（文字節點豁免，未跑整套）| skipped>）
 - [x] review 過（reviewer: <列>）
 - [x] security-audit 過（若 tier T2 涉敏感 / T3）
 - [ ] 上 staging 驗 / 手動跑過 e2e（若 UI）

@@ -5,7 +5,7 @@
 
 ## 動機 / Why
 
-現行 verify-done §UI / browser e2e：改動含 `.html / .css …` 且 T3 → 必派 `frontend-e2e-runner` 跑整套 Playwright。PR #64 只改了 `docs/index.html` 的文字節點與 `data-upto` 屬性值，派一個 e2e agent 重跑整套是純成本；當時是在主 context 用 Playwright 跑等價檢查代替——那是「憑感覺」的豁免，沒有規則。rules.md §設計語言對齊 已有同構的「只改文字節點時不適用」豁免，本次讓 e2e 觸發條件對齊它，並把判定寫成可貼上跑的 `node -e` 一行，不靠感覺。
+現行 verify-done §UI / browser e2e：改動含 `.html / .css …` 且 T3 → 必派 `frontend-e2e-runner` 跑整套 Playwright。PR #64 只改了 `docs/index.html` 的文字節點與 `data-upto` 屬性值，派一個 e2e agent 重跑整套是純成本；當時是在主 context 用 Playwright 跑等價檢查代替——那是「憑感覺」的豁免，沒有規則。rules.md §設計語言對齊 已有「只改文字節點時不適用」的豁免（那條連 `data-*` 值都不放行，本豁免比它寬），本次讓 e2e 觸發條件有同樣的機械判定，不靠感覺。
 
 ## 目標 / Success criteria
 
@@ -68,20 +68,40 @@
 | 3 dev-workflow / frontend-test | yes | 兩檔各一處「文字節點」；P9c 仍綠 |
 | 4 data.js UIQ | yes | C8a 96 / 135 不變 |
 | 5 references | yes | `-Check` exit 0；docs-site-contract ALL PASS |
-| 6 四案實跑 | yes | 見下 |
+| 6 四案實跑 | yes（第一版）→ 第二版改 9 fixture + 7 端到端 + 真實 repo | 見下 |
 
-### 判定一行的四案實跑（從 SKILL.md 的 bash fence 抽出、原樣執行）
+### 第一版判定（行級 node -e 一行）的四案實跑
 
-| diff | 內容 | 結果 | exit |
-|---|---|---|---|
-| `f059c49..918c0dd`（PR #64） | index.html 文字節點 + `data-upto` / `data-nodes` | TEXT-ONLY | 0 |
-| `main..refactor/review-builtin-code-review`（PR #66） | index.html 一句文案 | TEXT-ONLY | 0 |
-| `ff4bca0..25ed0ec`（PR #62） | landing.css + landing.js | NOT-TEXT-ONLY: css | 1 |
-| `39d9c8d..ff4bca0`（PR #61） | index.html / flow.html 新增 meta 標籤 | NOT-TEXT-ONLY: 標籤/屬性骨架有變 | 1 |
+從 SKILL.md fence 抽出原樣執行：PR #64 / #66 TEXT-ONLY、#62（CSS）/ #61（meta 標籤）NOT。**這版被 code-review 實測繞過，已作廢**（見下）。
 
-抽取方式：Bash 工具會吃反斜線（memory `reference_bash_tool_eats_backslashes`），所以用 Write 工具寫一支 `extract-from-skill.cjs` 讀 SKILL.md 的 fence 寫成 `.sh` 再 `bash` 跑，等於「從檔案貼」——SKILL.md 裡那句「不要經會吃反斜線的工具轉貼」就是這個教訓。
+### request-review：code-review medium 對 PR #68 的 8 筆 finding 與處置
+
+target 用 PR 號（stacked base）；10 分 24 秒、fork 126k token、32 次工具呼叫。全部不危險類、一顆 commit。
+
+| # | 一句話 | 處置 |
+|---|---|---|
+| 1 | pathspec 只有 html / css / scss，改 `.tsx` / `.js` 加一個文字節點照樣 TEXT-ONLY | 判定器改用 `git diff --name-only` 全清單，任何程式 / 樣式檔進 diff 直接 NOT |
+| 2 | 行級 `sig()` 對沒有 `<>` 的行回空：inline `<script>` / `<style>` 內容、多行標籤的屬性行全被跳過 | 改**檔級**骨架比對：script / style 整段保留、整份 HTML 依序比 |
+| 3 | 空 diff（壞 ref、未 commit、沒 HTML hunk）兩邊都空 → TEXT-ONLY | fail-closed：沒 HTML 改動、working tree 有未 commit 前端檔、壞 range、新增 / 刪除檔一律 NOT |
+| 4 | `sort()` 讓標籤重排過關；整個 data-* 屬性剝掉讓「新增 data-* 屬性」過關（styles.css 有 44 個 `[data-…]` 選擇器） | 依序比對；data-* 只歸零**值**、屬性增刪判 NOT |
+| 5 | 沒人讀 `verify_results.e2e`，finish-branch PR 模板固定印「全綠」，smoke-only 的 T3 PR 看起來像跑過整套 | finish-branch §PR body 模板 verify 那行加 `e2e: <pass | smoke | skipped>` |
+| 6 | 「與 rules.md §設計語言對齊 同構」講成事實，實際比它寬（rules.md 任何屬性值改動都不算文字節點） | 改寫成「比 rules.md 寬：多放行 data-* 值，兩者各管各的」；spec 動機段同步 |
+| 7 | 靜態伺服器 recipe 寫死 `docs` / 8765、無 Content-Type（`type="module"` 被 strict-MIME 擋）、無 error handler、不關 | 獨立成 `scripts/static-serve.mjs`（root / port 參數、MIME 表、EADDRINUSE 明報、路徑穿越擋）；smoke 加第 4 步關 server |
+| 8 | 760 字元 `node -e` 塞在 markdown fence、自帶「別經吃反斜線的工具轉貼」警語；P10 只 grep 字樣守不住判定邏輯；verify-done bytes +51% | 判定器搬到 `scripts/text-only-diff.mjs`（同 `plugin-contract.mjs` 慣例），SKILL.md 只留一行呼叫；P10a 直接 import 判定器對 9 個 fixture 執行 |
+
+**與 user 原始要求的差異（明列）**：user 要「verify-done 裡可貼上跑的 node -e 一行」。現在是「可貼上跑的一行 `node <plugin 根>/scripts/text-only-diff.mjs <range>`」——仍是一行、仍機械判，但邏輯在腳本檔而不是內嵌 fence。理由是 finding 1-4 證明行級一行寫不對，且內嵌 fence 有反斜線轉貼風險、契約也測不到它。
+
+### 第二版判定（檔級腳本）的實測
+
+契約 P10a（import 判定器、9 個 fixture 純函式）：文字節點改 ✓豁免、data-* 值改 ✓豁免、純文字行重排 ✓豁免、class 改 ✗、新增 data-* ✗、標籤對調 ✗、inline script 改 ✗、inline style 改 ✗、多行標籤屬性行改 ✗；空集合 / 新增檔 fail-closed。
+
+臨時 git repo 端到端（scratchpad `tod-e2e`，7 案）：文字 + data 值改 → TEXT-ONLY；未 commit 的 HTML 改動 → NOT（先 commit 再判）；產出檔 `gen.js` 一起改 → NOT，加 `--ignore site/js/gen.js` → TEXT-ONLY；`app.js` 改 → NOT；新增 html → NOT；沒 html 改動 → NOT；inline script 改 → NOT。
+
+真實 repo：PR #64 加 `--ignore docs/js/references-data.js` 仍 NOT——因為它其實還改了 `app.js` / `data.js`（**當年只 smoke index.html 是漏的**，這正是 finding 1 的情境）；PR #66 加 ignore 後仍 NOT（`data.js` label）；PR #62 / #61 NOT。本 repo 裡「純文字節點」的 PR 目前一個都沒有——豁免存在的意義是下一個。
+
+`scripts/static-serve.mjs` 實測：index / js / css 各自正確 Content-Type、404、`../` 穿越回 404、port 被占明報 EADDRINUSE。
 
 ### 執行偏差
 
-- request-review 的 code-review target 用 PR 號而不是預設的 `main...HEAD`：本 branch 疊在 #67 上（#67 疊在 #66 上），`main...HEAD` 會把上游兩支的 diff 一起餵給 finder。request-review §副檔名分流 的「混合 diff 給 path target」段可以再加一句「stacked branch 給 PR 號」——留給下一次改 request-review 時順手做，本次不動它。
+- request-review 的 code-review target 用 PR 號而不是預設的 `main...HEAD`（實跑證實有效：finder 只看到本 branch 的 diff）：本 branch 疊在 #67 上（#67 疊在 #66 上），`main...HEAD` 會把上游兩支的 diff 一起餵給 finder。request-review §副檔名分流 的「混合 diff 給 path target」段可以再加一句「stacked branch 給 PR 號」——留給下一次改 request-review 時順手做，本次不動它。
 - rules.md 實測 grep `e2e / frontend-e2e-runner / frontend-test` 零命中，不動。
