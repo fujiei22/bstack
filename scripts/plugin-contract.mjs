@@ -273,6 +273,21 @@ check('P9i design-direction 下游分 T2 / T3；dispatch-parallel task 來源含
   `design-direction 下游 T2 分流=${(ddMd.match(/T2 → 回 `brainstorm`/g) || []).length}/2 dispatch-parallel 施工清單=${/施工清單/.test(dpMd)} 殘留「→ 退 write-plan」=${/→ 退 write-plan$/m.test(dpMd)}` +
     `（後果：T2 大改定案後沒人回寫清單、T2 同 group 派工找不到 Task N；改處：design-direction description 與「§與 dev-workflow 銜接」下游、dispatch-parallel「§使用契約」1-2、「§隊友派工」「§subagent 派工」範本、「§失敗處置」）`);
 
+// ── P10 verify-done 文字節點豁免（2026-09-04）────────────────────────────────
+// T3 前端改動只動文字節點 / data-* 時不派 frontend-e2e-runner，改主 agent smoke；判定是一行 node -e。
+// 三個落點（verify-done / dev-workflow 跨流程表 / 流程圖 UIQ label）任一處沒寫到，Claude 就照舊派整套 e2e。
+const vdMd = rd('skills/verify-done/SKILL.md');
+const vdE2e = (vdMd.match(/^## §UI \/ browser e2e[\s\S]*?(?=^## )/m) || [''])[0];
+const dwFeRow = (dwMd.match(/^\| `frontend-test` \|.*$/m) || [''])[0];
+const dataJs = rd('docs/js/data.js');
+const uiqLabel = (dataJs.match(/UIQ:\s*\{[^}]*label:\s*'([^']*)'/) || ['', ''])[1];
+check('P10 verify-done §UI / browser e2e 有文字節點豁免（node -e 判定 + smoke）、yaml e2e 含 smoke；dev-workflow frontend-test 列與 data.js UIQ label 同步',
+  /文字節點/.test(vdE2e) && /node -e/.test(vdE2e) && /smoke/.test(vdE2e) && /data-\*/.test(vdE2e) &&
+    /e2e: pass \| fail \| skipped \| smoke/.test(vdMd) && /文字節點/.test(dwFeRow) && /smoke/.test(uiqLabel),
+  `verify-done 豁免段：文字節點=${/文字節點/.test(vdE2e)} node -e=${/node -e/.test(vdE2e)} smoke=${/smoke/.test(vdE2e)} data-*=${/data-\*/.test(vdE2e)} yaml smoke=${/e2e: pass \| fail \| skipped \| smoke/.test(vdMd)} ` +
+    `dev-workflow 列=${/文字節點/.test(dwFeRow)} UIQ label=「${uiqLabel.slice(0, 40)}」` +
+    `（後果：文字節點改動照樣燒一整套 e2e agent；改處：verify-done「§UI / browser e2e」與「§hand-off state」、dev-workflow「§跨流程 skill 載入」frontend-test 列、data.js UIQ 節點）`);
+
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
 // 用 exitCode 而非 process.exit()：stdout 接 pipe 時 exit() 可能截掉最後幾行（含 ALL PASS 那行）
 process.exitCode = failed === 0 ? 0 : 1;
