@@ -205,13 +205,21 @@ const tierT3 = (rulesMd.match(/^\| \*\*T3\*\*.*$/m) || [''])[0];
 const tierHead = (rulesMd.match(/^\| Tier \| 量體 \|.*$/m) || [''])[0];
 // review 欄 2026-09-04 二改：T2 = 內建 code-review medium + 主 agent spec 自檢；T3 = code-review high + 1 個
 // spec / 架構對齊 subagent；純文件 diff 兩者都跳。舊字樣「1 subagent」「雙視角」還在就是沒改到。
-check('P9a rules.md §Tier 表：T2 施工清單 + code-review medium；T3 code-review high + 1 subagent、視角依面向；表頭有 pr-explain 欄',
+// 「雙視角」的反向掃描是全 repo（skills / agents / README / data.js / index.html）：只掃 Tier 表那列的話，
+// §協作模式判定 與 dispatch-parallel 的殘留會讓契約綠著、Claude 照舊開兩個 reviewer（本 PR code-review 抓到的）。
+const dualResidue = [];
+for (const dir of ['skills', 'agents']) for (const f of readdirSync(join(REPO, dir), { withFileTypes: true })) {
+  const p = f.isDirectory() ? `${dir}/${f.name}/SKILL.md` : `${dir}/${f.name}`;
+  if (exists(p) && /雙視角/.test(rd(p))) dualResidue.push(p);
+}
+for (const p of ['README.md', 'docs/js/data.js', 'docs/index.html']) if (/雙視角/.test(rd(p))) dualResidue.push(p);
+check('P9a rules.md §Tier 表：T2 施工清單 + code-review medium；T3 code-review high + 1 subagent、視角依面向；表頭有 pr-explain 欄；全 repo 無「雙視角」',
   /施工清單/.test(tierT2) && /code-review medium/.test(tierT2) && !/1 subagent（prompt/.test(tierT2) &&
-    /code-review high/.test(tierT3) && !/雙視角/.test(tierT3) && /依改動面向/.test(tierT3) &&
+    /code-review high/.test(tierT3) && /依改動面向/.test(tierT3) && dualResidue.length === 0 &&
     !/lang-reviewer/.test(tierT3) && /pr-explain/.test(tierHead) && !/T2-T3 詳/.test(rulesMd),
-  `T2=「${tierT2.slice(0, 90)}」 T3 code-review high=${/code-review high/.test(tierT3)} 殘留雙視角=${/雙視角/.test(tierT3)} 依面向=${/依改動面向/.test(tierT3)} ` +
+  `T2=「${tierT2.slice(0, 90)}」 T3 code-review high=${/code-review high/.test(tierT3)} 依面向=${/依改動面向/.test(tierT3)} 殘留「雙視角」=[${dualResidue.join(', ')}] ` +
     `表頭 pr-explain=${/pr-explain/.test(tierHead)} 殘留「T2-T3 詳」=${/T2-T3 詳/.test(rulesMd)}` +
-    `（後果：Tier 表是 lane 唯一真相，沒改等於沒精簡；改處：rules.md「§Tier 機制」表 T2 / T3 的 review 欄）`);
+    `（後果：Tier 表是 lane 唯一真相，沒改等於沒精簡；殘留處會讓 Claude 照舊開兩個 reviewer；改處：rules.md「§Tier 機制」表 T2 / T3 的 review 欄與列出的殘留檔）`);
 const bsMd = rd('skills/brainstorm/SKILL.md'), exMd = rd('skills/execute-plan/SKILL.md');
 check('P9b brainstorm 範本有裸標題「## 施工清單」與「## 施工紀錄」、spec gate 選單指 execute-plan；execute-plan 讀施工清單且允許 plan_path null',
   /^## 施工清單$/m.test(bsMd) && /^## 施工紀錄$/m.test(bsMd) && /進 execute-plan/.test(bsMd) && !/進 <write-plan\|debug-systematic>/.test(bsMd) &&

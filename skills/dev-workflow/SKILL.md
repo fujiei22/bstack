@@ -98,7 +98,7 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
    └─ T3 + UI 改動 = 載 frontend-test（Playwright MCP 跑 e2e）
    └─ 全 tier：實際改動檔含前端副檔名且未被 design_rejudge 處理過 → verify-done §漏網複查
    ↓
-5. request-review（先依副檔名分流：純文件 diff 跳 code review、只做 spec 自檢）
+5. request-review（先依副檔名分流：純文件 diff 跳 code-review；T2 只做 spec 自檢、T3 對齊 subagent 照派）
    ├─ T1 = self review
    ├─ T2 = 內建 code-review medium（不帶 --fix）+ 主 agent 對 spec 自檢
    └─ T3 = 內建 code-review high + 1 個 spec / 架構對齊 subagent（prompt 附語言提示）

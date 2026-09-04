@@ -74,7 +74,7 @@
 | **db-reviewer** | 專門看 DB schema / migration / SQL 改得對不對 |
 | **frontend-e2e-runner** | 跑 Playwright e2e 的專人、把 browser 那一大堆 log 隔在自己 context 裡 |
 | **hypothesis-tester** | incident 調查時一個 agent 驗一個假設、互不知對方在驗什麼 |
-| **lang-reviewer** | 你點名才派的語言專家：按語言抓 idiom 跟 pitfall（python / TS / SQL / Go …）。平常 review 時語言重點已經寫進 reviewer 的指示裡 |
+| **lang-reviewer** | 你點名才派的語言專家：按語言抓 idiom 跟 pitfall（python / TS / SQL / Go …）。T2 的 review 交給 Claude Code 內建的 code-review，T3 才有自寫的對齊 reviewer、語言重點寫在它的指示裡 |
 | **pr-explainer** | PR 開完重新讀一遍 diff、把為什麼這樣改寫成詳盡解說 |
 | **security-auditor** | 用獨立 context 跑 OWASP / STRIDE / PII 安全稽核 |
 

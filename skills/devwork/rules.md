@@ -122,8 +122,8 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 |---|---|---|---|---|---|---|---|
 | **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
 | **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |
-| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium` + 主 agent 對 spec 自檢；純文件 diff 跳 | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
-| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 內建 `/code-review high` + 1 個 spec / 架構對齊 subagent（附語言 idiom）；純文件 diff 跳 | audit + checklist + db-reviewer | 用 |
+| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium` + 主 agent 對 spec 自檢；純文件 diff 跳 code-review、自檢照做 | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
+| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 內建 `/code-review high` + 1 個 spec / 架構對齊 subagent（附語言 idiom）；純文件 diff 跳 code-review、對齊 subagent 照派 | audit + checklist + db-reviewer | 用 |
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
@@ -144,7 +144,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 三條全中 → `AskUserQuestion` 問跑法（Agent Teams / subagent 平行 / 單一 session 串行），照 §決策點選單：建議選項第一 + 標「（推薦）」，每個選項附**代價**。推薦哪個依判定實據決定，**不預設 Agent Teams**。
 
 - **禁自行開隊友**：判定只產生選項，一律等 user 選。
-- **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review 雙視角、incident-investigate 多假設、security-audit）**不開隊友、也不問**。兩個理由：這些工作沒人在動檔（判準 1「不同檔案 / 目錄」的實質是防互蓋，唯讀時不成立），且**獨立性本身就是產出價值**——讓驗證者互相聽到彼此結論會污染判斷，等於拆掉 fan-out 的唯一紅利。
+- **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review T3 對齊 subagent 與內建 code-review 的 finder、incident-investigate 多假設、security-audit）**不開隊友、也不問**。兩個理由：這些工作沒人在動檔（判準 1「不同檔案 / 目錄」的實質是防互蓋，唯讀時不成立），且**獨立性本身就是產出價值**——讓驗證者互相聽到彼此結論會污染判斷，等於拆掉 fan-out 的唯一紅利。
 - **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」、其餘照常。
 - **成本告知**：每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill，token 隨隊友數線性疊加。
 

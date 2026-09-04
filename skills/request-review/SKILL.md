@@ -38,8 +38,10 @@ description: |
 | 含任一程式碼副檔名：`.js .mjs .cjs .ts .tsx .jsx .py .go .rs .sql .java .cs .cpp .c .h .rb .php .kt .swift .sh .ps1` | `true` | 有可執行邏輯，finder 找得到 bug / 重複 / 可簡化處 |
 | 只有純文件：`.md .txt .json .yml .yaml .toml .csv .html .css`、prompt、文案、資料檔 | `false`（跳 code review） | 8 個 finder 對純文字找不到「會壞的情境」，只燒 token；一致性靠契約腳本（如本 repo 的 `plugin-contract.mjs`）與 T3 review-plan |
 | 混合（例：改 skill 文本順手改一支 `.mjs` 契約） | `true` | 有程式碼就跑；finder 會自己忽略純文字 hunk |
+| 命中 rules.md §File-type 硬規則 的 CI / CD、Infra、DB migration 類（`.github/workflows/*.yml`、`docker-compose.yml`、`Dockerfile`、`*.tf`、`migrations/*.sql`） | `true`，**不看副檔名** | 硬規則寫「套 review」、Tier 也為此升到 T2+；hook 只做二次確認，內容 review 就是這裡 |
+| 純文件 + **產出器重產的檔**（例本 repo 的 `docs/js/references-data.js`，由 `build-references.ps1` 從 markdown 內嵌產生） | `false` | 那是 markdown 的鏡像不是邏輯；判 `true` 會讓 finder 吃 200 KB 字串 churn |
 
-**邊界**：`.html` / `.css` 歸純文件——它們沒有可執行邏輯，樣式對齊由 design-language 四項檢查管、畫面由 frontend-test 管。含 `<script>` 的 `.html` 判 `true`。判不出來就當 `true`（多跑一次的代價是 token，漏跑的代價是 bug）。
+**邊界**：`.html` / `.css` 歸純文件——它們沒有可執行邏輯，樣式對齊由 design-language 四項檢查管、畫面由 frontend-test 管。含 `<script>` 的 `.html` 判 `true`。判不出來就當 `true`（多跑一次的代價是 token，漏跑的代價是 bug）。混合 diff 裡純文件佔大宗時，可給 path target 只送程式碼檔：`Skill("code-review", args="medium scripts/")`。
 
 跳過時 `code_review_skipped_reason` 寫「純文件 diff：<副檔名列表>」，進 hand-off state。
 
@@ -83,23 +85,24 @@ Skill("code-review", args="medium")
 code-review 只看 diff 本身會不會壞，**不知道 spec 要什麼**。等通知的同時主 agent 做：
 
 1. 讀 `spec_path` 的 `## 施工清單`，逐列對 diff：這列做了嗎？有沒有做了清單外的事？
-2. 對 rules.md「§程式註解」：新 function / class 有 docstring？
-3. 對 rules.md「§PII 安全底線」「§File-type 硬規則」：diff 有沒有碰到？
-4. 產出：
+2. 每列改動有對應測試（或「怎麼驗」那欄的可跑 check）嗎？測的是這列的行為、不是只讓 suite 綠？
+3. 對 rules.md「§程式註解」：新 function / class 有 docstring？
+4. 對 rules.md「§PII 安全底線」「§File-type 硬規則」：diff 有沒有碰到？
+5. 產出：
 
 ```markdown
 ## Spec coverage 自檢（T2）
 
-| 施工清單 # | 做了 | 偏差 |
-|---|---|---|
-| 1 | yes | — |
+| 施工清單 # | 做了 | 有測 | 偏差 |
+|---|---|---|---|
+| 1 | yes | yes | — |
 
 清單外改動：<列點或「無」>
 註解：<yes/no>
 PII / File-type：<無命中 / 命中什麼>
 ```
 
-純文件 diff 時只有這一段，沒有 code-review 輸出。
+自檢結果**算進 finding**（分級見 §結果整合），不是附錄。純文件 diff 時只有這一段，沒有 code-review 輸出。
 
 ---
 
@@ -124,7 +127,7 @@ high 依 skill 描述覆蓋更廣、可能含不確定的 finding（PLAUSIBLE �
 - plan: <plan.md 內容>
 {語言提示}
 
-先答一題：實作範圍與 spec / plan 一致嗎？有遺漏 / 過量嗎？（bug 另有內建 code-review 在看，這題只有你看）
+先答兩題：實作範圍與 spec / plan 一致嗎？有遺漏 / 過量嗎？每個 task 的改動有對應測試嗎？{code-review 有跑時附：「bug 另有內建 code-review 在看，這兩題只有你看」}
 
 只看「架構是否合理」：
 
@@ -134,7 +137,8 @@ high 依 skill 描述覆蓋更廣、可能含不確定的 finding（PLAUSIBLE �
 4. 改動有沒有破壞既有 invariant？
 5. 對 future scale / extensibility 的影響？
 
-不關心微觀風格 / typo / 命名 / 邊界值——那些內建 code-review 會抓。
+{code-review 有跑時附：「不關心微觀風格 / typo / 命名 / 邊界值——那些內建 code-review 會抓。」
+ 純文件 diff 跳過 code-review 時改附：「本 diff 沒有另一個 reviewer，文件之間的矛盾、範例與規則打架、缺漏的分支也請你看。」}
 
 回報格式（無 preamble）：
 ## 對齊 reviewer 結論
@@ -181,7 +185,8 @@ code-review 的輸出**格式不歸我們管**（Claude Code 升版可能改）�
 |---|---|
 | JSON 陣列每筆（`summary` + `failure_scenario`） | 有具體觸發情境且會壞 → **Critical / Major**（看爆炸半徑）；重複 / 可簡化 / 效率 / 慣例類 → **Minor**；已 merge 或前置既有、本 PR 只是暴露 → **Minor 附註「pre-existing」** |
 | 純文字 `path:line — 問題` 行 | 同上 |
-| `[]` / `(none)` | 0 finding，receive-review 短路 |
+| `[]` / `(none)` | code-review 側 0 finding；**自檢 / 對齊 subagent 的 finding 仍算**，全部為零才讓 receive-review 短路 |
+| §spec coverage 自檢 / 對齊 subagent 的結果 | 清單外改動、PII 命中、File-type 硬規則命中 → **Critical**；施工清單某列「做了=no」或「有測=no」、範圍與 spec 不一致 → **Major**；註解缺 → **Minor**。一律計入 `critical_count` / `major_count` |
 
 主 agent 整合：
 
@@ -189,7 +194,7 @@ code-review 的輸出**格式不歸我們管**（Claude Code 升版可能改）�
 # Review 整合結果
 
 > Tier: <T1-T3>
-> code-review: <medium | high | 跳（純文件：.md .js-label）>
+> code-review: <medium | high | 跳（純文件：.md .json）>
 > Reviewers: <self | code-review + spec 自檢 | code-review + 對齊 subagent>
 
 ## Critical
