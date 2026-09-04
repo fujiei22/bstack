@@ -465,7 +465,8 @@ function Invoke-Migrate {
     }
     if ($touched) { Write-JsonAtomic $settingsPath $s }
     if ($claudeOld -and $PSCmdlet.ShouldProcess($claude, 'rename')) { Move-Item -LiteralPath $claude -Destination "$claude.bstack-bak-$RunStamp" }
-    Write-Host "  完成。舊副本在 $bakDir，確認新版正常後可自行刪除。請重開 Claude Code session。"
+    if ($WhatIfPreference) { Write-Host "  （-WhatIf：以上都沒有真的搬）" }
+    else { Write-Host "  完成。舊副本在 $bakDir，確認新版正常後可自行刪除。請重開 Claude Code session。" }
 }
 
 # === SelfTest ===
