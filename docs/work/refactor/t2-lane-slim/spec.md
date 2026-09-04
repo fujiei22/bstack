@@ -20,6 +20,8 @@ T2 現在被當成小型 T3 在跑。2026-09-04 實測（PR #61，T2、5 檔約 
 6. **docs 站同步**：流程圖 data.js 的 RPSplit / RPT2 / LangAgent 節點與相關邊移除、PushPR 依 Tier 分流；契約 C8a 的 EXPECT 與 landing 兩處節點數更新；`build-references.ps1` 重跑讓內嵌 skill 全文一致；README 對應列更新。
 7. `node docs/tools/docs-site-contract.mjs`、`node scripts/plugin-contract.mjs`、`pwsh -File scripts/build-references.ps1 -Check` 全綠。
 8. 全 repo grep `lang-reviewer` 不再出現「自動派發 / 由主 agent 動態 spawn」語意；grep `T2` 的每一處與新 Tier 表一致（不留舊敘述）。
+9. **T3 review-plan 視角數依標的選**：預設 Eng + DX 兩視角；標的是**對外功能且產品決策尚未定案**才加 CEO，**有 user-facing 介面或跨 skill 契約**才加 Design。review-plan 使用契約、rules.md T3 plan 欄、dev-workflow Phase 2、流程圖 RPT3 label、landing 規劃 beat 文案五處同步。
+   依據（2026-09-04 本 branch 實測）：對「改規則書 / skill prompt」這種標的，CEO 視角只能複述已定的決策；Design 視角抓到兩端契約與 `data-upto` 語意錯誤、有實質價值；Eng / DX 對規則類標的必要。
 
 ## 範圍 / Scope
 
@@ -27,7 +29,8 @@ T2 現在被當成小型 T3 在跑。2026-09-04 實測（PR #61，T2、5 檔約 
 - `skills/devwork/rules.md` §Tier 表、§Tier 機制文字
 - `skills/dev-workflow/SKILL.md` §Track × Tier × Phase 路徑（Phase 2 / 5 / 8 的 tier 條件）
 - `skills/brainstorm/SKILL.md` §spec 文件結構（T2 加 §施工清單）、§交棒（T2 → execute-plan）
-- `skills/write-plan/SKILL.md`、`skills/review-plan/SKILL.md` 使用契約改「T3 only」，T2 誤入時的處置
+- `skills/write-plan/SKILL.md`、`skills/review-plan/SKILL.md` 使用契約改「T3 only」，T2 誤入時的處置；review-plan 第 2 步改「依標的選視角：Eng + DX 預設，CEO / Design 條件加入」，§視角 prompt 模板各視角標「何時用」
+- `docs/index.html` 規劃 beat（`:87`）h2「拆給四個人看」與段落「派四個視角」改成不寫死數字的說法（文字節點）
 - `skills/execute-plan/SKILL.md` 讀 plan 步驟接受 `plan_path=null` → 讀 spec §施工清單
 - `skills/request-review/SKILL.md` §T2 / §T3 dispatch、拿掉 lang-reviewer 自動派發、加語言提示模板
 - `skills/receive-review/SKILL.md` §不危險處置改單 commit
@@ -96,7 +99,7 @@ T2 spec.md 末尾新增：
 - **兩端契約要同時改**：brainstorm 產施工清單、execute-plan 吃施工清單，漏一邊 T2 就卡住。plan 要把這兩檔放同一個 task。
 - **流程圖節點數變動**牽動 `data-upto`（landing 每段對應的節點索引）與 C8g 的兩處數字；改完要開 landing 實測鏈的段落對齊沒跑掉。
 - **references-data.js 必須重產**，否則 C8b / C18 紅；產出器需 pwsh 7。
-- **本 PR 自己走舊規則**（T3：4 視角審 plan、雙視角 + lang-reviewer、security-audit、pr-explain）——規則在 merge 前不生效。
+- **本 PR 自己走舊規則**（T3：雙視角 + lang-reviewer、security-audit、pr-explain）——規則在 merge 前不生效。review-plan 例外：四視角派出後 user 於 2026-09-04 決定停掉 CEO（Design 已跑完），實際採 Eng + Design + DX 三視角，這個決定本身就是第 9 條的依據。
 - 少了 review-plan 的 T2 會失去「plan 文字錯誤」這類發現，但那類錯誤多數是 plan 過細自己製造的；設計缺口交由 code review 抓（PR #61 的 C20f 那類 code reviewer 一樣看得到）。
 
 ## 待釐清
