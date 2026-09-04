@@ -70,3 +70,40 @@ plan 自己在 rules.md / dev-workflow / lang-reviewer.md 寫進「不再自動�
 - **建議處理**：Minor 全收（都是逐行改寫，執行成本低、留著就是矛盾）。
 - **略過**：無。Nit 順手做。
 - **plan v2 的結構性改動**：新增檔 `design-direction`、`dispatch-parallel`、`verify-done`、`context-snapshot`、`context-resume`、`app.js`；C8a EXPECT 改 96 / 134；P9 加 P9h、補改處、P9b 改精確比對；`data-upto` 改「減去前面刪掉的節點數」；Task 5 給完整區塊文字；spec 第 9 條依 user 2026-09-04 討論改寫成「視角由 codebase_impact 命中的面向推導」。
+
+---
+
+# Code review 總結（Phase 5，本 PR 照舊規則：架構 × 除錯 + lang-reviewer）
+
+> 三個 subagent 並行、皆實跑契約與 grep；架構視角把 HEAD 對 `git show main:` 逐檔對照。
+
+## Critical
+無（三份一致）。
+
+## Major（去重）
+1. dev-workflow `:44` Phase 0 圖尾仍寫「T1+ → 進階段 2」（架構 M1）
+2. T3 code review 兩個 prompt 只給 diff、不給 spec / plan，「符合 spec」沒人看，比 T2 還少（架構 M2）
+3. execute-plan `:74` 大改轉進紀錄只寫 plan.md，T1 / T2 沒落點（架構 M3）
+4. brainstorm §補施工清單入口寫在 240 行後，但載入時使用契約第 1 步就先跑 Phase 0（架構 M4）
+5. dispatch-parallel `:212` 衝突案例只寫「退 write-plan」，T2 會被 write-plan 守門彈回 execute-plan 形成迴圈（除錯 M1）
+
+## Minor（去重）
+- execute-plan `:146` 退回判準句、dev-workflow `:223` §Fail handling 沒 T2 分支（架構 m3、除錯 m2）
+- brainstorm 0b 視角判定時 Tier 只是預判；Bug track 也會算出用不到的 review_perspectives（架構 m1）
+- 補入口與「>8 列升 T3」打架，execute-plan 不查列數（除錯 m3）
+- review-plan / write-plan 守門與 frontmatter「亦可由使用者顯式呼叫」衝突（除錯 m4）
+- context-snapshot `:84` 仍寫「4 視角」、review-plan `:165` `Tier: <T2/T3>`、write-skill `:124-129` description 範例是舊 execute-plan（架構 m4、除錯 m7 / m8）
+- P9i `/T2/.test(ddMd)` 恆綠、P9c 對 `subagent_type = ` 變體漏抓（架構 m5、除錯 nit 9）
+- landing `data-upto` / `data-nodes` 無契約守（架構 m6）
+- data.js TaskFail / VerifyFail label 說有 T2 補清單路，卻沒有邊（架構 m7、除錯 m5）
+- rules.md `:134` 指向 merge 當下不存在的 archive 路徑（除錯 m6、架構 n4）
+- app.js 兩處註解數字（36/35 應為 35/34；灌成 30 應為 29）（lang m1 / m2）
+
+## 處置
+全部不危險類，依新規則一顆 commit `fix: 處理 review finding（16 項）`（6550ac3），body 逐項列。修後 plugin-contract / docs-site-contract / `build-references -Check` 全綠；新增 C19e 守 landing 資料屬性、P9c / P9h / P9i 收緊。
+
+## reviewer 實測確認無誤（節錄）
+- 三個真相層級（rules.md §Tier 表 / brainstorm §spec 文件結構 / dev-workflow routing）無互相打架句；T2 主鏈每段有對應文字
+- P9a-i 對 CRLF 檔行為正確（`$` 把 `\r` 當行終止）；data.js vm 載入 96 / 134（修後 135）/ 0 孤兒 / 0 懸空
+- app.js 對「NODE_DOCS 有 key 但圖上無節點」的 LangAgent 全部有 fallback，不 throw
+- 沒有 hook / 契約 / CI 呼叫 `-Check`，中途紅不擋 commit
