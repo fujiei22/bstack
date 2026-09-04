@@ -113,12 +113,16 @@ h1 {
 /* 捲動進場：逐項浮起，離開視口不倒放 */
 .rise {
   opacity: 0; transform: translateY(16px);
-  transition: opacity 600ms var(--e-enter), transform 600ms var(--e-enter);
+  transition: opacity 600ms var(--e-enter) var(--rise-delay, 0ms), transform 600ms var(--e-enter) var(--rise-delay, 0ms);
 }
 .in .rise { opacity: 1; transform: none; }
-.in .rise:nth-child(2) { transition-delay: 60ms; }
-.in .rise:nth-child(3) { transition-delay: 120ms; }
-.in .rise:nth-child(4) { transition-delay: 180ms; }
+/* stagger 延遲用自訂屬性掛在 opacity / transform 那兩條上，不寫 transition-delay 屬性：
+   後者 specificity (0,3,0) 會蓋過 .cta 這類自帶 transition 的元素，把 hover 的
+   background / box-shadow 一起延 180ms。實測 2026-09-04：#install 的 CTA 進視口後
+   computed transition-delay 是 0.18s，滑上去要等一下才變色。 */
+.in .rise:nth-child(2) { --rise-delay: 60ms; }
+.in .rise:nth-child(3) { --rise-delay: 120ms; }
+.in .rise:nth-child(4) { --rise-delay: 180ms; }
 
 /* ── 前後對照卡 ── */
 .vs {
@@ -183,9 +187,15 @@ pre.cmd {
 
 .cta {
   display: inline-flex; align-items: center; gap: 12px; margin-top: 26px; padding: 14px 22px;
+  /* .hero 是 column flex，子元素預設 stretch，inline-flex 的按鈕會被拉成整欄寬（實測 563px = 欄寬）。
+     flex-start 讓它回到內容寬；在 block 容器（#install）裡這條沒作用、無害。 */
+  align-self: flex-start;
   background: var(--ink); color: var(--paper); text-decoration: none; border-radius: 3px;
   font-size: 15px; font-weight: 500; box-shadow: var(--lift-1);
-  transition: background var(--t-micro) var(--e-move), box-shadow var(--t-micro) var(--e-move);
+  /* 這條 shorthand 會整個蓋掉 .rise 的 transition，所以把進場的 opacity / transform 也列進來，
+     否則 .cta.rise 是瞬間出現、沒有跟其他 .rise 一起浮起。 */
+  transition: background var(--t-micro) var(--e-move), box-shadow var(--t-micro) var(--e-move),
+              opacity 600ms var(--e-enter) var(--rise-delay, 0ms), transform 600ms var(--e-enter) var(--rise-delay, 0ms);
 }
 .cta .ar { transition: transform var(--t-micro) var(--e-move); }
 .cta:hover { background: var(--accent); color: var(--accent-ink); box-shadow: var(--lift-2); }
