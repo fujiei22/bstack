@@ -81,7 +81,7 @@ state:
   tier: <from snapshot>
   current_phase: <from snapshot>
   spec_path: <from snapshot>
-  plan_path: <from snapshot>
+  plan_path: <from snapshot | null>   # T1 / T2 為 null，別因此判 snapshot 壞掉
   ...
   resumed_from: docs/snapshots/<...>.md
   resumed_at: <現在 ISO>

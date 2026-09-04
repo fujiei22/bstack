@@ -1,7 +1,7 @@
 ---
 name: write-plan
 description: |
-  從 spec 寫實作 plan（繁中）。載入：dev-workflow Phase 2（brainstorm 產出 spec 後）；亦可由使用者顯式呼叫。
+  從 spec 寫實作 plan（繁中）。載入：dev-workflow Phase 2（**T3 only**；brainstorm 產出 spec 後。T2 的施工清單在 spec 內，不進本 skill）；亦可由使用者顯式呼叫。
   涵蓋：bite-sized task / 紅綠循環 / 並行性分析（parallel-group） /
   spec → plan 對齊檢查 / 落檔 docs/work/&lt;branch-name&gt;/plan.md。
   上游：brainstorm（產出 spec）。下游：review-plan → execute-plan。
@@ -27,7 +27,7 @@ description: |
 7. **落檔 + commit**：寫到 `docs/work/<branch-name>/plan.md`，commit。
 8. **交棒** review-plan。
 
-**前提**：必須有 spec_path。沒 spec → 退回 brainstorm。
+**前提**：必須有 spec_path。沒 spec → 退回 brainstorm。`state.tier` 不是 T3 → 回報「T2 不進 write-plan」並交棒 execute-plan，不寫 plan.md。
 
 ---
 
@@ -199,15 +199,14 @@ state:
 ```
 
 **下一 phase**：→ `review-plan`
-- T2 = Eng-only 視角
-- T3 = CEO + Design + Eng + DX 4 視角
+- 視角依 `state.review_perspectives`（brainstorm 0b 依改動面向判；Eng 下限）
 
 ---
 
 ## §結尾 Trace 標籤
 
 ```
-[Trace] Phase=write-plan | Tier=<T1-T3> | Track=Dev | Skill=write-plan
+[Trace] Phase=write-plan | Tier=T3 | Track=Dev | Skill=write-plan
 ```
 
 ---

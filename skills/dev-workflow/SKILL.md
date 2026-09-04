@@ -74,18 +74,19 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
 ### Dev track 完整路徑（9 階段）
 
 ```
-1. brainstorm（Phase 0 內建，含 0b′ UI 面判定）
+1. brainstorm（Phase 0 內建，含 0b′ UI 面判定；0b 同時判 T3 review 視角 → state.review_perspectives）
    ↓
    design.size=大改 ＋ 路徑選「出三版」→ branch 建立、spec 落檔後載 design-direction 出三版
-                                          → user 選定 → 回寫 spec.md → write-plan 依方向拆 task
-   design.size=大改 ＋ 路徑選「跳過三方向」→ 理由記入 spec.md → write-plan
+                                          → user 選定 → 回寫 spec.md
+                                            → T3：write-plan 依方向拆 task
+                                            → T2：brainstorm 3.5 依方向回寫 §施工清單、再確認一次 → execute-plan
+   design.size=大改 ＋ 路徑選「跳過三方向」→ 理由記入 spec.md → 同上依 Tier 分流
    design.size=小改 → execute-plan 動前端檔的 task 前後載 design-language 跑對齊檢查
    ↓
-2. write-plan ─→ docs/work/<branch-name>/plan.md（含並行性分析 parallel-group）
-   ↓
-   review-plan
-     ├─ T2 = Eng-only 視角
-     └─ T3 = CEO + Design + Eng + DX 4 視角
+   T1 / T2 → 3. execute-plan（plan_path null；T2 的 task 來源 = spec §施工清單）
+   T3 → 2. write-plan ─→ docs/work/<branch-name>/plan.md（含並行性分析 parallel-group）
+        ↓
+        review-plan（視角依 state.review_perspectives：Eng 下限 / DX / Design）
    ↓
 3. execute-plan + tdd-cycle
    遇 parallel-group >1 task → 載 dispatch-parallel 判跑法（Agent Teams / subagent / 串行）後平行
@@ -109,7 +110,7 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
    ↓
 7. finish-branch（含 git workflow 細則 + branch-safety）
    ↓
-8. pr-explain → docs/work/<branch-name>/pr-review.md（依檔分 section）
+8. pr-explain（T3；T0-T2 跳）→ docs/work/<branch-name>/pr-review.md（依檔分 section）
    ↓
 9. retro（手動觸發、不綁 tier；任意期間；Memory hook 補）
 ```

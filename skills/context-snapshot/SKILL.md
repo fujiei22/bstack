@@ -48,7 +48,7 @@ track: <Bug|Dev>
 tier: <T0-T3>
 current_phase: <phase>
 spec_path: docs/work/<branch-name>/spec.md
-plan_path: docs/work/<branch-name>/plan.md
+plan_path: <docs/work/<branch-name>/plan.md | null>   # T1 / T2 為 null
 tasks_completed: <N>/<M>
 parallel_groups_done: [...]
 review_summary_path: <path>

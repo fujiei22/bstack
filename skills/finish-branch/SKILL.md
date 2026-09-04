@@ -5,7 +5,7 @@ description: |
   （security-audit 或 receive-review 之後）；亦可由使用者顯式呼叫（含任何 git workflow 細節展開需求）。
   涵蓋：clean check、rebase、push、開 PR、PR body 撰寫、Branch safety 過 hook、
   按 GitHub Flow squash merge（user 授權才 auto-merge）、commit 範例、PR / branch 命名規範。
-  上游：security-audit（或 receive-review，若 tier 跳 security）。下游：pr-explain。
+  上游：security-audit（或 receive-review，若 tier 跳 security）。下游：pr-explain（T3）；T0-T2 開完 PR 即停、等 user merge。
 ---
 
 # finish-branch
@@ -23,7 +23,7 @@ Phase 7：把 feature branch 收尾、開 PR。本 skill **合 git workflow 細�
 3. **rebase main**：`git fetch origin && git rebase origin/main`，衝突 → 走 §Conflict 流程。
 4. **push**：`git push -u origin <branch>`；rebase 過要 `--force-with-lease`，**禁裸 `--force`**（見 §Push）。
 5. **開 PR**：用 `gh pr create`，套 §PR title 規範 + §PR body 模板。
-6. **印 PR URL** + 交棒 pr-explain。**禁順手 `gh pr merge`**（除非 session 級明授權；見 §Squash merge / WHO / WHEN）。
+6. **印 PR URL**。**T3 → 交棒 pr-explain**；T0-T2 → 到此為止、等 user merge（PR body 已含動機 / 改動 / 測試，pr-explain 對這個量體是純成本）。**禁順手 `gh pr merge`**（除非 session 級明授權；見 §Squash merge / WHO / WHEN）。
 7. **merge 之後**（同 session 內 user 觸發 merge 時）把 `docs/work/<branch-name>/` 搬進 `docs/archive/<年>/`（見 §Merge 後：docs 歸檔）。
 
 **禁**：
@@ -213,7 +213,7 @@ EOF
 ## 相關 / Refs
 
 - spec: docs/work/<branch-name>/spec.md
-- plan: docs/work/<branch-name>/plan.md
+- plan: <docs/work/<branch-name>/plan.md（T3）| N/A（T2 施工清單在 spec）>
 - review: <hand-off state 的 review_summary_path 實際值；
   request-review 寫的是 docs/work/<branch-name>/_temp/<task-slug>.md，不要寫死 review.md>
 - (issue) #<N>
@@ -307,7 +307,7 @@ state:
   current_phase: finish-branch-done
 ```
 
-**下一 phase**：→ `pr-explain`
+**下一 phase**：T3 → `pr-explain`；T0-T2 → 無（等 merge；merge 後做 §Merge 後：docs 歸檔）
 
 ---
 

@@ -1,8 +1,8 @@
 ---
 name: review-plan
 description: |
-  Implementation plan 多視角 review（繁中）。載入：dev-workflow Phase 2（write-plan 產出 plan 後）；亦可由使用者顯式呼叫。
-  涵蓋：T2 Eng-only / T3 CEO + Design + Eng + DX 4 視角；每視角 spawn
+  Implementation plan 多視角 review（繁中）。載入：dev-workflow Phase 2（**T3** write-plan 產出 plan 後）；亦可由使用者顯式呼叫。
+  涵蓋：視角依改動面向 1-3（Eng 下限 / DX / Design）；每視角 spawn
   subagent 做 review、主 agent 整合 → 提 user gate。
   上游：write-plan。下游：execute-plan（user 確認後）。
 ---
@@ -16,15 +16,13 @@ description: |
 **載入後立即動作**：
 
 1. **讀 hand-off state**：取 `plan_path`、`tier`、`spec_path`。
-2. **依 tier 決定視角數**：
-   - T2 → Eng-only 1 視角
-   - T3 → CEO + Design + Eng + DX 4 視角
+2. **讀 `state.review_perspectives`**（brainstorm 0b 依改動面向判：機械可驗 → Eng；有人要讀 → DX；跨模組契約 / 對外介面 → Design）。命中幾個派幾個，Eng 是下限；state 沒這欄 → 依 rules.md §Tier 機制自判並回寫。「該不該做」不在這裡問，那是 brainstorm 的事。
 3. **每視角 spawn 一個 subagent**（用 Agent tool、`subagent_type` = `general-purpose` 或對應 reviewer agent），帶 plan + spec + 視角 prompt 進去。
 4. **subagent 回傳 review 結論**（結構化 finding 清單）。
 5. **主 agent 整合所有視角**：去重、分類嚴重度（critical / major / minor / nit）。
 6. `AskUserQuestion` 提 user gate：accept plan / 改某項 / 退回 write-plan / 退回 brainstorm。
 
-**禁止跳階**：T2 不能跳 Eng review；T3 不能少視角。
+**禁止跳階**：state 標了的視角不能少；T2 進了本 skill 就是路徑錯，回報並交棒 execute-plan。
 
 ---
 
@@ -39,7 +37,7 @@ description: |
 
 ### 第 2 段：標的性質（必寫）
 
-**下面四個視角的提問是照「標的是 code」寫的。** 標的不是 code 時**必須逐條改寫**，
+**下面三個視角的提問是照「標的是 code」寫的。** 標的不是 code 時**必須逐條改寫**，
 照搬只會產生噪音——實測：對一份 markdown skill 跑原版模板，
 「API endpoint / response shape」「O(N²) 或全表掃」「dependency 版本鎖 / supply-chain」
 「stack trace ＋ context」「CLI / config 預設值」全部不適用，一條都用不上。
@@ -78,42 +76,7 @@ description: |
 
 ---
 
-### 視角 1：CEO（策略） — T3 only
-
-```
-你是 CEO / 產品策略視角的 reviewer。
-
-讀以下 spec 與 plan：
-- spec: <spec 內容>
-- plan: <plan 內容>
-
-回答這些問題：
-
-1. 這個 plan **應該現在做**嗎？對 user / 業務的 marginal value 是什麼？
-2. 是否有「最低可行做法」(MVP) 比這 plan 更小？縮 scope 能否仍達 success criteria？
-3. plan 中是否含「未來可能要」但「現在用不到」的東西？應該砍。
-4. trade-off 是否被忽略？（時間 / 複雜度 / 維護成本）
-5. 風險：如果這 plan 全部跑完還沒解決問題，最大原因是什麼？
-
-**回報格式**（純 markdown，無 preamble）：
-## CEO 視角 review
-
-### Critical（必須處理）
-- ...
-
-### Major（強烈建議）
-- ...
-
-### Minor（可選）
-- ...
-
-### Nit（風格）
-- ...
-```
-
----
-
-### 視角 2：Design（UX / API） — T3 only
+### 視角 Design（介面 / 契約） — 跨模組契約 / 對外介面時
 
 ```
 你是 Design / UX / API 介面視角的 reviewer。
@@ -129,12 +92,12 @@ description: |
 4. 跟既有 UX / API 風格是否一致？
 5. 設計上有沒有「以後會痛」的 lock-in（如硬編 magic string）？
 
-**回報格式**：同 CEO 視角。
+**回報格式**：同 Eng 視角。
 ```
 
 ---
 
-### 視角 3：Eng（架構 / 技術風險） — T2 + T3
+### 視角 Eng（架構 / 技術風險） — 必派（下限）
 
 ```
 你是工程架構 / 技術風險視角的 reviewer。
@@ -152,12 +115,25 @@ description: |
 6. 對既有 codebase 的相容性 / migration / 廢棄路徑？
 7. performance / scalability：plan 中是否含已知 O(N²) 或全表掃？
 
-**回報格式**：同 CEO 視角。
+**回報格式**（純 markdown，無 preamble）：
+## <視角名> 視角 review
+
+### Critical（必須處理）
+- ...
+
+### Major（強烈建議）
+- ...
+
+### Minor（可選）
+- ...
+
+### Nit（風格）
+- ...
 ```
 
 ---
 
-### 視角 4：DX（開發者體驗） — T3 only
+### 視角 DX（開發者體驗） — 有人要讀的東西時
 
 ```
 你是 Developer Experience 視角的 reviewer。
@@ -173,7 +149,7 @@ description: |
 4. CLI / config 使用門檻？預設值合理？
 5. 跑測試 / 開發循環是否流暢？
 
-**回報格式**：同 CEO 視角。
+**回報格式**：同 Eng 視角。
 ```
 
 ---
@@ -187,15 +163,12 @@ description: |
 
 > Plan: docs/work/<branch-name>/plan.md
 > Tier: <T2/T3>
-> 視角: <Eng | CEO + Design + Eng + DX>
+> 視角: <依 state.review_perspectives，例 Eng + DX>
 
 ## Critical 共識（多視角同時提）
 - ...
 
 ## Critical 各視角獨見
-**CEO**：
-- ...
-
 **Design**：
 - ...
 
@@ -245,7 +218,7 @@ description: |
 ```yaml
 state:
   review_summary_path: docs/work/<branch-name>/review.md  # 整合結果寫一份保存
-  review_perspectives: [CEO, Design, Eng, DX]  # T3 / 或 [Eng] T2
+  review_perspectives: [...]  # 來自 brainstorm 0b，本 skill 只讀
   review_critical_count: <N>
   review_user_action: <accept|adjust|reject_to_writeplan|reject_to_brainstorm>
   current_phase: review-plan-done
@@ -256,7 +229,7 @@ state:
 ## §結尾 Trace 標籤
 
 ```
-[Trace] Phase=review-plan | Tier=<T2/T3> | Track=Dev | Skill=review-plan
+[Trace] Phase=review-plan | Tier=T3 | Track=Dev | Skill=review-plan
 ```
 
 ---
@@ -266,7 +239,7 @@ state:
 | 想法 | 真相 |
 |---|---|
 | 「主 agent 自己 review 不要 subagent」 | subagent 才有獨立視角；主 agent self-review 偏向自我合理化 |
-| 「T2 不需要 review」 | T2 仍需 Eng-only review；別跳 |
-| 「T3 4 視角只跑 2 個算了」 | 違反流程；4 視角的價值在多視角衝突浮現 |
+| 「T2 進來了就順便審」 | T2 不進本 skill；回報並交棒 execute-plan |
+| 「視角少一個沒差」 | state 標的視角是 0b 依改動面向判的；少一個就是那個面向沒人看 |
 | 「review 沒 critical 就直接過」 | 仍要走 user gate（accept / adjust / reject）|
 | 「review 出問題就退到底重來」 | 多數時候改 plan 即可、不要 over-react |
