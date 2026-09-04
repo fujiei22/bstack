@@ -34,14 +34,14 @@ const FLOW_DATA = {
     { id: 'phase_split',  label: 'Track / Tier 分流',                   order: 1  },
     { id: 'phase_t0',     label: 'T0 直送',                             order: 1.5 },
     { id: 'phase_design',  label: 'Phase 1.5：design-direction（大改路徑）', order: 1.8 },
-    { id: 'phase_plan',   label: 'Phase 2：write-plan + review-plan',   order: 2  },
+    { id: 'phase_plan',   label: 'Phase 2：write-plan + review-plan（T3）',   order: 2  },
     { id: 'phase_bug',    label: 'Phase 3 (Bug)：debug-systematic',     order: 3  },
     { id: 'phase_exec',   label: 'Phase 3 (Dev)：execute-plan + TDD',   order: 3.5 },
     { id: 'phase_verify', label: 'Phase 4：verify-done',                order: 4  },
     { id: 'phase_review', label: 'Phase 5：request-review + receive',   order: 5  },
     { id: 'phase_sec',    label: 'Phase 6：security-audit + checklist', order: 6  },
     { id: 'phase_finish', label: 'Phase 7：finish-branch',              order: 7  },
-    { id: 'phase_pr',     label: 'Phase 8：pr-explain',                 order: 8  },
+    { id: 'phase_pr',     label: 'Phase 8：pr-explain（T3）',                 order: 8  },
     { id: 'phase_retro',  label: 'Phase 9：retro（手動）',              order: 9  },
   ],
 
@@ -77,7 +77,7 @@ const FLOW_DATA = {
     P0Design:     { phase: 'phase0', type: 'gate',    shape: 'diamond', label: '合併確認第 3 題：設計路徑\n（involved=true 且 size=大改 才出現）' },
     TierUp:       { phase: 'phase0', type: 'policy',  shape: 'rect',    label: 'Tier 自動升級（brainstorm §0d）\nFile-type 命中 migration / CI / lock / infra\n→ 自動升至少 T2' },
     BranchSpec:   { phase: 'phase0', type: 'impl',    shape: 'rect',    label: 'git checkout -b <branch>\n→ 寫 docs/work/<branch-name>/spec.md\n落檔順序硬規則：確認後才建 branch、才寫檔\n（T0 不寫 spec）' },
-    SpecGate:     { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'spec 交 user 看\n注意：brainstorm 目前用自由文字問，\n非 AskUserQuestion——與 §決策點選單 不一致' },
+    SpecGate:     { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'spec 交 user 看（AskUserQuestion）\nT2：施工清單同一個 gate 確認，之後直接施工' },
 
     // ───────── Track / Tier 分流 ─────────
     TierSplit:    { phase: 'phase_split', type: 'default', shape: 'diamond', label: '依 Tier 分流' },
@@ -95,11 +95,9 @@ const FLOW_DATA = {
 
     // ───────── Phase 2：write-plan + review-plan（Dev only）─────────
     LoadWP:       { phase: 'phase_plan', type: 'skill',   shape: 'rect',    label: '載入 skill：write-plan' },
-    WritePlan:    { phase: 'phase_plan', type: 'impl',    shape: 'rect',    label: '寫 docs/work/<branch-name>/plan.md\nbite-sized task + 並行性分析' },
+    WritePlan:    { phase: 'phase_plan', type: 'impl',    shape: 'rect',    label: '寫 docs/work/<branch-name>/plan.md（T3）\nbite-sized task + 並行性分析' },
     LoadRP:       { phase: 'phase_plan', type: 'skill',   shape: 'rect',    label: '載入 skill：review-plan' },
-    RPSplit:      { phase: 'phase_plan', type: 'default', shape: 'diamond', label: '依 Tier 分視角\n（review-plan 只定義 T2 / T3）' },
-    RPT2:         { phase: 'phase_plan', type: 'agent',   shape: 'rect',    label: 'T2：Eng-only review\n（spawn subagent 評 plan）' },
-    RPT3:         { phase: 'phase_plan', type: 'agent',   shape: 'rect',    label: 'T3：4 視角\nCEO + Design + Eng + DX' },
+    RPT3:         { phase: 'phase_plan', type: 'agent',   shape: 'rect',    label: 'T3：依改動面向 1-3 視角\nEng 下限 / DX / Design' },
     UG1:          { phase: 'phase_plan', type: 'gate',    shape: 'diamond', label: 'USER GATE 1\nAskUserQuestion: 核准 plan？' },
     FixPlan:      { phase: 'phase_plan', type: 'default', shape: 'rect',    label: '依回饋修 plan' },
 
@@ -121,7 +119,7 @@ const FLOW_DATA = {
     AlignQ:       { phase: 'phase_exec', type: 'default', shape: 'diamond', label: '本 task 動到前端檔？\ndesign.involved=true 且 size=小改' },
     AlignChk:     { phase: 'phase_exec', type: 'impl',    shape: 'rect',    label: 'task 前後載 design-language\n四項對齊：元件狀態 / 斷點 / 表單 / dark mode\n該區客觀上無此維度 → 標 N/A 並附依據' },
     MidPivot:     { phase: 'phase_exec', type: 'gate',    shape: 'diamond', label: '§前端檔處理（中途轉進）\n暫停 → 補判 → 六選項 → 記 design_rejudge' },
-    TaskFail:     { phase: 'phase_exec', type: 'gate',    shape: 'diamond', label: '§Task fail 處置（4 選項）\nretry / adjust+retry / rollback 該 task\n/ 退回 write-plan 改 plan / escalate' },
+    TaskFail:     { phase: 'phase_exec', type: 'gate',    shape: 'diamond', label: '§Task fail 處置（4 選項）\nretry / adjust+retry / rollback 該 task\n/ 退 write-plan（T3）或 brainstorm 補施工清單（T2）/ escalate' },
     Blocker:      { phase: 'phase_exec', type: 'stop',    shape: 'rect',    label: '§Blocker：立即停下提 user\n缺 dependency / plan 與 codebase 牴觸 /\ntask 指令不清 / verify 反覆失敗 >2 次' },
 
     // ───────── Phase 4：verify-done ─────────
@@ -132,15 +130,14 @@ const FLOW_DATA = {
     FEAgent:      { phase: 'phase_verify', type: 'agent',   shape: 'rect',    label: '派 agent：frontend-e2e-runner\n（Playwright 隔離 context）' },
     LeakQ:        { phase: 'phase_verify', type: 'default', shape: 'diamond', label: '§使用契約 2.5 漏網複查（全 Tier）\n實改含前端檔但 involved=false / scope 對不上？' },
     LeakRecheck:  { phase: 'phase_verify', type: 'impl',    shape: 'rect',    label: '重跑 design-language 判定 + 四項對齊檢查\n已在 design_rejudge 的檔不重複觸發' },
-    VerifyFail:   { phase: 'phase_verify', type: 'gate',    shape: 'diamond', label: '§Verify fail 處置（9 選項）\nretry / adjust+retry / rollback / 退 execute-plan\n/ 退 write-plan / 退 brainstorm 重判設計\n/ 補做 / 接受並記技術債 / escalate' },
+    VerifyFail:   { phase: 'phase_verify', type: 'gate',    shape: 'diamond', label: '§Verify fail 處置（9 選項）\nretry / adjust+retry / rollback / 退 execute-plan\n/ 退 write-plan（T3）或補施工清單（T2）/ 退 brainstorm 重判設計\n/ 補做 / 接受並記技術債 / escalate' },
 
     // ───────── Phase 5：request-review + receive-review ─────────
     LoadReq:      { phase: 'phase_review', type: 'skill',   shape: 'rect',    label: '載入 skill：request-review' },
     ReviewQ:      { phase: 'phase_review', type: 'default', shape: 'diamond', label: '依 Tier 分流' },
     RevT1:        { phase: 'phase_review', type: 'impl',    shape: 'rect',    label: 'T1：self review' },
-    RevT2:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T2：subagent + lang-reviewer' },
-    RevT3:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T3：雙視角 subagent\n（架構 × 除錯）+ lang-reviewer' },
-    LangAgent:    { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: '派 agent：lang-reviewer\n（依副檔名 dispatch 語言）' },
+    RevT2:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T2：1 subagent\n（prompt 附語言 idiom）' },
+    RevT3:        { phase: 'phase_review', type: 'agent',   shape: 'rect',    label: 'T3：雙視角 subagent\n（架構 × 除錯，各附語言 idiom）' },
     LoadRecv:     { phase: 'phase_review', type: 'skill',   shape: 'rect',    label: '載入 skill：receive-review' },
     AutoFixQ:     { phase: 'phase_review', type: 'default', shape: 'diamond', label: '危險類問題？\n（DB / 認證 / payment / infra）' },
     AutoFix:      { phase: 'phase_review', type: 'impl',    shape: 'rect',    label: '不危險：AI 自動修\n（typo / lint / 格式 / rename）' },
@@ -167,7 +164,7 @@ const FLOW_DATA = {
     ArchiveDocs:  { phase: 'phase_finish', type: 'impl',  shape: 'rect',    label: 'merge 後歸檔（finish-branch 契約第 7 步）\ndocs/work/<branch-name>/ → docs/archive/<年>/<主題>\n主題不帶 type prefix；規則性文件挑進 docs/reference/' },
 
     // ───────── Phase 8：pr-explain ─────────
-    LoadPrEx:     { phase: 'phase_pr', type: 'skill', shape: 'rect',    label: '載入 skill：pr-explain' },
+    LoadPrEx:     { phase: 'phase_pr', type: 'skill', shape: 'rect',    label: '載入 skill：pr-explain（T3）' },
     PrExAgent:    { phase: 'phase_pr', type: 'agent', shape: 'rect',    label: '派 agent：pr-explainer\n獨立 context 重讀 diff' },
     DocsReviews:  { phase: 'phase_pr', type: 'impl',  shape: 'rect',    label: '落 docs/work/<branch-name>/pr-review.md\n為何 + 怎做 + 關聯' },
     PostComment:  { phase: 'phase_pr', type: 'impl',  shape: 'rect',    label: '貼到 PR comment' },
@@ -232,17 +229,14 @@ const FLOW_DATA = {
     ['IncidentQ',    'LoadVerify',   'no',                          'solid'],
 
     // Dev Track
-    // T1 依 rules.md §Tier 機制「plan：跳」直送 execute-plan——review-plan 也只定義
-    // T2 / T3 視角，T1 進了 Phase 2 會無視角可派。
-    ['TrackSplit',   'LoadExec',     'Dev + T1\n跳 Phase 2（rules.md §Tier：plan 跳）', 'solid'],
-    ['TrackSplit',   'LoadWP',       'Dev + T2 / T3',               'solid'],
+    // T1 / T2 依 rules.md §Tier 表跳 Phase 2：T2 的 task 來源是 spec §施工清單；
+    // review-plan 只服務 T3（2026-09-04 T2 lane 精簡）。
+    ['TrackSplit',   'LoadExec',     'Dev + T1 / T2\n跳 Phase 2（T2 的 task 來源 = spec §施工清單）', 'solid'],
+    ['TrackSplit',   'LoadWP',       'Dev + T3',               'solid'],
     ['LoadWP',       'BS',           'scope 過大：停下拆 sub-spec',  'dashed'],
     ['LoadWP',       'WritePlan',    '',                            'solid'],
     ['WritePlan',    'LoadRP',       '',                            'solid'],
-    ['LoadRP',       'RPSplit',      '',                            'solid'],
-    ['RPSplit',      'RPT2',         'T2',                          'solid'],
-    ['RPSplit',      'RPT3',         'T3',                          'solid'],
-    ['RPT2',         'UG1',          '',                            'solid'],
+    ['LoadRP',       'RPT3',         '',                            'solid'],
     ['RPT3',         'UG1',          '',                            'solid'],
     ['UG1',          'FixPlan',      'reject',                      'solid'],
     ['FixPlan',      'WritePlan',    '',                            'solid'],
@@ -258,7 +252,7 @@ const FLOW_DATA = {
     // execute-plan 的 task 級失敗（§Task fail 處置 + §Blocker）
     ['TDDLoop',      'TaskFail',     'task verify 非綠',             'solid'],
     ['TaskFail',     'TDDLoop',      'retry / adjust+retry / rollback', 'solid'],
-    ['TaskFail',     'LoadWP',       '退回 write-plan 改 plan',      'solid'],
+    ['TaskFail',     'LoadWP',       '退 write-plan（T3）',      'solid'],
     ['TaskFail',     'Blocker',      'escalate / verify 反覆失敗 >2 次', 'solid'],
 
     // verify
@@ -266,7 +260,7 @@ const FLOW_DATA = {
     ['VerifyRun',    'LeakQ',        '全綠',                         'solid'],
     ['VerifyRun',    'VerifyFail',   '非綠',                         'solid'],
     ['VerifyFail',   'TDDLoop',      'retry / adjust+retry / rollback\n/ 退回 execute-plan 改實作', 'solid'],
-    ['VerifyFail',   'LoadWP',       '退回 write-plan 改 plan',      'solid'],
+    ['VerifyFail',   'LoadWP',       '退 write-plan（T3）',      'solid'],
     ['VerifyFail',   'BS',           '退回 brainstorm 重判設計',      'dashed'],
     ['UIQ',          'LoadFE',       'T3 + UI',                     'solid'],
     ['LoadFE',       'FEAgent',      '',                            'solid'],
@@ -282,15 +276,16 @@ const FLOW_DATA = {
 
     // 設計 lane：三方向（Dev + 大改；小改與豁免走原路）
     ['TrackSplit',   'LoadDD',       'Dev + 大改\n第 3 題選「出三版」',        'solid'],
-    ['TrackSplit',   'LoadWP',       'Dev + 大改\n第 3 題選「跳過三方向」\n理由記入 spec.md', 'solid'],
+    ['TrackSplit',   'LoadWP',       'Dev + T3 + 大改\n第 3 題選「跳過三方向」\n理由記入 spec.md', 'solid'],
     ['LoadDD',       'ThreeWay',     '',                            'solid'],
     ['ThreeWay',     'DemoIgnore',   '產出落 design-demos/',         'dashed'],
     ['ThreeWay',     'UGDesign',     '',                            'solid'],
     ['UGDesign',     'ThreeWay',     '都不要：重出三版\n（上限 1 次）',  'solid'],
     ['UGDesign',     'RerunCap',     '第 2 次仍全否',                'solid'],
-    ['RerunCap',     'LoadWP',       'user 描述方向 → 做一版',       'solid'],
+    ['RerunCap',     'LoadWP',       'T3：user 描述方向 → 做一版',       'solid'],
     ['RerunCap',     'BS',           '退回 brainstorm 重釐清',       'dashed'],
-    ['UGDesign',     'LoadWP',       '選定：write-plan 2.5 讀定案',  'solid'],
+    ['UGDesign',     'LoadWP',       'T3 選定：write-plan 2.5 讀定案',  'solid'],
+    ['UGDesign',     'LoadExec',     'T2：回寫施工清單、再確認 → execute-plan', 'solid'],
 
     // 設計 lane：execute-plan 中途轉進
     ['MidPivotQ',    'MidPivot',     '有前端檔不在清單',              'solid'],
@@ -311,9 +306,8 @@ const FLOW_DATA = {
     ['ReviewQ',      'RevT1',        'T1',                          'solid'],
     ['ReviewQ',      'RevT2',        'T2',                          'solid'],
     ['ReviewQ',      'RevT3',        'T3',                          'solid'],
-    ['RevT2',        'LangAgent',    '',                            'solid'],
-    ['RevT3',        'LangAgent',    '',                            'solid'],
-    ['LangAgent',    'LoadRecv',     '',                            'solid'],
+    ['RevT2',        'LoadRecv',     '',                            'solid'],
+    ['RevT3',        'LoadRecv',     '',                            'solid'],
     ['RevT1',        'LoadRecv',     '',                            'solid'],
     ['LoadRecv',     'AutoFixQ',     '',                            'solid'],
     ['LoadRecv',     'SecQ',         'review 全綠 0 finding：短路',   'solid'],
@@ -348,7 +342,8 @@ const FLOW_DATA = {
     // pr-explain 接在「PR 開好」之後，不是接在 merge 之後：finish-branch 使用契約
     // 第 6 步是「印 PR URL + 交棒 pr-explain」，且明訂 merge 由 user 觸發、預設不自動
     // merge。掛在 Squash 後面會讓「交 user 自行 merge」這條預設路徑跳過整個 Phase 8。
-    ['PushPR',       'LoadPrEx',     'PR 開好即交棒',               'solid'],
+    ['PushPR',       'LoadPrEx',     'T3：PR 開好即交棒',               'solid'],
+    ['PushPR',       'MergeGate',    'T0-T2：PR 開好即停，等 user merge', 'solid'],
 
     // pr-explain
     ['LoadPrEx',     'PrExAgent',    '',                            'solid'],
@@ -399,7 +394,7 @@ const FLOW_DATA = {
       desc: 'rules.md「開發流程」章節；決定流程怎麼跑，本身不是流程步驟',
       kind: 'policy',
       items: [
-        { name: '§Tier 機制',     desc: 'T0-T3 決定 brainstorm / plan / TDD / review / security 深度' },
+        { name: '§Tier 機制',     desc: 'T0-T3 決定 brainstorm / plan / TDD / review / security / pr-explain 深度' },
         { name: '§協作模式判定',  desc: 'Agent Teams gate：三判準全中才提議；唯讀 fan-out 一律 subagent' },
         { name: '§Trace 標籤',    desc: '每輪結尾 Phase / Tier / Track / Skill' },
         { name: '§Auto-fix',      desc: '不危險自動修 / 危險問 user' },
