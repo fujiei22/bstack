@@ -685,12 +685,18 @@ for (const [name, src] of Object.entries(ogPages)) {
     `期望 og:image 以 ${SITE} 開頭、指向 docs/ 根下存在的檔（?v= 之後不算檔名）、且 twitter:image 同值，實際 og:image=${img}` +
       `（後果：相對路徑爬蟲不解析、檔不存在就 404，兩種都是沒圖）`
   );
+  const selfUrl = SITE + (name === 'index.html' ? '' : name);
   check(
     `C20c ${name} 的 og:url 指向自己`,
-    metaOf(src, 'og:url') === SITE + (name === 'index.html' ? '' : name) &&
-      metaOf(src, 'og:image:width') === '1200' && metaOf(src, 'og:image:height') === '630',
-    `期望 og:url=${SITE}${name === 'index.html' ? '' : name} 且宣告 1200×630，實際 og:url=${metaOf(src, 'og:url')} ` +
-      `${metaOf(src, 'og:image:width')}×${metaOf(src, 'og:image:height')}（後果：兩頁分享出去指到同一頁，或平台按錯尺寸預留版位）`
+    metaOf(src, 'og:url') === selfUrl,
+    `期望 og:url=${selfUrl}，實際 ${metaOf(src, 'og:url')}（後果：兩頁分享出去指到同一頁）`
+  );
+  // 宣告尺寸與 og:url 分開守：兩件事不相關，綁在一條裡 FAIL 時看名稱會找錯方向。
+  check(
+    `C20g ${name} 宣告 og:image 為 1200×630`,
+    metaOf(src, 'og:image:width') === '1200' && metaOf(src, 'og:image:height') === '630',
+    `期望 og:image:width=1200 og:image:height=630，實際 ${metaOf(src, 'og:image:width')}×${metaOf(src, 'og:image:height')}` +
+      `（後果：平台按錯尺寸預留版位，圖被裁或留白）`
   );
   // C20f 守三份同文不漂移：<title> / og:title / twitter:title 一組，
   // <meta name="description"> / og:description / twitter:description 一組。C20a 只驗存在，
