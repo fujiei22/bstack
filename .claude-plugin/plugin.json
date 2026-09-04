@@ -1,0 +1,10 @@
+{
+  "name": "bstack",
+  "version": "1.0.0",
+  "description": "繁中台灣用語的 Claude Code 九階段開發流程：/devwork 啟動 brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro",
+  "author": { "name": "Tommy Sian" },
+  "homepage": "https://fujiei22.github.io/bstack/",
+  "repository": "https://github.com/fujiei22/bstack",
+  "license": "MIT",
+  "keywords": ["workflow", "zh-tw", "tdd", "code-review"]
+}

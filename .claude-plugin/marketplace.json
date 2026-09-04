@@ -1,0 +1,14 @@
+{
+  "name": "bstack",
+  "owner": { "name": "Tommy Sian" },
+  "metadata": { "description": "bstack 自己的 marketplace，只有一個 plugin" },
+  "plugins": [
+    {
+      "name": "bstack",
+      "source": "./",
+      "description": "繁中台灣用語的 Claude Code 九階段開發流程，/devwork 啟動",
+      "version": "1.0.0",
+      "category": "workflow"
+    }
+  ]
+}
