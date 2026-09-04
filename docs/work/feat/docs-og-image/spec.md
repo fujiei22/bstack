@@ -18,7 +18,7 @@
 - 兩頁（`index.html` / `flow.html`）都有完整 OG + Twitter Card meta，`og:image` 為絕對網址
 - `docs/og.png` 存在、1200×630、PNG、檔案大小 < 500 KB
 - OG 卡的原稿 `docs/tools/og-card.html` 進 repo，日後重產不需安裝任何依賴（用 Playwright 開 1200×630 截圖即可）
-- `docs/tools/docs-site-contract.mjs` 新增 C19 守門：兩頁 og:image 存在且為絕對網址、指向的檔存在於 `docs/`、PNG 檔頭解出 1200×630
+- `docs/tools/docs-site-contract.mjs` 新增 C20 守門：兩頁 og:image 存在且為絕對網址、指向的檔存在於 `docs/`、PNG 檔頭解出 1200×630
 - `node docs/tools/docs-site-contract.mjs` 全綠（既有 C1-C18 不掉）
 - merge 後用 opengraph.xyz 或 Facebook Sharing Debugger 看到預覽圖（只能上線後驗，見風險）
 
@@ -46,7 +46,7 @@
 | `docs/tools/og-card.html` | new | 低；只在產圖時開，不被站上任何頁連結。位於 `docs/` 底下所以會被 Pages 一起發布，無害 |
 | `docs/index.html` | edit（head 加 ~12 行 meta） | 低；不動 body、不動 inline theme script（F19 防 FOUC 順序不變） |
 | `docs/flow.html` | edit（同上） | 低 |
-| `docs/tools/docs-site-contract.mjs` | edit（加 C19） | 低；零依賴 PNG 檔頭解析，讀 byte 16-24 |
+| `docs/tools/docs-site-contract.mjs` | edit（加 C20） | 低；零依賴 PNG 檔頭解析，讀 byte 16-24 |
 
 ## 設計方向
 
