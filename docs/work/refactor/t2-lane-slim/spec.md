@@ -20,7 +20,7 @@ T2 現在被當成小型 T3 在跑。2026-09-04 實測（PR #61，T2、5 檔約 
 6. **docs 站同步**：流程圖 data.js 的 RPSplit / RPT2 / LangAgent 節點與相關邊移除、PushPR 依 Tier 分流；契約 C8a 的 EXPECT 與 landing 兩處節點數更新；`build-references.ps1` 重跑讓內嵌 skill 全文一致；README 對應列更新。
 7. `node docs/tools/docs-site-contract.mjs`、`node scripts/plugin-contract.mjs`、`pwsh -File scripts/build-references.ps1 -Check` 全綠。
 8. 全 repo grep `lang-reviewer` 不再出現「自動派發 / 由主 agent 動態 spawn」語意；grep `T2` 的每一處與新 Tier 表一致（不留舊敘述）。
-9. **T3 review-plan 視角數依標的選**：預設 Eng + DX 兩視角；標的是**對外功能且產品決策尚未定案**才加 CEO，**有 user-facing 介面或跨 skill 契約**才加 Design。review-plan 使用契約、rules.md T3 plan 欄、dev-workflow Phase 2、流程圖 RPT3 label、landing 規劃 beat 文案五處同步。
+9. **T3 review-plan 視角依改動面向選**：brainstorm 0b 從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design；產品取捨未定 → CEO。命中幾個派幾個，寫進 `state.review_perspectives`，review-plan 只讀不判。review-plan 使用契約、write-plan 交棒、rules.md T3 plan 欄、dev-workflow Phase 2、流程圖 RPT3 label、landing 規劃 beat 文案六處同步。
    依據（2026-09-04 本 branch 實測）：對「改規則書 / skill prompt」這種標的，CEO 視角只能複述已定的決策；Design 視角抓到兩端契約與 `data-upto` 語意錯誤、有實質價值；Eng / DX 對規則類標的必要。
 
 ## 範圍 / Scope
@@ -59,7 +59,7 @@ T2 現在被當成小型 T3 在跑。2026-09-04 實測（PR #61，T2、5 檔約 
 | `skills/receive-review/SKILL.md` | edit 一段 | 低 |
 | `skills/finish-branch/SKILL.md`、`skills/pr-explain/SKILL.md` | edit 下游 / description | 低 |
 | `agents/lang-reviewer.md` | edit description 一句 | 低；P7 檢查 description 無「觸發：」 |
-| `docs/js/data.js` | 刪 3 節點、改 ~8 邊、加 1 邊 | 中；C8a / C8c / C8g 三條契約鎖著；`data-upto` 索引可能位移 |
+| `docs/js/data.js` | 刪 3 節點、刪 7 邊、加 5 邊、改 9 個 label | 中；C8a / C8c / C8g 三條契約鎖著；`data-upto` 索引可能位移 |
 | `docs/tools/docs-site-contract.mjs` | edit EXPECT | 低 |
 | `docs/index.html` | 文字節點：節點數 2 處 + T2 文案 | 低；文字節點豁免 design-language |
 | `docs/js/references-data.js` | 產出器重跑 | 低；不手改 |
