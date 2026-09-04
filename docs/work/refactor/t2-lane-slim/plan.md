@@ -451,3 +451,13 @@ grep -rn 'write-plan' skills docs/index.html docs/js/data.js | grep -v 'referenc
 - review.md 逐條對照：C1 → Task 3（brainstorm 3.5、design-direction）+ Task 6（UGDesign→LoadExec、三條邊 T3 前綴）；C2 → Task 3（gate 選單、description、宣告句）；C3 → Task 7 grep 改寫；Major 1 → Task 5 review-plan 8 處 + write-plan 2 處 + P9h；Major 2 → Task 6 data-upto；Major 3 → 兩端契約段 + P9b 精確比對；Major 4 → Task 4 dispatch-parallel + P9i；Major 5 → Task 3 §補施工清單入口；Major 6 → Task 5 dev-workflow 完整區塊；Major 7 → Task 4 / 5 plan_path null 四處；Major 8 → Task 1 C6a + Task 6 app.js；Major 9 → Task 2 `:107`；Major 10 → Task 3 施工紀錄；Major 11 → Task 6 `:99`；Major 12 → P9 每條改處。Minor / Nit 全部落在對應 task 的 Step 3。
 - 並行性：group 1→8 串行。Task 2-5 動不同檔但共用 P9 逐條轉綠，串行讓紅綠對得上；Task 6 只真依賴 Task 1（C6a / C8a 先紅）；Task 7 產出器必最後。
 - scope：未動 T1 / T0 / Bug track / security-audit 條件 / verify-done 套餐 / hooks。
+
+---
+
+## Task 8 實測紀錄（2026-09-04）
+
+- **landing**（Playwright，`http://127.0.0.1:8765/index.html`）：七段 `data-nodes` 的節點全部存在；計數與進度條逐段 7 / 22 / 30 / 36 / 53 / 72 / 93、捲到 `#install` 收滿 96 與 100%；hero「96 節點」；規劃 beat h2「拆給別人看」、留痕 beat「T3 的 PR 開完之後」；console 0 error。
+- **flow.html**：96 nodes / 134 edges、`#flow` 321 個 `g`；`RevT2→LoadRecv`、`UGDesign→LoadExec`、`PushPR→MergeGate` 三條新邊在；`LangAgent` / `RPT2` 不在圖上；文件索引仍列 lang-reviewer；RPT3 label 為「T3：依改動面向 1-3 視角」；console 0 error。
+- **四項對齊檢查**：元件狀態 N/A（無新互動元件）；斷點 N/A（`docs/css` 零改動）；表單 N/A（index.html 無 `<form>` / `<input>`）；dark mode N/A（未動色值）。index.html 的 diff 以屬性集合比對，只有 `data-upto` ×4 與 `data-nodes` ×1 依計畫變動，無 class / style / id / href 變動。
+- **執行偏差**：(1) P9b 的「恰為」regex 沒容忍粗體標記，補 `\*{0,2}`；(2) request-review / review-plan 的區塊改寫用 node 腳本，錨點命中數用 global 旗標計，且 request-review 是 CRLF 檔，`.*\n` 要寫 `.*\r?\n`；(3) design-direction `:329` 的「**下游**」帶粗體，Task 3 的 replace 沒命中，Task 7 人工掃到補改；(4) `TrackSplit→LoadWP` 有兩條邊，先改設計 lane 那條再改一般那條。
+- **驗證器**：`docs-site-contract` ALL PASS、`plugin-contract` ALL PASS（含 P9a-i）、`build-references.ps1 -Check` exit 0、舊句掃描 0 行。
