@@ -61,7 +61,7 @@ description: |
 - **Review 全綠 / 0 finding**：`review_summary_path` 標「無 finding，跳 receive-review、直接進下 phase」，短路、不啟動 fix 循環
 - 多 reviewer 衝突 → `AskUserQuestion` 把所有視角列給 user 決定
 
-- 主 agent 不照搬；提出修正後的 fix、`AskUserQuestion` 給 user 看：
+- **Reviewer 給的 fix 自己錯** → 主 agent 不照搬；提出修正後的 fix、`AskUserQuestion` 給 user 看：
   ```
   Reviewer 建議：<原建議>
   主 agent 評：<為何 reviewer fix 不對 / 不適合>

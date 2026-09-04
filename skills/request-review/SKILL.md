@@ -37,7 +37,7 @@ description: |
 ## §T2：內建 code-review + spec 自檢
 呼叫 `Skill("code-review", args="medium")`。不給 target 就是當前 branch 對 upstream / main 的 diff（含未 commit 的）。Skill 工具會立刻回「launched (forked execution, running in the background)」，**結果走 task-notification 的 `<result>`**——等通知，不要用 `TaskOutput block=true` 輪詢（fork 派出 finder 子 agent 等待期間它會立刻回 completed）。
 
-**medium 做什麼**：多個 finder 各找 candidate、去重後逐條 verifier 驗證，輸出 JSON 陣列 `{file, line, summary, failure_scenario}`，沒東西就 `[]`。耗時與 token 量、finder 組成等細節見 memory reference_builtin_code_review_facts.md。
+**medium 做什麼**：多個 finder 各找 candidate、去重後逐條 verifier 驗證，輸出 JSON 陣列 `{file, line, summary, failure_scenario}`，沒東西就 `[]`。一次約 7 分鐘、fork 十萬 token 級（2026-09-04 實測；finder / verifier 另計）——這是判「要不要跑 medium」的依據。
 ### §spec coverage 自檢（主 agent 自己做，不另開 subagent）
 code-review 只看 diff 本身會不會壞，**不知道 spec 要什麼**。等通知的同時主 agent 做：
 1. 讀 `spec_path` 的 `## 施工清單`，逐列對 diff：這列做了嗎？有沒有做了清單外的事？
@@ -119,7 +119,7 @@ code-review 的輸出**格式不歸我們管**（Claude Code 升版可能改）�
 | `[]` / `(none)` | code-review 側 0 finding；**自檢 / 對齊 subagent 的 finding 仍算**，全部為零才讓 receive-review 短路 |
 | §spec coverage 自檢 / 對齊 subagent 的結果 | 清單外改動、PII 命中、File-type 硬規則命中 → **Critical**；施工清單某列「做了=no」或「有測=no」、範圍與 spec 不一致 → **Major**；註解缺 → **Minor**。一律計入 `critical_count` / `major_count` |
 
-主 agent 整合（T1 只寫最後那段、Reviewers 填 self）：
+主 agent 整合（T1 用最後那四行、header 的 Reviewers 填 self）：
 ```markdown
 # Review 整合結果
 > Tier: <T1-T3>

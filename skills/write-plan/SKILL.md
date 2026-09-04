@@ -54,6 +54,7 @@ pytest tests/path/test_new.py::test_<name> -v
 - [ ] **Step 4: 跑測試確認通過**（同 Step 2 指令，Expected: PASS）
 - [ ] **Step 5: commit**
 ```bash
+git add tests/path/test_new.py src/path/new.py
 git commit -m "feat: 加入 <具體功能> 並補測試"
 ```
 ````
@@ -94,7 +95,7 @@ Task 3: 新建 Order model（引用 User + Product）  parallel-group: 2
 |---|---|
 | `TBD` / `TODO` / `稍後實作` / `fill in` | 直接寫實際內容 |
 | `加入適當 error handling` / `處理 edge case` | 列出每個 error / edge case + 對策 |
-| `寫測試覆蓋上面` 但無測試 code、步驟只講 what 沒 code block | 直接寫 test code / 補 code block |
+| `寫測試覆蓋上面` 但無測試 code、步驟只講 what 沒 code block、`同 Task N` 但不重貼 code | 直接寫 test code / 補 code block / 重貼 code（reader 可能跳讀） |
 | 引用 type / function / method 但無處定義 | 在前面 task 補定義 |
 
 ## §Self-review

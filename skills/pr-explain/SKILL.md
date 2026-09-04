@@ -12,7 +12,7 @@ argument-hint: "[pr-number]（可選；省略則自動取當前 branch 的 PR）
 
 # pr-explain task
 
-對指定 PR 寫詳盡 diff 解釋、落檔到 `docs/work/<branch-name>/pr-review.md`、commit、貼到 PR comment。全程套用 rules.md 強制守則（§PII / §Branch safety / §File-type 等）；輸出語言、不修 code、不問 user、PII 處置依 agent 定義。
+對指定 PR 寫詳盡 diff 解釋、落檔到 `docs/work/<branch-name>/pr-review.md`、commit、貼到 PR comment。全程套用 rules.md 強制守則（§PII / §Branch safety / §File-type 等）；輸出語言、不修 code、不問 user、PII 違規標 critical、不主動修，其餘處置依 agent 定義。
 
 ## 1. 取 PR number
 

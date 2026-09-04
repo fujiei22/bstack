@@ -89,7 +89,8 @@
 
 - `node scripts/plugin-contract.mjs` ALL PASS（P9a-i）、`--selftest` PASS；`docs-site-contract` ALL PASS；`build-references.ps1 -Check` exit 0
 - 守門快照（scratch `slim-guard.mjs`，對基線抽 frontmatter / 使用契約編號步驟 / § 白名單 / 選單區塊 / 反引號片段）：frontmatter 11/11 逐字同；使用契約步驟數 11/11 同；白名單 § 標題 0 消失、0 新增（receive-review 一個非白名單 § 加了括號註記）；反引號片段 0 新增。選單區塊有 6 檔報差異，逐一核對皆為抽取器錨點位移（例：execute-plan 六選項 diff 零差異、verify-done 九項 bullet diff 零差異、security-audit 兩條 bullet 為未動 context 行、brainstorm 為允許縮的 spec 範本、review-plan 為 prompt 四段清單非選單），選單文字本身無一改動。
-- 保留的 WHY 引言 6 行（brainstorm 2、review-plan 2、execute-plan 1、receive-review Red Flags 原列 1），皆附實測日期。
+- 保留的 WHY 引言 6 行（brainstorm 2、review-plan 2、execute-plan 1、receive-review Red Flags 原列 1）；4 行附日期（review-plan 兩行是實測 2026-09-03，brainstorm 兩行是 2026-08-31 #42 設計時定），另兩行原句本無日期。
+- **零改變的一條刻意例外**：finish-branch 刪掉「任何 `git checkout` / `git push` 也過同 hook」——它與 rules.md §Branch safety「git checkout / merge / push 不經 hook」的實測敘述矛盾，是錯誤敘述修正，不是瘦身。
 
 ### 執行偏差
 
