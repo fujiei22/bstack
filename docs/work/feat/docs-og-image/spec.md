@@ -28,7 +28,7 @@
 - `docs/og.png`（新）：兩頁共用一張
 - `docs/tools/og-card.html`（新）：OG 卡原稿，沿用 `.lrail .mk` 標記與 `styles.css` token
 - `docs/index.html` / `docs/flow.html`：head 加 meta，兩頁 title / description 各自不同、圖共用
-- `docs/tools/docs-site-contract.mjs`：加 C19
+- `docs/tools/docs-site-contract.mjs`：加 C20
 
 **排除**（明寫避免 scope creep）：
 - 不為 `flow.html` 另做流程圖截圖版 OG 圖（會隨圖漂移、多一張要維護；第一版共用）
@@ -81,7 +81,7 @@ og:image:alt=<文字>  twitter:card=summary_large_image  twitter:image=<同 og:i
 
 ## 風險與 trade-off
 
-- **上線後才驗得到**：無預覽環境，社群爬蟲只抓公開網址。merge 前只能靠 C19 與本地目測 og.png；merge 後用 opengraph.xyz / Facebook Sharing Debugger 確認
+- **上線後才驗得到**：無預覽環境，社群爬蟲只抓公開網址。merge 前只能靠 C20 與本地目測 og.png；merge 後用 opengraph.xyz / Facebook Sharing Debugger 確認
 - **平台快取**：LINE / FB / Slack 按網址快取預覽圖，日後換圖要改檔名或加 `?v=`，否則舊圖會掛很久。寫進 og-card.html 檔頭
 - **字型依賴網路**：og-card.html 用 Google Fonts，離線截圖會退到 fallback 鏈。產圖時確認字型載完再截（Playwright `document.fonts.ready`）
 - **og-card.html 會被 Pages 發布**：放在 `docs/tools/` 與 contract.mjs 同處是 repo 慣例；它沒有被任何頁連結，無害
