@@ -653,10 +653,16 @@ check(
 // og:image 是絕對網址且真的指到 docs/ 底下存在的檔、那個檔是 1200×630 的 PNG。
 // 尺寸不能只看檔案存在——截圖時視窗尺寸或 DPR 一偏，圖就是 2400×1260 或 1200×663，
 // 平台照樣顯示但會裁掉邊。
-// metaOf 的契約假設：只認 `<meta property|name="…" content="…"`——屬性 property/name 在前、
-// 雙引號。屬性順序反過來或用單引號會回 null 而紅，這是刻意的：兩頁的 meta 格式固定，
-// 契約不替不存在的寫法買保險。
 const SITE = 'https://fujiei22.github.io/bstack/';
+/**
+ * 取一個 meta 的 content。
+ * 契約假設：只認 `<meta property|name="…" content="…"`——屬性 property/name 在前、雙引號。
+ * 屬性順序反過來或用單引號會回 null 而紅，這是刻意的：兩頁的 meta 格式固定，
+ * 契約不替不存在的寫法買保險。
+ * @param {string} src  HTML 原文（已 LF 正規化）
+ * @param {string} prop property 或 name 的值，例 'og:image'、'description'
+ * @returns {string|null} content 值；找不到回 null
+ */
 const metaOf = (src, prop) => {
   const m = src.match(new RegExp(`<meta\\s+(?:property|name)="${prop}"\\s+content="([^"]*)"`));
   return m ? m[1] : null;
