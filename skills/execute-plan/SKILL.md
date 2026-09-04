@@ -1,10 +1,10 @@
 ---
 name: execute-plan
 description: |
-  按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（review-plan user accept 後；T1 由 brainstorm 直接交棒）；亦可由使用者顯式呼叫。
+  按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（T3 由 review-plan user accept 後；T1 / T2 由 brainstorm 直接交棒、`plan_path` 為 null）；亦可由使用者顯式呼叫。
   涵蓋：讀 plan、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
   task fail 處置、blocker 升級。
-  上游：review-plan（user accept）；T1 依 rules.md §Tier「plan 跳」由 brainstorm 直接交棒。
+  上游：review-plan（T3，user accept）；brainstorm（T1 / T2，`plan_path` null；T2 的 task 來源 = spec `## 施工清單`）。
   下游：verify-done（全 task 完）。
   **T0 不進本 skill**：rules.md §Tier 表的 T0 是「brainstorm / plan / TDD / review / security 全跳」，
   dev-workflow 與 brainstorm 皆明訂 T0 直接實作後進 finish-branch。
@@ -18,7 +18,8 @@ description: |
 
 **載入後立即動作**：
 
-1. **讀 plan**：從 hand-off state 取 `plan_path`、Read 全文。同時讀 `spec_path` 對齊目標。
+1. **讀 task 來源**：`plan_path` 有值（T3）→ Read plan.md。`plan_path` 為 null → Read `spec_path`：T2 取標題行**恰為** `## 施工清單` 的那張表、每列一個 task（`group` = parallel-group、「怎麼驗」= verify command）；T1 依 success criteria 自拆 1-3 個 task。T2 的 spec 沒這段 → 交棒 brainstorm §補施工清單入口，不自己編。同時讀 `spec_path` 對齊目標。
+   載入時宣告一句給 user 看：「Tier=T2：依 rules.md §Tier 表不寫 plan.md、不跑 review-plan；task 來源 = spec §施工清單（N 列）」。
 2. **TaskCreate**：把 plan 內每個 task 落到 TaskCreate（含 parallel-group 屬性）。
 3. **逐 group 推進**：
    - 同 `parallel-group` 多 task → 載 `dispatch-parallel`、由它判跑法（Agent Teams / subagent / 串行）並問 user
@@ -39,7 +40,7 @@ description: |
 對每個 task：
 
 1. `TaskUpdate` → `in_progress`
-2. 讀 task 5 個 step，**並比對要動的檔是否都在 `codebase_impact.files` 內**；有前端檔不在清單 → 進 §前端檔處理 的例外分支
+2. 讀 task 的 5 個 step（T3）或施工清單那一列（T2：紅 =「怎麼驗」、綠 =「做什麼」，五步由 tdd-cycle 現場展開；「怎麼驗」是目測依據時以截圖 / 引文代替 output），**並比對要動的檔是否都在 `codebase_impact.files` 內**；有前端檔不在清單 → 進 §前端檔處理 的例外分支
 3. **進 tdd-cycle**：嚴格紅 → 跑紅 → 綠 → 跑綠 → commit
 4. 遇 verify command → 跑 → 印 output → 確認 expected
 5. `TaskUpdate` → `completed`
@@ -83,7 +84,7 @@ description: |
 
 ## §Parallel-group 派發
 
-讀 plan 看到下面情境：
+讀 plan（T3）或施工清單 `group` 欄（T2）看到下面情境：
 
 ```
 Group 1 task: A, B, C   ← parallel-group: 1
@@ -121,6 +122,8 @@ Group 3 task: E, F      ← parallel-group: 3
 
 非綠 → 停下、進 §Task fail 流程。
 
+**T2 施工紀錄**：對齊檢查結果與依據、執行偏差、實際產出，追加寫進 spec 的 `## 施工紀錄` 段並 commit——squash 後這是唯一留下的施工帳本。
+
 ---
 
 ## §Task fail 處置
@@ -133,7 +136,7 @@ step 失敗 / verify 失敗時：
    - retry — 適暫態 / flaky test
    - adjust + retry — AI 提具體調整、user 點頭跑（如改 plan step）
    - rollback 該 task 的修改、回前一個 commit
-   - 退到 write-plan 重寫 plan — plan 有**結構性問題**（task 拆錯 / 順序錯 / 漏依賴 /
+   - 退到 write-plan 重寫 plan（T3）／ 交棒 brainstorm §補施工清單入口（T2） — plan 有**結構性問題**（task 拆錯 / 順序錯 / 漏依賴 /
      並行 group 分錯 / 某個 task 的五個 step 根本寫不出來）
    - 退回 brainstorm 重釐清需求 — **需求理解就錯**（scope 定錯 / Track / Tier 判錯 /
      `design.size` 判錯），照 plan 做下去只會做出不該做的東西
