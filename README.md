@@ -108,7 +108,11 @@
 
 三種方式，依推薦順序：
 
-**A1. 專案層級（推薦）**：把 `templates/project-settings.json` 複製成你專案的 `.claude/settings.json`（已有的話把 `extraKnownMarketplaces` 與 `enabledPlugins` 兩段合進去；`permissions` 段自行取捨，它會與你團隊既有的 allow 合併不是覆蓋）。它同時帶了唯讀權限白名單，**這份也是 extras.ps1 白名單的唯一來源**，往裡面加東西前想一下是否也適合使用者層級。開新 session 後若 `/devwork` 沒反應，手動裝一次：
+**A1. 專案層級（推薦）**：把 `templates/project-settings.json` 複製成你專案的 `.claude/settings.json`（已有的話把 `extraKnownMarketplaces` 與 `enabledPlugins` 兩段合進去；`permissions` 段自行取捨，它會與你團隊既有的 allow 合併不是覆蓋）。它同時帶了唯讀權限白名單，**這份也是 extras.ps1 白名單的唯一來源**，往裡面加東西前想一下是否也適合使用者層級。
+
+兩件事複製前要知道：
+- 白名單裡的 `Bash(cat:*)` / `Bash(head:*)` / `Bash(tail:*)` 是任意檔**讀取**，不受 file-type-guard 保護（hook 只管 Write / Edit）。`cat .env` 不會被擋、內容會進對話 context。專案內有密鑰檔的話，把這三條拿掉或改成 `ask`。
+- `extraKnownMarketplaces` 指向 `fujiei22/bstack`，Claude Code 的 marketplace source 目前沒有版本 pin，隊友拿到的是該 repo 當下的內容，而 hook 是每次 Write / Edit 都會跑的程式碼。要更嚴格就 fork 一份自己管控的 repo、把 `repo` 改成你的。開新 session 後若 `/devwork` 沒反應，手動裝一次：
 
 ```
 /plugin marketplace add fujiei22/bstack
@@ -136,7 +140,7 @@ pwsh -File scripts/extras.ps1
 
 - `[U]` 使用者層級（你的 Claude 設定目錄裡的 settings.json）、`[P]` 目前專案 `.claude/settings.json`、`[S]` 跳過（預設）。不選就什麼都不寫。
 - MCP 的 `[P]` 寫的是專案根 `.mcp.json`，**會進 git、隊友共用**。mysql MCP 含帳密，腳本只印指令範本讓你自己填。
-- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一**不經你選擇**就會寫的檔；選 `[U]` 寫的 settings.json 是你選的）。`-Uninstall` 只拆自己加的，你本來就有的不碰。
+- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一**不經你選擇**就會寫的檔；選 `[U]` 寫的 settings.json 是你選的）。`-Uninstall` 只拆自己加的，你本來就有的不碰。備份檔 `settings.json.bak-<時間>` 是原檔明文快照，若你的 settings 裡放過帳密之類的 `env`，記得定期清。
 - 請從 clone 的 repo 跑：statusLine 會指到 `extras/statusline.sh` 的絕對路徑。clone 搬家後重跑、選 statusLine 的 `[R]` 重裝。
 - 非互動：`pwsh -File scripts/extras.ps1 -Yes -Items statusLine,env -Scope user`。
 
@@ -180,7 +184,7 @@ pwsh -File scripts/extras.ps1
 pwsh -File scripts/extras.ps1 -Migrate
 ```
 
-它會列出舊副本（skills / agents / hooks / statusline / state、settings.json 內指向舊 hook 的條目），確認後刪除；`~/.claude/CLAUDE.md` 若與 bstack 舊版一致就改名成 `CLAUDE.md.bstack-bak-<時間>`，被你改過的則不動、印出那一行的行號請你自行拿掉。之後重開 session。
+它會列出舊副本（skills / agents / hooks / statusline / state、settings.json 內指向舊 hook 的條目），只認有 bstack 簽名的檔、同名但你自己寫的不動；確認後**搬進** `~/.claude/bstack-migrate-bak-<時間>/`（不直接刪，誤判可救回）；`~/.claude/CLAUDE.md` 若與 bstack 舊版一致就改名成 `CLAUDE.md.bstack-bak-<時間>`，被你改過的則不動、印出那一行的行號請你自行拿掉。之後重開 session。
 
 ## 完全移除
 

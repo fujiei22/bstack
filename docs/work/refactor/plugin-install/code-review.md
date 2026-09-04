@@ -37,6 +37,19 @@ Uninstall 壞 JSON 保留條目、allow 拆空不留殼與 permissions 空父物
 - **BOM 壓在 shebang 前**（主 nit）：`pwsh -File` 呼叫不受影響；直接 `./x.ps1` 在 Linux 才會壞，hooks.json 一律 `-File`。
 - **lang-reviewer 的 `|-` 變體**：已在 C2 修法一併支援。
 
+## Security audit（security-auditor subagent，STRIDE × 4 surface + OWASP A01/A04/A05/A08/A09）
+
+無 Critical。四條 Major：
+
+| # | 威脅 | 處置 |
+|---|---|---|
+| 1 | file-type-guard token 目錄在 Linux 是共用 `/tmp`，token 名由路徑決定，同機他人可預建繞過二次確認（本 PR 新引入的退化：舊版在 `~/.claude/hooks/../state`，本來就 per-user） | state dir 改 `$XDG_RUNTIME_DIR` 或 `<temp>/bstack-file-guard-<使用者名>`；token 消費時 append 一行 `consumed.log` 供回溯（Minor #1） |
+| 2 | `-Migrate` 對 hook 的簽名含「PreToolUse hook」官方通稱，使用者自己的同名 hook 會被誤判；且直接 `Remove-Item` 無備份 | 簽名縮成 `BRANCH-SAFETY]|FILE-TYPE-GUARD]|[bstack]`；刪除改成搬進 `~/.claude/bstack-migrate-bak-<ts>/`；SelfTest e3b / e3c |
+| 3 | 範本 `Bash(cat/head/tail:*)` 是任意檔讀取，file-type-guard 只管寫入，分發面從一個 repo 擴大到任意採用專案 | 不改白名單（是 user 原清單）；README §A1 與 rules.md §Settings.json 加警語：有密鑰檔就拿掉或改 ask |
+| 4 | marketplace source 無版本 pin，repo 被接管等於對所有隊友的 hook 程式碼替換（平台限制） | README §A1 說明並建議 fork 自管 |
+
+Minor #2（`.bak` 明文快照可能含帳密）→ README §B 加提醒。接受的風險：守則只在 `/devwork` 後生效（user 定案）、沒 pwsh 靜默失效（已揭露）、hook fail-open（刻意設計）、symlink 別名繞 file-type-guard（既有行為，非本 PR）。
+
 ## 驗證（修完）
 
 - `node scripts/plugin-contract.mjs` ALL PASS；`--selftest` S1 S2 S4 S5 S6 PASS、S3 刻意紅。

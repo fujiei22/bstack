@@ -50,6 +50,11 @@
 | 不帶 `--plugin-dir`、從空目錄 `claude -p "/devwork"` | 印 `[bstack devwork · plugin] 已載入守則。要做什麼？…`——純安裝路徑可用 |
 | 還原 | `claude plugin uninstall bstack@bstack`、`claude plugin marketplace remove bstack` 皆成功，作者機器回原狀 |
 
+## Security audit 修正後 smoke
+
+- `Dockerfile` 走 WARN 路徑，stderr 指示的 token 路徑變為 `%TEMP%\bstack-file-guard-tommy_sian\<hash>.token`（per-user）。
+- `extras.ps1 -SelfTest` 33 條全 PASS（新增 e3b 搬進備份目錄可救回、e3c 使用者自己含「PreToolUse hook」字樣的同名 hook 不動）。
+
 ## hook 延遲（README 措辭依據）
 
 `Measure-Command` 餵 Write payload：branch-safety 1310 ms、file-type-guard 1168 ms（pwsh 7.4、Windows 11、NoProfile）。兩支合計約 2.5 秒，主要是 pwsh 啟動時間。README 原寫「數百毫秒」是推斷，已改為實測數字。
