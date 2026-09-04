@@ -203,12 +203,15 @@ const rulesMd = rd('skills/devwork/rules.md');
 const tierT2 = (rulesMd.match(/^\| \*\*T2\*\*.*$/m) || [''])[0];
 const tierT3 = (rulesMd.match(/^\| \*\*T3\*\*.*$/m) || [''])[0];
 const tierHead = (rulesMd.match(/^\| Tier \| 量體 \|.*$/m) || [''])[0];
-check('P9a rules.md §Tier 表：T2 施工清單 + 1 subagent；T3 雙視角、視角依面向；表頭有 pr-explain 欄',
-  /施工清單/.test(tierT2) && /1 subagent/.test(tierT2) && /雙視角/.test(tierT3) && /依改動面向/.test(tierT3) &&
+// review 欄 2026-09-04 二改：T2 = 內建 code-review medium + 主 agent spec 自檢；T3 = code-review high + 1 個
+// spec / 架構對齊 subagent；純文件 diff 兩者都跳。舊字樣「1 subagent」「雙視角」還在就是沒改到。
+check('P9a rules.md §Tier 表：T2 施工清單 + code-review medium；T3 code-review high + 1 subagent、視角依面向；表頭有 pr-explain 欄',
+  /施工清單/.test(tierT2) && /code-review medium/.test(tierT2) && !/1 subagent（prompt/.test(tierT2) &&
+    /code-review high/.test(tierT3) && !/雙視角/.test(tierT3) && /依改動面向/.test(tierT3) &&
     !/lang-reviewer/.test(tierT3) && /pr-explain/.test(tierHead) && !/T2-T3 詳/.test(rulesMd),
-  `T2=「${tierT2.slice(0, 70)}」 T3 雙視角=${/雙視角/.test(tierT3)} 依面向=${/依改動面向/.test(tierT3)} ` +
+  `T2=「${tierT2.slice(0, 90)}」 T3 code-review high=${/code-review high/.test(tierT3)} 殘留雙視角=${/雙視角/.test(tierT3)} 依面向=${/依改動面向/.test(tierT3)} ` +
     `表頭 pr-explain=${/pr-explain/.test(tierHead)} 殘留「T2-T3 詳」=${/T2-T3 詳/.test(rulesMd)}` +
-    `（後果：Tier 表是 lane 唯一真相，沒改等於沒精簡；改處：rules.md「§Tier 機制」表與「§Docs 落檔」檔名固定那行）`);
+    `（後果：Tier 表是 lane 唯一真相，沒改等於沒精簡；改處：rules.md「§Tier 機制」表 T2 / T3 的 review 欄）`);
 const bsMd = rd('skills/brainstorm/SKILL.md'), exMd = rd('skills/execute-plan/SKILL.md');
 check('P9b brainstorm 範本有裸標題「## 施工清單」與「## 施工紀錄」、spec gate 選單指 execute-plan；execute-plan 讀施工清單且允許 plan_path null',
   /^## 施工清單$/m.test(bsMd) && /^## 施工紀錄$/m.test(bsMd) && /進 execute-plan/.test(bsMd) && !/進 <write-plan\|debug-systematic>/.test(bsMd) &&
@@ -217,11 +220,19 @@ check('P9b brainstorm 範本有裸標題「## 施工清單」與「## 施工紀�
     `execute-plan 精確比對=${/恰為\*{0,2} \`## 施工清單\`/.test(exMd)} null=${/plan_path.*null/.test(exMd)}` +
     `（後果：兩端契約缺一邊 T2 就卡；改處：brainstorm「§spec 文件結構」「§交棒」、execute-plan「§使用契約」第 1 步）`);
 const rrMd = rd('skills/request-review/SKILL.md'), dwMd = rd('skills/dev-workflow/SKILL.md');
-check('P9c request-review / dev-workflow 不再自動派 lang-reviewer，改語言提示',
-  !/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd) && /§語言提示/.test(rrMd) && !/\+\s*lang-reviewer/.test(dwMd) && !/plan: <plan 內容>/.test(rrMd),
-  `request-review 自動派發=${/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd)} 語言提示段=${/§語言提示/.test(rrMd)} ` +
-    `dev-workflow 殘留「+ lang-reviewer」=${/\+\s*lang-reviewer/.test(dwMd)} T2 prompt 仍貼 plan=${/plan: <plan 內容>/.test(rrMd)}` +
-    `（後果：T2 還是開三個 reviewer；改處：request-review「§T2 subagent dispatch」「§語言提示」、dev-workflow「Phase 5」「§跨流程 skill 載入」「§Trace 標籤」範例）`);
+// 2026-09-04 二改：request-review 先依副檔名分流（純文件跳）、程式碼 diff 交內建 code-review（T2 medium / T3 high）、
+// T3 只留 1 個 spec / 架構對齊 subagent（舊視角 B 拿掉）、不帶 --fix / --comment；dev-workflow Phase 5 三行同步。
+const dwPhase5 = (dwMd.match(/^5\. request-review[\s\S]*?(?=^   ↓)/m) || [''])[0];
+check('P9c request-review 依副檔名分流、程式碼交 code-review（T2 medium / T3 high、不帶 --fix）、純文件跳、無視角 B；dev-workflow Phase 5 同步',
+  !/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd) && /§語言提示/.test(rrMd) && /§副檔名分流/.test(rrMd) &&
+    /Skill\("code-review", args="medium"\)/.test(rrMd) && /Skill\("code-review", args="high"\)/.test(rrMd) &&
+    /純文件/.test(rrMd) && !/args="[^"]*--(fix|comment)/.test(rrMd) && !/視角 B/.test(rrMd) && !/plan: <plan 內容>/.test(rrMd) &&
+    /code-review medium/.test(dwPhase5) && /code-review high/.test(dwPhase5) && /純文件/.test(dwPhase5) && !/\+\s*lang-reviewer/.test(dwMd),
+  `request-review 自動派發=${/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd)} 語言提示段=${/§語言提示/.test(rrMd)} 副檔名分流段=${/§副檔名分流/.test(rrMd)} ` +
+    `Skill medium=${/Skill\("code-review", args="medium"\)/.test(rrMd)} high=${/Skill\("code-review", args="high"\)/.test(rrMd)} 純文件=${/純文件/.test(rrMd)} ` +
+    `殘留視角 B=${/視角 B/.test(rrMd)} args 帶 --fix/--comment=${/args="[^"]*--(fix|comment)/.test(rrMd)} ` +
+    `dev-workflow Phase 5 medium=${/code-review medium/.test(dwPhase5)} high=${/code-review high/.test(dwPhase5)} 純文件=${/純文件/.test(dwPhase5)} 殘留「+ lang-reviewer」=${/\+\s*lang-reviewer/.test(dwMd)}` +
+    `（後果：request-review 照舊自寫 prompt 開 reviewer、或 dev-workflow 路徑圖跟 skill 打架；改處：request-review「§使用契約」「§副檔名分流」「§T2」「§T3」、dev-workflow「Phase 5」三行）`);
 const fbMd = rd('skills/finish-branch/SKILL.md'), peFm = frontmatter(rd('skills/pr-explain/SKILL.md'));
 check('P9d finish-branch 只在 T3 交棒 pr-explain、PR body plan 行允許 N/A；pr-explain 描述註明 T3',
   /T3 → 交棒 pr-explain/.test(fbMd) && /N\/A（T2/.test(fbMd) && /T3/.test(description(peFm)),
