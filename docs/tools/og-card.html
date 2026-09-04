@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <title>bstack OG 卡原稿（產圖用，站上沒有任何頁連到這裡）</title>
   <!--
-    這是 docs/og.png 的原稿。重產步驟：
-      1. 用 Playwright 開這個檔（file:// 即可，字型走 Google Fonts 要連網）
+    這是 docs/og.png 的原稿。重產步驟（file:// 或本機 http 開都可；本機 Playwright MCP 若擋 file://，用 node 起個靜態伺服器供 docs/）：
+      1. 用 Playwright 開這個檔（字型走 Google Fonts 要連網）
       2. 等 document.fonts.ready，確認 Newsreader / IBM Plex Sans / Noto Sans TC / IBM Plex Mono 都 loaded
       3. 對 .card 元素截圖、scale=css → 得到 1200×630 的 PNG，存到 docs/og.png
       4. node docs/tools/docs-site-contract.mjs → C20d 綠

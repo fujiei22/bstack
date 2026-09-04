@@ -396,7 +396,7 @@ git commit -m "feat: 兩頁 head 補 OG 與 Twitter Card meta"
 **files**:
 - modify: `docs/work/feat/docs-og-image/plan.md`（本檔，勾完成）
 
-- [ ] **Step 1: 四項對齊檢查**（rules.md §設計語言對齊 小改路徑）
+- [x] **Step 1: 四項對齊檢查**（rules.md §設計語言對齊 小改路徑）
 
 | 項 | 結果 |
 |---|---|
@@ -405,7 +405,11 @@ git commit -m "feat: 兩頁 head 補 OG 與 Twitter Card meta"
 | 表單 | N/A（兩頁 grep `<form>` / `<input>` 零命中） |
 | dark mode | N/A 有依據：OG 圖不跟主題，原稿強制 `data-theme="light"`；兩頁新增 meta 不含色值 |
 
-- [ ] **Step 2: 本地目測** — `Read docs/og.png`，對照 spec「設計方向」：紙色底、紅底白字 bs 標記、Newsreader 標題、ink-2 副標。
+**2026-09-04 實測**：`og-card.html` grep `@media` 0 命中；`index.html` / `flow.html` grep `<form|<input` 各 0 命中；本次兩頁新增行 grep 色值字面（hex / rgb / oklch）0 命中；Playwright 讀到 `data-theme="light"`、`.mk` 背景是 styles.css 的 `oklch(0.545 0.18 28)`。四項全 N/A、依據成立。
+**本地目測**：`docs/og.png` 1200×630、28571 bytes；紙色底、紅底白字 bs 標記、Newsreader 標題、ink-2 副標、mono 網址；四個字型（Newsreader / IBM Plex Sans / Noto Sans TC / IBM Plex Mono）截圖前確認 loaded。
+**執行偏差**：Playwright MCP 擋 `file://`，改用 node 內建 http 模組起一次性靜態伺服器（scratchpad，不進 repo）開 `http://127.0.0.1:8765/tools/og-card.html` 截圖；og-card.html 檔頭的重產步驟第 1 步應理解為「用任何方式開到瀏覽器」，file:// 或 http 都可。
+
+- [x] **Step 2: 本地目測** — `Read docs/og.png`，對照 spec「設計方向」：紙色底、紅底白字 bs 標記、Newsreader 標題、ink-2 副標。
 
 - [ ] **Step 3: 上線後驗證項**（merge 後、不在本 branch）— 到 https://www.opengraph.xyz/ 貼 `https://fujiei22.github.io/bstack/` 與 `/flow.html`，兩頁都出圖。寫進 PR body 的「merge 後待驗」。
 
