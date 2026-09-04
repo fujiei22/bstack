@@ -10,11 +10,7 @@ description: |
 
 # receive-review
 
-review subagent 把 finding 丟回來後，**主 agent 處置**：自動修 / 問 user / 略過。
-
 ## 使用契約（強制）
-
-**載入後立即動作**：
 
 1. **讀 hand-off state** 取 `review_summary_path`、`tier`、`critical_count`、`major_count`。
 2. **掃 finding 分類**：依 rules.md §Auto-fix 表分「不危險類」與「危險類」。
@@ -25,62 +21,22 @@ review subagent 把 finding 丟回來後，**主 agent 處置**：自動修 / �
 
 **T0 不進本 skill**：它的上游 request-review 對 T0 就不啟動（rules.md §Tier 表 T0 review 欄是「跳」）。
 
----
+## §不危險 vs 危險分類（rules.md §Auto-fix 的 review-context 細化）
 
-## §不危險 vs 危險分類
-
-依 rules.md §Auto-fix。再加 review-context 細化：
-
-### 不危險（AI 自動修）
-- typo / 註解錯字
-- import 排序 / 未用 import
-- 變數命名（不改 public API name）
-- 純 formatting / lint
-- 純 refactor（不改 behavior）
-- 加缺漏的 docstring / 註解
-- 加缺漏的 type annotation
-
-### 危險（必問 user）
-- DB schema / migration
-- 認證 / 授權邏輯
-- payment / 收費邏輯
-- 檔案刪除 / batch operation
-- dependency 升降 / 新增
-- infra config（Dockerfile / k8s / terraform / CI）
-- public API 介面變動（rename / 移除 / 改 signature）
-- error handling 策略改變
-- 對 production data 的 side effect
-- 任何被 file-type-guard 警告的檔案改動
-
-### 灰色（依 tier）
-- 邏輯重構（改 implementation 但 behavior 不變）
-  - T1/T2 → 不危險、自動修
-  - T3 → 仍給 user 看 diff
-- 加新測試
-  - 全 tier 不危險、自動加
-- 改測試（既有測試）
-  - 若是測試名 / 重整 → 不危險
-  - 若改 assertion / 測試行為 → 危險
-
----
+| 項目 | 判定 | 條件 |
+|---|---|---|
+| typo / 註解錯字、import 排序 / 未用 import、純 formatting / lint、加缺漏的 docstring / 註解 / type annotation、加新測試 | 不危險 | 全 tier 自動修 |
+| 變數命名、純 refactor | 不危險 | 不改 public API name、不改 behavior |
+| 邏輯重構（改 implementation 但 behavior 不變） | 依 tier | T1/T2 不危險、自動修；T3 仍給 user 看 diff |
+| 改既有測試 | 依內容 | 測試名 / 重整 → 不危險；改 assertion / 測試行為 → 危險 |
+| DB schema / migration、認證 / 授權邏輯、payment / 收費邏輯、檔案刪除 / batch operation、對 production data 的 side effect、dependency 升降 / 新增、infra config（Dockerfile / k8s / terraform / CI）、public API 介面變動（rename / 移除 / 改 signature）、error handling 策略改變、任何被 file-type-guard 警告的檔案改動 | 危險 | 必問 user |
 
 ## §不危險處置（自動修）
-
-對全部不危險 finding：
 
 1. 逐條寫 fix（可一次改完）
 2. 跑該 tier 的 verify（契約 / test）
 3. **一顆 commit**：`fix: 處理 review finding（N 項）`，body 逐項列「finding 簡述 → 怎麼修」
-4. 印 `git diff HEAD~1` 給 user 看，不需 user 點頭
-
-**T3 特例**：批次完成後、進下 phase 前，整個 diff 給 user 過一眼：
-```
-T3 / 本次 review fix 共改 <N> 個 finding。請看 diff：
-<git diff <pre-review-sha>...HEAD>
-若有要 revert 的告知；否則進 <next phase>。
-```
-
----
+4. 印 `git diff HEAD~1` 給 user 看，不需 user 點頭；**T3 特例**：批次完成後、進下 phase 前，整個 diff 給 user 過一眼，有要 revert 的告知，否則進下 phase
 
 ## §危險處置（問 user）
 
@@ -98,31 +54,19 @@ T3 / 本次 review fix 共改 <N> 個 finding。請看 diff：
   4. 退回 execute-plan 重做相關 task
 ```
 
-選 1 → 主 agent 寫 fix、commit、印 diff
-選 2 → 等 user 給細節 → 主 agent 寫 → commit
-選 3 → 加入 `docs/work/<branch-name>/TODO.md`、不修
-選 4 → 退 execute-plan、`state.fail_history` 記錄 review trigger
-
----
+選 1 → 主 agent 寫 fix、commit、印 diff；選 2 → 等 user 給細節 → 主 agent 寫 → commit；選 3 → 加入 `docs/work/<branch-name>/TODO.md`、不修；選 4 → 退 execute-plan、`state.fail_history` 記錄 review trigger
 
 ## §特殊狀況
 
-### Review 全綠 / 0 finding
-- `review_summary_path` 標 「無 finding，跳 receive-review、直接進下 phase」
-- 短路 — 不啟動 fix 循環
-
-### 1 reviewer 提、其他反對
+- **Review 全綠 / 0 finding**：`review_summary_path` 標「無 finding，跳 receive-review、直接進下 phase」，短路、不啟動 fix 循環
 - 多 reviewer 衝突 → `AskUserQuestion` 把所有視角列給 user 決定
 
-### Reviewer 給的 fix 自己錯
 - 主 agent 不照搬；提出修正後的 fix、`AskUserQuestion` 給 user 看：
   ```
   Reviewer 建議：<原建議>
   主 agent 評：<為何 reviewer fix 不對 / 不適合>
   主 agent 建議：<更好的 fix>
   ```
-
----
 
 ## §hand-off state
 
@@ -137,11 +81,7 @@ state:
   current_phase: receive-review-done
 ```
 
-**下一 phase**：
-- 若 `triggered_rollback` → 退 execute-plan
-- 否則 → security-audit（依 tier 條件）/ 否則 → finish-branch
-
----
+**下一 phase**：`triggered_rollback` → 退 execute-plan；否則 → security-audit（依 tier 條件）/ 否則 → finish-branch
 
 ## §結尾 Trace 標籤
 
@@ -149,14 +89,11 @@ state:
 [Trace] Phase=receive-review | Tier=<T1-T3> | Track=<Bug/Dev> | Skill=receive-review
 ```
 
----
-
 ## §Red Flags
 
 | 想法 | 真相 |
 |---|---|
-| 「reviewer 說 critical 太煩跳過」 | critical 必處（修 / 列 known issue / 退 execute-plan 三選一）|
-| 「危險類我判斷一下自己 fix」 | 危險類必問；不准 auto-fix |
+| 「危險類我判斷一下自己 fix」「reviewer 說 critical 太煩跳過」 | 危險類必問、不准 auto-fix；critical 必處（修 / 列 known issue / 退 execute-plan 三選一）|
 | 「T3 也偷偷 auto-fix 不告訴 user」 | T3 even 不危險 也給 user 看 diff |
 | 「reviewer fix 寫對直接套」 | 仍要評；reviewer 不必對 |
 | 「每 finding 一顆 commit 才好 bisect」 | squash merge 後只剩 PR title，bisect 不到；一顆 commit 的 body 列 finding 資訊等價 |
