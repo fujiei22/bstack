@@ -7,7 +7,7 @@ description: |
   反 AI slop、React+Babel 技術紅線、6 維度評審。
   分工：既有事實（這區長什麼樣）→ `design-language`；新設計決策 → 本 skill；
   改完要驗畫面 → `frontend-test`。
-  上游：`design-language`（供給設計語言）。下游：`write-plan`（依定案方向拆 task）。
+  上游：`design-language`（供給設計語言）。下游：T3 → `write-plan`（依定案方向拆 task）；T2 → 回 `brainstorm` 3.5 依方向回寫 `## 施工清單` 後交 execute-plan。
 ---
 
 # design-direction
@@ -326,7 +326,7 @@ user 提「評審 / 好不好看 / 打分」，或你對產出有疑慮想主動
 | user 顯式呼叫 | 「出三版看看」「這個要改版」 | 三版 ＋ 選定結果回寫 `spec.md` |
 | `brainstorm` | 合併確認第 3 題選「出三版」，且 branch 已建立、`spec.md` 已落檔 | 同上 |
 
-**上游**：`design-language`（供給設計語言）。**下游**：`write-plan`（依定案方向拆 task）。
+**上游**：`design-language`（供給設計語言）。**下游**：T3 → `write-plan`（依定案方向拆 task）；T2 → 回 `brainstorm` 3.5 依方向回寫 `## 施工清單` 後交 execute-plan。
 
 ---
 

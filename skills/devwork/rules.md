@@ -104,7 +104,7 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 | `docs/snapshots/`、`docs/retros/` | context 快照 / 回顧 | 暫存 |
 
 - **目錄**：`docs/work/<branch-name>/`（含 `<type>/` prefix，例 `docs/work/feat/user-auth-jwt/`）
-- **檔名固定**：`spec.md`（brainstorm）/ `plan.md`（write-plan）/ `review.md`（review-plan）/ `pr-review.md`（pr-explain 覆寫；T0-T1 簡、T2-T3 詳）
+- **檔名固定**：`spec.md`（brainstorm）/ `plan.md`（write-plan）/ `review.md`（review-plan）/ `pr-review.md`（pr-explain 覆寫；T3 自動、其他 tier 顯式呼叫才有）
 - **時機**：T1+ brainstorm Phase 0 完成後**先 `git checkout -b <branch>` 再寫 spec**（branch-safety 雙保險）
 - **覆寫**：plan / review / pr-review 同 branch 迭代覆寫；spec 修改靠 git history
 - **merge 後搬檔**：finish-branch 把 `docs/work/<branch-name>/` 移到 `docs/archive/<年>/<主題>/`
@@ -118,14 +118,19 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 流程由 `/devwork <要做的事>` 啟動：devwork skill 載入本規則書後進 `dev-workflow`；沒下指令時不套用本規則書。9 階段順序 / Track / hand-off state / Memory hook 細節見 dev-workflow body。
 
 ### §Tier 機制
-| Tier | 量體 | brainstorm | plan | TDD | review | security |
-|---|---|---|---|---|---|---|
-| **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 |
-| **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 |
-| **T2** | 3-10 檔 / 單模組 feature | 完整 | 用 + review (Eng) | 紅綠循環 | subagent + lang-reviewer | 涉認證 / 資料層才 audit |
-| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | 用 + review (4 視角) | 紅綠、80% 目標 | 雙視角 + lang-reviewer | audit + checklist + db-reviewer |
+| Tier | 量體 | brainstorm | plan | TDD | review | security | pr-explain |
+|---|---|---|---|---|---|---|---|
+| **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
+| **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |
+| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 1 subagent（prompt 附語言 idiom） | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
+| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 雙視角 subagent（架構 × 除錯，各附語言 idiom） | audit + checklist + db-reviewer | 用 |
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
+
+- **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構為準；超過 8 列代表 Tier 判低了，回 0d 升 T3。
+- **`lang-reviewer` agent 不自動 spawn**：語言 idiom / pitfall 提示由 request-review 依副檔名寫進 reviewer prompt；user 顯式要「用 lang-reviewer 看」才派。
+- **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state。「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
+- 精簡依據見 `docs/archive/2026/` 的 `t2-lane-slim` 主題（2026-09-04 merge 後歸檔；不在此重述，避免常駐吃 context）。
 
 ### §協作模式判定（Agent Teams gate）
 判「這件事要不要開 Agent Teams」。**判準是工作者之間要不要互相講話，不是能不能平行**——能平行但不用溝通的工作，subagent 就夠、且便宜得多。

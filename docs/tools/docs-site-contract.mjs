@@ -241,7 +241,7 @@ const BASELINE_KEYS = [
   'LoadVerify', 'LoadFE', 'LoadReq', 'LoadRecv', 'LoadSec', 'LoadChk', 'LoadFin', 'LoadSafety',
   'LoadPrEx', 'LoadRetro', 'LoadDebug', 'LoadIncident', 'LoadLock', 'LoadCmdG', 'LoadCtxS',
   'LoadCtxR', 'LoadWS', 'HypAgent', 'FEAgent', 'LangAgent', 'SecAgent', 'DBAgent', 'PrExAgent',
-  'RPT2', 'RPT3',
+  'RPT3',   // RPT2 隨 2026-09-04 T2 lane 精簡從圖上刪（T2 不跑 review-plan）
   // 後補：這兩個節點一直都在圖上，但先前沒有內嵌全文（baseline 既有缺口 1+2），
   // 是全站唯一點不開文件的兩個 skill。已補進內嵌包。
   'LoadDLang', 'LoadDD',
@@ -325,9 +325,9 @@ const nodeCount = Object.keys(FD.nodes).length;
 const edgeCount = FD.edges.length;
 const phaseCount = FD.phases.length;
 const typeCount = new Set(Object.values(FD.nodes).map((n) => n.type || 'default')).size;
-const EXPECT = { nodes: 99, edges: 136, phases: 15, types: 8 };
+const EXPECT = { nodes: 96, edges: 135, phases: 15, types: 8 };
 check(
-  'C8a 資料契約 99 nodes / 136 edges / 15 phases / 8 types',
+  `C8a 資料契約 ${EXPECT.nodes} nodes / ${EXPECT.edges} edges / ${EXPECT.phases} phases / ${EXPECT.types} types`,
   nodeCount === EXPECT.nodes && edgeCount === EXPECT.edges &&
     phaseCount === EXPECT.phases && typeCount === EXPECT.types,
   `期望 ${EXPECT.nodes}/${EXPECT.edges}/${EXPECT.phases}/${EXPECT.types}，` +
@@ -646,6 +646,19 @@ check(
   ),
   '期望 landing.css 一個色值 token 都不自己宣告（後果：色票分兩處維護，' +
     '改了 styles.css 的配色 landing 不會跟著變，就是「把別區的 token 頂替過來」那條紅線）'
+);
+// C19e landing 節點鏈的兩個資料屬性：data-nodes 的 id 都要在圖上，data-upto 要嚴格遞增且小於總數。
+// 這兩個值是手填的（2026-09-04 刪三個節點時手算過一次），沒契約守下次再刪節點又要人工對。
+// landing.js:149 找不到節點會靜默跳過，所以 id 打錯不會有任何錯誤訊息。
+const beatAttrs = [...landingHtml.matchAll(/id="(b\d)" data-upto="(\d+)" data-nodes="([^"]+)"/g)]
+  .map((m) => ({ beat: m[1], upto: Number(m[2]), ids: m[3].split(',') }));
+const badIds = beatAttrs.flatMap((b) => b.ids.filter((id) => !FD.nodes[id]).map((id) => `${b.beat}:${id}`));
+const uptoOk = beatAttrs.every((b, i) => b.upto < nodeCount && (i === 0 || b.upto > beatAttrs[i - 1].upto));
+check(
+  'C19e landing data-nodes 都在圖上、data-upto 嚴格遞增且 < 節點總數',
+  beatAttrs.length >= 7 && badIds.length === 0 && uptoOk,
+  `期望 ≥7 段、0 個壞 id、upto 遞增且 < ${nodeCount}，實際 ${beatAttrs.length} 段、壞 id [${badIds.join(', ')}]、` +
+    `upto [${beatAttrs.map((b) => b.upto).join(', ')}]（後果：節點鏈少一格沒人發現，或進度條在最後一段就 100%）`
 );
 
 // ── C20：social meta 與 OG 圖 ────────────────────────────────────────────────

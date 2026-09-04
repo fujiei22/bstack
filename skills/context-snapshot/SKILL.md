@@ -48,7 +48,7 @@ track: <Bug|Dev>
 tier: <T0-T3>
 current_phase: <phase>
 spec_path: docs/work/<branch-name>/spec.md
-plan_path: docs/work/<branch-name>/plan.md
+plan_path: <docs/work/<branch-name>/plan.md | null>   # T1 / T2 為 null
 tasks_completed: <N>/<M>
 parallel_groups_done: [...]
 review_summary_path: <path>
@@ -81,7 +81,7 @@ fail_history: [...]
 
 - <T0c track 為 Dev、reason: ...>
 - <T0d tier 為 T2、reason: ...>
-- <review-plan 4 視角 finding 採用了 X / 略過 Y、reason: ...>
+- <review-plan（視角依 state.review_perspectives）finding 採用了 X / 略過 Y、reason: ...>
 
 ## Open question / pending user input
 

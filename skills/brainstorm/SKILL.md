@@ -4,7 +4,7 @@ description: |
   需求釐清 + Phase 0 入口分流（繁中）。載入：dev-workflow 使用契約第 2 步；
   不因自然語言自動觸發。涵蓋：0a 對話釐清（+ 讀 memory）、0b 看 codebase、
   0b′ UI 面判定、0c Track 判定（Bug/Dev）、0d Tier 判定（T0-T3）、
-  spec 落檔 docs/work/&lt;branch-name&gt;/spec.md。終態 → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
+  spec 落檔 docs/work/&lt;branch-name&gt;/spec.md。終態 → T1 / T2 交棒 execute-plan（T2 的施工清單在 spec 內）、T3 交棒 write-plan、Bug 交棒 debug-systematic。
 ---
 
 # brainstorm
@@ -15,12 +15,14 @@ description: |
 
 **載入後立即動作**：
 
+0. **先分流**：state 已有 `tier=T2` 且 `spec_path` 存在、且是 execute-plan / dispatch-parallel / verify-done 退回來補清單 → 直跳 §補施工清單入口，**不跑 Phase 0**。其餘往下。
 1. 進 Phase 0 五子步驟（0a → 0b → 0b′ → 0c → 0d），不跳過。
 2. 0b′／0c／0d 的判定**合併成一個 `AskUserQuestion` 一次確認**（見 §Phase 0c/0d 合併確認）；**禁文字 token NLP 判斷**。
 3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
 3.5 **`design.size=大改` 且第 3 題選了「出三版」** → 此時 branch 已建立、spec 已落檔，**載入 `design-direction`** 走三方向流程；選定後**回寫本檔的「設計方向」段落**（`direction_decided` / `user_choice_quote` / 資產清單），再進第 4 步交棒。
    第 3 題選了「跳過三方向」→ 不載入 `design-direction`，把**理由**寫進「設計方向」段落，直接進第 4 步。
-4. T0 → user 點頭後直接交實作；T1+ → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
+   **T2 且走過三方向** → 依 `direction_decided` 回寫 `## 施工清單`，只對這張表再 `AskUserQuestion` 確認一次（不重問 spec），再進第 4 步。
+4. T0 → user 點頭後直接交實作；T1 → 交棒 execute-plan（無 plan）；**T2 → spec 末尾附 `## 施工清單` 後交棒 execute-plan**（不進 write-plan / review-plan）；T3 → 交棒 write-plan。Bug track 一律 debug-systematic。
 
 **硬規定**：任何實作動作（寫 code / 改檔 / 跑 build / 安裝套件）一律等 spec 與 tier 敲完。**包括 trivial 看起來「一行就好」的 task** — 由 Tier 判定，不是你決定。
 
@@ -60,6 +62,7 @@ description: |
    最近一次正常的時間點或 commit。寫進 `state.bug_context`，交給 `debug-systematic`
    的 Triage 用——不在這裡收，Triage 第一步就得回頭再問使用者一次。
 5. 不需要 100% 看完，估到能評 tier 即可。
+6. **T3 視角判定**：依 rules.md §Tier 機制「視角依改動面向」，從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design。命中幾個派幾個，寫 `state.review_perspectives`。0b 時 Tier 只是預判，以 0d 定案後為準；定案不是 T3、或 Track=Bug → 清掉這欄。
 
 ---
 
@@ -215,9 +218,23 @@ T0 / T1 / T2 / T3。Heuristic：
 ## 待釐清（如有）
 
 - ...
+
+## 施工清單
+
+<!-- T2 必填；T1 / T3 刪掉本段與下一段 -->
+
+| # | group | 檔（可多個） | 做什麼 | 怎麼驗 |
+|---|---|---|---|---|
+| 1 | 1 | `exact/path` | <一句> | <可跑的 check，或可對照的引文 / 截圖> |
+
+## 施工紀錄
+
+<!-- execute-plan 施工中追加：四項對齊檢查（N/A 附依據）、執行偏差、實際產出 -->
 ```
 
-**T1** spec 可短至 30 行；**T2+** 內容完整、所有 section 都要寫。
+**施工清單規則（T2）**：標題行**恰為** `## 施工清單`（裸、無括號，execute-plan 精確比對這一行）；≤ 8 列，超過回 0d 升 T3；`group` 預設每列不同號，同號只在真的獨立且各自可驗時用（同號會觸發 dispatch-parallel 的協作模式問句）；「怎麼驗」不寫「確認正常」。這張表跟 spec 同一個 gate 確認；確認後 execute-plan 逐列當 task。
+
+**T1** spec 可短至 30 行；**T2+** 內容完整、所有 section 都要寫（T3 不含施工清單兩段）。
 
 寫完跑「self-review」：
 1. 找 TBD / TODO / placeholder → 補
@@ -229,12 +246,18 @@ self-review 完 → user 看 spec。**走 `AskUserQuestion`，不要用自由文
 rules.md §決策點選單 禁止拿文字回覆當 gate 信號，這裡是決策點：
 
 ```
-問：spec 已寫至 docs/work/<branch-name>/spec.md，請看一下。
+問：spec 已寫至 docs/work/<branch-name>/spec.md，請看一下。（T2：末尾的施工清單就是全部的計畫，這是最後一次看計畫，下一步直接施工）
 選項：
-  1. spec 正確，進 <write-plan|debug-systematic>（推薦）
+  1. spec 正確，進 execute-plan（T1 / T2）／ write-plan（T3）／ debug-systematic（Bug）（推薦）
   2. 我要改 spec（告訴我改哪裡）
   3. 退回 0a 重新釐清需求
 ```
+
+---
+
+## §補施工清單入口
+
+execute-plan、dispatch-parallel 或 verify-done 退回來「改施工清單」時走這裡：state 已有 `tier=T2` 且 `spec_path` 存在 → **不跑 Phase 0**，只做：Read spec → 改寫 `## 施工清單`（改完仍須 ≤ 8 列；超過才回 0d 升 T3）→ 同一顆 spec gate 只問這張表 → 交棒 execute-plan。把 user 拉回 0a 重問 Track / Tier 是錯的。
 
 ---
 
@@ -248,6 +271,8 @@ state:
   track: <Bug|Dev>
   tier: <T0|T1|T2|T3>
   spec_path: docs/work/<branch-name>/spec.md
+  plan_path: <docs/work/<branch-name>/plan.md | null>   # T1 / T2 為 null；T3 由 write-plan 填
+  review_perspectives: [Eng, DX, Design]                 # T3 才有；0b 第 6 點依改動面向判
   codebase_impact:
     files: [...]
     modules: [...]
@@ -272,7 +297,9 @@ state:
 
 **下一 phase**：
 - T0 → 直接實作（不交 skill）
-- T1+ Dev → `write-plan`
+- T1 → `execute-plan`（plan_path null，依 spec 自拆 1-3 task）
+- T2 Dev → `execute-plan`（plan_path null，task 來源 = spec `## 施工清單`）
+- T3 Dev → `write-plan`
 - T1+ Bug → `debug-systematic`
 
 ---
@@ -299,3 +326,4 @@ T0 task 不貼。
 | 「設計這麼簡單還要 spec」 | spec 短也要、user approval 不可省 |
 | 「純後端 task，0b′ 跳過」 | 0b′ 必跑；第 1 步是零成本副檔名比對，不命中就結束 |
 | 「T1 這麼小，不用問 UI 判定」 | 禁止用 Tier 推導 size；兩根尺各自判 |
+| 「T2 也寫個 plan.md 比較保險」 | rules.md §Tier 表：T2 的計畫就是施工清單，寫 plan.md 是走回舊 lane |

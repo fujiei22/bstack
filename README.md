@@ -2,7 +2,7 @@
 
 繁中台灣用語的 Claude Code 開發流程 plugin。
 
-輸入 `/devwork <要做的事>`，讓 Claude Code 走完整 9 階段開發流程（brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro），並支援 Track / Tier 分流、subagent 隔離、TDD 紅綠循環、PR 自動解釋落檔。不下指令時，它就是普通的 Claude Code；安裝不會動你 `~/.claude/` 裡任何既有設定。
+輸入 `/devwork <要做的事>`，讓 Claude Code 走完整 9 階段開發流程（brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro），並支援 Track / Tier 分流、subagent 隔離、TDD 紅綠循環、T3 PR 自動解釋落檔。不下指令時，它就是普通的 Claude Code；安裝不會動你 `~/.claude/` 裡任何既有設定。
 
 ---
 
@@ -25,9 +25,9 @@
 | Skill | 在幹嘛 |
 |---|---|
 | **devwork** | 唯一入口：`/devwork <要做的事>` 啟動九階段；讀 rules.md 守則後交給 dev-workflow。不下指令就不生效 |
-| **brainstorm** | 動工前先把需求問清楚、順便判斷這個 task 大不大、是新功能還是修 bug |
-| **write-plan** | 把要做的事拆成一條條 task、落成計畫文件 |
-| **review-plan** | 計畫寫好後找不同視角再 review 一遍 |
+| **brainstorm** | 動工前先把需求問清楚、順便判斷這個 task 大不大、是新功能還是修 bug；T2 會順手列一張施工清單、不另寫計畫 |
+| **write-plan** | T3 才寫：把要做的事拆成一條條 task、落成計畫文件。T2 的施工清單直接寫在 spec 裡 |
+| **review-plan** | T3 才跑：計畫寫好後看改動碰到什麼面向，派對應的視角再 review 一遍 |
 | **execute-plan** | 照計畫一條條做下去 |
 | **tdd-cycle** | 寫實作前先寫測試、看到失敗再寫 code |
 | **verify-done** | 收尾前跑一遍 test / lint / build、確認沒弄壞東西 |
@@ -36,7 +36,7 @@
 | **security-audit** | 改動涉認證 / 資料層 / 敏感邏輯時跑一輪安全稽核 |
 | **security-checklist** | 寫敏感 code（auth / 上傳 / payment）對著 checklist 一條條檢查 |
 | **finish-branch** | 把 branch 收尾、push、開 PR |
-| **pr-explain** | PR 開完後另外寫一份「為什麼這樣改」的解說文件 |
+| **pr-explain** | T3 才自動跑：PR 開完後另外寫一份「為什麼這樣改」的解說文件；其他 tier 你點名才跑 |
 
 ### 跨流程 / 觸發式
 
@@ -74,7 +74,7 @@
 | **db-reviewer** | 專門看 DB schema / migration / SQL 改得對不對 |
 | **frontend-e2e-runner** | 跑 Playwright e2e 的專人、把 browser 那一大堆 log 隔在自己 context 裡 |
 | **hypothesis-tester** | incident 調查時一個 agent 驗一個假設、互不知對方在驗什麼 |
-| **lang-reviewer** | 依改的檔自動派發、按語言抓對應的 idiom 跟 pitfall（python / TS / SQL / Go …） |
+| **lang-reviewer** | 你點名才派的語言專家：按語言抓 idiom 跟 pitfall（python / TS / SQL / Go …）。平常 review 時語言重點已經寫進 reviewer 的指示裡 |
 | **pr-explainer** | PR 開完重新讀一遍 diff、把為什麼這樣改寫成詳盡解說 |
 | **security-auditor** | 用獨立 context 跑 OWASP / STRIDE / PII 安全稽核 |
 

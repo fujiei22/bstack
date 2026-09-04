@@ -41,7 +41,8 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 三者一次 AskUserQuestion 確認（Track / Tier / UI 判定）
    ↓
 若 T0 → 直接實作（跳所有後續 Phase）
-若 T1+ → 進階段 2 起跑
+若 T1 / T2 → 進階段 3（execute-plan；T2 的 task 來源 = spec §施工清單）
+若 T3 → 進階段 2（write-plan）
 ```
 
 **0b′ 與 0c/0d 的關係**：`design.size` 與 `Tier` 是**獨立的兩根尺**，禁止互推（細則見 `design-language` §兩根尺）。三者合併在同一個 `AskUserQuestion` 確認，讓錯位當場可見。
@@ -74,18 +75,19 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
 ### Dev track 完整路徑（9 階段）
 
 ```
-1. brainstorm（Phase 0 內建，含 0b′ UI 面判定）
+1. brainstorm（Phase 0 內建，含 0b′ UI 面判定；0b 同時判 T3 review 視角 → state.review_perspectives）
    ↓
    design.size=大改 ＋ 路徑選「出三版」→ branch 建立、spec 落檔後載 design-direction 出三版
-                                          → user 選定 → 回寫 spec.md → write-plan 依方向拆 task
-   design.size=大改 ＋ 路徑選「跳過三方向」→ 理由記入 spec.md → write-plan
+                                          → user 選定 → 回寫 spec.md
+                                            → T3：write-plan 依方向拆 task
+                                            → T2：brainstorm 3.5 依方向回寫 §施工清單、再確認一次 → execute-plan
+   design.size=大改 ＋ 路徑選「跳過三方向」→ 理由記入 spec.md → 同上依 Tier 分流
    design.size=小改 → execute-plan 動前端檔的 task 前後載 design-language 跑對齊檢查
    ↓
-2. write-plan ─→ docs/work/<branch-name>/plan.md（含並行性分析 parallel-group）
-   ↓
-   review-plan
-     ├─ T2 = Eng-only 視角
-     └─ T3 = CEO + Design + Eng + DX 4 視角
+   T1 / T2 → 3. execute-plan（plan_path null；T2 的 task 來源 = spec §施工清單）
+   T3 → 2. write-plan ─→ docs/work/<branch-name>/plan.md（含並行性分析 parallel-group）
+        ↓
+        review-plan（視角依 state.review_perspectives：Eng 下限 / DX / Design）
    ↓
 3. execute-plan + tdd-cycle
    遇 parallel-group >1 task → 載 dispatch-parallel 判跑法（Agent Teams / subagent / 串行）後平行
@@ -98,8 +100,8 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
    ↓
 5. request-review
    ├─ T1 = self review
-   ├─ T2 = subagent + lang-reviewer（依改動副檔名 dispatch）
-   └─ T3 = 雙視角 subagent（架構 × 除錯）+ lang-reviewer
+   ├─ T2 = 1 subagent（prompt 附語言提示）
+   └─ T3 = 雙視角 subagent（架構 × 除錯，各附語言提示）
    ↓
    receive-review（含 §Auto-fix）
    ↓
@@ -109,7 +111,7 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
    ↓
 7. finish-branch（含 git workflow 細則 + branch-safety）
    ↓
-8. pr-explain → docs/work/<branch-name>/pr-review.md（依檔分 section）
+8. pr-explain（T3；T0-T2 跳）→ docs/work/<branch-name>/pr-review.md（依檔分 section）
    ↓
 9. retro（手動觸發、不綁 tier；任意期間；Memory hook 補）
 ```
@@ -158,8 +160,9 @@ state:
     direction_decided: <定案方向文字|null>   # size=大改 且走過三方向才有
     user_choice_quote: <user 選擇原話|null>  # 同上
   memory_loaded: <bool>       # 0a 是否讀過 memory
-  plan_path: docs/work/<branch-name>/plan.md  # write-plan 完寫入
-  parallel_groups: [...]      # write-plan 內 task 並行 grouping
+  plan_path: <docs/work/<branch-name>/plan.md | null>  # T3 write-plan 完寫入；T1 / T2 為 null
+  parallel_groups: [...]      # T3 來自 plan、T2 來自 spec 施工清單 group 欄
+  review_perspectives: [...]  # T3；brainstorm 0b 依改動面向判（Eng 下限 / DX / Design）
   design_rejudge: [...]       # 施工開始後對 design.* 的重判（execute-plan 中途轉進／verify-done 漏網複查共用）
   current_phase: <名稱>
   trace_chain: [phase1, phase2, ...]  # 歷經 phase
@@ -186,7 +189,7 @@ state:
 範例：
 ```
 [Trace] Phase=execute-plan | Tier=T2 | Track=Dev | Skill=execute-plan
-[Trace] Phase=request-review | Tier=T3 | Track=Dev | Skill=request-review+lang-reviewer
+[Trace] Phase=request-review | Tier=T3 | Track=Dev | Skill=request-review
 ```
 
 **省略時機**：
@@ -218,7 +221,7 @@ Task fail / verify fail / review 嚴重打槍時：
    - **retry** — 同樣作法再跑（適暫態 / 偶發）
    - **adjust + retry** — AI 提具體調整方案、user 點頭後跑
    - **rollback** — `git reset` 前一個 commit / clean working tree、從頭來
-   - **回上層 Phase 重規劃** — 回 brainstorm 或 write-plan
+   - **回上層 Phase 重規劃** — T3 回 write-plan；T2 交棒 brainstorm §補施工清單入口（不重跑 Phase 0）；需求理解就錯才回 brainstorm 0a
    - **escalate** — user 接手
 4. user 選後執行；`state.fail_history` append 記錄
 
@@ -252,7 +255,7 @@ Phase-bound memory 互動點（rules.md 開發流程 intro 內聲明）：
 | `context-snapshot` | user 顯式存進度 / context 接近 auto-compact 閾值 |
 | `context-resume` | 新 session 開始、user 顯式接續舊 task |
 | `dispatch-parallel` | execute-plan 遇 parallel-group >1 task |
-| `lang-reviewer` | request-review 階段、依改動副檔名動態 dispatch（python / typescript / sql / golang / ...）|
+| `lang-reviewer` | user 顯式要求時由主 agent spawn；request-review 不自動派，語言提示寫進 reviewer prompt |
 | `db-reviewer` | T3 + DB 改動，security 階段內 |
 | `frontend-test` | verify-done 偵測前端檔改動（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）；T3 UI 改動必載、T2 可選；user 顯式呼叫 e2e 也載 |
 | `write-skill` | user 要加 / 改 / 評 skill 本身 |

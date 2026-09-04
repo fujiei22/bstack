@@ -66,17 +66,12 @@ review subagent 把 finding 丟回來後，**主 agent 處置**：自動修 / �
 
 ## §不危險處置（自動修）
 
-對每個 finding：
+對全部不危險 finding：
 
-1. 寫 fix code
-2. commit（依 rules.md §Commit 訊息 格式；type 通常 `style` / `refactor` / `test` / `docs`）
-3. 印 diff 給 user 看：
-   ```
-   已自動修：<finding 簡述>
-   diff:
-   <git diff HEAD~1>
-   ```
-4. 不需 user 點頭、繼續下個 finding
+1. 逐條寫 fix（可一次改完）
+2. 跑該 tier 的 verify（契約 / test）
+3. **一顆 commit**：`fix: 處理 review finding（N 項）`，body 逐項列「finding 簡述 → 怎麼修」
+4. 印 `git diff HEAD~1` 給 user 看，不需 user 點頭
 
 **T3 特例**：批次完成後、進下 phase 前，整個 diff 給 user 過一眼：
 ```
@@ -164,4 +159,4 @@ state:
 | 「危險類我判斷一下自己 fix」 | 危險類必問；不准 auto-fix |
 | 「T3 也偷偷 auto-fix 不告訴 user」 | T3 even 不危險 也給 user 看 diff |
 | 「reviewer fix 寫對直接套」 | 仍要評；reviewer 不必對 |
-| 「全 fix 完一次 commit 就好」 | 每 finding fix 一個 commit；保 bisect-able |
+| 「每 finding 一顆 commit 才好 bisect」 | squash merge 後只剩 PR title，bisect 不到；一顆 commit 的 body 列 finding 資訊等價 |

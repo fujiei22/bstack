@@ -70,7 +70,7 @@ T0 直接實作後進 finish-branch。下面只定義 T1-T3。
    - **adjust + retry**（AI 提具體 fix）
    - **rollback** 該 commit / 從前一個綠的 state 重來
    - **退回 execute-plan 改 task 實作**
-   - **退回 write-plan 改 plan**
+   - **退回 write-plan 改 plan**（T3）／ **交棒 brainstorm §補施工清單入口**（T2）
    - **escalate**
    - **退回 execute-plan 補做**（漏網複查判為大改時）
    - **退回 brainstorm 重判**（設計判定從一開始就錯）
