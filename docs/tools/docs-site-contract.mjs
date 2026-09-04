@@ -729,7 +729,9 @@ check(
     `（後果：尺寸不對平台會裁邊；太大 LINE 這類平台可能不抓）`
 );
 // 剝掉 CSS 註解與 HTML 註解後整檔掃色值字面。不限 color / background 屬性——
-// border / box-shadow / 具名色（white）都算漏，原稿本來就該零色值字面、全靠 var(--*)。
+// border / box-shadow 裡的 hex / rgb / hsl / oklch 都算漏，原稿本來就該零色值字面、全靠 var(--*)。
+// 具名色只擋 white / black 這兩個最常手滑的；其餘 140 多個 CSS 具名色不列，
+// 列了會誤中正文（red / gray 這類字也會出現在說明文字裡），這是刻意的取捨。
 const ogCard = existsSync(join(DOCS, 'tools/og-card.html')) ? read('tools/og-card.html') : '';
 const ogCardBare = ogCard.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
 check(
