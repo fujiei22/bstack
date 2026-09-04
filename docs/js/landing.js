@@ -32,9 +32,10 @@
       h += '<a href="#' + b.id + '" data-label="' + label + '" aria-label="' + label + '">' +
            (GLYPH[b.id] || '·') + '</a>';
     });
+    // 流程圖入口在上、主題鈕壓底：跟 flow.html 的 rail 底部群組（置 → 自）一致，兩頁主題鈕同一個位置
     h += '<div class="sp"></div>' +
-         '<a href="#" id="btn-theme" data-label="主題：自動" role="button">自</a>' +
-         '<a href="./flow.html" data-label="開啟流程圖" aria-label="開啟流程圖">開</a>';
+         '<a href="./flow.html" data-label="開啟流程圖" aria-label="開啟流程圖">開</a>' +
+         '<a href="#" id="btn-theme" data-label="主題：自動" role="button">自</a>';
     railEl.innerHTML = h;
   }
 
