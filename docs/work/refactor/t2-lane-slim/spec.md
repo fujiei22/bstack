@@ -20,7 +20,7 @@ T2 現在被當成小型 T3 在跑。2026-09-04 實測（PR #61，T2、5 檔約 
 6. **docs 站同步**：流程圖 data.js 的 RPSplit / RPT2 / LangAgent 節點與相關邊移除、PushPR 依 Tier 分流；契約 C8a 的 EXPECT 與 landing 兩處節點數更新；`build-references.ps1` 重跑讓內嵌 skill 全文一致；README 對應列更新。
 7. `node docs/tools/docs-site-contract.mjs`、`node scripts/plugin-contract.mjs`、`pwsh -File scripts/build-references.ps1 -Check` 全綠。
 8. 全 repo grep `lang-reviewer` 不再出現「自動派發 / 由主 agent 動態 spawn」語意；grep `T2` 的每一處與新 Tier 表一致（不留舊敘述）。
-9. **T3 review-plan 視角依改動面向選**：brainstorm 0b 從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design；產品取捨未定 → CEO。命中幾個派幾個，寫進 `state.review_perspectives`，review-plan 只讀不判。review-plan 使用契約、write-plan 交棒、rules.md T3 plan 欄、dev-workflow Phase 2、流程圖 RPT3 label、landing 規劃 beat 文案六處同步。
+9. **T3 review-plan 視角依改動面向選**：brainstorm 0b 從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design。**CEO 視角移除**（user 決定）：「該不該做 / 範圍 / MVP」在 brainstorm 合併確認與 spec gate 已定，plan 階段再問是重複；brainstorm self-review 的「scope 太大 → 拆」保留。命中幾個派幾個，寫進 `state.review_perspectives`，review-plan 只讀不判。review-plan 使用契約、write-plan 交棒、rules.md T3 plan 欄、dev-workflow Phase 2、流程圖 RPT3 label、landing 規劃 beat 文案六處同步。
    依據（2026-09-04 本 branch 實測）：對「改規則書 / skill prompt」這種標的，CEO 視角只能複述已定的決策；Design 視角抓到兩端契約與 `data-upto` 語意錯誤、有實質價值；Eng / DX 對規則類標的必要。
 
 ## 範圍 / Scope

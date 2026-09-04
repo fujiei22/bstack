@@ -5,7 +5,7 @@
 > 建立: 2026-09-04（v2 同日）
 > 並行最大 group: 8
 
-**Goal**: T2 不寫 plan.md / 不跑 review-plan（施工清單進 spec）、review 合一、pr-explain 限 T3、review fix 單 commit、T3 review-plan 視角依改動面向選；rules / 13 個 skill / 1 個 agent / docs 站 / README 全部同步、不留舊敘述。
+**Goal**: T2 不寫 plan.md / 不跑 review-plan（施工清單進 spec）、review 合一、pr-explain 限 T3、review fix 單 commit、T3 review-plan 視角依改動面向選（CEO 移除）；rules / 13 個 skill / 1 個 agent / docs 站 / README 全部同步、不留舊敘述。
 
 **Architecture**: 真相層級寫死在 rules.md：**lane 行為唯一真相 = rules.md §Tier 表**；施工清單格式真相 = brainstorm §spec 文件結構；routing 真相 = dev-workflow。機械守門：`scripts/plugin-contract.mjs` 加 P9a-i（每條附「改處」）、`docs/tools/docs-site-contract.mjs` C8a EXPECT 96 / 134、C6a 基準拿掉 RPT2。docs 站 skill 內嵌靠 `scripts/build-references.ps1` 最後重產一次。
 
@@ -70,9 +70,8 @@ spec.md 末尾，標題**恰為** `## 施工清單`（裸、無括號；execute-
 | 有機械可驗的東西（regex / 資料檔 / 契約腳本 / 測試） | Eng（必派，下限） |
 | 有人要讀的東西（規則、prompt、文案、README、API 文件） | DX |
 | 跨模組兩端契約、對外介面（UI、API、流程圖、hand-off state） | Design |
-| 產品取捨尚未定案（該不該做、範圍、MVP） | CEO |
 
-命中幾個派幾個；brainstorm 在 state 寫 `review_perspectives: [...]`，review-plan 只讀不判。
+命中幾個派幾個；brainstorm 在 state 寫 `review_perspectives: [...]`，review-plan 只讀不判。**CEO 視角移除**（user 2026-09-04 決定）：「該不該做、範圍、MVP」在 brainstorm 合併確認與 spec gate 已由 user 決定，plan 階段再問是重複；brainstorm self-review「scope 太大 → 拆」保留當替代。
 
 ---
 
@@ -172,13 +171,13 @@ node docs/tools/docs-site-contract.mjs | grep -E 'C6a|C8a|FAILED'   # Expected: 
 | **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
 | **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |
 | **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 1 subagent（prompt 附語言 idiom） | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
-| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-4） | 紅綠、80% 目標 | 雙視角 subagent（架構 × 除錯，各附語言 idiom） | audit + checklist + db-reviewer | 用 |
+| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 雙視角 subagent（架構 × 除錯，各附語言 idiom） | audit + checklist + db-reviewer | 用 |
 ```
 表下那句之後加：
 ```markdown
 - **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構為準；超過 8 列代表 Tier 判低了，回 0d 升 T3。
 - **`lang-reviewer` agent 不自動 spawn**：語言 idiom / pitfall 提示由 request-review 依副檔名寫進 reviewer prompt；user 顯式要「用 lang-reviewer 看」才派。
-- **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design；產品取捨未定 → CEO。命中幾個派幾個，brainstorm 0b 判、寫進 state。
+- **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state。「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
 - 精簡依據見 `docs/archive/2026/t2-lane-slim/spec.md`（2026-09-04；不在此重述，避免常駐吃 context）。
 ```
 `:107` 改：`/ \`pr-review.md\`（pr-explain 覆寫；T3 自動、其他 tier 顯式呼叫才有）`。
@@ -336,10 +335,11 @@ Red Flags 末列 → `| 「每 finding 一顆 commit 才好 bisect」 | squash m
 **write-plan**：description 第 4 行加「（**T3 only**；T2 的施工清單在 spec 內）」；「**前提**：必須有 spec_path。沒 spec → 退回 brainstorm。」後加「`state.tier` 不是 T3 → 回報「T2 不進 write-plan」並交棒 execute-plan，不寫 plan.md。」；`:201-203`「下一 phase → review-plan」下的兩行 →「- 視角依 `state.review_perspectives`（brainstorm 0b 判）」；`:210` Trace `Tier=<T1-T3>` → `Tier=T3`。
 
 **review-plan**：
-- description `:4-6` →「Implementation plan 多視角 review（繁中）。載入：dev-workflow Phase 2（**T3** write-plan 產出 plan 後）；亦可由使用者顯式呼叫。涵蓋：視角依改動面向 1-4（Eng 下限 / DX / Design / CEO）；每視角 spawn subagent、主 agent 整合 → 提 user gate。」
-- 契約 2 →「**讀 `state.review_perspectives`**（brainstorm 0b 依改動面向判：機械可驗 → Eng；有人要讀 → DX；跨模組契約 / 對外介面 → Design；產品取捨未定 → CEO）。命中幾個派幾個，Eng 是下限；state 沒這欄 → 依 rules.md §Tier 機制自判並回寫。」
+- description `:4-6` →「Implementation plan 多視角 review（繁中）。載入：dev-workflow Phase 2（**T3** write-plan 產出 plan 後）；亦可由使用者顯式呼叫。涵蓋：視角依改動面向 1-3（Eng 下限 / DX / Design）；每視角 spawn subagent、主 agent 整合 → 提 user gate。」
+- 契約 2 →「**讀 `state.review_perspectives`**（brainstorm 0b 依改動面向判：機械可驗 → Eng；有人要讀 → DX；跨模組契約 / 對外介面 → Design）。命中幾個派幾個，Eng 是下限；state 沒這欄 → 依 rules.md §Tier 機制自判並回寫。「該不該做」不在這裡問，那是 brainstorm 的事。」
 - `:27`「**禁止跳階**：T2 不能跳 Eng review；T3 不能少視角。」→「**禁止跳階**：state 標了的視角不能少；T2 進了本 skill 就是路徑錯，回報並交棒 execute-plan。」
-- `:137`「— T2 + T3」→「— 必派（下限）」；`:20-21` 的 CEO / Design 標題「— T3 only」→「— 產品取捨未定時」「— 跨模組契約 / 對外介面時」；DX「— T3 only」→「— 有人要讀的東西時」。
+- **整段「### 視角 1：CEO（策略） — T3 only」刪除**（含其 prompt）；它裡面的「回報格式」區塊搬到 Eng 模板內，Design / DX 模板的「回報格式：同 CEO 視角」改「同 Eng 視角」。剩下三個視角重新編號：1 Eng（— 必派，下限）、2 DX（— 有人要讀的東西時）、3 Design（— 跨模組契約 / 對外介面時）。
+- §結果整合範本的「**CEO**：」列刪除。
 - `:189`「視角: <Eng | CEO + Design + Eng + DX>」→「視角: <依 state.review_perspectives，例 Eng + DX>」。
 - `:248`「review_perspectives: [CEO, Design, Eng, DX]  # T3 / 或 [Eng] T2」→「review_perspectives: [...]  # 來自 brainstorm 0b，本 skill 只讀」。
 - `:259` Trace `Tier=<T2/T3>` → `Tier=T3`。
@@ -382,7 +382,7 @@ Red Flags 末列 → `| 「每 finding 一顆 commit 才好 bisect」 | squash m
 - [ ] **Step 3**:
 
 **data.js 節點**：刪 `RPSplit`、`RPT2`、`LangAgent`。改 label：
-- `RPT3` → `'T3：依改動面向 1-4 視角\nEng 下限 / DX / Design / CEO'`
+- `RPT3` → `'T3：依改動面向 1-3 視角\nEng 下限 / DX / Design'`
 - `RevT2` → `'T2：1 subagent\n（prompt 附語言 idiom）'`
 - `RevT3` → `'T3：雙視角 subagent\n（架構 × 除錯，各附語言 idiom）'`
 - `LoadPrEx` → `'載入 skill：pr-explain（T3）'`
@@ -396,7 +396,7 @@ Red Flags 末列 → `| 「每 finding 一顆 commit 才好 bisect」 | squash m
 
 **app.js**：`:98` 刪 `RPT2:` 那行（前一行註解「這兩筆」改「這一筆」、「RPT2 / RPT3 兩個節點」改「RPT3 節點」）；`:51-52`「**37 個 key 對應 35 個相異文件**——LoadRP / RPT2 / RPT3 三個 key 共用」→「**36 個 key 對應 35 個相異文件**——LoadRP / RPT3 兩個 key 共用」；`:533`「LoadRP / RPT2 / RPT3 三個」→「LoadRP / RPT3 兩個」；`:91` LangAgent 行尾加註解 `// 2026-09-04 起不在圖上（request-review 不自動派），保留給文件索引面板`。
 
-**index.html**：`:68` `<b>99</b>` → 96；`:145` `/ 99 個節點` → 96；`data-upto`：b3 38→36、b4 55→53、b5 75→72、b7 96→93（b1 / b2 / b6 不變）；b5 `data-nodes="LoadReq,RevT3,LangAgent,AutoFixQ"` → `"LoadReq,RevT2,RevT3,AutoFixQ"`；`:87` h2「大改動要先把計畫<br>拆給四個人看」→「大改動要先把計畫<br>拆給別人看」、段落「計畫寫完派四個視角各看一遍：策略上該不該現在做、介面上會不會難用、架構上失敗了怎麼回退、接手的人讀不讀得懂。四份意見整合完、你點頭了才進實作。」→「計畫寫完看改動碰到什麼就派誰看：有機械可驗的東西派工程視角，有人要讀的派接手者視角，跨模組的契約派介面視角，產品取捨還沒定才派策略視角。意見整合完、你點頭了才進實作。」；`:95`「<code>lang-reviewer</code> 依改的檔自動派發、按語言抓對應的 idiom 與 pitfall；」→「<code>lang-reviewer</code> 你點名才派、按語言抓對應的 idiom 與 pitfall（平常的 review 已把語言提示寫進 reviewer 的 prompt）；」；`:99`「PR 開完之後還有一個 agent 重讀一次 diff」→「T3 的 PR 開完之後還有一個 agent 重讀一次 diff」。
+**index.html**：`:68` `<b>99</b>` → 96；`:145` `/ 99 個節點` → 96；`data-upto`：b3 38→36、b4 55→53、b5 75→72、b7 96→93（b1 / b2 / b6 不變）；b5 `data-nodes="LoadReq,RevT3,LangAgent,AutoFixQ"` → `"LoadReq,RevT2,RevT3,AutoFixQ"`；`:87` h2「大改動要先把計畫<br>拆給四個人看」→「大改動要先把計畫<br>拆給別人看」、段落「計畫寫完派四個視角各看一遍：策略上該不該現在做、介面上會不會難用、架構上失敗了怎麼回退、接手的人讀不讀得懂。四份意見整合完、你點頭了才進實作。」→「計畫寫完看改動碰到什麼就派誰看：有機械可驗的東西派工程視角，有人要讀的派接手者視角，跨模組的契約派介面視角。該不該做、做多大，在計畫之前就問過你了。意見整合完、你點頭了才進實作。」；`:95`「<code>lang-reviewer</code> 依改的檔自動派發、按語言抓對應的 idiom 與 pitfall；」→「<code>lang-reviewer</code> 你點名才派、按語言抓對應的 idiom 與 pitfall（平常的 review 已把語言提示寫進 reviewer 的 prompt）；」；`:99`「PR 開完之後還有一個 agent 重讀一次 diff」→「T3 的 PR 開完之後還有一個 agent 重讀一次 diff」。
 
 - [ ] **Step 4**: `node docs/tools/docs-site-contract.mjs` → ALL PASS（C6a 36 key、C8a 96/134、C8c 0/0、C8g 兩處 96）。
 - [ ] **Step 5: commit** `docs: 流程圖、索引與 landing 同步 T2 lane 精簡`
