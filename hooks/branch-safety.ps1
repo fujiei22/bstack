@@ -6,10 +6,12 @@
 .DESCRIPTION
   Claude Code 呼叫 Write / Edit / NotebookEdit 前先跑此 hook。
     - 取 $CLAUDE_PROJECT_DIR 對應的 current branch；非 git repo / git 失敗 → exit 0 放行。
-    - 若 file_path 不在 $CLAUDE_PROJECT_DIR 範圍內（例如 ~/.claude 全域檔）→ exit 0 放行，
-      避免「全域 / 工具檔的編輯被 project branch 連坐攔截」。
+    - 若 file_path 不在 $CLAUDE_PROJECT_DIR 範圍內（例如使用者的 Claude 設定目錄、plugin 目錄）
+      → exit 0 放行，避免「設定 / 工具檔的編輯被 project branch 連坐攔截」。
     - branch 命中 main / master / production / prod / release → exit 2 阻擋。
-  退出 2 = block tool call，stderr 顯示給 Claude，Claude 走 §決策點選單規則 切 branch 後 retry。
+  退出 2 = block tool call，stderr 顯示給 Claude，Claude 開新 branch 後 retry。
+  本 hook 隨 bstack plugin 在啟用它的專案一律生效，不需要 /devwork；stderr 訊息因此
+  不依賴 rules.md 的術語，並附 /plugin disable 出口。
 #>
 
 $ErrorActionPreference = 'Continue'
@@ -74,8 +76,9 @@ try {
     }
 
     if ($branch -match '^(main|master|production|prod|release)$') {
-        Write-Err "[BRANCH-SAFETY] 目前在主分支 '$branch'，禁直接寫入 / 編輯 project repo 內檔案。"
-        Write-Err "處置：走 §決策點選單規則 → AskUserQuestion 詢 user branch 名 → ``git checkout -b <name>`` → retry tool call。"
+        Write-Err "[bstack] 目前在 '$branch'，這是受保護的 branch，不直接寫入 / 編輯 project repo 內的檔。"
+        Write-Err "請先開 branch：用 AskUserQuestion 跟 user 確認名稱 → ``git checkout -b <type>/<short-desc>``（type ∈ feat/fix/refactor/docs/chore/test/hotfix）→ retry。"
+        Write-Err "若你沒在用 bstack 流程、不想要這個檢查：/plugin disable bstack@bstack"
         exit 2
     }
 
