@@ -7,8 +7,8 @@
   五步，逐步問使用者：
     1. 前置檢查   pwsh 7+ / claude CLI / git（缺了就停，告訴你怎麼裝）
     2. 清舊副本   呼叫 extras.ps1 -Migrate（舊 setup.ps1 留在 ~/.claude/ 的 skill / hook / CLAUDE.md，搬進備份目錄不刪）
-    3. 裝 plugin  問層級：[U] 使用者層級 / [P] 目前專案 / [T] 只印試用指令 / [S] 跳過；
-                  marketplace 來源問 [G] GitHub fujiei22/bstack（推薦）/ [L] 本 clone 路徑
+    3. 裝 plugin  問層級：[u] 使用者層級 / [p] 目前專案 / [t] 只印試用指令 / [s] 跳過；
+                  marketplace 來源問 [g] GitHub fujiei22/bstack（推薦）/ [l] 本 clone 路徑
     4. 個人偏好   呼叫 extras.ps1 選單（statusLine / permissions / env / mcp 逐項選層級，可全跳）
     5. 驗證       claude plugin list 應列出 bstack@bstack；提醒重開 Claude Code 後打 /devwork
   本腳本自己不寫任何檔：寫入都交給 extras.ps1（有備份、可 -Uninstall）與 claude CLI（可 /plugin uninstall）。
@@ -36,7 +36,7 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
 $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $Extras = Join-Path $PSScriptRoot 'extras.ps1'
-# [P] 的「目前專案」用 git toplevel：從 scripts/ 子目錄跑時 Get-Location 會顯示成 …\scripts，與 extras.ps1 的判定一致
+# [p] 的「目前專案」用 git toplevel：從 scripts/ 子目錄跑時 Get-Location 會顯示成 …\scripts，與 extras.ps1 的判定一致
 $ProjectRoot = (Get-Location).Path
 try { $top = git rev-parse --show-toplevel 2>$null; if ($LASTEXITCODE -eq 0 -and $top) { $ProjectRoot = $top -replace '/', [IO.Path]::DirectorySeparatorChar } } catch {}
 $GithubRepo = 'fujiei22/bstack'
@@ -47,7 +47,7 @@ function Ask {
     <# 問一個單鍵選項；-Yes 時直接回預設。回傳大寫字母。 #>
     param([string]$prompt, [string]$default)
     if ($Yes) { return $default.ToUpper() }
-    $ans = Read-Host "$prompt（預設 $default）"
+    $ans = Read-Host "$prompt（預設 $($default.ToLower())）"
     if ([string]::IsNullOrWhiteSpace($ans)) { return $default.ToUpper() }
     return $ans.Trim().ToUpper()
 }
@@ -91,12 +91,12 @@ else {
 
 # ── 3. 裝 plugin ─────────────────────────────────────────────────────────────
 Step 3 '裝 plugin'
-Write-Host "  [U] 使用者層級：所有專案都能用 /devwork；兩支 hook 在你所有專案生效"
-Write-Host "  [P] 目前專案：只在 $ProjectRoot 生效（寫進該專案 .claude/settings.json）"
-Write-Host "  [T] 不安裝，只印試用指令（claude --plugin-dir）"
-Write-Host "  [S] 跳過"
-$defaultScope = if ($Scope) { $Scope.Substring(0, 1) } else { 'U' }
-$choice = Ask '  選哪個？[U/P/T/S]' $defaultScope
+Write-Host "  [u] 使用者層級：所有專案都能用 /devwork；兩支 hook 在你所有專案生效"
+Write-Host "  [p] 目前專案：只在 $ProjectRoot 生效（寫進該專案 .claude/settings.json）"
+Write-Host "  [t] 不安裝，只印試用指令（claude --plugin-dir）"
+Write-Host "  [s] 跳過"
+$defaultScope = if ($Scope) { $Scope.Substring(0, 1) } else { 'u' }
+$choice = Ask '  選哪個？[u/p/t/s]' $defaultScope
 $installed = $false
 switch ($choice) {
     'T' { Write-Host "  試用：claude --plugin-dir `"$RepoRoot`"（只在那個 session 生效）" }
@@ -104,14 +104,14 @@ switch ($choice) {
     { $_ -in 'U', 'P' } {
         $scopeName = if ($choice -eq 'U') { 'user' } else { 'project' }
         $src = if ($Source -eq 'local') { 'L' } else { 'G' }
-        if (-not $Yes) { $src = Ask "  marketplace 來源：[G] GitHub $GithubRepo（推薦，之後 /plugin marketplace update 可更新）/ [L] 本 clone 路徑 $RepoRoot" $src }
+        if (-not $Yes) { $src = Ask "  marketplace 來源：[g] GitHub $GithubRepo（推薦，之後 /plugin marketplace update 可更新）/ [l] 本 clone 路徑 $RepoRoot" $src }
         $srcArg = if ($src -eq 'L') { $RepoRoot } else { $GithubRepo }
         $have = @(claude plugin marketplace list 2>$null | Select-String -Pattern '^\s*(❯\s*)?bstack\s*$')
         if ($have.Count) { Write-Host "  marketplace bstack 已存在，略過 add" }
         else { if ((Run-Claude @('plugin', 'marketplace', 'add', $srcArg)) -ne 0) { Write-Host "  marketplace add 失敗" -ForegroundColor Red; exit 1 } }
         if ((Run-Claude @('plugin', 'install', 'bstack@bstack', '-s', $scopeName)) -ne 0) { Write-Host "  plugin install 失敗" -ForegroundColor Red; exit 1 }
         $installed = $true
-        if ($scopeName -eq 'project') { Write-Host "  提示：templates/project-settings.json 還帶一份唯讀權限白名單，下一步選 permissions [P] 就會合進來。" }
+        if ($scopeName -eq 'project') { Write-Host "  提示：templates/project-settings.json 還帶一份唯讀權限白名單，下一步選 permissions [p] 就會合進來。" }
     }
     default { Write-Host "  不認得「$choice」，跳過" }
 }

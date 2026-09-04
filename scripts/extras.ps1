@@ -7,12 +7,12 @@
   plugin 核心（skills / agents / hooks / 守則）走 `/plugin install bstack@bstack`，本腳本不碰。
   這裡只處理 Claude Code plugin 規格帶不了的個人偏好（plugin 的 settings.json 只認 agent /
   subagentStatusLine 兩個 key），每項各問一次要裝到哪一層：
-    [U] 使用者層級  ~/.claude/settings.json（mcp 項：claude mcp add --scope user）
-    [P] 目前專案    <git toplevel 或 cwd>/.claude/settings.json（mcp 項：專案根 .mcp.json，**會進 git、隊友共用**）
-    [S] 跳過（預設；不選就什麼都不寫）
+    [u] 使用者層級  ~/.claude/settings.json（mcp 項：claude mcp add --scope user）
+    [p] 目前專案    <git toplevel 或 cwd>/.claude/settings.json（mcp 項：專案根 .mcp.json，**會進 git、隊友共用**）
+    [s] 跳過（預設；不選就什麼都不寫）
   merge 只加本項 key、其他原封保留；每次執行對每個動到的檔備份一次（同一個時間戳）；
   manifest 只記「真的新增的 key」（重裝時聯集既有紀錄），-Uninstall 只拆那些、使用者本來就有的不碰。
-  manifest 住 ~/.claude/bstack-extras.json——本腳本唯一**不經使用者選擇**就會寫的檔（[U] 寫的 settings 是使用者選的）。
+  manifest 住 ~/.claude/bstack-extras.json——本腳本唯一**不經使用者選擇**就會寫的檔（[u] 寫的 settings 是使用者選的）。
   請從 clone 的 repo 跑（statusLine 會指到 extras/statusline.sh 的絕對路徑）；從 plugin 快取跑會警告。
 
 .PARAMETER Yes        非互動：搭 -Items 與 -Scope 直接套用；搭 -Migrate 則不問直接刪
@@ -91,22 +91,22 @@ function Get-TemplateAllow {
 
 $ItemDefs = [ordered]@{
     statusLine  = @{
-        Hint = '狀態列顯示 model / branch / context 用量（需 bash + jq）'; Suggest = 'U'
+        Hint = '狀態列顯示 model / branch / context 用量（需 bash + jq）'; Suggest = 'u'
         Fragment = {
             $sh = (Join-Path $RepoRoot 'extras/statusline.sh').Replace('\', '/')
             [pscustomobject]@{ statusLine = [pscustomobject]@{ type = 'command'; command = "bash `"$sh`"" } }
         }
     }
     permissions = @{
-        Hint = "$(@(Get-TemplateAllow).Count) 條唯讀 / 查詢類工具不再逐次問你（Read / Grep / git status …）"; Suggest = 'P'
+        Hint = "$(@(Get-TemplateAllow).Count) 條唯讀 / 查詢類工具不再逐次問你（Read / Grep / git status …）"; Suggest = 'p'
         Fragment = { [pscustomobject]@{ permissions = [pscustomobject]@{ allow = @(Get-TemplateAllow) } } }
     }
     env         = @{
-        Hint = '開 Agent Teams 實驗開關（只有 dispatch-parallel 用到）'; Suggest = 'U'
+        Hint = '開 Agent Teams 實驗開關（只有 dispatch-parallel 用到）'; Suggest = 'u'
         Fragment = { [pscustomobject]@{ env = [pscustomobject]@{ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1' } } }
     }
     mcp         = @{
-        Hint = 'playwright MCP（前端 e2e 用）。mysql MCP 含帳密，只印指令範本讓你自己填'; Suggest = 'U'
+        Hint = 'playwright MCP（前端 e2e 用）。mysql MCP 含帳密，只印指令範本讓你自己填'; Suggest = 'u'
         Fragment = $null
     }
 }
@@ -458,7 +458,7 @@ function Invoke-Migrate {
     if ($ListOnly) { Write-Host "  清理請跑：pwsh -File scripts/extras.ps1 -Migrate"; return }
 
     $bakDir = Join-Path $home_ "bstack-migrate-bak-$RunStamp"
-    $go = $Yes -or ((Read-Host "搬到 $bakDir 備份（不直接刪）並處理以上項目？[y/N]").ToLower() -eq 'y')
+    $go = $Yes -or ((Read-Host "搬到 $bakDir 備份（不直接刪）並處理以上項目？[y/n]").ToLower() -eq 'y')
     if (-not $go) { return }
     # 不直接 Remove-Item：判定是簽名推定、可能誤判，搬進備份目錄讓使用者能救回來；確認沒問題再自己刪那個目錄
     foreach ($x in $targets) {
@@ -543,7 +543,7 @@ function Invoke-SelfTest {
         $one = Read-Json "$tmp/one/.claude/settings.json"
         Assert 'd5 project 拆完不留 allow 空殼' (($one.permissions.allow -join '|') -eq 'Read')
 
-        # 重裝路徑：首次加 statusLine → [R] 重裝 → Uninstall 後 statusLine 不在（manifest keys 聯集）
+        # 重裝路徑：首次加 statusLine → [r] 重裝 → Uninstall 後 statusLine 不在（manifest keys 聯集）
         Set-Content $userSettings '{"model":"opus"}' -Encoding UTF8
         Add-Item 'statusLine' 'user'; Add-Item 'statusLine' 'user' -Force
         Assert 'r1 重裝後 manifest 仍記 statusLine' ((@((Read-Json (Get-ManifestPath)).entries | Where-Object item -eq statusLine)[0].keys -join '|') -match 'statusLine')
@@ -611,7 +611,7 @@ Write-Host "plugin 核心請用 /plugin install bstack@bstack；本選單只處�
 Write-Host "  使用者層級 = $(Get-SettingsPath user)"
 $projPath = Get-SettingsPath project
 $isGit = $false; try { git rev-parse --show-toplevel 2>$null | Out-Null; $isGit = ($LASTEXITCODE -eq 0) } catch { $isGit = $false }
-Write-Host "  目前專案   = $projPath$(if (-not $isGit) { '（目前目錄不是 git repo，[P] 仍會寫到這裡）' })"
+Write-Host "  目前專案   = $projPath$(if (-not $isGit) { '（目前目錄不是 git repo，[p] 仍會寫到這裡）' })"
 
 Invoke-Migrate
 foreach ($i in $ItemDefs.Keys) {
@@ -620,14 +620,14 @@ foreach ($i in $ItemDefs.Keys) {
     Write-Host ""; Write-Host "$i — $($d.Hint)（建議 [$($d.Suggest)]）"
     if ($inst) {
         $when = "$($inst.ts)"; if ($when.Length -ge 10) { $when = $when.Substring(0, 10) }
-        $ans = Read-Host "  已裝（$($inst.scope)，$when）→ [R] 重裝 / [S] 略過（預設 S）"
+        $ans = Read-Host "  已裝（$($inst.scope)，$when）→ [r] 重裝 / [s] 略過（預設 s）"
         if ($ans.ToUpper() -eq 'R') { Add-Item $i $inst.scope -Force } else { Write-Host "  略過" }
         continue
     }
-    $ans = Read-Host "  [U] 使用者層級 / [P] 目前專案 / [S] 跳過（預設 S）"
+    $ans = Read-Host "  [u] 使用者層級 / [p] 目前專案 / [s] 跳過（預設 s）"
     switch ($ans.ToUpper()) {
         'U' { Add-Item $i 'user' }
-        'P' { if ($homeIsCwd) { Write-Host "  目前目錄就是使用者家目錄，[P] 會等於 [U]，已拒絕；請到專案目錄再跑" -ForegroundColor Yellow } else { Add-Item $i 'project' } }
+        'P' { if ($homeIsCwd) { Write-Host "  目前目錄就是使用者家目錄，[p] 會等於 [u]，已拒絕；請到專案目錄再跑" -ForegroundColor Yellow } else { Add-Item $i 'project' } }
         default { Write-Host "  跳過" }
     }
 }
