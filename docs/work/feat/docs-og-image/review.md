@@ -45,3 +45,38 @@ reviewer 把 plan 的 C20 區塊原樣貼進契約檔副本實測：對現況 `d
 - **必處理**：Major 1-3（1、2 是 plan 數字 / 預期修正；3 加 C20f 是 spec 沒寫但明顯划算的守門，五行程式）。
 - **建議處理**：Minor 4-7、Nit 8-10 全收。都是 plan 文字或 C20 區塊內的小改，不動架構。
 - **略過**：無。
+
+---
+
+# Code review 總結（Phase 5）
+
+> Reviewers: main-reviewer（general-purpose）+ lang-reviewer（javascript）
+> 兩位都實跑契約、並在副本上做突變測試（main-reviewer 22 個突變 21 個正確轉紅）
+
+## Critical
+無。
+
+## Major（共識）
+- **C20b 對 `?v=N` 誤判**：og-card.html 檔頭建議換圖加 query string 破快取，但 C20b 直接把 `og.png?v=2` 當檔名 existsSync → 必紅。→ 已修（ab0ea22）：剝 `?` 之後再找檔，twitter:image 同值比對維持完整字串。
+
+## Minor
+- spec 仍寫 C19 → 改 C20（6147120、b02e1d8）
+- C20c 一條綁 og:url 與尺寸宣告兩件事（兩位皆提）→ 拆 C20c / C20g（19ca899）
+- `const missing` 遮蔽 C4b 同名 → `missingOg`（7438eb0）
+- C20e 註解暗示擋所有具名色、實際只擋 white / black → 註解如實（2fe19e9）
+
+## Nit
+- `metaOf` 用 `//` 非 JSDoc → 改 JSDoc（066b257）
+- og-card 多請求 Noto Serif TC（卡上無中文襯線字）→ 拿掉（e54ee80）
+- 三顆 commit subject 54 字 → squash 後只剩 PR title，PR title 收在 50 字內
+- `<meta name="robots" content="noindex">` 給 og-card.html → 超出 spec，不做
+
+## reviewer 實測確認無誤（節錄）
+- meta 值對爬蟲正確：`og:locale=zh_TW`、絕對 https 網址、`summary_large_image` 配 1.91:1
+- C20 不誤傷 C2a / C19b / C19c / C19d / C13b；`read()` throw 有 existsSync 守
+- C20d 對 2400×1260 假檔頭、600 KB、JPEG 檔頭三種都紅；C20e 對 hex / 具名色 / oklch 都紅、註解內色值不誤中；C20f 三種漂移都紅
+- og-card.html 在 styles.css reset 下無裁切 / 撐大；Buffer 邊界 `>= 24` 剛好
+- index 內五個相關檔皆 LF
+
+## 處置
+全部 finding 屬 rules.md §Auto-fix 不危險類，自動修、每 finding 一顆 commit，修後契約 ALL PASS、selftest exit 1。
