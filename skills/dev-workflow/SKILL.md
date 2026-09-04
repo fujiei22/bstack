@@ -98,10 +98,10 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
    └─ T3 + UI 改動 = 載 frontend-test（Playwright MCP 跑 e2e）
    └─ 全 tier：實際改動檔含前端副檔名且未被 design_rejudge 處理過 → verify-done §漏網複查
    ↓
-5. request-review
+5. request-review（先依副檔名分流：純文件 diff 跳 code review、只做 spec 自檢）
    ├─ T1 = self review
-   ├─ T2 = 1 subagent（prompt 附語言提示）
-   └─ T3 = 雙視角 subagent（架構 × 除錯，各附語言提示）
+   ├─ T2 = 內建 code-review medium（不帶 --fix）+ 主 agent 對 spec 自檢
+   └─ T3 = 內建 code-review high + 1 個 spec / 架構對齊 subagent（prompt 附語言提示）
    ↓
    receive-review（含 §Auto-fix）
    ↓
@@ -255,7 +255,7 @@ Phase-bound memory 互動點（rules.md 開發流程 intro 內聲明）：
 | `context-snapshot` | user 顯式存進度 / context 接近 auto-compact 閾值 |
 | `context-resume` | 新 session 開始、user 顯式接續舊 task |
 | `dispatch-parallel` | execute-plan 遇 parallel-group >1 task |
-| `lang-reviewer` | user 顯式要求時由主 agent spawn；request-review 不自動派，語言提示寫進 reviewer prompt |
+| `lang-reviewer` | user 顯式要求時由主 agent spawn；request-review 不自動派，語言提示寫進 T3 對齊 subagent 的 prompt（T2 交內建 code-review，沒有自寫 prompt） |
 | `db-reviewer` | T3 + DB 改動，security 階段內 |
 | `frontend-test` | verify-done 偵測前端檔改動（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）；T3 UI 改動必載、T2 可選；user 顯式呼叫 e2e 也載 |
 | `write-skill` | user 要加 / 改 / 評 skill 本身 |
