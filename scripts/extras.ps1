@@ -408,7 +408,8 @@ function Invoke-Migrate {
     foreach ($h in @('hooks/branch-safety.ps1', 'hooks/file-type-guard.ps1')) {
         $f = Join-Path $home_ $h
         if (-not (Test-Path -LiteralPath $f)) { continue }
-        if (Test-BstackFile $f 'BRANCH-SAFETY|FILE-TYPE-GUARD|\[bstack\]|PreToolUse hook') { $targets += $f } else { $sameNameSkipped += $f }
+        # 只認 bstack 專屬標記；「PreToolUse hook」是官方通稱，使用者自己寫的同名 hook 也會有（security audit 抓到）
+        if (Test-BstackFile $f 'BRANCH-SAFETY\]|FILE-TYPE-GUARD\]|\[bstack\]') { $targets += $f } else { $sameNameSkipped += $f }
     }
     foreach ($x in @('statusline.sh', 'state/file-guard')) { $f = Join-Path $home_ $x; if (Test-Path -LiteralPath $f) { $targets += $f } }
 
@@ -451,12 +452,20 @@ function Invoke-Migrate {
     if ($claudeModified) { Write-Host "  $claude 含 bstack 守則但內文被改過，不自動動它。其中第 $ln 行「…一律進 dev-workflow」會讓流程自動啟動，請自行拿掉。" -ForegroundColor Yellow }
     if ($ListOnly) { Write-Host "  清理請跑：pwsh -File scripts/extras.ps1 -Migrate"; return }
 
-    $go = $Yes -or ((Read-Host '刪除 / 改名以上項目？[y/N]').ToLower() -eq 'y')
+    $bakDir = Join-Path $home_ "bstack-migrate-bak-$RunStamp"
+    $go = $Yes -or ((Read-Host "搬到 $bakDir 備份（不直接刪）並處理以上項目？[y/N]").ToLower() -eq 'y')
     if (-not $go) { return }
-    foreach ($x in $targets) { if ($PSCmdlet.ShouldProcess($x, 'remove')) { Remove-Item -LiteralPath $x -Recurse -Force } }
+    # 不直接 Remove-Item：判定是簽名推定、可能誤判，搬進備份目錄讓使用者能救回來；確認沒問題再自己刪那個目錄
+    foreach ($x in $targets) {
+        if (-not $PSCmdlet.ShouldProcess($x, "move to $bakDir")) { continue }
+        $rel = $x.Substring($home_.Length).TrimStart('\', '/')
+        $dest = Join-Path $bakDir $rel
+        New-Item -ItemType Directory -Path (Split-Path $dest) -Force | Out-Null
+        Move-Item -LiteralPath $x -Destination $dest -Force
+    }
     if ($touched) { Write-JsonAtomic $settingsPath $s }
     if ($claudeOld -and $PSCmdlet.ShouldProcess($claude, 'rename')) { Move-Item -LiteralPath $claude -Destination "$claude.bstack-bak-$RunStamp" }
-    Write-Host "  完成。請重開 Claude Code session。"
+    Write-Host "  完成。舊副本在 $bakDir，確認新版正常後可自行刪除。請重開 Claude Code session。"
 }
 
 # === SelfTest ===
@@ -540,6 +549,7 @@ function Invoke-SelfTest {
         Copy-Item (Join-Path $RepoRoot 'skills/brainstorm/SKILL.md') "$tmp/.claude/skills/brainstorm/SKILL.md"
         Set-Content "$tmp/.claude/skills/retro/SKILL.md" "---`nname: retro`ndescription: my own retro`n---`nmine" -Encoding UTF8
         Set-Content "$tmp/.claude/hooks/branch-safety.ps1" '# [BRANCH-SAFETY] old copy' -Encoding UTF8
+        Set-Content "$tmp/.claude/hooks/file-type-guard.ps1" '# my own PreToolUse hook, nothing to do with bstack' -Encoding UTF8
         $oldClaude = (Get-Content -LiteralPath (Join-Path $RepoRoot 'skills/devwork/rules.md') -Raw -Encoding UTF8) -replace '流程由 `/devwork <要做的事>` 啟動', '「寫 / 改 / 修 / 加」類 prompt 一律進 `dev-workflow`'
         Set-Content "$tmp/.claude/CLAUDE.md" $oldClaude -Encoding UTF8
         Set-Content $userSettings '{"hooks":{"PreToolUse":[{"matcher":"Write","hooks":[{"type":"command","command":"pwsh x/hooks/branch-safety.ps1"},{"type":"command","command":"echo mine-hook"}]}]}}' -Encoding UTF8
@@ -548,7 +558,9 @@ function Invoke-SelfTest {
         Assert 'e1 舊 skill 副本（有簽名）刪除' (-not (Test-Path "$tmp/.claude/skills/brainstorm"))
         Assert 'e1b 同名但非 bstack 的 skill 不動' (Test-Path "$tmp/.claude/skills/retro")
         Assert 'e2 使用者自己的 skill 不動' (Test-Path "$tmp/.claude/skills/my-own")
-        Assert 'e3 舊 hook / state 刪除' ((-not (Test-Path "$tmp/.claude/hooks/branch-safety.ps1")) -and (-not (Test-Path "$tmp/.claude/state/file-guard")))
+        Assert 'e3 舊 hook / state 搬走' ((-not (Test-Path "$tmp/.claude/hooks/branch-safety.ps1")) -and (-not (Test-Path "$tmp/.claude/state/file-guard")))
+        Assert 'e3b 搬到備份目錄、可救回' (@(Get-ChildItem "$tmp/.claude" -Directory -Filter 'bstack-migrate-bak-*').Count -eq 1 -and (Test-Path (Join-Path (Get-ChildItem "$tmp/.claude" -Directory -Filter 'bstack-migrate-bak-*')[0].FullName 'hooks/branch-safety.ps1')))
+        Assert 'e3c 使用者自己的同名 hook（含「PreToolUse hook」字樣）不動' (Test-Path "$tmp/.claude/hooks/file-type-guard.ps1")
         Assert 'e4 舊 CLAUDE.md 改名備份' ((-not (Test-Path "$tmp/.claude/CLAUDE.md")) -and (@(Get-ChildItem "$tmp/.claude" -Filter 'CLAUDE.md.bstack-bak-*').Count -eq 1))
         $s = Read-Json $userSettings
         Assert 'e5 settings 只拔舊 hook、自己的留著' ((@($s.hooks.PreToolUse[0].hooks).Count -eq 1) -and ($s.hooks.PreToolUse[0].hooks[0].command -eq 'echo mine-hook'))

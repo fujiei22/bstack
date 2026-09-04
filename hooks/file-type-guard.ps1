@@ -15,12 +15,13 @@
 
 .NOTES
   Token 機制：基於檔案 normalized 路徑的 SHA256 hash 前 16 hex 為 token 檔名，
-  位於 <系統 temp>/bstack/file-guard/<hash>.token（Windows 為 %TEMP%\bstack\file-guard\）。
-  放系統 temp 而不放 plugin 目錄：plugin 裝在 Claude Code 的 plugins 快取，更新即清空、
-  也不該被 hook 寫入。Hook 命中 WARN 且 token 存在 → 刪 token + 放行（不論過期、
-  過期視為無效）；否則 exit 2 + stderr 印出 token 絕對路徑指示 AI 建立。
-  已知限制：Linux 的 GetTempPath() 是共用 /tmp，token 路徑由檔案路徑 hash 決定、可預測，
-  多使用者主機上他人可預建 token 繞過二次確認；Windows 的 %TEMP% 是 per-user 沒這問題。
+  位於 <$XDG_RUNTIME_DIR 或系統 temp>/bstack-file-guard-<使用者名>/<hash>.token
+  （Windows 通常是 %TEMP%\bstack-file-guard-<USERNAME>\）。
+  放 temp 而不放 plugin 目錄：plugin 裝在 Claude Code 的 plugins 快取，更新即清空、也不該被 hook 寫入。
+  目錄帶使用者名：Linux 的 GetTempPath() 是共用 /tmp，token 名由檔案路徑 hash 決定、可預測，
+  不隔離的話同機他人可預建 token 繞過二次確認。
+  Hook 命中 WARN 且 token 存在 → 刪 token + 放行（不論過期、過期視為無效），並在同目錄
+  consumed.log 記一行（時間、檔案）供事後回溯；否則 exit 2 + stderr 印出 token 絕對路徑指示 AI 建立。
   本 hook 隨 bstack plugin 在啟用它的專案一律生效，不需要 /devwork。
 #>
 
@@ -78,8 +79,12 @@ foreach ($p in $exemptPatterns) {
 }
 
 # === Confirm token 路徑（基於 normalized 路徑 SHA256 前 16 hex）===
-# state dir 放系統 temp 而非 plugin 目錄（理由見檔頭 NOTES）。token 檔名已含專案路徑 hash，不同專案不撞。
-$stateDir = Join-Path ([System.IO.Path]::GetTempPath()) 'bstack/file-guard'
+# state dir 放 per-user 的 temp 而非 plugin 目錄（理由見檔頭 NOTES）。token 檔名已含專案路徑 hash，不同專案不撞。
+# per-user：Linux 的 GetTempPath() 是共用 /tmp，token 名由路徑決定、他人可預建繞過二次確認（security audit 抓到）。
+# 優先用 $XDG_RUNTIME_DIR（systemd 保證 per-user 0700），沒有就在 temp 下加使用者名。
+$tempBase = if ($env:XDG_RUNTIME_DIR -and (Test-Path -LiteralPath $env:XDG_RUNTIME_DIR)) { $env:XDG_RUNTIME_DIR } else { [System.IO.Path]::GetTempPath() }
+$userTag = if ($env:USERNAME) { $env:USERNAME } elseif ($env:USER) { $env:USER } else { 'user' }
+$stateDir = Join-Path $tempBase "bstack-file-guard-$userTag"
 $sha = [System.Security.Cryptography.SHA256]::Create()
 $hashBytes = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($normalized))
 $hashHex = ($hashBytes | ForEach-Object { $_.ToString('x2') }) -join ''
@@ -108,6 +113,8 @@ function Test-And-Consume-Token {
         $ageSec = ((Get-Date) - $item.LastWriteTime).TotalSeconds
         # 不論過期與否，命中即刪（single-use；過期視同無效）
         Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+        # 留一行紀錄：token 可被預建，事後至少要查得出「何時、哪個檔用 token 放行過」
+        try { Add-Content -LiteralPath (Join-Path (Split-Path $path) 'consumed.log') -Value "$((Get-Date).ToString('o')) consumed $(Split-Path $path -Leaf) for $filePath valid=$($ageSec -le $ttlSec)" -Encoding UTF8 } catch {}
         return ($ageSec -le $ttlSec)
     } catch {
         return $false
