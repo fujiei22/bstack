@@ -666,11 +666,12 @@ const OG_REQUIRED = ['og:type', 'og:site_name', 'og:locale', 'og:url', 'og:title
   'twitter:card', 'twitter:title', 'twitter:description', 'twitter:image'];
 const ogPages = { 'index.html': landing, 'flow.html': html };
 for (const [name, src] of Object.entries(ogPages)) {
-  const missing = OG_REQUIRED.filter((p) => !metaOf(src, p));
+  // 不叫 missing：C4b 區塊已有一個同名 const（缺的型別 token），同檔兩個 missing 對照著讀會對錯行。
+  const missingOg = OG_REQUIRED.filter((p) => !metaOf(src, p));
   check(
     `C20a ${name} 的 og:* / twitter:* 齊全`,
-    missing.length === 0,
-    `期望 ${OG_REQUIRED.length} 個都在，實際缺 ${missing.length} 個：${missing.join(' / ')}` +
+    missingOg.length === 0,
+    `期望 ${OG_REQUIRED.length} 個都在，實際缺 ${missingOg.length} 個：${missingOg.join(' / ')}` +
       `（後果：缺 og:image 就沒預覽圖，缺 twitter:card 在 X 上退成小卡）`
   );
   const img = metaOf(src, 'og:image') || '';
