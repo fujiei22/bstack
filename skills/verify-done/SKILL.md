@@ -49,9 +49,25 @@ description: |
 |---|---|
 | T1 | 預設不跑；user 明說再跑 |
 | T2 | 可選；AI 視改動量自判（牽動 user flow 建議跑） |
-| T3 | **必跑**（fail 不能放行 verify-done） |
+| T3 | **必跑**（fail 不能放行 verify-done）；**文字節點豁免**見下 |
 
-frontend-test 跑完寫回 `state.verify_results.e2e` + `state.frontend_test.*`、本 skill 整合進綜合驗證結果。
+**文字節點豁免（T3 也適用）**：改動的 HTML 只動**文字節點**或 **`data-*` 屬性值**（屬性集合、標籤結構與順序、inline `<script>` / `<style>` 內容都不變），且 diff 裡沒有任何程式 / 樣式檔——就不派 `frontend-e2e-runner` 重跑整套（整套驗的是互動，這種改動沒有互動可驗），改主 agent 做 smoke。這比 rules.md §設計語言對齊 的文字節點豁免**寬**（那條連 `data-*` 值都不放行），兩者各管各的。**用判定器判，不用感覺判**——在被施工的專案根目錄跑：
+
+```bash
+node <plugin 根>/scripts/text-only-diff.mjs <base>...HEAD [--ignore <路徑前綴>]
+```
+
+plugin 根 = 本 skill 的 Base directory 往上兩層。它把整份 HTML 剝成骨架（文字節點剝掉、`data-*` 值歸零、script / style 原樣）後**依序**比對，任何不確定都回 NOT-TEXT-ONLY（fail-closed）：有 `.css / .js / .tsx …` 進 diff、沒有 HTML 改動、working tree 還有未 commit 的前端改動、新增 / 刪除的 HTML 檔。`--ignore` 只給「產出器重產且另有契約守著」的檔（例本 repo `--ignore docs/js/references-data.js`，由 `build-references.ps1 -Check` 守），不是萬用白名單。exit 0 才豁免；NOT 或腳本出錯都照原規則派 runner。判定邏輯由契約 P10a 對 9 個 fixture 執行守著。
+
+**smoke 四步（主 agent 自己跑 Playwright MCP，不派 agent）**：
+1. `node <plugin 根>/scripts/static-serve.mjs <站根> 8765`（背景跑；Playwright MCP 擋 `file://`；有 MIME 表，`type="module"` 才不會被 strict-MIME 擋）→ `browser_navigate` 改到的頁
+2. `browser_console_messages` 只看 error 級：必須零筆；有就是 FAIL，不豁免、退回派 runner
+3. 改動處存在：改文字 → `browser_find` / snapshot 找得到新文字；改 `data-*` → 看**渲染結果**不是原始碼（它可能驅動 JS，也可能被 CSS `[data-…]` 選擇器吃到；例 `data-upto` 改了就看該段落的節點鏈長度）
+4. 結束 server（kill 背景 task），免得下次撞 EADDRINUSE 或撞到舊 server
+
+結果寫 `state.verify_results.e2e = smoke`（不是 `pass`），`state.frontend_test.ran = false`、`report_path` 寫 snapshot 或截圖路徑；finish-branch 的 PR 模板會把這個值印進 verify 那行，reviewer 看得出這輪沒跑整套。
+
+frontend-test 跑完（沒豁免時）寫回 `state.verify_results.e2e` + `state.frontend_test.*`、本 skill 整合進綜合驗證結果。
 
 詳見 `frontend-test` skill §測試矩陣 / §測試流程 / §測試報告。
 ## §漏網複查
@@ -80,7 +96,7 @@ state:
     lint: pass | fail | warn
     build: pass | fail
     type_check: pass | fail
-    e2e: pass | fail | skipped
+    e2e: pass | fail | skipped | smoke   # smoke = 文字節點豁免、主 agent 三步 smoke 代替整套
   frontend_test:
     ran: <bool>
     report_dir: <path | null>
@@ -102,4 +118,6 @@ state:
 |---|---|
 | 「lint warning 算過」 | warning 跟 error 看實質；warning 也該處 |
 | 「e2e 慢、跳過」 | T3 UI 改動 e2e 是 must（載 frontend-test）；T1 預設不跑、T2 可選 |
+| 「只改了幾個字，感覺不用跑」 | 用 `text-only-diff.mjs` 判，TEXT-ONLY 才走 smoke；「感覺」不是豁免依據 |
+| 「文字節點豁免也懶得 smoke」 | 豁免的是整套 runner，不是驗證；smoke 三步必做、`e2e=smoke` 必寫 |
 | 「環境問題不算 verify fail」 | 仍要 escalate，user 環境壞 user 才能修 |
