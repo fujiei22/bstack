@@ -94,7 +94,7 @@ Group 3 task: E, F      ← parallel-group: 3
    - escalate
 4. 選後執行；`state.fail_history` append
 
-**退 write-plan 還是退 brainstorm，用這句當場判**：「把 plan 改對，這件事就對了嗎？」會對 → 退 write-plan（T3）／ 交棒 brainstorm §補施工清單入口（T2）；改對 plan 還是在做錯的東西 → 退 brainstorm 0a 重釐清。措辭與判準跟 `review-plan` §User gate 的選項 3 / 4、`verify-done` §Verify fail 的對應選項一致，三處刻意同一套。
+**退 write-plan 還是退 brainstorm，用這句當場判**：「把 plan 改對，這件事就對了嗎？」會對 → 退 write-plan（T3）／ 交棒 brainstorm §補施工清單入口（T2）；改對 plan 還是在做錯的東西 → 退 brainstorm 0a 重釐清。措辭與判準跟 `review-plan` §User gate 的選項 3 / 4、`verify-done` §verify 失敗處置 的對應選項一致，三處刻意同一套。
 
 ## §Commit 格式
 

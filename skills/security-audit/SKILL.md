@@ -89,4 +89,5 @@ state:
 | 「沒涉認證跳 audit」 | 認證只是一條；涉資料層 / API 邊界 / PII 也要跑 |
 | 「skill 自己跑 STRIDE 比較快」 | 球員兼裁判；改動者的 context 對自家 code 有偏誤；必走 agent |
 | 「critical agent 自己降級成 major」 | 嚴重度由 agent 標、skill 不擅自改；user gate 才是分流點 |
+| 「PII 違規可以後修」 | PII 違規 = critical = 立即處（rules.md §PII 安全底線） |
 | 「多個 critical 一個 AskUserQuestion 解決」 | 每個 critical 獨立決策、不打包 |
