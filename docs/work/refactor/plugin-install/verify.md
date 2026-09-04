@@ -26,7 +26,8 @@
 
 | 項目 | 結果 |
 |---|---|
-| `-SelfTest` | 24 條斷言全 PASS（S0 反向刻意紅後扣回）；第一版抓到 `Get-AddedKeys` 用 `,$out` 回傳造成 keys 被 join 成一個字串、空陣列被算一筆，已修 |
+| `-SelfTest` | 31 條斷言全 PASS（S0 反向刻意紅後扣回）。第一版抓到 `Get-AddedKeys` 用 `,$out` 回傳造成 keys 被 join 成一個字串、空陣列被算一筆；code review 再抓到 allow 只有一筆時 `if` 表達式 unroll 成字串（u1 / u2）、`-Force` 重裝洗掉 manifest keys（r1 / r2）、`-Migrate` 簽名在新版 rules.md 也存在（e7）、同名非 bstack skill 被刪（e1b）、project「已裝」跨專案誤報（p2）、allow 拆空留空殼（d5）、根非 object（j2），全部補斷言後修掉 |
+| `-Yes -Items statusLine,env -Scope user -WhatIf`（經 `-File` 傳逗號字串） | 第一版 ValidateSet 直接拒絕；改成進腳本後 split 驗集合，現在接受並印出兩層目標路徑與舊副本清單 |
 | `-Yes -Items env -Scope user -WhatIf` | 真實 `~/.claude/settings.json` hash 不變、manifest 未建立 |
 | `-WhatIf` 雜訊 | `ForEach-Object Name` 會印「Retrieve the value for property」，改成 script block 後消失 |
 
@@ -38,5 +39,19 @@
 | `plugin-contract.mjs` | P1–P8 ALL PASS |
 | `build-references.ps1 -Check` | PASS，35 份 |
 | 紅線 grep（setup.ps1 / marketplace 依賴 / 繞不過 / `~/.claude/{skills,hooks,agents,CLAUDE}`，排除白名單行） | index.html / README.md 皆無 |
+| docs 站規則書內嵌（code review 架構視角抓到） | 第一版內嵌的是 repo 根 CLAUDE.md 三行殼、35 處 `rules.md §` 交叉引用斷鏈而契約全綠。改 build-references 內嵌 `skills/devwork/rules.md` 為 `references/rules.md`、app.js EXTRA_DOCS 改名 `rules.md`，契約加 C8e（含 §事實核實）/ C8f（交叉引用可解析）/ C8g（index.html 兩處節點數 == data.js） |
+
+## 安裝路徑實測（code review 主 reviewer 建議：不用等 merge）
+
+| 指令 | 結果 |
+|---|---|
+| `claude plugin marketplace add D:\GitHub\bstack` | `Successfully added marketplace: bstack (declared in user settings)`——`marketplace.json` 的 `source: "./"` 被接受 |
+| `claude plugin install bstack@bstack -s user` | `Successfully installed plugin: bstack@bstack (scope: user)`，`claude plugin list` 顯示 Version 1.0.0、enabled |
+| 不帶 `--plugin-dir`、從空目錄 `claude -p "/devwork"` | 印 `[bstack devwork · plugin] 已載入守則。要做什麼？…`——純安裝路徑可用 |
+| 還原 | `claude plugin uninstall bstack@bstack`、`claude plugin marketplace remove bstack` 皆成功，作者機器回原狀 |
+
+## hook 延遲（README 措辭依據）
+
+`Measure-Command` 餵 Write payload：branch-safety 1310 ms、file-type-guard 1168 ms（pwsh 7.4、Windows 11、NoProfile）。兩支合計約 2.5 秒，主要是 pwsh 啟動時間。README 原寫「數百毫秒」是推斷，已改為實測數字。
 
 **沒 pwsh 靜默失效的處置**：hooks.json 的 command 沒有辦法在不知道 shell 的前提下寫 fallback；列為已知限制，README prerequisites 與 troubleshooting 明寫「pwsh 7+ 是 hook 必需，缺了不會報錯、保護直接不存在」，並給 mac / Linux / Windows 的安裝指令。
