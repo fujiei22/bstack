@@ -94,8 +94,60 @@ PR #64 精簡 T2 lane 後，code review 仍是自寫 prompt 派 general-purpose 
 | 4 | 4 | `docs/js/data.js` | ReviewQ label 改「依 Tier × 副檔名分流」、RevT2 / RevT3 label 改新敘述（純文件路徑寫進 label） | `node docs/tools/docs-site-contract.mjs` C8a 仍 96/135 |
 | 5 | 5 | `scripts/plugin-contract.mjs` | P9c 加驗：request-review 含 `code-review`、含「純文件」、不含「視角 B」；dev-workflow Phase 5 含 `code-review` | 先在改 skill 前跑一次確認 P9c 紅，改完綠 |
 | 6 | 6 | `docs/js/references-data.js` | `pwsh -File scripts/build-references.ps1` 重產 | `pwsh -File scripts/build-references.ps1 -Check` exit 0；docs-site-contract 全綠 |
-| 7 | 7 | （本 branch 自身 diff） | verify-done 綠後照新流程跑一次：本 diff 是純文件（.md / .js label / .mjs 契約）→ 依規則應跳；但為了留樣本，額外對 `.mjs` 契約檔那部分跑 `/code-review medium`，輸出貼 §施工紀錄 | §施工紀錄 有 medium 輸出樣本與 token / 時間 |
+| 7 | 7 | （本 branch 自身 diff） | verify-done 綠後照新流程跑一次：本 diff 含 `.mjs` 契約檔與 `.js` 流程圖資料 → 依 §副檔名分流 是程式碼 diff、T2 → `Skill("code-review", args="medium")` + 主 agent spec 自檢，輸出貼 §施工紀錄 | §施工紀錄 有 medium 輸出樣本與 token / 時間 |
 
 ## 施工紀錄
 
 （execute-plan 追加）
+
+### 執行偏差
+
+- 施工清單 #5 只寫 P9c，實際 P9a 也得改：它原本斷言 T2 列含「1 subagent」、T3 列含「雙視角」，新 lane 一改就紅。P9a 改驗 `code-review medium` / `code-review high`。
+- receive-review 後 P9a 再加一條全 repo「雙視角」反向掃描（skills / agents / README / data.js / index.html；archive 不掃，那是歷史）。理由見下方 finding 4。
+- 施工清單 #7 原文把本 diff 寫成「純文件、依規則應跳」，與 §副檔名分流（`.mjs .js` = 程式碼）自打嘴巴，code-review 自己抓到（finding 5），已改。
+
+### Spec coverage 自檢（T2）
+
+| 施工清單 # | 做了 | 有測 | 偏差 |
+|---|---|---|---|
+| 1 rules.md | yes | P9a | 多加一條「code review 先看副檔名再看 Tier」bullet（清單寫「補一句」，範圍內） |
+| 2 request-review | yes | P9c | — |
+| 3 dev-workflow | yes | P9c | — |
+| 4 data.js | yes | C8a 96/135 不變 | — |
+| 5 plugin-contract | yes | 改 skill 前 P9c 紅、改後綠（實跑確認） | P9a 一併改（見上） |
+| 6 references-data | yes | -Check exit 0 | — |
+| 7 實跑 | yes | 本節 | — |
+
+清單外改動：無（receive-review 的 8 項 fix 屬 Phase 5 產出，另列下方）
+註解：契約新增段落有註解說明為什麼要全 repo 掃
+PII / File-type：無命中
+
+### 新流程實跑（本 branch，verify 綠後）
+
+`git diff main...HEAD --name-only` 含 `scripts/plugin-contract.mjs`、`docs/js/data.js` → `code_review_applicable=true`；Tier=T2 → `Skill("code-review", args="medium")`（不帶 target、不帶 `--fix`）。
+
+| 項目 | 值 |
+|---|---|
+| 執行方式 | forked 背景 agent，Skill 工具立即回；結果在 task-notification `<result>` |
+| 時間 | 464 秒（約 7.7 分鐘） |
+| fork 本身 token | 130,760（finder / verifier 另計，未曝露） |
+| fork 工具呼叫 | 22 次 |
+| 輸出 | JSON 陣列 8 筆（上限 8），全部帶 `file / line / summary / failure_scenario` |
+| working tree | 未動（`git status` 乾淨） |
+
+8 筆 finding 摘要與處置（全屬不危險類，一顆 commit）：
+
+| # | 檔:行 | 一句話 | 分級 | 處置 |
+|---|---|---|---|---|
+| 1 | rules.md:126 | T3 純文件路徑三處寫法不同（表格「跳」/ dev-workflow「只做自檢」/ request-review「派對齊 subagent」），rules 說表格為準 → T3 純文件零 review | Critical | 表格改「跳 code-review、對齊 subagent 照派」，dev-workflow / data.js 同步 |
+| 2 | request-review:180 | 自檢結果沒規則進 `critical_count` / `major_count`，receive-review 只讀這兩個欄位 → 清單外改動被短路 | Critical | §結果整合 加一列分級規則，明寫計入計數 |
+| 3 | request-review:39 | `.yml` 歸純文件，但 §File-type 硬規則 CI / Infra 寫「套 review」→ 升 T2 就為了 review，結果跳過 | Major | 分流表加「硬規則 CI / Infra / migration 類 → true 不看副檔名」 |
+| 4 | rules.md:147 | §協作模式判定 與 dispatch-parallel:84 殘留「request-review 雙視角」，P9a 只掃 Tier 表那列 | Major | 兩處改字；P9a 加全 repo 反向掃描 |
+| 5 | request-review:192 | 範例與 spec #7 把 `.js` / `.mjs` diff 當純文件，與表格自打嘴巴；根因是沒有「產出器重產的檔」豁免 | Major | 範例改 `.md .json`、spec #7 改、分流表加 references-data.js 豁免與 path target 用法 |
+| 6 | request-review:127 | 對齊 subagent prompt 寫死「bug 另有 code-review 在看、不管邊界值」，純文件路徑沿用同 prompt → 唯一 reviewer 被叫去跳過沒人看的東西 | Major | 兩句改成 `{code-review 有跑時附 / 跳過時改附}` 條件段 |
+| 7 | request-review:81 | 舊 T2 reviewer 的「每個改動都有測？」沒人接手 | Major | 自檢加「有測」欄、對齊 prompt 加第二題 |
+| 8 | index.html:95 / README:77 | 公開文案說「平常 review 已把語言提示寫進 prompt」，T2 已無自寫 prompt | Minor | 兩處改字（index.html 純文字節點，design-language 豁免） |
+
+**對照舊 lane**：PR #64 的 T2 自寫 prompt 單 reviewer 做不到 finding 1 / 4 這種「三個檔互相矛盾、契約假綠」的跨檔追蹤——那是 cross-file tracer + conventions(CLAUDE.md) 兩個 finder 的產出。代價是 7.7 分鐘與 fork 13 萬 token；舊 lane 一個 general-purpose reviewer 約 2-3 分鐘。
+
+**Phase 0 實測補充**：`low 65` 49k token / 48 秒（含回問一次）、`medium 62` 108k token / 420 秒、3 筆 finding。
