@@ -1,8 +1,8 @@
 # bstack rules.md（規則書）
 
 > 對 plugin 使用者：本檔由 `/devwork` 載入，不會進你的 CLAUDE.md；沒下 `/devwork` 時不套用。
-> 對 bstack 貢獻者：repo 的 CLAUDE.md 會 `@import` 這份，兩邊不要各改各的。
-> 位階等同 CLAUDE.md：與任何 skill 衝突時，本檔勝。
+> 對 bstack 貢獻者：repo 的 CLAUDE.md 會 `@import` 這份、整個 session 常駐，「沒下 /devwork 不套用」對 repo 自身開發不成立。兩邊不要各改各的。
+> 位階等同 CLAUDE.md：與任何 skill 衝突時，本檔勝——**前提是它還在 context 裡**。經 `/devwork` 讀進來的內容會被 context 摘要洗掉，所以每個 phase skill 載入時若 context 找不到「§事實核實」這節，先重讀本檔再做事。
 
 繁中台灣用語；英文專有名詞保留（brainstorm / Tier / Track / commit / PR / TDD）。
 
@@ -49,7 +49,7 @@ How：brainstorm 0b 並聯抽樣；write-plan / review-plan 涉資料每點附�
 user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」；平台附 `Other`。**禁文字 token NLP**（`approve / LGTM / 通過 / ✅` 不當 gate 信號）。
 
 ### §Branch safety
-plugin 的 `hooks/branch-safety.ps1`（PreToolUse）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。`git checkout / merge / push` 受同 hook。
+plugin 的 `hooks/branch-safety.ps1`（PreToolUse）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔 Write / Edit / NotebookEdit（見 `hooks/hooks.json` 的 matcher）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。
 
 **豁免（實測 code 行為，非設計缺陷）**：hook 只管 `$CLAUDE_PROJECT_DIR` **底下**的檔。目標檔在 project repo 之外（例如 plugin 目錄內的檔、使用者的 Claude 設定目錄）一律放行，不論當前在哪個 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也都放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** 另外 hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就 `/plugin disable bstack@bstack`。
 

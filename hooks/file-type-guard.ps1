@@ -19,6 +19,8 @@
   放系統 temp 而不放 plugin 目錄：plugin 裝在 Claude Code 的 plugins 快取，更新即清空、
   也不該被 hook 寫入。Hook 命中 WARN 且 token 存在 → 刪 token + 放行（不論過期、
   過期視為無效）；否則 exit 2 + stderr 印出 token 絕對路徑指示 AI 建立。
+  已知限制：Linux 的 GetTempPath() 是共用 /tmp，token 路徑由檔案路徑 hash 決定、可預測，
+  多使用者主機上他人可預建 token 繞過二次確認；Windows 的 %TEMP% 是 per-user 沒這問題。
   本 hook 隨 bstack plugin 在啟用它的專案一律生效，不需要 /devwork。
 #>
 
@@ -85,9 +87,17 @@ $tokenName = $hashHex.Substring(0, 16) + '.token'
 $tokenPath = Join-Path $stateDir $tokenName
 $tokenTtlSec = 300
 
-# state dir 不在就先建（讓 AI 後續 New-Item File 不會因父層缺失而失敗）
-if (-not (Test-Path -LiteralPath $stateDir)) {
-    New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+# state dir 建立延到 WARN 命中時才做（Ensure-StateDir）：99% 的呼叫不命中，不必每次碰磁碟。
+function Ensure-StateDir {
+    <# 建 state dir；建不起來（例如 TEMP 指到一個檔）就印明確訊息，不要指示 AI 去一個不可能建立的路徑建 token。 #>
+    if (Test-Path -LiteralPath $stateDir) { return $true }
+    try {
+        New-Item -ItemType Directory -Path $stateDir -Force -ErrorAction Stop | Out-Null
+        return $true
+    } catch {
+        Write-Err "[bstack] state dir 建立失敗：$stateDir（$($_.Exception.Message)）。請確認 TEMP 環境變數指向可寫目錄，或 /plugin disable bstack@bstack。"
+        return $false
+    }
 }
 
 function Test-And-Consume-Token {
@@ -158,6 +168,7 @@ foreach ($w in $warnPatterns) {
         if (Test-And-Consume-Token -path $tokenPath -ttlSec $tokenTtlSec) {
             exit 0
         }
+        if (-not (Ensure-StateDir)) { exit 2 }
 
         Write-Err "[bstack] WARN：命中敏感類檔案（$($w.tag)）：$filePath"
         Write-Err "處置（依序執行）："

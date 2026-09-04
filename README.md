@@ -82,14 +82,14 @@
 
 ## Hooks
 
-兩支 PreToolUse hook 由 plugin 的 `hooks/hooks.json` 註冊，在**啟用 plugin 的專案一律生效、不需要 `/devwork`**。不想要就 `/plugin disable bstack@bstack`。每次 Write / Edit 會多起兩個 pwsh 程序，延遲約數百毫秒屬正常。
+兩支 PreToolUse hook 由 plugin 的 `hooks/hooks.json` 註冊，在**啟用 plugin 的專案一律生效、不需要 `/devwork`**。不想要就 `/plugin disable bstack@bstack`。每次 Write / Edit 會多起兩個 pwsh 程序：實測（pwsh 7.4、Windows 11）每支約 1.2 秒，兩支合計約 2.5 秒，屬正常，大部分是 pwsh 啟動時間。
 
 | Hook | 用途 |
 |---|---|
 | **branch-safety.ps1** | 命中 `main / master / production / prod / release` 直接 block 寫入動作，訊息附開 branch 的做法 |
 | **file-type-guard.ps1** | 按副檔名 / 路徑分流：密鑰類硬擋；migration / lockfile / CI / infra 類先擋，二次確認後由 AI 在系統 temp 建一次性 token 放行 |
 
-**pwsh 7+ 是 hook 必需。** 實測：機器上沒有 pwsh 時 hook **靜默失效**，Claude Code 不印任何錯誤、檔案照寫，你不會知道保護不存在。裝法：Windows `winget install Microsoft.PowerShell`、macOS `brew install powershell`、Linux 見 [官方文件](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)。
+**pwsh 7+ 是 hook 必需，而且要在啟動 Claude Code 的環境 PATH 內**（macOS 從 Dock 開的 app 不一定吃到 brew 的 PATH；用 `which pwsh` / `Get-Command pwsh` 驗）。Windows 實測：PATH 裡沒有 pwsh 時 hook **靜默失效**，Claude Code 不印任何錯誤、檔案照寫，你不會知道保護不存在。macOS / Linux 未實測，推斷會在 transcript 印一行 hook 錯誤但一樣照寫。裝法：Windows `winget install Microsoft.PowerShell`、macOS `brew install powershell`、Linux 見 [官方文件](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)。
 
 ---
 
@@ -108,7 +108,7 @@
 
 三種方式，依推薦順序：
 
-**A1. 專案層級（推薦）**：把 `templates/project-settings.json` 複製成你專案的 `.claude/settings.json`（已有的話把 `extraKnownMarketplaces` 與 `enabledPlugins` 兩段合進去）。它同時帶了唯讀權限白名單。開新 session 後若 `/devwork` 沒反應，手動裝一次：
+**A1. 專案層級（推薦）**：把 `templates/project-settings.json` 複製成你專案的 `.claude/settings.json`（已有的話把 `extraKnownMarketplaces` 與 `enabledPlugins` 兩段合進去；`permissions` 段自行取捨，它會與你團隊既有的 allow 合併不是覆蓋）。它同時帶了唯讀權限白名單，**這份也是 extras.ps1 白名單的唯一來源**，往裡面加東西前想一下是否也適合使用者層級。開新 session 後若 `/devwork` 沒反應，手動裝一次：
 
 ```
 /plugin marketplace add fujiei22/bstack
@@ -136,7 +136,7 @@ pwsh -File scripts/extras.ps1
 
 - `[U]` 使用者層級（你的 Claude 設定目錄裡的 settings.json）、`[P]` 目前專案 `.claude/settings.json`、`[S]` 跳過（預設）。不選就什麼都不寫。
 - MCP 的 `[P]` 寫的是專案根 `.mcp.json`，**會進 git、隊友共用**。mysql MCP 含帳密，腳本只印指令範本讓你自己填。
-- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一主動寫進 `~/.claude/` 的檔）。`-Uninstall` 只拆自己加的，你本來就有的不碰。
+- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一**不經你選擇**就會寫的檔；選 `[U]` 寫的 settings.json 是你選的）。`-Uninstall` 只拆自己加的，你本來就有的不碰。
 - 請從 clone 的 repo 跑：statusLine 會指到 `extras/statusline.sh` 的絕對路徑。clone 搬家後重跑、選 statusLine 的 `[R]` 重裝。
 - 非互動：`pwsh -File scripts/extras.ps1 -Yes -Items statusLine,env -Scope user`。
 
@@ -174,7 +174,7 @@ pwsh -File scripts/extras.ps1
 舊版把 skill / agent / hook / CLAUDE.md 複製進 `~/.claude/`。兩件事會讓新版失效：
 
 - **user 級同名 skill 會遮蔽 plugin skill**：舊版的 `~/.claude/skills/dev-workflow` 還在，`/devwork` 載到的就是舊版。
-- **舊版 `~/.claude/CLAUDE.md`** 有一句「寫 / 改 / 修 / 加類 prompt 一律進 dev-workflow」，會讓自動攔截復活。
+- **舊版 setup.ps1 留下的 `~/.claude/CLAUDE.md`** 有一句「寫 / 改 / 修 / 加類 prompt 一律進 dev-workflow」，會讓自動攔截復活。
 
 ```pwsh
 pwsh -File scripts/extras.ps1 -Migrate

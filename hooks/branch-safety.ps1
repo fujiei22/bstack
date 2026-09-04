@@ -9,6 +9,7 @@
     - 若 file_path 不在 $CLAUDE_PROJECT_DIR 範圍內（例如使用者的 Claude 設定目錄、plugin 目錄）
       → exit 0 放行，避免「設定 / 工具檔的編輯被 project branch 連坐攔截」。
     - branch 命中 main / master / production / prod / release → exit 2 阻擋。
+    - detached HEAD（rev-parse 回 HEAD）、尚無 commit 的 repo、git 不在 PATH → 一律放行（不是受保護 branch，也無法判定）。
   退出 2 = block tool call，stderr 顯示給 Claude，Claude 開新 branch 後 retry。
   本 hook 隨 bstack plugin 在啟用它的專案一律生效，不需要 /devwork；stderr 訊息因此
   不依賴 rules.md 的術語，並附 /plugin disable 出口。
@@ -67,7 +68,8 @@ if ($targetPath) {
     }
 }
 
-Push-Location $repo
+# -LiteralPath：路徑含 [ ] 時 Push-Location 會當萬用字元找不到、接著在錯的 cwd 跑 git（實測會靜默放行）
+Push-Location -LiteralPath $repo
 try {
     $branch = git rev-parse --abbrev-ref HEAD 2>$null
     if ($LASTEXITCODE -ne 0) {
