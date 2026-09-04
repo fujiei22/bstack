@@ -148,10 +148,10 @@ plugin 規格帶不了的四項（statusLine、`permissions.allow` 唯讀白名�
 pwsh -File scripts/extras.ps1
 ```
 
-- `[U]` 使用者層級（你的 Claude 設定目錄裡的 settings.json）、`[P]` 目前專案 `.claude/settings.json`、`[S]` 跳過（預設）。不選就什麼都不寫。
-- MCP 的 `[P]` 寫的是專案根 `.mcp.json`，**會進 git、隊友共用**。mysql MCP 含帳密，腳本只印指令範本讓你自己填。
-- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一**不經你選擇**就會寫的檔；選 `[U]` 寫的 settings.json 是你選的）。`-Uninstall` 只拆自己加的，你本來就有的不碰。備份檔 `settings.json.bak-<時間>` 是原檔明文快照，若你的 settings 裡放過帳密之類的 `env`，記得定期清。
-- 請從 clone 的 repo 跑：statusLine 會指到 `extras/statusline.sh` 的絕對路徑。clone 搬家後重跑、選 statusLine 的 `[R]` 重裝。
+- `[u]` 使用者層級（你的 Claude 設定目錄裡的 settings.json）、`[p]` 目前專案 `.claude/settings.json`、`[s]` 跳過（預設）。不選就什麼都不寫。
+- MCP 的 `[p]` 寫的是專案根 `.mcp.json`，**會進 git、隊友共用**。mysql MCP 含帳密，腳本只印指令範本讓你自己填。
+- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一**不經你選擇**就會寫的檔；選 `[u]` 寫的 settings.json 是你選的）。`-Uninstall` 只拆自己加的，你本來就有的不碰。備份檔 `settings.json.bak-<時間>` 是原檔明文快照，若你的 settings 裡放過帳密之類的 `env`，記得定期清。
+- 請從 clone 的 repo 跑：statusLine 會指到 `extras/statusline.sh` 的絕對路徑。clone 搬家後重跑、選 statusLine 的 `[r]` 重裝。
 - 非互動：`pwsh -File scripts/extras.ps1 -Yes -Items statusLine,env -Scope user`。
 
 ### C. 開新 session，下指令
