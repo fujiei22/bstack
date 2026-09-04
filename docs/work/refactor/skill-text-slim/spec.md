@@ -58,3 +58,41 @@
 ## 待釐清
 
 - 無（本次）。**留給下一支**：dev-workflow §Skill hand-off state 第 175 行寫 `review_summary` / `verify_result`，實檔欄名是 `review_summary_path` / `verify_results`（review-plan DX 視角 C1 發現）。
+
+## 施工紀錄
+
+### 前後對照（LF 同基準；基線 `b15efa9`）
+
+| 檔 | 行 | 內容行（去空行 / `---`） | bytes | 砍了什麼 |
+|---|---|---|---|---|
+| brainstorm | 329 → 250 | 218 → 184 | 16,537 → 15,096（−9%） | 0c/0d 四段引言留兩行 WHY、前移的代價刪、0a 反 pattern、0b 合句、Red Flags 9→6；兩個 nit |
+| write-plan | 223 → 130 | 148 → 109 | 7,593 → 6,034（−21%） | Task 結構五個 code block 縮一組、並行範例、No-placeholder 7→4 列、落檔 bash block |
+| review-plan | 245 → 145 | 163 → 110 | 9,205 → 7,987（−13%） | 第 2 / 4 段實例敘述 → 兩行 WHY（2026-09-03）、三視角共用骨架、結果整合範本 |
+| execute-plan | 242 → 149 | 164 → 110 | 10,995 → 10,047（−9%） | Commit 格式指向 rules.md、Parallel-group 敘述、Blocker、Red Flags 6→5；兩個 nit |
+| tdd-cycle | 341 → 158 | 228 → 108 | 7,496 → 5,457（−27%） | 五段合一 Red Flags、Bug fix 範例刪、❌ 反例刪 |
+| verify-done | 175 → 105 | 124 → 90 | 7,655 → 6,501（−15%） | 三套餐合一表、重複的 e2e 例外段指向 §UI / browser e2e、design_rejudge 指向 execute-plan |
+| request-review | 249 → 164 | 168 → 144 | 11,761 → 10,861（−8%） | T1 範本併入結果整合、medium 實測數字 → memory、兩個 `### 呼叫` code block 內嵌 |
+| receive-review | 162 → 99 | 115 → 74 | 5,363 → 4,933（−8%） | 三小節合一表、特殊狀況各一 bullet、T3 訊息範本刪 |
+| security-audit | 148 → 92 | 102 → 80 | 5,030 → 4,293（−15%） | Dispatch prompt 五類檢查項刪（agent 已有）、Red Flags 6→4 |
+| finish-branch | 335 → 211 | 223 → 150 | 11,095 → 9,032（−19%） | Commit 範例 4→1、Rebase vs Merge、Squash 三小節合一、命名 / commit 規範指向 rules.md、刪一條與 rules.md 矛盾的 hook 敘述 |
+| pr-explain | 84 → 70 | 55 → 47 | 2,847 → 2,462（−14%） | 注意段（四條 agent 已有）、六步說明句 |
+| **合計** | **2,533 → 1,573（−38%）** | **1,708 → 1,206（−29%）** | **95,577 → 82,703（−13%）** | 空行 + `---`：825 → 367 |
+
+### 目標達成度（誠實版）
+
+- **行數 −38%**，目標 −40%（≤1,520）差 53 行（3.5%）。四檔軟目標各在 ≤10% 接受帶內：brainstorm 250 / 240、security-audit 92 / 85、receive-review 99 / 95、finish-branch 211 / 230（達）。
+- **bytes −13%**，目標 −30% **未達**。原因量得出來：改後 82,703 bytes 裡 **40%（33,469）是受保護內容**——frontmatter、code block（選單 / yaml / prompt / 範本）、表格——這些是「行為零改變」的字面本體，一個字都沒動；其中 request-review / receive-review / security-audit 三檔受保護占比 56-57%。剩下 49k 散文已經是「一句話留 WHY」的密度，再砍就是動選單 / 契約步驟 / 範本，等於改行為。
+- **內容行 −29%** 是比行數更誠實的指標：行數的 −38% 裡有 458 行是空行與分隔線（Eng 視角預警的灌水風險），本紀錄把兩個數字都列出來讓 user 自己判。
+- **byte 目標是 review 階段加的防灌水門檻，不是 user 的原始指標**；未達的處置是攤開數字、不放寬目標也不砍保護項（plan §失敗處置 第二次仍到不了 → 接受現況、PR body 明列）。
+
+### 行為零改變的證據
+
+- `node scripts/plugin-contract.mjs` ALL PASS（P9a-i）、`--selftest` PASS；`docs-site-contract` ALL PASS；`build-references.ps1 -Check` exit 0
+- 守門快照（scratch `slim-guard.mjs`，對基線抽 frontmatter / 使用契約編號步驟 / § 白名單 / 選單區塊 / 反引號片段）：frontmatter 11/11 逐字同；使用契約步驟數 11/11 同；白名單 § 標題 0 消失、0 新增（receive-review 一個非白名單 § 加了括號註記）；反引號片段 0 新增。選單區塊有 6 檔報差異，逐一核對皆為抽取器錨點位移（例：execute-plan 六選項 diff 零差異、verify-done 九項 bullet diff 零差異、security-audit 兩條 bullet 為未動 context 行、brainstorm 為允許縮的 spec 範本、review-plan 為 prompt 四段清單非選單），選單文字本身無一改動。
+- 保留的 WHY 引言 6 行（brainstorm 2、review-plan 2、execute-plan 1、receive-review Red Flags 原列 1），皆附實測日期。
+
+### 執行偏差
+
+- Bash heredoc 寫 plan v2 時整段指令解析失敗，改用 Write 工具；guard 腳本的選單抽取對「AskUserQuestion 之後跨空行的清單」要放寬到 15 行才抓得到 brainstorm 0c/0d 選項。
+- 11 個 subagent 同時派（plan 分 5 group 是為了契約跨檔不誤紅；守則 5「只處理點名自己檔的 FAIL」實測有效，沒有一個 subagent 誤改別人的檔）。subagent 不 commit，主 agent 逐檔守門後 commit，共 11 顆。
+- request-review 第一版 `wc -l` 178 是中途快照，最終 164。
