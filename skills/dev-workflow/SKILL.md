@@ -98,8 +98,8 @@ DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量
    ↓
 5. request-review
    ├─ T1 = self review
-   ├─ T2 = subagent + lang-reviewer（依改動副檔名 dispatch）
-   └─ T3 = 雙視角 subagent（架構 × 除錯）+ lang-reviewer
+   ├─ T2 = 1 subagent（prompt 附語言提示）
+   └─ T3 = 雙視角 subagent（架構 × 除錯，各附語言提示）
    ↓
    receive-review（含 §Auto-fix）
    ↓
@@ -158,8 +158,9 @@ state:
     direction_decided: <定案方向文字|null>   # size=大改 且走過三方向才有
     user_choice_quote: <user 選擇原話|null>  # 同上
   memory_loaded: <bool>       # 0a 是否讀過 memory
-  plan_path: docs/work/<branch-name>/plan.md  # write-plan 完寫入
-  parallel_groups: [...]      # write-plan 內 task 並行 grouping
+  plan_path: <docs/work/<branch-name>/plan.md | null>  # T3 write-plan 完寫入；T1 / T2 為 null
+  parallel_groups: [...]      # T3 來自 plan、T2 來自 spec 施工清單 group 欄
+  review_perspectives: [...]  # T3；brainstorm 0b 依改動面向判（Eng 下限 / DX / Design）
   design_rejudge: [...]       # 施工開始後對 design.* 的重判（execute-plan 中途轉進／verify-done 漏網複查共用）
   current_phase: <名稱>
   trace_chain: [phase1, phase2, ...]  # 歷經 phase
@@ -186,7 +187,7 @@ state:
 範例：
 ```
 [Trace] Phase=execute-plan | Tier=T2 | Track=Dev | Skill=execute-plan
-[Trace] Phase=request-review | Tier=T3 | Track=Dev | Skill=request-review+lang-reviewer
+[Trace] Phase=request-review | Tier=T3 | Track=Dev | Skill=request-review
 ```
 
 **省略時機**：
@@ -252,7 +253,7 @@ Phase-bound memory 互動點（rules.md 開發流程 intro 內聲明）：
 | `context-snapshot` | user 顯式存進度 / context 接近 auto-compact 閾值 |
 | `context-resume` | 新 session 開始、user 顯式接續舊 task |
 | `dispatch-parallel` | execute-plan 遇 parallel-group >1 task |
-| `lang-reviewer` | request-review 階段、依改動副檔名動態 dispatch（python / typescript / sql / golang / ...）|
+| `lang-reviewer` | user 顯式要求時由主 agent spawn；request-review 不自動派，語言提示寫進 reviewer prompt |
 | `db-reviewer` | T3 + DB 改動，security 階段內 |
 | `frontend-test` | verify-done 偵測前端檔改動（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）；T3 UI 改動必載、T2 可選；user 顯式呼叫 e2e 也載 |
 | `write-skill` | user 要加 / 改 / 評 skill 本身 |

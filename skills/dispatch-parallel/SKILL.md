@@ -17,9 +17,9 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑�
 
 **載入後立即動作**：
 
-1. **讀 hand-off state** 取當前 group 的 task 清單（task ID + plan section path）。
+1. **讀 hand-off state** 取當前 group 的 task 清單（task ID + 來源：plan Task N section（T3）／ spec `## 施工清單` 第 N 列（T2））。
 2. **檢預設**：
-   - group 內 task **真的無依賴**（write-plan 階段標的應已驗過、但再驗一次）
+   - group 內 task **真的無依賴**（T3 由 write-plan 標、T2 由 brainstorm 施工清單標；這裡是 T2 唯一一次驗）
    - 工作目錄 clean（無未 commit 改動）
 3. **協作模式判定** → 走 §協作模式判定，`AskUserQuestion` 讓 user 選跑法。**禁自行決定**。
 4. **依 user 選擇分流**：
@@ -99,7 +99,7 @@ Context:
 - branch: <branch name>
 - 你負責的 task: <task ID + 摘要>
 - 你擁有的檔 / 目錄: <明列；此範圍外的檔禁動>
-- plan 全文: <貼 plan markdown>
+- task 來源: <T3 貼 plan 全文；T2 貼 spec `## 施工清單` 全表>
 - spec 全文: <貼 spec markdown>
 
 你是這個團隊的隊友，**不是**接到新需求的主 agent：
@@ -159,12 +159,12 @@ Agent tool call:
     - repo: <repo root>
     - branch: <branch name>
     - 你要跑的 task: <task ID + 摘要>
-    - plan 全文: <貼 plan markdown>
+    - task 來源: <T3 貼 plan 全文；T2 貼 spec `## 施工清單` 全表>
     - spec 全文: <貼 spec markdown>
     - 你**只跑 task <N>**，其他 task 不動。
 
     流程：
-    1. Read plan 找 Task <N> section
+    1. T3：Read plan 找 Task <N> section；T2：施工清單第 <N> 列，五步由 tdd-cycle 現場展開
     2. 依 tdd-cycle 走 5 step（紅 → 跑紅 → 綠 → 跑綠 → commit）
     3. commit 時用 rules.md §Commit 訊息 格式
     4. 跑該 task 的 verify command
@@ -223,7 +223,7 @@ Agent tool call:
    - **adjust + retry**（主 agent 提具體 plan task 改動、user 點頭再 retry）
    - **rollback**：`git reset --hard <pre-group-sha>` → 整 group 重來
    - **退 execute-plan** 改一般串行 spawn（不平行）
-   - **退 write-plan** 改 parallel-group 標
+   - **退 write-plan**（T3）／ **交棒 brainstorm §補施工清單入口**（T2）改 group 標
 3. 不靜默 retry
 
 ---

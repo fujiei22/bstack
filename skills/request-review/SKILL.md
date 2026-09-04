@@ -2,8 +2,8 @@
 name: request-review
 description: |
   自動 code review 派發（繁中）。載入：dev-workflow Phase 5（verify-done 之後）；亦可由使用者顯式呼叫。
-  涵蓋：T1 self review / T2 subagent + lang-reviewer dispatch /
-  T3 雙視角 subagent（架構 × 除錯）+ lang-reviewer / 結果交棒 receive-review。
+  涵蓋：T1 self review / T2 單一 subagent（prompt 附語言提示） /
+  T3 雙視角 subagent（架構 × 除錯，各附語言提示） / 結果交棒 receive-review。
   上游：verify-done。下游：receive-review。
 ---
 
@@ -18,8 +18,8 @@ description: |
 1. **讀 hand-off state** 取 `tier`、`commits`、`codebase_impact.files`。
 2. **依 tier dispatch review**（**T0 不進本 skill**：rules.md §Tier 表 T0 的 review 欄是「跳」）：
    - T1 = self review（主 agent 自己讀 diff）
-   - T2 = 1 subagent（綜合 review）+ ECC lang-reviewer（依檔副檔名動態）
-   - T3 = 2 subagent（架構 × 除錯雙視角）+ lang-reviewer
+   - T2 = 1 subagent（綜合 review + 語言提示）
+   - T3 = 2 subagent（架構 × 除錯，各附語言提示）
 3. **收集 review finding** → 整合 → 交棒 receive-review。
 
 ---
@@ -57,7 +57,8 @@ Verify 全綠: <yes/no>
 讀以下 diff 與相關 context：
 - diff: <git diff base..HEAD output>
 - spec: <spec 內容>
-- plan: <plan 內容>
+- task 來源: <T2 = spec §施工清單；T3 = plan 內容>
+{語言提示}
 
 回答：
 
@@ -83,54 +84,35 @@ Verify 全綠: <yes/no>
 - ...
 ```
 
-### lang-reviewer dispatch
+### §語言提示（寫進 reviewer prompt，不另開 agent）
 
-依改動副檔名選 language tag、spawn 單一 `lang-reviewer` agent、language 透過 prompt 動態 dispatch（**不是**為每語言開一個 agent 檔）：
+依改動副檔名組一段貼進每個 reviewer 的 prompt，格式「本 diff 含 <語言>，請特別看：<提示>」，多語言多列：
 
-| 副檔名 | language tag |
+| 副檔名 | 提示 |
 |---|---|
-| `.py` | python |
-| `.ts / .tsx / .js / .jsx` | typescript |
-| `.sql` | sql |
-| `.go` | golang |
-| `.rs` | rust |
-| `.java` | java |
-| `.cs` | csharp |
-| `.cpp / .c / .h` | cpp |
-| 其他 | 跳、列「lang-reviewer 無對應 language section」 |
+| `.py` | mutable default arg、裸 except、f-string 拼 SQL、type hint 與實際回傳不符 |
+| `.ts .tsx .js .jsx .mjs` | `==` 與 truthy 比較、未 await 的 promise、regex 對 CRLF、`any` 逃逸 |
+| `.sql` | 無 LIMIT 的重 query、隱式型別轉換讓 index 失效、migration 無回滾 |
+| `.go` | err 未檢、goroutine 洩漏、defer 在迴圈內 |
+| `.rs` | unwrap 在非測試碼、clone 掩蓋 borrow 問題 |
+| `.java .cs .cpp .c .h` | 資源釋放、null / 未初始化、例外吞掉 |
+| 其他 | 不附語言段 |
 
-對每個命中的語言、spawn `Agent` with `subagent_type: lang-reviewer` + prompt body 內帶 `language: <tag>`，agent 依該 tag 套對應「§語言檢查焦點」段。
-
-> 為何不每語言一個 agent 檔：agent 多會分散 maintenance、且大部分通用框架（正確性 / error handling / safety / testing / rules.md 一致）跨語言相同。動態 dispatch 一個 agent 處理全部、語言特化在 §語言檢查焦點 內分段。
-
-> 注意：SQL 改動同時涉 DB schema / migration 時、`security-audit` phase 會另派 `db-reviewer`（有 mysql MCP 存取、做深度 review）；lang-reviewer SQL 是 surface 層、db-reviewer 是 deep 層、互補不重複。
-
-prompt：
-```
-你是 <語言> 專家 reviewer。
-
-讀以下 diff（focus 在 <副檔名> 檔）：
-<diff>
-
-特別檢查：
-- <語言> 慣例 / idiom
-- 該語言常見 pitfall（如 Python 的 mutable default arg、JS 的 truthy 比較）
-- 該語言生態的 best practice
-
-回報格式同主 reviewer。
-```
+`lang-reviewer` agent 保留給 user 顯式要求（「用 lang-reviewer 看這段 SQL」），本 skill 不自動 spawn。
+SQL 改動同時涉 DB schema / migration 時，`security-audit` phase 另派 `db-reviewer`（有 mysql MCP、做深度 review），與這裡的語言提示互補。
 
 ---
 
 ## §T3 雙視角 subagent
 
-T2 全部 + **再 spawn 一個 subagent**：
+spawn 視角 A 與 B 兩個 subagent，不另開綜合 reviewer；兩個 prompt 都附 §語言提示：
 
 ### 視角 A — 架構 / 重構
 
 ```
 你是架構 reviewer。讀以下 diff：
 <diff>
+{語言提示}
 
 只看「架構是否合理」：
 
@@ -150,6 +132,7 @@ T2 全部 + **再 spawn 一個 subagent**：
 ```
 你是 debugging-mindset reviewer。讀以下 diff：
 <diff>
+{語言提示}
 
 只看「會在什麼情境壞」：
 
@@ -174,14 +157,13 @@ T2 全部 + **再 spawn 一個 subagent**：
 # Review 整合結果
 
 > Tier: <T1-T3>
-> Reviewers: <self | main + lang-reviewer(python) | main + lang-reviewer(typescript) + 架構 + 除錯>
+> Reviewers: <self | 綜合 reviewer | 架構 + 除錯>
 
 ## Critical 共識
 - <多 reviewer 同提的>
 
 ## Critical 各自獨見
 - 主 reviewer: ...
-- lang-reviewer(<lang>): ...
 - 架構視角 (T3): ...
 - 除錯視角 (T3): ...
 
@@ -225,6 +207,5 @@ state:
 |---|---|
 | 「T1 跳 self review 直接 finish」 | 哪怕 T1 也要 self review |
 | 「T3 雙視角只跑一個」 | 雙視角缺一就退化成 T2 |
-| 「lang-reviewer 找不到對應 language section、跳過」 | 跳此 lang-reviewer 即可；但主 reviewer 必跑 |
-| 「subagent_type 用 python-reviewer / sql-reviewer 等具體名稱」 | **錯**；只有 `lang-reviewer` 一個 agent；具體 language 用 prompt body `language: <tag>` 傳 |
+| 「多開一個 lang-reviewer 比較保險」 | 語言 idiom 已在 prompt；三個 reviewer 讀同一份 diff 是浪費，user 顯式要才派 |
 | 「subagent 結果我自己判」 | 結果整合可以，但別自己 override critical |
