@@ -187,9 +187,15 @@ pre.cmd {
 
 .cta {
   display: inline-flex; align-items: center; gap: 12px; margin-top: 26px; padding: 14px 22px;
+  /* .hero 是 column flex，子元素預設 stretch，inline-flex 的按鈕會被拉成整欄寬（實測 563px = 欄寬）。
+     flex-start 讓它回到內容寬；在 block 容器（#install）裡這條沒作用、無害。 */
+  align-self: flex-start;
   background: var(--ink); color: var(--paper); text-decoration: none; border-radius: 3px;
   font-size: 15px; font-weight: 500; box-shadow: var(--lift-1);
-  transition: background var(--t-micro) var(--e-move), box-shadow var(--t-micro) var(--e-move);
+  /* 這條 shorthand 會整個蓋掉 .rise 的 transition，所以把進場的 opacity / transform 也列進來，
+     否則 .cta.rise 是瞬間出現、沒有跟其他 .rise 一起浮起。 */
+  transition: background var(--t-micro) var(--e-move), box-shadow var(--t-micro) var(--e-move),
+              opacity 600ms var(--e-enter) var(--rise-delay, 0ms), transform 600ms var(--e-enter) var(--rise-delay, 0ms);
 }
 .cta .ar { transition: transform var(--t-micro) var(--e-move); }
 .cta:hover { background: var(--accent); color: var(--accent-ink); box-shadow: var(--lift-2); }
