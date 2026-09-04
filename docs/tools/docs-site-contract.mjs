@@ -674,12 +674,15 @@ for (const [name, src] of Object.entries(ogPages)) {
       `（後果：缺 og:image 就沒預覽圖，缺 twitter:card 在 X 上退成小卡）`
   );
   const img = metaOf(src, 'og:image') || '';
-  const file = img.startsWith(SITE) ? img.slice(SITE.length) : null;
+  // 檔名要先剝掉 ?v=N 這種快取破壞用的 query string 再去磁碟找——og-card.html 檔頭寫的換圖
+  // 做法就是加 ?v=，不剝的話照著 repo 自己的說明做會被這條誤判成「檔不存在」。
+  // twitter:image 的同值比對維持含 query 的完整字串，兩邊要一起換版號。
+  const file = img.startsWith(SITE) ? img.slice(SITE.length).split('?')[0] : null;
   check(
     `C20b ${name} 的 og:image 是絕對網址且檔案存在`,
     !!file && !file.includes('/') && existsSync(join(DOCS, file)) &&
       metaOf(src, 'twitter:image') === img,
-    `期望 og:image 以 ${SITE} 開頭、指向 docs/ 根下存在的檔、且 twitter:image 同值，實際 og:image=${img}` +
+    `期望 og:image 以 ${SITE} 開頭、指向 docs/ 根下存在的檔（?v= 之後不算檔名）、且 twitter:image 同值，實際 og:image=${img}` +
       `（後果：相對路徑爬蟲不解析、檔不存在就 404，兩種都是沒圖）`
   );
   check(
