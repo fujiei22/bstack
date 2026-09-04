@@ -209,7 +209,7 @@ Agent tool call:
 
 衝突案例（理論上不該發生、但 fallback）：
 - 兩 subagent 改到同一檔同行 → conflict → 走 finish-branch §Conflict 流程
-- 兩 commit 互相破壞（A 加新 function、B 移該 function） → parallel 標錯（T3 在 plan、T2 在施工清單 group 欄） → 退 write-plan
+- 兩 commit 互相破壞（A 加新 function、B 移該 function） → parallel 標錯（T3 在 plan、T2 在施工清單 group 欄） → 退 write-plan（T3）／ 交棒 brainstorm §補施工清單入口（T2）
 
 ---
 

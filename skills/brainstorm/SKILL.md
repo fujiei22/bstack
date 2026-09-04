@@ -15,6 +15,7 @@ description: |
 
 **載入後立即動作**：
 
+0. **先分流**：state 已有 `tier=T2` 且 `spec_path` 存在、且是 execute-plan / dispatch-parallel / verify-done 退回來補清單 → 直跳 §補施工清單入口，**不跑 Phase 0**。其餘往下。
 1. 進 Phase 0 五子步驟（0a → 0b → 0b′ → 0c → 0d），不跳過。
 2. 0b′／0c／0d 的判定**合併成一個 `AskUserQuestion` 一次確認**（見 §Phase 0c/0d 合併確認）；**禁文字 token NLP 判斷**。
 3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
@@ -61,7 +62,7 @@ description: |
    最近一次正常的時間點或 commit。寫進 `state.bug_context`，交給 `debug-systematic`
    的 Triage 用——不在這裡收，Triage 第一步就得回頭再問使用者一次。
 5. 不需要 100% 看完，估到能評 tier 即可。
-6. **T3 視角判定**：依 rules.md §Tier 機制「視角依改動面向」，從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design。命中幾個派幾個，寫 `state.review_perspectives`。T2 以下不判。
+6. **T3 視角判定**：依 rules.md §Tier 機制「視角依改動面向」，從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design。命中幾個派幾個，寫 `state.review_perspectives`。0b 時 Tier 只是預判，以 0d 定案後為準；定案不是 T3、或 Track=Bug → 清掉這欄。
 
 ---
 
@@ -256,7 +257,7 @@ rules.md §決策點選單 禁止拿文字回覆當 gate 信號，這裡是決�
 
 ## §補施工清單入口
 
-execute-plan、dispatch-parallel 或 verify-done 退回來「改施工清單」時走這裡：state 已有 `tier=T2` 且 `spec_path` 存在 → **不跑 Phase 0**，只做：Read spec → 改寫 `## 施工清單` → 同一顆 spec gate 只問這張表 → 交棒 execute-plan。把 user 拉回 0a 重問 Track / Tier 是錯的。
+execute-plan、dispatch-parallel 或 verify-done 退回來「改施工清單」時走這裡：state 已有 `tier=T2` 且 `spec_path` 存在 → **不跑 Phase 0**，只做：Read spec → 改寫 `## 施工清單`（改完仍須 ≤ 8 列；超過才回 0d 升 T3）→ 同一顆 spec gate 只問這張表 → 交棒 execute-plan。把 user 拉回 0a 重問 Track / Tier 是錯的。
 
 ---
 

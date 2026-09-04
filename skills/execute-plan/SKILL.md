@@ -18,13 +18,13 @@ description: |
 
 **載入後立即動作**：
 
-1. **讀 task 來源**：`plan_path` 有值（T3）→ Read plan.md。`plan_path` 為 null → Read `spec_path`：T2 取標題行**恰為** `## 施工清單` 的那張表、每列一個 task（`group` = parallel-group、「怎麼驗」= verify command）；T1 依 success criteria 自拆 1-3 個 task。T2 的 spec 沒這段 → 交棒 brainstorm §補施工清單入口，不自己編。同時讀 `spec_path` 對齊目標。
+1. **讀 task 來源**：`plan_path` 有值（T3）→ Read plan.md。`plan_path` 為 null → Read `spec_path`：T2 取標題行**恰為** `## 施工清單` 的那張表、每列一個 task（`group` = parallel-group、「怎麼驗」= verify command）；T1 依 success criteria 自拆 1-3 個 task。T2 的 spec 沒這段、或超過 8 列 → 交棒 brainstorm §補施工清單入口（超過 8 列要回 0d 升 T3），不自己編。同時讀 `spec_path` 對齊目標。
    載入時宣告一句給 user 看：「Tier=T2：依 rules.md §Tier 表不寫 plan.md、不跑 review-plan；task 來源 = spec §施工清單（N 列）」。
-2. **TaskCreate**：把 plan 內每個 task 落到 TaskCreate（含 parallel-group 屬性）。
+2. **TaskCreate**：把 task 來源（plan 的每個 task / 施工清單的每一列）落到 TaskCreate（含 parallel-group 屬性）。
 3. **逐 group 推進**：
    - 同 `parallel-group` 多 task → 載 `dispatch-parallel`、由它判跑法（Agent Teams / subagent / 串行）並問 user
    - 單 task group → 主 agent 自己跑 tdd-cycle
-4. **每 task 完跑 verify**（plan 內的 verify command + 主 build / test）。
+4. **每 task 完跑 verify**（task 來源給的 verify command + 主 build / test）。
 5. **每 task 完 commit**（繁中、依 rules.md §Commit 訊息 格式）。
 6. **全 task 完** → 交棒 verify-done。
 
@@ -71,7 +71,7 @@ description: |
      6. 暫停整個 plan 重新 brainstorm——此時未 commit 的改動一律 `git stash`，不丟棄
      > **不得自行選定後繼續**。大改代表有新的視覺決策要做，那是 user 的決定不是實作細節。
      > **無人值守**時停在這裡等，**不得自選**（對齊 `design-direction` §使用契約 的同一條禁令）。
-4. **回寫 state**：把補判結果寫回 `state.design`（`involved=true`、`size` 依補判），原值存進 `design_rejudge[].design_before`。**大改才另外回寫 `plan.md`**（在該 task 底下追加 `轉進紀錄`）——小改只進 state，不必動 plan，否則「順手多改一個 `.css`」的成本過重。
+4. **回寫 state**：把補判結果寫回 `state.design`（`involved=true`、`size` 依補判），原值存進 `design_rejudge[].design_before`。**大改才另外落檔**（T3 在 `plan.md` 該 task 底下追加 `轉進紀錄`；T1 / T2 追加到 spec 的 `## 施工紀錄`）——小改只進 state，不必動檔，否則「順手多改一個 `.css`」的成本過重。
    > 為什麼一定要回寫 `state.design`：不回寫的話 `verify-done` §漏網複查 會對同一批檔**再觸發一次**；大改情境甚至會把 user 五分鐘前答過的問題再問一次並升成 blocker。
 5. **接回 §Task 推進規則 第 3 步（tdd-cycle）**，從中斷處繼續，**不必整個紅綠循環重來**。
 
@@ -144,7 +144,7 @@ step 失敗 / verify 失敗時：
 4. 選後執行；`state.fail_history` append
 
 **退 write-plan 還是退 brainstorm，用這句當場判**：「把 plan 改對，這件事就對了嗎？」
-會對 → 退 write-plan；改對 plan 還是在做錯的東西 → 退 brainstorm。措辭與判準跟
+會對 → 退 write-plan（T3）／ 交棒 brainstorm §補施工清單入口（T2）；改對 plan 還是在做錯的東西 → 退 brainstorm 0a 重釐清。措辭與判準跟
 `review-plan` §User gate 的選項 3 / 4、`verify-done` §Verify fail 的對應選項一致，三處刻意同一套。
 
 ---

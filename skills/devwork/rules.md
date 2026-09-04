@@ -130,7 +130,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 - **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構為準；超過 8 列代表 Tier 判低了，回 0d 升 T3。
 - **`lang-reviewer` agent 不自動 spawn**：語言 idiom / pitfall 提示由 request-review 依副檔名寫進 reviewer prompt；user 顯式要「用 lang-reviewer 看」才派。
 - **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state。「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
-- 精簡依據見 `docs/archive/2026/t2-lane-slim/spec.md`（2026-09-04；不在此重述，避免常駐吃 context）。
+- 精簡依據見 `docs/archive/2026/` 的 `t2-lane-slim` 主題（2026-09-04 merge 後歸檔；不在此重述，避免常駐吃 context）。
 
 ### §協作模式判定（Agent Teams gate）
 判「這件事要不要開 Agent Teams」。**判準是工作者之間要不要互相講話，不是能不能平行**——能平行但不用溝通的工作，subagent 就夠、且便宜得多。

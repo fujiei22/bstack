@@ -122,11 +122,11 @@ state:
 
 範例好的 description：
 ```
-按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（review-plan user accept 後；
-T1 由 brainstorm 直接交棒）；亦可由使用者顯式呼叫。
-涵蓋：讀 plan、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
+按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（T3 由 review-plan user accept 後；
+T1 / T2 由 brainstorm 直接交棒、plan_path 為 null）；亦可由使用者顯式呼叫。
+涵蓋：讀 task 來源、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
 task fail 處置、blocker 升級。
-上游：review-plan（user accept）或 brainstorm（T0 直接進）。
+上游：review-plan（T3）；brainstorm（T1 / T2，T2 的 task 來源 = spec ## 施工清單）。
 下游：verify-done（全 task 完）。
 ```
 

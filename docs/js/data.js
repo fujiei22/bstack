@@ -253,6 +253,7 @@ const FLOW_DATA = {
     ['TDDLoop',      'TaskFail',     'task verify 非綠',             'solid'],
     ['TaskFail',     'TDDLoop',      'retry / adjust+retry / rollback', 'solid'],
     ['TaskFail',     'LoadWP',       '退 write-plan（T3）',      'solid'],
+    ['TaskFail',     'BS',           'T2：交棒 brainstorm §補施工清單入口', 'dashed'],
     ['TaskFail',     'Blocker',      'escalate / verify 反覆失敗 >2 次', 'solid'],
 
     // verify
@@ -261,7 +262,7 @@ const FLOW_DATA = {
     ['VerifyRun',    'VerifyFail',   '非綠',                         'solid'],
     ['VerifyFail',   'TDDLoop',      'retry / adjust+retry / rollback\n/ 退回 execute-plan 改實作', 'solid'],
     ['VerifyFail',   'LoadWP',       '退 write-plan（T3）',      'solid'],
-    ['VerifyFail',   'BS',           '退回 brainstorm 重判設計',      'dashed'],
+    ['VerifyFail',   'BS',           'T2：補施工清單 /\n退回 brainstorm 重判設計',      'dashed'],
     ['UIQ',          'LoadFE',       'T3 + UI',                     'solid'],
     ['LoadFE',       'FEAgent',      '',                            'solid'],
     ['FEAgent',      'LoadReq',      '',                            'solid'],
@@ -283,7 +284,7 @@ const FLOW_DATA = {
     ['UGDesign',     'ThreeWay',     '都不要：重出三版\n（上限 1 次）',  'solid'],
     ['UGDesign',     'RerunCap',     '第 2 次仍全否',                'solid'],
     ['RerunCap',     'LoadWP',       'T3：user 描述方向 → 做一版',       'solid'],
-    ['RerunCap',     'BS',           '退回 brainstorm 重釐清',       'dashed'],
+    ['RerunCap',     'BS',           'T2：回 brainstorm 3.5 回寫清單 /\n退回 brainstorm 重釐清',       'dashed'],
     ['UGDesign',     'LoadWP',       'T3 選定：write-plan 2.5 讀定案',  'solid'],
     ['UGDesign',     'LoadExec',     'T2：回寫施工清單、再確認 → execute-plan', 'solid'],
 

@@ -110,9 +110,13 @@ spawn 視角 A 與 B 兩個 subagent，不另開綜合 reviewer；兩個 prompt 
 ### 視角 A — 架構 / 重構
 
 ```
-你是架構 reviewer。讀以下 diff：
+你是架構 reviewer。讀以下 diff 與 context：
 <diff>
+- spec: <spec 內容>
+- plan: <plan.md 內容>
 {語言提示}
+
+先答一題：實作範圍與 spec / plan 一致嗎？有遺漏 / 過量嗎？（T3 沒有綜合 reviewer，這題只有你看）
 
 只看「架構是否合理」：
 
@@ -130,8 +134,9 @@ spawn 視角 A 與 B 兩個 subagent，不另開綜合 reviewer；兩個 prompt 
 ### 視角 B — 除錯 / 邊界 / failure mode
 
 ```
-你是 debugging-mindset reviewer。讀以下 diff：
+你是 debugging-mindset reviewer。讀以下 diff 與 context：
 <diff>
+- spec: <spec 內容>
 {語言提示}
 
 只看「會在什麼情境壞」：

@@ -218,8 +218,8 @@ check('P9b brainstorm 範本有裸標題「## 施工清單」與「## 施工紀�
     `（後果：兩端契約缺一邊 T2 就卡；改處：brainstorm「§spec 文件結構」「§交棒」、execute-plan「§使用契約」第 1 步）`);
 const rrMd = rd('skills/request-review/SKILL.md'), dwMd = rd('skills/dev-workflow/SKILL.md');
 check('P9c request-review / dev-workflow 不再自動派 lang-reviewer，改語言提示',
-  !/subagent_type:\s*lang-reviewer/.test(rrMd) && /§語言提示/.test(rrMd) && !/\+\s*lang-reviewer/.test(dwMd) && !/plan: <plan 內容>/.test(rrMd),
-  `request-review 自動派發=${/subagent_type:\s*lang-reviewer/.test(rrMd)} 語言提示段=${/§語言提示/.test(rrMd)} ` +
+  !/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd) && /§語言提示/.test(rrMd) && !/\+\s*lang-reviewer/.test(dwMd) && !/plan: <plan 內容>/.test(rrMd),
+  `request-review 自動派發=${/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd)} 語言提示段=${/§語言提示/.test(rrMd)} ` +
     `dev-workflow 殘留「+ lang-reviewer」=${/\+\s*lang-reviewer/.test(dwMd)} T2 prompt 仍貼 plan=${/plan: <plan 內容>/.test(rrMd)}` +
     `（後果：T2 還是開三個 reviewer；改處：request-review「§T2 subagent dispatch」「§語言提示」、dev-workflow「Phase 5」「§跨流程 skill 載入」「§Trace 標籤」範例）`);
 const fbMd = rd('skills/finish-branch/SKILL.md'), peFm = frontmatter(rd('skills/pr-explain/SKILL.md'));
@@ -243,13 +243,15 @@ check('P9g README：lang-reviewer 列不寫「自動派發」、簡介標 T3 PR 
   `lang-reviewer 列=「${readmeLR.slice(0, 60)}」 簡介 T3=${/T3 PR 自動解釋/.test(readmeMd)}（後果：README 說謊；改處：README.md 第 5 行與 Agents 表）`);
 const rpMd = rd('skills/review-plan/SKILL.md'), wpMd = rd('skills/write-plan/SKILL.md');
 check('P9h review-plan / write-plan 無 T2 分支、review-plan 視角依面向、無 CEO',
-  !/T2.*Eng-only|Eng-only.*T2|T2 不能跳|T2 仍需/.test(rpMd) && /依改動面向|命中幾個派幾個/.test(rpMd) && !/CEO/.test(rpMd) && !/Eng-only/.test(wpMd),
+  !/T2.*Eng-only|Eng-only.*T2|T2 不能跳|T2 仍需/.test(rpMd) && /依改動面向|命中幾個派幾個/.test(rpMd) && !/CEO/.test(rpMd) && !/Eng-only/.test(wpMd) &&
+    !/4 視角/.test(rd('skills/context-snapshot/SKILL.md')) && !/T1 由 brainstorm 直接交棒/.test(rd('skills/write-skill/SKILL.md')),
   `review-plan 殘留 T2=${/T2.*Eng-only|Eng-only.*T2|T2 不能跳|T2 仍需/.test(rpMd)} 依面向=${/依改動面向|命中幾個派幾個/.test(rpMd)} CEO=${/CEO/.test(rpMd)} write-plan Eng-only=${/Eng-only/.test(wpMd)}` +
     `（後果：前提說 T2 不進、Red Flag 說 T2 不准跳，Claude 挑一條照做；改處：review-plan 全檔、write-plan「§落檔 + 交棒」）`);
 const ddMd = rd('skills/design-direction/SKILL.md'), dpMd = rd('skills/dispatch-parallel/SKILL.md');
 check('P9i design-direction 下游分 T2 / T3；dispatch-parallel task 來源含施工清單',
-  /T2/.test(ddMd) && /施工清單/.test(ddMd) && /施工清單/.test(dpMd) && !/退 write-plan\*\* 改 parallel-group 標$/m.test(dpMd),
-  `design-direction T2=${/T2/.test(ddMd)} dispatch-parallel 施工清單=${/施工清單/.test(dpMd)}` +
+  (ddMd.match(/T2 → 回 `brainstorm`/g) || []).length === 2 && /施工清單/.test(dpMd) &&
+    !/退 write-plan\*\* 改 parallel-group 標$/m.test(dpMd) && !/→ 退 write-plan$/m.test(dpMd),
+  `design-direction 下游 T2 分流=${(ddMd.match(/T2 → 回 `brainstorm`/g) || []).length}/2 dispatch-parallel 施工清單=${/施工清單/.test(dpMd)} 殘留「→ 退 write-plan」=${/→ 退 write-plan$/m.test(dpMd)}` +
     `（後果：T2 大改定案後沒人回寫清單、T2 同 group 派工找不到 Task N；改處：design-direction description 與「§與 dev-workflow 銜接」下游、dispatch-parallel「§使用契約」1-2、「§隊友派工」「§subagent 派工」範本、「§失敗處置」）`);
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);

@@ -81,7 +81,7 @@ fail_history: [...]
 
 - <T0c track 為 Dev、reason: ...>
 - <T0d tier 為 T2、reason: ...>
-- <review-plan 4 視角 finding 採用了 X / 略過 Y、reason: ...>
+- <review-plan（視角依 state.review_perspectives）finding 採用了 X / 略過 Y、reason: ...>
 
 ## Open question / pending user input
 

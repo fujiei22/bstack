@@ -41,7 +41,8 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 三者一次 AskUserQuestion 確認（Track / Tier / UI 判定）
    ↓
 若 T0 → 直接實作（跳所有後續 Phase）
-若 T1+ → 進階段 2 起跑
+若 T1 / T2 → 進階段 3（execute-plan；T2 的 task 來源 = spec §施工清單）
+若 T3 → 進階段 2（write-plan）
 ```
 
 **0b′ 與 0c/0d 的關係**：`design.size` 與 `Tier` 是**獨立的兩根尺**，禁止互推（細則見 `design-language` §兩根尺）。三者合併在同一個 `AskUserQuestion` 確認，讓錯位當場可見。
@@ -220,7 +221,7 @@ Task fail / verify fail / review 嚴重打槍時：
    - **retry** — 同樣作法再跑（適暫態 / 偶發）
    - **adjust + retry** — AI 提具體調整方案、user 點頭後跑
    - **rollback** — `git reset` 前一個 commit / clean working tree、從頭來
-   - **回上層 Phase 重規劃** — 回 brainstorm 或 write-plan
+   - **回上層 Phase 重規劃** — T3 回 write-plan；T2 交棒 brainstorm §補施工清單入口（不重跑 Phase 0）；需求理解就錯才回 brainstorm 0a
    - **escalate** — user 接手
 4. user 選後執行；`state.fail_history` append 記錄
 

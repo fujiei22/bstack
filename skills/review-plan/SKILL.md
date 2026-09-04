@@ -22,7 +22,7 @@ description: |
 5. **主 agent 整合所有視角**：去重、分類嚴重度（critical / major / minor / nit）。
 6. `AskUserQuestion` 提 user gate：accept plan / 改某項 / 退回 write-plan / 退回 brainstorm。
 
-**禁止跳階**：state 標了的視角不能少；T2 進了本 skill 就是路徑錯，回報並交棒 execute-plan。
+**禁止跳階**：state 標了的視角不能少；T2 進了本 skill 就是路徑錯，回報並交棒 execute-plan（user 顯式呼叫例外：照 user 指定的視角跑）。
 
 ---
 
@@ -162,7 +162,7 @@ description: |
 # Plan review 總結
 
 > Plan: docs/work/<branch-name>/plan.md
-> Tier: <T2/T3>
+> Tier: T3
 > 視角: <依 state.review_perspectives，例 Eng + DX>
 
 ## Critical 共識（多視角同時提）

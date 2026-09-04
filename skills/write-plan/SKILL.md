@@ -27,7 +27,7 @@ description: |
 7. **落檔 + commit**：寫到 `docs/work/<branch-name>/plan.md`，commit。
 8. **交棒** review-plan。
 
-**前提**：必須有 spec_path。沒 spec → 退回 brainstorm。`state.tier` 不是 T3 → 回報「T2 不進 write-plan」並交棒 execute-plan，不寫 plan.md。
+**前提**：必須有 spec_path。沒 spec → 退回 brainstorm。`state.tier` 不是 T3 且不是 user 顯式呼叫 → 回報「T1 / T2 不進 write-plan」並交棒 execute-plan，不寫 plan.md。
 
 ---
 
