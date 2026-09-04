@@ -36,6 +36,9 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
 $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $Extras = Join-Path $PSScriptRoot 'extras.ps1'
+# [P] 的「目前專案」用 git toplevel：從 scripts/ 子目錄跑時 Get-Location 會顯示成 …\scripts，與 extras.ps1 的判定一致
+$ProjectRoot = (Get-Location).Path
+try { $top = git rev-parse --show-toplevel 2>$null; if ($LASTEXITCODE -eq 0 -and $top) { $ProjectRoot = $top -replace '/', [IO.Path]::DirectorySeparatorChar } } catch {}
 $GithubRepo = 'fujiei22/bstack'
 $DryRun = [bool]$WhatIfPreference
 
@@ -54,7 +57,9 @@ function Run-Claude {
     $cmd = "claude $($args_ -join ' ')"
     if ($DryRun) { Write-Host "  [whatif] $cmd"; return 0 }
     Write-Host "  > $cmd"
-    & claude @args_
+    # 一定要 | Out-Host：不接的話 claude 的 stdout 會變成本函式的回傳值、跟 exit code 混成一個陣列，
+    # 呼叫端 `-ne 0` 比對陣列永遠為真 → 明明成功卻印「失敗」（首次實跑就踩到）。
+    & claude @args_ 2>&1 | Out-Host
     return $LASTEXITCODE
 }
 
@@ -87,7 +92,7 @@ else {
 # ── 3. 裝 plugin ─────────────────────────────────────────────────────────────
 Step 3 '裝 plugin'
 Write-Host "  [U] 使用者層級：所有專案都能用 /devwork；兩支 hook 在你所有專案生效"
-Write-Host "  [P] 目前專案：只在 $((Get-Location).Path) 生效（寫進該專案 .claude/settings.json）"
+Write-Host "  [P] 目前專案：只在 $ProjectRoot 生效（寫進該專案 .claude/settings.json）"
 Write-Host "  [T] 不安裝，只印試用指令（claude --plugin-dir）"
 Write-Host "  [S] 跳過"
 $defaultScope = if ($Scope) { $Scope.Substring(0, 1) } else { 'U' }
