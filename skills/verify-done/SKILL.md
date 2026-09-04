@@ -51,20 +51,21 @@ description: |
 | T2 | 可選；AI 視改動量自判（牽動 user flow 建議跑） |
 | T3 | **必跑**（fail 不能放行 verify-done）；**文字節點豁免**見下 |
 
-**文字節點豁免（T3 也適用）**：diff 裡的 HTML 行只動**文字節點**或 **`data-*` 屬性值**——`class / style / id / href` 等屬性集合與標籤結構不變、沒有 `.css / .scss` 進 diff——就不派 `frontend-e2e-runner` 重跑整套（整套驗的是互動，這種改動沒有互動可驗），改主 agent 做 smoke。判準與 rules.md §設計語言對齊 的文字節點豁免同構。**用下面這行判，不用感覺判**（把舊行與新行剝掉文字節點與 `data-*` 後的標籤骨架做集合比對；純文字行不計，所以段落重排斷行不影響；有 CSS 檔就直接 NOT）：
+**文字節點豁免（T3 也適用）**：改動的 HTML 只動**文字節點**或 **`data-*` 屬性值**（屬性集合、標籤結構與順序、inline `<script>` / `<style>` 內容都不變），且 diff 裡沒有任何程式 / 樣式檔——就不派 `frontend-e2e-runner` 重跑整套（整套驗的是互動，這種改動沒有互動可驗），改主 agent 做 smoke。這比 rules.md §設計語言對齊 的文字節點豁免**寬**（那條連 `data-*` 值都不放行），兩者各管各的。**用判定器判，不用感覺判**——在被施工的專案根目錄跑：
 
 ```bash
-node -e 'const r=process.argv[1]||"main...HEAD";const d=require("child_process").execSync(`git diff -U0 ${r} -- "*.html" "*.css" "*.scss"`,{encoding:"utf8"});if(/^diff --git .*\.s?css\b/m.test(d)){console.log("NOT-TEXT-ONLY: css");process.exit(1)}const sig=l=>{const s=l.slice(1);if(!/[<>]/.test(s))return "";return s.replace(/\sdata-[\w-]+=(?:"[^"]*"|\x27[^\x27]*\x27)/g,"").replace(/>[^<]*</g,"><").replace(/^[^<]*</,"<").replace(/>[^<]*$/,">").trim()};const rm=[],ad=[];for(const l of d.split("\n")){if(/^-[^-]/.test(l)){const s=sig(l);if(s)rm.push(s)}else if(/^\+[^+]/.test(l)){const s=sig(l);if(s)ad.push(s)}}const ok=rm.sort().join("\n")===ad.sort().join("\n");console.log(ok?"TEXT-ONLY":"NOT-TEXT-ONLY: 標籤/屬性骨架有變");process.exit(ok?0:1)' "<base>...HEAD"
+node <plugin 根>/scripts/text-only-diff.mjs <base>...HEAD [--ignore <路徑前綴>]
 ```
 
-實測（2026-09-04）：PR #64（文字 + `data-upto`）與 #66（一句文案）TEXT-ONLY；PR #62（動 CSS）與 #61（新增 meta 標籤）NOT-TEXT-ONLY。exit 0 才豁免；輸出 NOT 或腳本本身出錯都照原規則派 runner（保守方向）。**注意**：這行含正則反斜線，從本檔複製、不要經會吃反斜線的工具轉貼。
+plugin 根 = 本 skill 的 Base directory 往上兩層。它把整份 HTML 剝成骨架（文字節點剝掉、`data-*` 值歸零、script / style 原樣）後**依序**比對，任何不確定都回 NOT-TEXT-ONLY（fail-closed）：有 `.css / .js / .tsx …` 進 diff、沒有 HTML 改動、working tree 還有未 commit 的前端改動、新增 / 刪除的 HTML 檔。`--ignore` 只給「產出器重產且另有契約守著」的檔（例本 repo `--ignore docs/js/references-data.js`，由 `build-references.ps1 -Check` 守），不是萬用白名單。exit 0 才豁免；NOT 或腳本出錯都照原規則派 runner。判定邏輯由契約 P10a 對 9 個 fixture 執行守著。
 
-**smoke 三步（主 agent 自己跑 Playwright MCP，不派 agent）**：
-1. 起靜態伺服器（Playwright MCP 擋 `file://`）：`node -e 'require("http").createServer((q,s)=>{const f=require("path").join("docs",decodeURIComponent(q.url.split("?")[0]).replace(/\/$/,"/index.html"));require("fs").readFile(f,(e,b)=>{s.writeHead(e?404:200);s.end(e?"":b)})}).listen(8765)'`（背景跑；路徑依專案）→ `browser_navigate` 改到的頁
+**smoke 四步（主 agent 自己跑 Playwright MCP，不派 agent）**：
+1. `node <plugin 根>/scripts/static-serve.mjs <站根> 8765`（背景跑；Playwright MCP 擋 `file://`；有 MIME 表，`type="module"` 才不會被 strict-MIME 擋）→ `browser_navigate` 改到的頁
 2. `browser_console_messages` 只看 error 級：必須零筆；有就是 FAIL，不豁免、退回派 runner
-3. 改動處存在：改文字 → `browser_find` / snapshot 找得到新文字；改 `data-*` 且它驅動 JS（例 `data-upto` 控制節點鏈）→ 看**渲染結果**不是原始碼（例：snapshot 裡該段落的節點鏈長度對得上）
+3. 改動處存在：改文字 → `browser_find` / snapshot 找得到新文字；改 `data-*` → 看**渲染結果**不是原始碼（它可能驅動 JS，也可能被 CSS `[data-…]` 選擇器吃到；例 `data-upto` 改了就看該段落的節點鏈長度）
+4. 結束 server（kill 背景 task），免得下次撞 EADDRINUSE 或撞到舊 server
 
-結果寫 `state.verify_results.e2e = smoke`（不是 `pass`——讓 request-review / PR body 看得出這輪沒跑整套），`state.frontend_test.ran = false`、`report_path` 寫 snapshot 或截圖路徑。
+結果寫 `state.verify_results.e2e = smoke`（不是 `pass`），`state.frontend_test.ran = false`、`report_path` 寫 snapshot 或截圖路徑；finish-branch 的 PR 模板會把這個值印進 verify 那行，reviewer 看得出這輪沒跑整套。
 
 frontend-test 跑完（沒豁免時）寫回 `state.verify_results.e2e` + `state.frontend_test.*`、本 skill 整合進綜合驗證結果。
 
@@ -117,6 +118,6 @@ state:
 |---|---|
 | 「lint warning 算過」 | warning 跟 error 看實質；warning 也該處 |
 | 「e2e 慢、跳過」 | T3 UI 改動 e2e 是 must（載 frontend-test）；T1 預設不跑、T2 可選 |
-| 「只改了幾個字，感覺不用跑」 | 用 §UI / browser e2e 那行 `node -e` 判，TEXT-ONLY 才走 smoke；「感覺」不是豁免依據 |
+| 「只改了幾個字，感覺不用跑」 | 用 `text-only-diff.mjs` 判，TEXT-ONLY 才走 smoke；「感覺」不是豁免依據 |
 | 「文字節點豁免也懶得 smoke」 | 豁免的是整套 runner，不是驗證；smoke 三步必做、`e2e=smoke` 必寫 |
 | 「環境問題不算 verify fail」 | 仍要 escalate，user 環境壞 user 才能修 |

@@ -23,7 +23,7 @@ verify-done 的「UI / browser e2e」子流程。**Mode A 架構**：skill 留�
 
 | 觸發 | 是否載入 |
 |---|---|
-| T3 + UI / 前端檔改動 | **必載**；例外：diff 只動文字節點 / `data-*`（verify-done §UI / browser e2e 的 `node -e` 判 TEXT-ONLY）→ 不載、verify-done 主 agent 做 smoke |
+| T3 + UI / 前端檔改動 | **必載**；例外：diff 只動文字節點 / `data-*`（verify-done §UI / browser e2e 用 `scripts/text-only-diff.mjs` 判 TEXT-ONLY）→ 不載、verify-done 主 agent 做 smoke |
 | T2 + 前端檔改動（`.tsx / .jsx / .vue / .svelte / .html / .css / .scss`）| **可載**（牽動 user flow 建議載）|
 | T1 + 前端改動 | 預設不載；user 明說再載 |
 | user 明說「跑 e2e」「跑 playwright」「測一下前端」 | **必載** |
