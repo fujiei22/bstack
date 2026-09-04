@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light" data-theme-mode="light">
+<head>
+  <meta charset="UTF-8" />
+  <title>bstack OG 卡原稿（產圖用，站上沒有任何頁連到這裡）</title>
+  <!--
+    這是 docs/og.png 的原稿。重產步驟：
+      1. 用 Playwright 開這個檔（file:// 即可，字型走 Google Fonts 要連網）
+      2. 等 document.fonts.ready，確認 Newsreader / IBM Plex Sans / Noto Sans TC / IBM Plex Mono 都 loaded
+      3. 對 .card 元素截圖、scale=css → 得到 1200×630 的 PNG，存到 docs/og.png
+      4. node docs/tools/docs-site-contract.mjs → C20d 綠
+    色值全部 var(--*) 來自 ../css/styles.css，站上換配色這裡自動跟；契約 C20e 守這件事。
+    強制 data-theme="light"：OG 圖不跟系統主題，只出 light 版。
+    換圖注意：LINE / FB / Slack 按網址快取預覽圖，換了圖要改檔名或在兩頁的 og:image 加 ?v=N，
+    否則舊圖會掛很久。og:image 寫死 https://fujiei22.github.io/bstack/，加 CNAME 時要一併改。
+    標記 .mk 是 landing.css .lrail .mk 的等比放大（40px → 120px，×3）：
+    圓角 3px → 9px、字級 19px → 57px、letter-spacing 與字重照抄。
+  -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600&display=swap">
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    /* styles.css 的 body reset 已給 margin 0 / --paper 底 / --ink 字 / --font-body / overflow hidden，
+       這裡只補卡片本身。全部尺寸寫死 px：OG 圖是固定 1200×630，不需要響應式。 */
+    html, body { width: 1200px; height: 630px; }
+    .card {
+      position: relative; width: 1200px; height: 630px; padding: 84px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      background: var(--paper); color: var(--ink);
+    }
+    .mk {
+      width: 120px; height: 120px; display: grid; place-items: center; border-radius: 9px;
+      background: var(--accent); color: var(--accent-ink);
+      font-family: var(--font-display); font-weight: 600; font-size: 57px; letter-spacing: -.02em;
+    }
+    .name {
+      margin: 0; font-family: var(--font-display); font-weight: 600;
+      font-size: 104px; line-height: 1; letter-spacing: -.022em;
+    }
+    .tag { margin: 18px 0 0; font-family: var(--font-body); font-size: 36px; line-height: 1.4; color: var(--ink-2); }
+    .url { font-family: var(--font-mono); font-size: 22px; letter-spacing: .04em; color: var(--ink-3); }
+    .rule { position: absolute; left: 84px; right: 84px; bottom: 150px; border-top: 1px solid var(--rule); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mk">bs</div>
+    <div>
+      <h1 class="name">bstack</h1>
+      <p class="tag">Claude Code 開發流程包</p>
+    </div>
+    <div class="rule"></div>
+    <div class="url">fujiei22.github.io/bstack</div>
+  </div>
+</body>
+</html>
