@@ -29,7 +29,7 @@
 | 新建 | `docs/og.png` | 兩頁共用的 OG 圖；由 og-card.html 截圖產生 |
 | 改動 | `docs/index.html:8` 之後 | 插入 OG / Twitter meta（在防 FOUC script 之前，不動 script 與 CSS 順序） |
 | 改動 | `docs/flow.html:7` 之後 | 插入 `<meta name="description">` ＋ OG / Twitter meta |
-| 改動 | `docs/tools/docs-site-contract.mjs:11-19`（檔頭對照表）與 `:648`（C19d 之後、selftest 之前） | 加 C20a-e |
+| 改動 | `docs/tools/docs-site-contract.mjs:11-19`（檔頭對照表）與 `:648`（C19d 之後、selftest 之前） | 加 C20a-f |
 
 **介面**：無跨檔 function。契約與 HTML 之間的「介面」是 meta 的 `property` 名與 `content` 值，寫死如下：
 
@@ -54,14 +54,17 @@
 **parallel-group**: 1
 **files**:
 - modify: `docs/tools/docs-site-contract.mjs:11-19`（檔頭對照表加 C20 一行）
+- modify: `docs/tools/docs-site-contract.mjs:25-26`（檔頭「跑法」的舊路徑改成現址；既有問題，順手修）
 - modify: `docs/tools/docs-site-contract.mjs:648`（C19d 之後插入 C20 區塊）
 
 - [ ] **Step 1: 寫失敗檢查**
 
 檔頭對照表在 C18 那行後面加：
 ```
- *   C19 landing 頁                      C20 social meta 與 OG 圖（og:* / twitter:* / og.png 1200×630）
+ *   C19 landing 頁                      C20 social meta 與 OG 圖（og:* / twitter:* 齊且與 title / description 同文、og.png 1200×630）
 ```
+
+檔頭「跑法」兩行的 `docs/work/refactor/docs-site-redesign/verify/contract.mjs` 改成 `docs/tools/docs-site-contract.mjs`（2026-09-03 搬檔時漏改）。
 
 C19d 之後、`// ── selftest` 之前插入：
 ```js
@@ -70,6 +73,9 @@ C19d 之後、`// ── selftest` 之前插入：
 // og:image 是絕對網址且真的指到 docs/ 底下存在的檔、那個檔是 1200×630 的 PNG。
 // 尺寸不能只看檔案存在——截圖時視窗尺寸或 DPR 一偏，圖就是 2400×1260 或 1200×663，
 // 平台照樣顯示但會裁掉邊。
+// metaOf 的契約假設：只認 `<meta property|name="…" content="…"`——屬性 property/name 在前、
+// 雙引號。屬性順序反過來或用單引號會回 null 而紅，這是刻意的：兩頁的 meta 格式固定，
+// 契約不替不存在的寫法買保險。
 const SITE = 'https://fujiei22.github.io/bstack/';
 const metaOf = (src, prop) => {
   const m = src.match(new RegExp(`<meta\\s+(?:property|name)="${prop}"\\s+content="([^"]*)"`));
@@ -103,6 +109,21 @@ for (const [name, src] of Object.entries(ogPages)) {
     `期望 og:url=${SITE}${name === 'index.html' ? '' : name} 且宣告 1200×630，實際 og:url=${metaOf(src, 'og:url')} ` +
       `${metaOf(src, 'og:image:width')}×${metaOf(src, 'og:image:height')}（後果：兩頁分享出去指到同一頁，或平台按錯尺寸預留版位）`
   );
+  // C20f 守三份同文不漂移：<title> / og:title / twitter:title 一組，
+  // <meta name="description"> / og:description / twitter:description 一組。C20a 只驗存在，
+  // 日後改了 description 忘了改 og 版，分享卡跟頁面講的是兩套話而契約照綠。
+  const titleTag = (src.match(/<title>([^<]*)<\/title>/) || [])[1] || null;
+  check(
+    `C20f ${name} 的 og / twitter title、description 與 <title> / description 同文`,
+    !!titleTag && metaOf(src, 'og:title') === titleTag && metaOf(src, 'twitter:title') === titleTag &&
+      !!metaOf(src, 'description') && metaOf(src, 'og:description') === metaOf(src, 'description') &&
+      metaOf(src, 'twitter:description') === metaOf(src, 'description'),
+    `期望 og:title / twitter:title == <title>「${titleTag}」且 og:description / twitter:description == meta description，` +
+      `實際 og:title=${metaOf(src, 'og:title')} twitter:title=${metaOf(src, 'twitter:title')} ` +
+      `og:description 同文=${metaOf(src, 'og:description') === metaOf(src, 'description')} ` +
+      `twitter:description 同文=${metaOf(src, 'twitter:description') === metaOf(src, 'description')}` +
+      `（後果：分享卡與頁面講兩套話，改了一處另一處不跟）`
+  );
 }
 // 直接讀 byte，不用 read()——read() 會把 CRLF 換成 LF，二進位檔會被改壞。
 const ogPngPath = join(DOCS, 'og.png');
@@ -110,19 +131,22 @@ const ogPng = existsSync(ogPngPath) ? readFileSync(ogPngPath) : Buffer.alloc(0);
 const isPng = ogPng.length >= 24 && ogPng.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
 const pngW = isPng ? ogPng.readUInt32BE(16) : 0;
 const pngH = isPng ? ogPng.readUInt32BE(20) : 0;
+const OG_PNG_MAX = 512000;   // bytes；訊息與名稱都用這個數，不再一邊寫 KB 一邊寫 bytes
 check(
-  'C20d og.png 是 1200×630 的 PNG 且 < 500 KB',
-  isPng && pngW === 1200 && pngH === 630 && ogPng.length < 500 * 1024,
-  `期望 PNG 1200×630 且 < 512000 bytes，實際 isPng=${isPng} ${pngW}×${pngH} ${ogPng.length} bytes` +
+  `C20d og.png 是 1200×630 的 PNG 且 < ${OG_PNG_MAX} bytes`,
+  isPng && pngW === 1200 && pngH === 630 && ogPng.length < OG_PNG_MAX,
+  `期望 PNG 1200×630 且 < ${OG_PNG_MAX} bytes，實際 isPng=${isPng} ${pngW}×${pngH} ${ogPng.length} bytes` +
     `（後果：尺寸不對平台會裁邊；太大 LINE 這類平台可能不抓）`
 );
+// 剝掉 CSS 註解與 HTML 註解後整檔掃色值字面。不限 color / background 屬性——
+// border / box-shadow / 具名色（white）都算漏，原稿本來就該零色值字面、全靠 var(--*)。
 const ogCard = existsSync(join(DOCS, 'tools/og-card.html')) ? read('tools/og-card.html') : '';
+const ogCardBare = ogCard.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
 check(
   'C20e og-card.html 連 ../css/styles.css 且不自己定義色值',
   ogCard.includes('href="../css/styles.css"') &&
-    !/^\s*--[\w-]+:\s*(#[0-9A-Fa-f]{3,8}|rgba?\(|oklch\()/m.test(ogCard.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')) &&
-    !/(?:color|background)\s*:\s*(#[0-9A-Fa-f]{3,8}|rgba?\(|oklch\()/.test(ogCard.replace(/<!--[\s\S]*?-->/g, '')),
-  '期望 OG 卡原稿只用 var(--*) 取色（後果：站上換配色時 OG 圖原稿不跟著變，重產出來的圖跟站不同色）'
+    !/#[0-9A-Fa-f]{3,8}\b|rgba?\(|hsla?\(|oklch\(|:\s*(white|black)\b/.test(ogCardBare),
+  '期望 OG 卡原稿只用 var(--*) 取色、零色值字面（後果：站上換配色時 OG 圖原稿不跟著變，重產出來的圖跟站不同色）'
 );
 ```
 
@@ -130,18 +154,19 @@ check(
 
 ```bash
 node docs/tools/docs-site-contract.mjs
-# Expected: C1-C19 PASS；C20a/b/c 各兩條 FAIL（缺 meta）、C20d FAIL（isPng=false）、C20e FAIL；結尾 "9 FAILED"
+# Expected: C1-C19 PASS；C20a/b/c/f 各兩條 FAIL（缺 meta）、C20d FAIL（isPng=false）、C20e FAIL；結尾 "10 FAILED"
+# （reviewer 實測：C20a-e 版本是 8 FAILED；加 C20f 兩頁各一條 → 10）
 ```
 
 - [ ] **Step 3: 最小實作** — 本 task 只有紅，實作在 Task 2-4。
 
 - [ ] **Step 4: 跑確認** — 同 Step 2，紅是預期。
 
-- [ ] **Step 5: commit**
+- [ ] **Step 5: commit**（body 寫明刻意先紅，bisect 到這顆時不會誤判）
 
 ```bash
 git add docs/tools/docs-site-contract.mjs
-git commit -m "test: 契約加 C20 守 social meta 與 og.png 尺寸（先紅）"
+git commit -m "test: 契約加 C20 守 social meta 與 og.png 尺寸（先紅）" -m "刻意先紅：C20a-f 對應的 meta / og.png / og-card.html 在後續 commit 才加，此 commit 契約 10 FAILED 是預期。順手把檔頭跑法路徑改成 docs/tools/ 現址。"
 ```
 
 ---
@@ -258,7 +283,9 @@ node docs/tools/docs-site-contract.mjs | grep C20d
 mcp__playwright__browser_resize        width=1280 height=720
 mcp__playwright__browser_navigate      url=file:///D:/GitHub/bstack/docs/tools/og-card.html
 mcp__playwright__browser_evaluate      function: async () => { await document.fonts.ready; return [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family); }
-   # Expected: 回傳陣列含 Newsreader 與 Noto Serif TC / IBM Plex Sans；沒有就等 1 秒重跑一次，還是沒有 → 停下回報，不要截 fallback 字型的圖
+   # Expected: 回傳陣列含 Newsreader、IBM Plex Sans、Noto Sans TC、IBM Plex Mono 四個。
+   #   不會有 Noto Serif TC：卡上走 --font-display 的只有「bs」「bstack」全是拉丁字元，fallback 鏈逐字元比對、中文襯線根本不會被觸發載入。
+   #   少了任一個 → 等 1 秒重跑一次，還是沒有 → 停下回報，不要截 fallback 字型的圖
 mcp__playwright__browser_take_screenshot  target=".card"  scale="css"  type="png"  filename="D:/GitHub/bstack/docs/og.png"
    # 絕對路徑若被 MCP 拒絕：改 filename="og.png"，從回傳訊息裡的實際存檔路徑 cp 到 docs/og.png
 ```
@@ -290,13 +317,13 @@ git commit -m "feat: 加 docs 站 OG 圖 og.png（1200×630，由 og-card.html �
 
 兩檔各插一段，同 task 處理：改動形狀相同、各 15 行，拆兩 task 平行的協調成本高於收益。
 
-- [ ] **Step 1: 測試** — 對應 C20a / C20b / C20c（Task 1 已寫）。
+- [ ] **Step 1: 測試** — 對應 C20a / C20b / C20c / C20f（Task 1 已寫）。
 
 - [ ] **Step 2: 跑確認失敗**
 
 ```bash
-node docs/tools/docs-site-contract.mjs | grep 'C20[abc]'
-# Expected: 6 條 FAIL
+node docs/tools/docs-site-contract.mjs | grep 'C20[abcf]'
+# Expected: 8 條 FAIL
 ```
 
 - [ ] **Step 3: 插 meta**
@@ -343,7 +370,7 @@ node docs/tools/docs-site-contract.mjs | grep 'C20[abc]'
   <meta name="twitter:image" content="https://fujiei22.github.io/bstack/og.png" />
 ```
 
-**index.html 的 description 若與既有 `<meta name="description">` 不同步**：以既有那行為準複製，不要自己改寫（C8g 守那組數字）。
+**index.html 的 og:description 一律從既有 `<meta name="description">` 原文複製**，不要自己改寫——C20f 會比對三份同文，改寫就紅。（28 / 6 / 2 那組數字沒有契約守，C8g 守的是 body 裡的節點數；數字漂移是另一個既有缺口，本次不處理。）
 
 - [ ] **Step 4: 跑確認通過**
 
@@ -401,5 +428,6 @@ git commit -m "feat: 兩頁 head 補 OG 與 Twitter Card meta"
 
 - placeholder：無 TBD / TODO。
 - 名稱一致：`SITE` / `metaOf` / `OG_REQUIRED` / `ogPng` 只在 C20 區塊使用，不與既有 `html` / `landing` / `read` 撞名；`existsSync` / `readFileSync` / `join` 已在檔頭 import。
-- 並行性：group 1→5 全串行。Task 2 與 Task 4 理論上可並行（不同檔），但 Task 3 夾在中間依賴 Task 2，且 Task 4 只有 30 行貼上，開 subagent 不划算，保守分開。
+- 並行性：group 1→5 全串行，且是**依賴**不是保守：Task 3 要 Task 2 的原稿才能截圖；Task 4 收尾要跑 C20b，它要 `docs/og.png` 存在，所以 Task 4 必須在 Task 3 之後——Task 2 與 Task 4 若同時跑，Task 4 收尾時 C20b 必紅，破壞「每 task 收尾該綠的都綠」。
+- review 後修訂（2026-09-04，見 `review.md`）：FAILED 數字 9→10（加 C20f）、字型預期清單拿掉 Noto Serif TC、加 C20f、C20e 改整檔掃色值字面、C20d 統一用 bytes、檔頭舊路徑順手修、Task 1 commit body 註明刻意先紅、C8g 誤述修正。
 - scope：未動 favicon / theme-color / manifest / CI，與 spec 排除清單一致。
