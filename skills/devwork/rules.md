@@ -122,13 +122,14 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 |---|---|---|---|---|---|---|---|
 | **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
 | **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |
-| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 1 subagent（prompt 附語言 idiom） | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
-| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 雙視角 subagent（架構 × 除錯，各附語言 idiom） | audit + checklist + db-reviewer | 用 |
+| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium` + 主 agent 對 spec 自檢；純文件 diff 跳 | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
+| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 內建 `/code-review high` + 1 個 spec / 架構對齊 subagent（附語言 idiom）；純文件 diff 跳 | audit + checklist + db-reviewer | 用 |
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
 - **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構為準；超過 8 列代表 Tier 判低了，回 0d 升 T3。
-- **`lang-reviewer` agent 不自動 spawn**：語言 idiom / pitfall 提示由 request-review 依副檔名寫進 reviewer prompt；user 顯式要「用 lang-reviewer 看」才派。
+- **code review 先看副檔名再看 Tier**：diff 含程式碼副檔名才跑內建 code-review（抓 bug / 可簡化處，不帶 `--fix`、finding 交 receive-review）；只有 .md / 文案 / prompt / 資料檔的純文件 diff 跳過，一致性靠契約腳本與 review-plan。「符合 spec / 規則書」內建的不看：T2 主 agent 自檢、T3 派一個 subagent。判定表見 `request-review` §副檔名分流。
+- **`lang-reviewer` agent 不自動 spawn**：語言 idiom / pitfall 提示由 request-review 依副檔名寫進 T3 對齊 subagent 的 prompt；user 顯式要「用 lang-reviewer 看」才派。
 - **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state。「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
 - 精簡依據見 `docs/archive/2026/` 的 `t2-lane-slim` 主題（2026-09-04 merge 後歸檔；不在此重述，避免常駐吃 context）。
 
