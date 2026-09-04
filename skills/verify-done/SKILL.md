@@ -9,63 +9,25 @@ description: |
 ---
 
 # verify-done
-
 把 task 全跑完後到 PR 之間的「綠燈關卡」。**不過 = 不進 review**。
-
 ## 使用契約（強制）
-
-**載入後立即動作**：
-
 1. **讀 hand-off state** 取 `tier`、`codebase_impact`、`commits`。
-2. **依 tier 跑驗證套餐**：
-   - T1 = test + lint + type-check（基本盤）
-   - T2 = T1 + build + 周邊回歸測試 + lint 全跑
-   - T3 = T2 + 整 test suite + 必要時 browser e2e
+2. **依 tier 跑驗證套餐**（§Verify 套餐；T0 不進本 skill——rules.md §Tier 表 T0 全跳，直接實作後進 finish-branch）。
 2.5 **跑 §漏網複查 的觸發判斷**（**全 tier 都跑**，成本是 1 個 `git diff`）。
 3. **每項 verify 印 command + output**（讓 user 看得到）。
 4. 全綠 → 交棒 request-review。
-5. 非綠 → 走 §Verify fail 流程。
-
----
-
+5. 非綠 → 走 §verify 失敗處置。
 ## §Verify 套餐（按 tier）
-
-**T0 不進本 skill**：rules.md §Tier 表的 T0 全跳，dev-workflow 與 brainstorm 明訂
-T0 直接實作後進 finish-branch。下面只定義 T1-T3。
-
-### T1 套餐
-```
-1. 跑動到的測試檔
-   npm test <path> -v   /  pytest <path> -v
-2. 跑 lint（動到的範圍）
-   eslint <path>        /  ruff check <path>
-3. 跑 type-check（如有）
-   tsc --noEmit         /  mypy <path>
-```
-
-### T2 套餐
-- T1 全部
-- 跑**周邊回歸**：動到的 module + 依賴它的 module 的測試
-- 跑 **build**（確保沒讓 build pipeline 壞）
-- lint 全 repo 改動範圍
-
-### T3 套餐
-- T2 全部
-- 跑**整個 test suite**
-- 若改動含 UI / DOM / browser code（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）→ **載入 `frontend-test` skill** 跑 Playwright MCP e2e（必跑）
-
-　**例外**：落在 skill 定義目錄底下的前端檔（`skills/*/assets/`、`skills/*/references/` 等）**不觸發** —— 那些是**工具範本、非可執行頁面**（例如只靠 `Object.assign(window,…)` 導出、沒有 HTML 宿主的元件片段），e2e 無從跑起。判準與 `design-language` §使用契約 第 1 步一致。
-- 若改動含 DB → 跑 migration dry-run + schema diff 對齊
-
----
-
+| 項目 | T1 | T2 | T3 |
+|---|---|---|---|
+| 基本盤：動到的測試檔 + lint（T1 動到範圍、T2 起全 repo 改動範圍）+ type-check（如有） | ✓ | ✓ | ✓ |
+| 周邊回歸（動到的 module + 依賴它的 module 的測試）+ build | | ✓ | ✓ |
+| 整個 test suite；改動含 DB → migration dry-run + schema diff 對齊 | | | ✓ |
+| browser e2e：**載入 `frontend-test` skill** 跑 Playwright MCP e2e（必跑）；觸發與例外見 §UI / browser e2e | | | ✓ |
 ## §verify 失敗處置
-
-走 rules.md §Fail handling：
-
-1. 不靜默 retry
-2. 評起因（flaky / 環境 / 真 bug / verify command 寫錯）
-3. `AskUserQuestion` 提：
+特別 case 先分流：lint warning 但功能對 → 走 §Auto-fix 不危險類自動修；test flaky 反覆 3+ 次仍 flaky → 標 flaky、列入 `state.flaky_tests` 給 review 階段看、不阻塞；type error 在改動範圍外 → 標 unrelated、不阻塞但提示 user。其餘走 rules.md §Fail handling：
+1. 不靜默 retry；評起因（flaky / 環境 / 真 bug / verify command 寫錯）
+2. `AskUserQuestion` 提：
    - **retry**（flaky / 暫態）
    - **adjust + retry**（AI 提具體 fix）
    - **rollback** 該 commit / 從前一個綠的 state 重來
@@ -75,14 +37,7 @@ T0 直接實作後進 finish-branch。下面只定義 T1-T3。
    - **退回 execute-plan 補做**（漏網複查判為大改時）
    - **退回 brainstorm 重判**（設計判定從一開始就錯）
    - **接受現況並記入技術債**（這一輪先出去，方向另案處理）
-4. 選後執行；`state.fail_history` append
-
-**特別 case**：
-- lint warning 但功能對 → 走 §Auto-fix 不危險類自動修
-- test flaky 反覆 3+ 次仍 flaky → 標 flaky、列入 `state.flaky_tests` 給 review 階段看；不阻塞流程
-- type error 在改動範圍外 → 標 unrelated；不阻塞 但提示 user
-
----
+3. 選後執行；`state.fail_history` append
 
 ## §UI / browser e2e
 
@@ -99,9 +54,6 @@ T0 直接實作後進 finish-branch。下面只定義 T1-T3。
 frontend-test 跑完寫回 `state.verify_results.e2e` + `state.frontend_test.*`、本 skill 整合進綜合驗證結果。
 
 詳見 `frontend-test` skill §測試矩陣 / §測試流程 / §測試報告。
-
----
-
 ## §漏網複查
 
 **要防的事**：Phase 0b′ 判 `design.involved=false`（或 `scope` 判錯），但這一輪**實際改動檔**含前端副檔名——判定漏了，而且沒有任何 gate 會發現。**全 tier 都跑**：這種漏網最常發生在「T1，兩個檔，順手改一下」，只在 T3 跑等於對最需要的情境無效。
@@ -120,11 +72,7 @@ frontend-test 跑完寫回 `state.verify_results.e2e` + `state.frontend_test.*`�
 3. **補判結果是大改 → 標為 blocker**，走 §verify 失敗處置 的 design 專屬三選項。
 
 **界線（硬規則）**：**不在 verify-done 補做三方向。** 這時 code 已經寫完，叫三方向重來等於推翻已經寫好的實作——成本與收益不成比例。verify-done 的職責是**把漏網這件事變成看得見的**，不是把它就地補完。
-
----
-
 ## §hand-off state
-
 ```yaml
 state:
   verify_results:
@@ -141,35 +89,17 @@ state:
     fail_count: <n>
     viewports_tested: [...]
     blocker: <bool>
-  design_rejudge:               # 與 execute-plan 共用；沒發生就是空 list
-    - stage: verify-done
-      task_id: null             # verify 階段沒有 task 歸屬
-      trigger_files: [...]
-      design_before: {...}
-      design: {...}
-      action: <小改對齊|blocker>
-      user_choice: <blocker 時 user 選的選項|null>
+  design_rejudge: [...]         # 結構同 execute-plan §hand-off state：stage: verify-done、task_id: null、action 無大改-user-gate；沒發生就是空 list
   flaky_tests: [...]
   current_phase: verify-done-done
 ```
-
-**下一 phase**：→ `request-review`
-
----
-
 ## §結尾 Trace 標籤
-
 ```
 [Trace] Phase=verify-done | Tier=<T1-T3> | Track=<Bug/Dev> | Skill=verify-done
 ```
-
----
-
 ## §Red Flags
-
 | 想法 | 真相 |
 |---|---|
-| 「test pass build 之後跑」 | 一起跑、要看 build 是否被 task 改動弄壞 |
 | 「lint warning 算過」 | warning 跟 error 看實質；warning 也該處 |
 | 「e2e 慢、跳過」 | T3 UI 改動 e2e 是 must（載 frontend-test）；T1 預設不跑、T2 可選 |
 | 「環境問題不算 verify fail」 | 仍要 escalate，user 環境壞 user 才能修 |
