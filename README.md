@@ -18,7 +18,7 @@
 
 ---
 
-## Skills（28）
+## Skills（27）
 
 ### Phase 主流程
 
@@ -52,7 +52,6 @@
 | **lock-files** | 標某些檔禁改，避免不小心動到 |
 | **context-snapshot** | 進度太長想換 session 時把狀態存下來 |
 | **context-resume** | 把上次存的進度讀回來繼續做 |
-| **zh-humanize** | 去掉中文的 AI 味、校正中國用語與半形標點；載入不等於改寫，沒點選就不動字 |
 
 ### Meta
 

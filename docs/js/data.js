@@ -131,8 +131,6 @@ const FLOW_DATA = {
     FEAgent:      { phase: 'phase_verify', type: 'agent',   shape: 'rect',    label: '派 agent：frontend-e2e-runner\n（Playwright 隔離 context）' },
     LeakQ:        { phase: 'phase_verify', type: 'default', shape: 'diamond', label: '§使用契約 2.5 漏網複查（全 Tier）\n實改含前端檔但 involved=false / scope 對不上？' },
     LeakRecheck:  { phase: 'phase_verify', type: 'impl',    shape: 'rect',    label: '重跑 design-language 判定 + 四項對齊檢查\n已在 design_rejudge 的檔不重複觸發' },
-    TextQ:        { phase: 'phase_verify', type: 'default', shape: 'diamond', label: '§使用契約 2.6 對外文字複查（全 Tier）\n本輪改到 README / release notes / 使用文件？\n排除 docs/work/ 與 docs/archive/（施工文件不算）' },
-    LoadZhH:      { phase: 'phase_verify', type: 'skill',   shape: 'rect',    label: '載入 skill：zh-humanize\n走「被 verify-done 自動載入」路徑\n只負責列清單；改不改不在 verify-done 做' },
     VerifyFail:   { phase: 'phase_verify', type: 'gate',    shape: 'diamond', label: '§Verify fail 處置（9 選項）\nretry / adjust+retry / rollback / 退 execute-plan\n/ 退 write-plan / 退 brainstorm 重判設計\n/ 補做 / 接受並記技術債 / escalate' },
 
     // ───────── Phase 5：request-review + receive-review ─────────
@@ -270,11 +268,8 @@ const FLOW_DATA = {
     ['VerifyFail',   'BS',           '退回 brainstorm 重判設計',      'dashed'],
     ['UIQ',          'LoadFE',       'T3 + UI',                     'solid'],
     ['LoadFE',       'FEAgent',      '',                            'solid'],
-    ['FEAgent',      'TextQ',        '',                            'solid'],
-    ['UIQ',          'TextQ',        '否',                          'solid'],
-    ['TextQ',        'LoadZhH',      'yes',                         'solid'],
-    ['LoadZhH',      'LoadReq',      '列清單交 user 定',            'solid'],
-    ['TextQ',        'LoadReq',      'no',                          'solid'],
+    ['FEAgent',      'LoadReq',      '',                            'solid'],
+    ['UIQ',          'LoadReq',      '否',                          'solid'],
 
 
     // 設計 lane：Phase 0b′ 判定（純後端在 DesignQ 就結束）
@@ -413,7 +408,7 @@ const FLOW_DATA = {
     {
       id: 'crosscut',
       title: '跨流程 skill（按需載入）',
-      desc: 'user 顯式觸發或特定情境載入；多數不在主線（zh-humanize 例外，見下）',
+      desc: 'user 顯式觸發或特定情境載入；不在主線、無固定銜接點',
       kind: 'skill',
       items: [
         { name: 'lock-files',       docKey: 'LoadLock',  desc: 'user 顯式鎖檔禁改' },
@@ -421,7 +416,6 @@ const FLOW_DATA = {
         { name: 'context-snapshot', docKey: 'LoadCtxS',  desc: '中斷 / 跨 session 暫停存進度' },
         { name: 'context-resume',   docKey: 'LoadCtxR',  desc: '接續上次進度' },
         { name: 'write-skill',      docKey: 'LoadWS',    desc: 'meta：新增 / 改 skill' },
-        { name: 'zh-humanize',      docKey: 'LoadZhH',   desc: '去中文的 AI 味、校正中國用語與半形標點；verify-done 2.6 對外文字複查會自動載入它，主圖上有節點' },
       ],
     },
   ],
