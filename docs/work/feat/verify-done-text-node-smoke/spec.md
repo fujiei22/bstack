@@ -58,3 +58,30 @@
 ## 施工紀錄
 
 （execute-plan 追加）
+
+### 施工清單對照
+
+| # | 做了 | 怎麼驗的結果 |
+|---|---|---|
+| 1 契約 P10 | yes | `git stash` 其他檔後跑：P10 FAIL；pop 後 ALL PASS（紅→綠實跑） |
+| 2 verify-done | yes | P10 綠；`grep -c smoke` = 6；§漏網複查 未動 |
+| 3 dev-workflow / frontend-test | yes | 兩檔各一處「文字節點」；P9c 仍綠 |
+| 4 data.js UIQ | yes | C8a 96 / 135 不變 |
+| 5 references | yes | `-Check` exit 0；docs-site-contract ALL PASS |
+| 6 四案實跑 | yes | 見下 |
+
+### 判定一行的四案實跑（從 SKILL.md 的 bash fence 抽出、原樣執行）
+
+| diff | 內容 | 結果 | exit |
+|---|---|---|---|
+| `f059c49..918c0dd`（PR #64） | index.html 文字節點 + `data-upto` / `data-nodes` | TEXT-ONLY | 0 |
+| `main..refactor/review-builtin-code-review`（PR #66） | index.html 一句文案 | TEXT-ONLY | 0 |
+| `ff4bca0..25ed0ec`（PR #62） | landing.css + landing.js | NOT-TEXT-ONLY: css | 1 |
+| `39d9c8d..ff4bca0`（PR #61） | index.html / flow.html 新增 meta 標籤 | NOT-TEXT-ONLY: 標籤/屬性骨架有變 | 1 |
+
+抽取方式：Bash 工具會吃反斜線（memory `reference_bash_tool_eats_backslashes`），所以用 Write 工具寫一支 `extract-from-skill.cjs` 讀 SKILL.md 的 fence 寫成 `.sh` 再 `bash` 跑，等於「從檔案貼」——SKILL.md 裡那句「不要經會吃反斜線的工具轉貼」就是這個教訓。
+
+### 執行偏差
+
+- request-review 的 code-review target 用 PR 號而不是預設的 `main...HEAD`：本 branch 疊在 #67 上（#67 疊在 #66 上），`main...HEAD` 會把上游兩支的 diff 一起餵給 finder。request-review §副檔名分流 的「混合 diff 給 path target」段可以再加一句「stacked branch 給 PR 號」——留給下一次改 request-review 時順手做，本次不動它。
+- rules.md 實測 grep `e2e / frontend-e2e-runner / frontend-test` 零命中，不動。
