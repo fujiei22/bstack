@@ -196,6 +196,62 @@ check(`P8 README / index.html 的 skill 計數 == 磁碟 ${n}`,
   readmeN === n && heroN === n && legendN === n && metaN === n,
   `README=${readmeN} hero=${heroN} legend=${legendN} meta=${metaN}（後果：公開站報錯數字；改處：README.md「## Skills（N）」、index.html :8 :48 :87）`);
 
+// ── P9 T2 lane 一致性（2026-09-04 精簡）────────────────────────────────────
+// lane 定義散在 rules / 9 個 skill / 1 個 agent / README / landing，任一處留舊敘述，
+// Claude 在那一步就照舊做。逐檔 grep 新舊字樣，舊的還在或新的沒到就紅，訊息附改處。
+const rulesMd = rd('skills/devwork/rules.md');
+const tierT2 = (rulesMd.match(/^\| \*\*T2\*\*.*$/m) || [''])[0];
+const tierT3 = (rulesMd.match(/^\| \*\*T3\*\*.*$/m) || [''])[0];
+const tierHead = (rulesMd.match(/^\| Tier \| 量體 \|.*$/m) || [''])[0];
+check('P9a rules.md §Tier 表：T2 施工清單 + 1 subagent；T3 雙視角、視角依面向；表頭有 pr-explain 欄',
+  /施工清單/.test(tierT2) && /1 subagent/.test(tierT2) && /雙視角/.test(tierT3) && /依改動面向/.test(tierT3) &&
+    !/lang-reviewer/.test(tierT3) && /pr-explain/.test(tierHead) && !/T2-T3 詳/.test(rulesMd),
+  `T2=「${tierT2.slice(0, 70)}」 T3 雙視角=${/雙視角/.test(tierT3)} 依面向=${/依改動面向/.test(tierT3)} ` +
+    `表頭 pr-explain=${/pr-explain/.test(tierHead)} 殘留「T2-T3 詳」=${/T2-T3 詳/.test(rulesMd)}` +
+    `（後果：Tier 表是 lane 唯一真相，沒改等於沒精簡；改處：rules.md「§Tier 機制」表與「§Docs 落檔」檔名固定那行）`);
+const bsMd = rd('skills/brainstorm/SKILL.md'), exMd = rd('skills/execute-plan/SKILL.md');
+check('P9b brainstorm 範本有裸標題「## 施工清單」與「## 施工紀錄」、spec gate 選單指 execute-plan；execute-plan 讀施工清單且允許 plan_path null',
+  /^## 施工清單$/m.test(bsMd) && /^## 施工紀錄$/m.test(bsMd) && /進 execute-plan/.test(bsMd) && !/進 <write-plan\|debug-systematic>/.test(bsMd) &&
+    /恰為 `## 施工清單`/.test(exMd) && /plan_path.*null/.test(exMd) && /施工紀錄/.test(exMd),
+  `brainstorm 標題=${/^## 施工清單$/m.test(bsMd)} 紀錄=${/^## 施工紀錄$/m.test(bsMd)} gate=${/進 execute-plan/.test(bsMd)} ` +
+    `execute-plan 精確比對=${/恰為 \`## 施工清單\`/.test(exMd)} null=${/plan_path.*null/.test(exMd)}` +
+    `（後果：兩端契約缺一邊 T2 就卡；改處：brainstorm「§spec 文件結構」「§交棒」、execute-plan「§使用契約」第 1 步）`);
+const rrMd = rd('skills/request-review/SKILL.md'), dwMd = rd('skills/dev-workflow/SKILL.md');
+check('P9c request-review / dev-workflow 不再自動派 lang-reviewer，改語言提示',
+  !/subagent_type:\s*lang-reviewer/.test(rrMd) && /§語言提示/.test(rrMd) && !/\+\s*lang-reviewer/.test(dwMd) && !/plan: <plan 內容>/.test(rrMd),
+  `request-review 自動派發=${/subagent_type:\s*lang-reviewer/.test(rrMd)} 語言提示段=${/§語言提示/.test(rrMd)} ` +
+    `dev-workflow 殘留「+ lang-reviewer」=${/\+\s*lang-reviewer/.test(dwMd)} T2 prompt 仍貼 plan=${/plan: <plan 內容>/.test(rrMd)}` +
+    `（後果：T2 還是開三個 reviewer；改處：request-review「§T2 subagent dispatch」「§語言提示」、dev-workflow「Phase 5」「§跨流程 skill 載入」「§Trace 標籤」範例）`);
+const fbMd = rd('skills/finish-branch/SKILL.md'), peFm = frontmatter(rd('skills/pr-explain/SKILL.md'));
+check('P9d finish-branch 只在 T3 交棒 pr-explain、PR body plan 行允許 N/A；pr-explain 描述註明 T3',
+  /T3 → 交棒 pr-explain/.test(fbMd) && /N\/A（T2/.test(fbMd) && /T3/.test(description(peFm)),
+  `finish-branch T3 交棒=${/T3 → 交棒 pr-explain/.test(fbMd)} PR body N/A=${/N\/A（T2/.test(fbMd)} pr-explain.desc T3=${/T3/.test(description(peFm))}` +
+    `（後果：T2 每次多燒數萬 token；改處：finish-branch「§使用契約」第 6 步、「§PR body 模板」Refs、「§hand-off state」；pr-explain frontmatter）`);
+const rvMd = rd('skills/receive-review/SKILL.md');
+check('P9e receive-review 不危險類一顆 commit',
+  /處理 review finding/.test(rvMd) && /一顆 commit/.test(rvMd) && !/每 finding fix 一個 commit/.test(rvMd),
+  `新句=${/處理 review finding/.test(rvMd)} 一顆=${/一顆 commit/.test(rvMd)} 舊句=${/每 finding fix 一個 commit/.test(rvMd)}` +
+    `（後果：squash 後全消失的 commit 照做；改處：receive-review「§不危險處置」「§Red Flags」）`);
+const lrFm = frontmatter(rd('agents/lang-reviewer.md'));
+check('P9f lang-reviewer agent 描述改 user 顯式呼叫',
+  !/動態 (spawn|dispatch)/.test(description(lrFm)) && /顯式/.test(description(lrFm)),
+  `desc=「${description(lrFm).slice(-70)}」（後果：agent 描述與 request-review 打架；改處：agents/lang-reviewer.md description 首句與末句）`);
+const readmeMd = rd('README.md');
+const readmeLR = (readmeMd.match(/^\| \*\*lang-reviewer\*\*.*$/m) || [''])[0];
+check('P9g README：lang-reviewer 列不寫「自動派發」、簡介標 T3 PR 解釋',
+  readmeLR !== '' && !/自動派發/.test(readmeLR) && /T3 PR 自動解釋/.test(readmeMd),
+  `lang-reviewer 列=「${readmeLR.slice(0, 60)}」 簡介 T3=${/T3 PR 自動解釋/.test(readmeMd)}（後果：README 說謊；改處：README.md 第 5 行與 Agents 表）`);
+const rpMd = rd('skills/review-plan/SKILL.md'), wpMd = rd('skills/write-plan/SKILL.md');
+check('P9h review-plan / write-plan 無 T2 分支、review-plan 視角依面向、無 CEO',
+  !/T2.*Eng-only|Eng-only.*T2|T2 不能跳|T2 仍需/.test(rpMd) && /依改動面向|命中幾個派幾個/.test(rpMd) && !/CEO/.test(rpMd) && !/Eng-only/.test(wpMd),
+  `review-plan 殘留 T2=${/T2.*Eng-only|Eng-only.*T2|T2 不能跳|T2 仍需/.test(rpMd)} 依面向=${/依改動面向|命中幾個派幾個/.test(rpMd)} CEO=${/CEO/.test(rpMd)} write-plan Eng-only=${/Eng-only/.test(wpMd)}` +
+    `（後果：前提說 T2 不進、Red Flag 說 T2 不准跳，Claude 挑一條照做；改處：review-plan 全檔、write-plan「§落檔 + 交棒」）`);
+const ddMd = rd('skills/design-direction/SKILL.md'), dpMd = rd('skills/dispatch-parallel/SKILL.md');
+check('P9i design-direction 下游分 T2 / T3；dispatch-parallel task 來源含施工清單',
+  /T2/.test(ddMd) && /施工清單/.test(ddMd) && /施工清單/.test(dpMd) && !/退 write-plan\*\* 改 parallel-group 標$/m.test(dpMd),
+  `design-direction T2=${/T2/.test(ddMd)} dispatch-parallel 施工清單=${/施工清單/.test(dpMd)}` +
+    `（後果：T2 大改定案後沒人回寫清單、T2 同 group 派工找不到 Task N；改處：design-direction description 與「§與 dev-workflow 銜接」下游、dispatch-parallel「§使用契約」1-2、「§隊友派工」「§subagent 派工」範本、「§失敗處置」）`);
+
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
 // 用 exitCode 而非 process.exit()：stdout 接 pipe 時 exit() 可能截掉最後幾行（含 ALL PASS 那行）
 process.exitCode = failed === 0 ? 0 : 1;
