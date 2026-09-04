@@ -1,8 +1,7 @@
 ---
 name: verify-done
 description: |
-  task 完成前的綜合驗證（繁中）。觸發：verify / 驗證 / 測一下 / 跑測試 /
-  task 完成 / done / 收尾驗證 / 跑 lint / 跑 build / 跑 e2e。
+  task 完成前的綜合驗證（繁中）。載入：dev-workflow Phase 4（execute-plan 全 task 完 / tdd-cycle 單 task 完）；亦可由使用者顯式呼叫。
   涵蓋：test / lint / build / type-check 全跑、T2+ 多輪 verify、
   T3 UI 改動加 browser e2e、verify fail 處置。
   上游：execute-plan（task 全完）/ tdd-cycle（單 task 完）。
@@ -31,7 +30,7 @@ description: |
 
 ## §Verify 套餐（按 tier）
 
-**T0 不進本 skill**：CLAUDE.md §Tier 表的 T0 全跳，dev-workflow 與 brainstorm 明訂
+**T0 不進本 skill**：rules.md §Tier 表的 T0 全跳，dev-workflow 與 brainstorm 明訂
 T0 直接實作後進 finish-branch。下面只定義 T1-T3。
 
 ### T1 套餐
@@ -62,7 +61,7 @@ T0 直接實作後進 finish-branch。下面只定義 T1-T3。
 
 ## §verify 失敗處置
 
-走 CLAUDE.md §Fail handling：
+走 rules.md §Fail handling：
 
 1. 不靜默 retry
 2. 評起因（flaky / 環境 / 真 bug / verify command 寫錯）

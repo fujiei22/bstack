@@ -1,10 +1,8 @@
 ---
 name: finish-branch
 description: |
-  收尾 development branch + git workflow 細則合一（繁中）。觸發：完成 /
-  finish / 收尾 / 開 PR / 提交 / commit done / ready to merge / 開 pull request /
-  推 branch / 上 main / 寫 commit / merge / branch 命名疑問 / commit 格式 /
-  PR 模板 / squash / rebase 操作 / 任何 git workflow 細節展開需求。
+  收尾 development branch + git workflow 細則合一（繁中）。載入：dev-workflow Phase 7
+  （security-audit 或 receive-review 之後）；亦可由使用者顯式呼叫（含任何 git workflow 細節展開需求）。
   涵蓋：clean check、rebase、push、開 PR、PR body 撰寫、Branch safety 過 hook、
   按 GitHub Flow squash merge（user 授權才 auto-merge）、commit 範例、PR / branch 命名規範。
   上游：security-audit（或 receive-review，若 tier 跳 security）。下游：pr-explain。
@@ -120,7 +118,7 @@ git log <base>..HEAD    # commit 清單
 - 未 commit 改動 → 評：是不是該補進 review？該 commit？該 stash？
 - 未追蹤檔 → 評：要不要進 PR？該加 .gitignore？
 
-不能盲目 `git add .` — 會挾帶意外檔（依 CLAUDE.md「§File-type 硬規則」可能漏 secret）。
+不能盲目 `git add .` — 會挾帶意外檔（依 rules.md「§File-type 硬規則」可能漏 secret）。
 
 ---
 
@@ -232,7 +230,7 @@ EOF
 - Past 授權**不延續**：user 在 PR A 說「commit push merge」、不代表 PR B 也能自動 merge。每次明授權**只覆蓋當下這個 PR**。
 - 唯一例外：user 對**整個 workflow / session** 明授權「這個流程可以自己 merge」、session 內延伸；新 session 不繼承。
 
-理由：merge 進 main **不可逆**（要 revert 是另開 PR）、屬 CLAUDE.md「risky actions / 影響共享狀態」類、需 user 明確同意。
+理由：merge 進 main **不可逆**（要 revert 是另開 PR）、屬 rules.md「risky actions / 影響共享狀態」類、需 user 明確同意。
 
 ### HOW — GitHub Flow（單線）
 
@@ -253,7 +251,7 @@ main ← (PR + squash merge) ← feat/xxx
 ## §Merge 後：docs 歸檔
 
 merge 完成後把該 branch 的施工文件從 `work/` 移進 `archive/`，否則 `work/` 會累積成
-分不出死活的雜物堆（見 CLAUDE.md §Docs 落檔）。
+分不出死活的雜物堆（見 rules.md §Docs 落檔）。
 
 ```bash
 mkdir -p docs/archive/<年>
@@ -273,11 +271,11 @@ mv docs/work/<branch-name> docs/archive/<年>/<主題>
 
 ## §Branch safety 雙保險
 
-- **Hook**：`~/.claude/hooks/branch-safety.ps1`（PreToolUse 擋 Write / Edit / NotebookEdit）
-- **CLAUDE.md**：強制守則明列規則
+- **Hook**：plugin 的 `hooks/branch-safety.ps1`（PreToolUse 擋 Write / Edit / NotebookEdit）
+- **rules.md**：強制守則明列規則
 - 任何 `git checkout` / `git push` 也過同 hook
 - 命中主分支（`main / master / production / prod / release`）→ exit 2 阻擋
-- 處置：依 CLAUDE.md「§決策點選單」走 AskUserQuestion 取 feature branch 名 → `git checkout -b <name>` → retry
+- 處置：依 rules.md「§決策點選單」走 AskUserQuestion 取 feature branch 名 → `git checkout -b <name>` → retry
 
 ---
 

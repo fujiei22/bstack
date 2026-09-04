@@ -1,11 +1,9 @@
 ---
 name: write-skill
 description: |
-  寫新 skill 的 meta skill（繁中）。觸發：write skill / 寫 skill /
-  加新 skill / 改 skill / new skill / SKILL.md 怎麼寫 / skill format /
-  skill 規格 / extend dev-workflow / 自訂 skill。
+  寫新 skill 的 meta skill（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（要加 / 改 / 評 skill 本身）；亦可由使用者顯式呼叫。
   涵蓋：SKILL.md frontmatter / body 結構、繁中風格、命名、放置位置、
-  與 dev-workflow / CLAUDE.md 相容性、Red Flags。
+  與 dev-workflow / rules.md 相容性、Red Flags。
 ---
 
 # write-skill
@@ -34,7 +32,7 @@ description: |
 - 反覆出現的工作 pattern（≥3 次）
 - 涉多步驟、需 紀律
 - 需 trigger 詞偵測（user 一講某些詞就該載）
-- 跟 CLAUDE.md 強制守則互動緊密
+- 跟 rules.md 強制守則互動緊密
 - 跨 task 重複用
 
 ### 不該寫
@@ -116,16 +114,16 @@ state:
 - 避用既有 plugin 同名（不用 `superpowers-brainstorming`、用 `brainstorm`）
 
 ### `description`
-- **繁中**為主、英文 trigger 詞混入
+- **繁中**為主、英文專有名詞保留
 - 第一段：一句總結這 skill 做什麼
-- 第二段：「觸發：」+ 觸發詞清單（盡量列、含中英、含同義詞）
+- 第二段：「載入：」+ 一句「誰在哪個階段載入」（dev-workflow Phase N / §跨流程 skill 載入 表所列時點；可加「亦可由使用者顯式呼叫」）。**不寫「觸發：」+ 自然語言清單**——plugin 只由 `/devwork` 啟動，描述裡的觸發詞會讓沒下指令的對話也被攔（plugin-contract P3c 守）
 - 第三段：「涵蓋：」+ 範疇 bullet
 - 第四段（如有）：「上游 / 下游：」+ skill 間銜接
 
 範例好的 description：
 ```
-按 plan 推進實作（繁中）。觸發：跑 plan / execute plan / 實作 plan / 照 plan 做 /
-start coding / 開工 / 進 implementation / 寫 code。
+按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（review-plan user accept 後；
+T1 由 brainstorm 直接交棒）；亦可由使用者顯式呼叫。
 涵蓋：讀 plan、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
 task fail 處置、blocker 升級。
 上游：review-plan（user accept）或 brainstorm（T0 直接進）。
@@ -170,11 +168,19 @@ task fail 處置、blocker 升級。
 
 | Skill 類型 | 路徑 |
 |---|---|
-| Global / 跨專案 | `~/.claude/skills/<name>/SKILL.md`（透過 repo `skills/<name>/` 經 setup.ps1 sync） |
+| plugin（隨 bstack 發布） | repo `skills/<name>/SKILL.md` |
 | 專案特定 | 該專案 `.claude/skills/<name>/SKILL.md` |
-| 暫時 / experimental | `~/.claude/skills/_experimental/<name>/SKILL.md`（user 自管）|
+| 暫時 / experimental | 該專案 `.claude/skills/_experimental/<name>/SKILL.md`（user 自管）|
 
-新 skill 通常放 `D:\GitHub\b\skills\<name>\SKILL.md`（global、走 setup.ps1 sync）。
+### §新 skill 落地 checklist（漏一處契約就紅）
+
+1. `skills/<name>/SKILL.md`（name == 目錄名；描述寫「載入：」不寫「觸發：」）→ plugin-contract P3a / P3c
+2. `docs/js/app.js` NODE_DOCS 加 `Load<X>: {p:'skills/<name>', n:'<name>', k:'skill'}` → docs-site-contract C6a / C18
+3. `docs/js/data.js` 加節點與邊（或 ambient 區塊 docKey）→ C8a 節點 / 邊數
+4. `docs/tools/docs-site-contract.mjs` BASELINE_KEYS 與 EXPECT → C6a / C8a
+5. `pwsh -File scripts/build-references.ps1` → C8b / C18
+6. `README.md` 「## Skills（N）」與表格一列 → plugin-contract P8
+7. `docs/index.html` :8 :48 :87 三處計數 → P8
 
 ---
 
@@ -182,12 +188,12 @@ task fail 處置、blocker 升級。
 
 新 skill 若要嵌進 dev-workflow 9 階段流程：
 
-1. **改 `skills/dev-workflow/SKILL.md`** — 加 routing / hand-off state 規則（§Track × Tier × Phase 路徑 / §跨流程 skill 觸發 表）
+1. **改 `skills/dev-workflow/SKILL.md`** — 加 routing / hand-off state 規則（§Track × Tier × Phase 路徑 / §跨流程 skill 載入 表）
 2. **註明上下游 phase**：description 寫清楚、body 對齊
 
 若 skill 是**橫向觸發**（非 phase 序列）：
 
-1. 改 dev-workflow「§跨流程 skill 觸發」表加一行
+1. 改 dev-workflow「§跨流程 skill 載入」表加一行
 2. 列觸發條件
 3. body 描述「載入後動作」、不必描 phase
 
@@ -201,7 +207,7 @@ task fail 處置、blocker 升級。
 - [ ] `description` 觸發詞列足（含中英 / 同義詞）
 - [ ] 上下游 skill 已標
 - [ ] 使用契約段落清楚
-- [ ] 對齊 CLAUDE.md（無衝突）
+- [ ] 對齊 rules.md（無衝突）
 - [ ] Red Flags 表 ≥3 個
 - [ ] hand-off state 已列
 - [ ] Trace 標籤格式
@@ -239,4 +245,4 @@ task fail 處置、blocker 升級。
 | 「自誇好 skill 更威」 | description 純功能描述；AI 不看花言巧語 |
 | 「不寫 Red Flags 沒差」 | Red Flags 是 anti-rationalization；必寫 |
 | 「skill 引用其他 skill 不必標 hand-off」 | hand-off state 是流程連貫的關鍵；必標 |
-| 「英文 skill 比較專業」 | 繁中；對話風格依 CLAUDE.md |
+| 「英文 skill 比較專業」 | 繁中；對話風格依 rules.md |

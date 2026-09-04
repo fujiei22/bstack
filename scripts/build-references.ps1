@@ -68,7 +68,7 @@ function ConvertTo-JsStringBody {
 .SYNOPSIS
   收集要內嵌的檔案清單，回傳 [ordered]@{ key = 絕對路徑 }。
 .DESCRIPTION
-  順序固定為 CLAUDE.md → skills（字母序）→ agents（字母序）。
+  順序固定為 rules.md → skills（字母序）→ agents（字母序）。
   固定順序是為了讓「內容沒變就逐 byte 相同」成立——目錄列舉的順序在不同
   檔案系統上不保證一致，所以明確排序。
 
@@ -82,11 +82,13 @@ function Get-ReferenceSources {
 
     $map = [ordered]@{}
 
-    $claudeMd = Join-Path $RepoRoot 'CLAUDE.md'
-    if (-not (Test-Path -LiteralPath $claudeMd)) {
-        throw "找不到 $claudeMd —— 這是必收的檔，缺了代表 repo 結構有問題，不靜默略過"
+    # 規則書的單一真相是 skills/devwork/rules.md；repo 根的 CLAUDE.md 只剩三行 @import 殼，
+    # 內嵌它會讓 docs 站的「根規則」點開是空的、35 處 `rules.md §…` 交叉引用全斷（2026-09-04 review 抓到）。
+    $rulesMd = Join-Path $RepoRoot 'skills/devwork/rules.md'
+    if (-not (Test-Path -LiteralPath $rulesMd)) {
+        throw "找不到 $rulesMd —— 這是必收的檔，缺了代表 repo 結構有問題，不靜默略過"
     }
-    $map['references/CLAUDE.md'] = $claudeMd
+    $map['references/rules.md'] = $rulesMd
 
     $skillsDir = Join-Path $RepoRoot 'skills'
     foreach ($d in Get-ChildItem -LiteralPath $skillsDir -Directory | Sort-Object Name -Culture 'en-US') {
@@ -181,4 +183,4 @@ if ($Check) {
 
 Set-Content -LiteralPath $outPath -Value $content -Encoding UTF8 -NoNewline
 Write-Host "已產出 $outPath" -ForegroundColor Green
-Write-Host "  內嵌 $($sources.Count) 份文件（CLAUDE.md 1 + skills $((Get-ChildItem (Join-Path $repoRoot 'skills') -Directory).Count) + agents $((Get-ChildItem (Join-Path $repoRoot 'agents') -Filter '*.md').Count)）"
+Write-Host "  內嵌 $($sources.Count) 份文件（rules.md 1 + skills $((Get-ChildItem (Join-Path $repoRoot 'skills') -Directory).Count) + agents $((Get-ChildItem (Join-Path $repoRoot 'agents') -Filter '*.md').Count)）"

@@ -1,12 +1,10 @@
 ---
 name: brainstorm
 description: |
-  需求釐清 + Phase 0 入口分流（繁中）。觸發：寫 / 改 / 修 / 加 / 重構 / 實作 /
-  開發 / 想做 / 規劃 / build / feature / fix / refactor / 改造 / 拆 / 整合 /
-  spec / 釐清 / brainstorm / 想想 / 怎麼做 / 怎麼設計 / 探索 / proposal。
-  涵蓋：0a 對話釐清（+ 讀 memory）、0b 看 codebase、0c Track 判定（Bug/Dev）、
-  0d Tier 判定（T0-T3）、spec 落檔 docs/work/&lt;branch-name&gt;/spec.md。
-  終態 → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
+  需求釐清 + Phase 0 入口分流（繁中）。載入：dev-workflow 使用契約第 2 步；
+  不因自然語言自動觸發。涵蓋：0a 對話釐清（+ 讀 memory）、0b 看 codebase、
+  0b′ UI 面判定、0c Track 判定（Bug/Dev）、0d Tier 判定（T0-T3）、
+  spec 落檔 docs/work/&lt;branch-name&gt;/spec.md。終態 → 交棒 write-plan（Dev）或 debug-systematic（Bug）。
 ---
 
 # brainstorm
@@ -115,7 +113,7 @@ T0 / T1 / T2 / T3。Heuristic：
 
 判定結果留給 §Phase 0c/0d 合併確認 一次問，**本節不單獨發問**。
 
-**Tier 升降 trigger**：File-type 硬規則（見 CLAUDE.md）命中 DB migration / CI/CD / lock / infra 等 → 自動升至少 T2。
+**Tier 升降 trigger**：File-type 硬規則（見 rules.md）命中 DB migration / CI/CD / lock / infra 等 → 自動升至少 T2。
 
 ---
 
@@ -145,7 +143,7 @@ T0 / T1 / T2 / T3。Heuristic：
 3. 區塊判錯，我來指認
 4. `size` 判錯
 
-> **為什麼攤平而不是加第 4 題**：`AskUserQuestion` 的 `options` 是平行陣列、沒有巢狀，多題也同時呈現，做不到「選了選項 1 之後再追問」。攤平之後路徑選擇仍然**是一個可機械讀取的選項**，滿足 CLAUDE.md §決策點選單「**禁文字 token NLP**」；而且維持 §使用契約 第 2 步「合併成一個 `AskUserQuestion` 一次確認」的不變式。
+> **為什麼攤平而不是加第 4 題**：`AskUserQuestion` 的 `options` 是平行陣列、沒有巢狀，多題也同時呈現，做不到「選了選項 1 之後再追問」。攤平之後路徑選擇仍然**是一個可機械讀取的選項**，滿足 rules.md §決策點選單「**禁文字 token NLP**」；而且維持 §使用契約 第 2 步「合併成一個 `AskUserQuestion` 一次確認」的不變式。
 >
 > **為什麼只有兩條路徑**：`design-direction` 目前沒有非三版的執行路徑（它的產出自檢硬性要求 `design-demos/` 下有 3 個 `.html`）。選項 2 **根本不載入 `design-direction`**，所以不需要它支援。介於兩者之間的折衷版數因此暫時不提供——要開放得先給 `design-direction` 一條非三版的執行路徑。
 >
@@ -228,7 +226,7 @@ T0 / T1 / T2 / T3。Heuristic：
 4. scope 太大 → 提示 user 拆 sub-task
 
 self-review 完 → user 看 spec。**走 `AskUserQuestion`，不要用自由文字問**——
-CLAUDE.md §決策點選單 禁止拿文字回覆當 gate 信號，這裡是決策點：
+rules.md §決策點選單 禁止拿文字回覆當 gate 信號，這裡是決策點：
 
 ```
 問：spec 已寫至 docs/work/<branch-name>/spec.md，請看一下。

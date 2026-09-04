@@ -48,16 +48,17 @@ FLOW.phases.forEach(function (p) { PHASE_LABEL[p.id] = p.label; });
  * node ID → 文件識別。
  *
  * `p` 不含 `references/` 前綴也不含副檔名，實際的 REFERENCE_DOCS key 由 docKey() 組出來
- * （skill 補 /SKILL.md、agent 補 .md）。**36 個 key 對應 34 個相異文件**——
+ * （skill 補 /SKILL.md、agent 補 .md）。**37 個 key 對應 35 個相異文件**——
  * LoadRP / RPT2 / RPT3 三個 key 共用 review-plan 的路徑。
- * 對外報數字一律報「相異文件數」（27 skill + 6 agent），不報 key 數：
- * key 數會把同一份 SKILL.md 重複計，使用者實際點得開的就是 34 份。
+ * 對外報數字一律報「相異文件數」（28 skill + 6 agent），不報 key 數：
+ * key 數會把同一份 SKILL.md 重複計，使用者實際點得開的就是 35 份。
  *
  * design-language / design-direction 兩筆是後來補的：它們的節點一直都在圖上，但先前
  * references-data.js 沒有內嵌全文（baseline 既有缺口 2），所以是全站唯一點不開文件的兩個
  * skill。已把兩份 SKILL.md 補進內嵌包，缺口 1 與 2 一併解掉。
  */
 var NODE_DOCS = {
+  LoadDevwork:{p:'skills/devwork',            n:'devwork',             k:'skill'},
   DevWfSkill:{p:'skills/dev-workflow',        n:'dev-workflow',        k:'skill'},
   BS:        {p:'skills/brainstorm',          n:'brainstorm',          k:'skill'},
   LoadDB:    {p:'skills/db-access',           n:'db-access',           k:'skill'},
@@ -508,10 +509,12 @@ var panelSec = null, panelOpen = false, panelPinned = false;
  * `key` 欄用來蓋掉 docKey() 的路徑推導——它既不在 skills/ 也不在 agents/ 底下。
  */
 var EXTRA_DOCS = {
-  CLAUDE: { p: 'CLAUDE', n: 'CLAUDE.md', k: 'policy', key: 'references/CLAUDE.md' }
+  // 規則書。2026-09-04 起單一真相是 skills/devwork/rules.md（repo 根 CLAUDE.md 只剩 @import 殼），
+  // n 用 'rules.md' 讓正文裡 `rules.md §決策點選單` 這種交叉引用連得到。
+  RULES: { p: 'rules', n: 'rules.md', k: 'policy', key: 'references/rules.md' }
 };
 
-/** 抽屜能開的全部文件：圖上的節點 + 圖外的 CLAUDE.md。 */
+/** 抽屜能開的全部文件：圖上的節點 + 圖外的 rules.md。 */
 var ALL_DOCS = (function () {
   var m = {};
   Object.keys(NODE_DOCS).forEach(function (k) { m[k] = NODE_DOCS[k]; });
@@ -528,7 +531,7 @@ var DOC_ID_BY_NAME = (function () {
 
 var DOC_COUNTS = (function () {
   // 依 p（文件路徑）去重再數。直接數 key 會把 LoadRP / RPT2 / RPT3 三個指向同一份
-  // review-plan 的節點各算一次，skill 數就被灌成 29——磁碟上其實只有 27 個 skill。
+  // review-plan 的節點各算一次，skill 數就被灌成 30——磁碟上其實只有 28 個 skill。
   var seen = { skill: {}, agent: {} };
   Object.keys(NODE_DOCS).forEach(function (k) { seen[NODE_DOCS[k].k][NODE_DOCS[k].p] = true; });
   var c = { skill: Object.keys(seen.skill).length, agent: Object.keys(seen.agent).length };

@@ -1,13 +1,10 @@
 ---
 name: dev-workflow
 description: |
-  自動化開發流程主入口（繁中）。觸發：寫 / 改 / 修 / 加 / 重構 / 實作 / 開發 /
-  build / fix / refactor / implement / feature / bug / 加功能 / 修 bug / 改 module /
-  寫 test / 加欄位 / 整理 / 補 / 新增 / 升級 / 換 / 翻 / 升 / 拔 / 整合 /
-  patch / hotfix / 拆 / 套 / 串 / 對 / migrate / 整 / 翻新 / 換寫法 / 重做 / 重整。
-  涵蓋：Phase 0 入口分流（Track / Tier）、9 階段順序、skill hand-off state、
-  Trace 標籤、Auto-fix、Fail handling、Memory hook、跨流程 skill dispatch。
-  **任何 code 改動類 prompt 一律先載此 skill；CLAUDE.md「強制守則」永遠優先。**
+  自動化開發流程主入口（繁中）。載入：由 `devwork` skill 載入（使用者輸入 /devwork）；
+  **不因自然語言自動觸發**。涵蓋：Phase 0 入口分流（Track / Tier）、9 階段順序、
+  skill hand-off state、Trace 標籤、Auto-fix、Fail handling、Memory hook、跨流程 skill dispatch。
+  規則書 `devwork/rules.md` 永遠優先於本 skill。
 ---
 
 # dev-workflow
@@ -16,13 +13,13 @@ description: |
 
 **載入後立即動作**：
 
-1. 確認 user prompt 屬「code 改動類」（寫 / 改 / 修 / 加 / 重構 / 實作 / build / fix）。**純問答 / 教學 / 規劃對談**不適用，直接答。
+1. user prompt 由 `devwork` 交進來（`/devwork` 後面的文字）；純問答已在 devwork 過濾，這裡收到的一律是改動類。
 2. 進 **Phase 0 入口分流**（5 子步驟，下節展開）。
 3. 依 Phase 0 產出的 Track + Tier，**逐 Phase** 推進。每 Phase 結尾貼 Trace 標籤。
 4. 階段間以**結構化 state** hand-off（見 §Skill hand-off）。
 5. 任何 user 決策點走 `AskUserQuestion`，**禁文字 token NLP 判斷**。
 
-**CLAUDE.md 永遠優先**：本 skill 描述 routing；CLAUDE.md「強制守則」與其他規範若與本 skill 衝突，CLAUDE.md 勝。
+**rules.md 永遠優先**：本 skill 描述 routing；rules.md「強制守則」與其他規範若與本 skill 衝突，rules.md 勝。
 
 ---
 
@@ -64,7 +61,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 | 改 3-10 檔 / 單模組 feature / 中型 refactor | T2 |
 | >10 檔 / 跨模組 / 新建 module / DB schema / API 介面 / 架構決策 | T3 |
 
-**Tier 自動升級（覆蓋上表的預判）**：改動命中 CLAUDE.md §File-type 硬規則的
+**Tier 自動升級（覆蓋上表的預判）**：改動命中 rules.md §File-type 硬規則的
 DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量體多小。
 理由：這幾類的爆炸半徑與行數無關。細則見 `brainstorm` §Phase 0d。
 
@@ -174,6 +171,7 @@ state:
 - `trace_chain` append
 - 自身產出寫進 state（如 plan_path / review_summary / verify_result）
 - **下一 phase skill 載入時，宣告它讀進來的 state 欄位**
+- **下一 phase skill 載入時，若 context 內找不到 rules.md 的「§事實核實」標題 → 先重 Read `devwork/rules.md`**（經 `/devwork` 讀進來的規則書是普通 tool result，長 session 會被摘要洗掉；在 bstack repo 內因 CLAUDE.md @import 常駐則不必）
 
 ---
 
@@ -228,7 +226,7 @@ Task fail / verify fail / review 嚴重打槍時：
 
 ## §Memory hook 點
 
-Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
+Phase-bound memory 互動點（rules.md 開發流程 intro 內聲明）：
 
 | Phase | 動作 |
 |---|---|
@@ -239,7 +237,7 @@ Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 
 ---
 
-## §跨流程 skill 觸發
+## §跨流程 skill 載入
 
 非 Phase 序列、依條件觸發：
 
@@ -280,24 +278,26 @@ Phase-bound memory 互動點（CLAUDE.md 開發流程 intro 內聲明）：
 
 ---
 
-## §跟 CLAUDE.md 的關係
+## §跟 rules.md 的關係
 
 | 項目 | 落點 |
 |---|---|
-| 強制守則（Task / 決策點 / Branch / File-type / PII / DB / Settings） | CLAUDE.md（聖旨）|
-| Track / Tier / Phase / Trace / Auto-fix / Fail / Memory hook **政策** | CLAUDE.md（聲明）|
+| 強制守則（Task / 決策點 / Branch / File-type / PII / DB / Settings） | rules.md（聖旨）|
+| Track / Tier / Phase / Trace / Auto-fix / Fail / Memory hook **政策** | rules.md（聲明）|
 | Track / Tier / Phase 詳細 **routing 表 + hand-off state + heuristic** | 本 skill |
 | 各 phase 自身行為 | 對應 phase skill（brainstorm / write-plan / ...）|
 
-衝突時：**CLAUDE.md > 本 skill > phase skill**。
+衝突時：**rules.md > 本 skill > phase skill**。
 
 ---
 
 ## §載入此 skill 後第一句台詞
 
+**由 devwork 載入時不印橫幅**（devwork 已印 `[bstack devwork · plugin] …`，第二條橫幅只會讓使用者以為載到舊副本）。
+被單獨呼叫（沒經過 devwork）時才印：
+
 ```
-[已載入 dev-workflow]
-Phase 0 入口分流啟動。先進 0a 對話釐清。
+[bstack dev-workflow · plugin] Phase 0 入口分流啟動。先進 0a 對話釐清。
 ```
 
 之後立刻進 brainstorm skill（內含 Phase 0 5 子步驟）。

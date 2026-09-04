@@ -1,9 +1,7 @@
 ---
 name: review-plan
 description: |
-  Implementation plan 多視角 review（繁中）。觸發：plan review / 評 plan /
-  review implementation plan / plan 看一下 / 看看 plan / 評估 plan / 審查 plan /
-  cross-perspective review。
+  Implementation plan 多視角 review（繁中）。載入：dev-workflow Phase 2（write-plan 產出 plan 後）；亦可由使用者顯式呼叫。
   涵蓋：T2 Eng-only / T3 CEO + Design + Eng + DX 4 視角；每視角 spawn
   subagent 做 review、主 agent 整合 → 提 user gate。
   上游：write-plan。下游：execute-plan（user 確認後）。

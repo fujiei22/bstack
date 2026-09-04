@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "bstack": { "source": { "source": "github", "repo": "fujiei22/bstack" } }
+  },
+  "enabledPlugins": { "bstack@bstack": true },
+  "permissions": {
+    "allow": [
+      "Read", "Glob", "Grep", "TaskCreate", "TaskUpdate", "TaskList", "TaskGet", "AskUserQuestion",
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git branch:*)", "Bash(git show:*)",
+      "Bash(git ls-files:*)", "Bash(git config --get:*)", "Bash(git rev-parse:*)", "Bash(git remote -v)",
+      "Bash(ls:*)", "Bash(pwd)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)", "Bash(wc:*)"
+    ]
+  }
+}

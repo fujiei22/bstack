@@ -1,9 +1,7 @@
 ---
 name: dispatch-parallel
 description: |
-  平行派發（繁中）。觸發：execute-plan 遇 parallel-group >1 task /
-  平行跑 / 並行 task / dispatch parallel / subagent 平行 / multi-agent /
-  agent teams / 開隊友 / 多人同時做 / 大範圍研究 / 多模組重構。
+  平行派發（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（execute-plan 遇 parallel-group >1 task）。
   涵蓋：協作模式判定（Agent Teams vs subagent vs 串行）、spawn 多 subagent、
   隊友派工、傳 task prompt、收集結果、整合、處理 conflict、失敗 retry / rollback。
   上游：execute-plan（遇 parallel-group）。下游：execute-plan（整合完接下個 group）。
@@ -54,7 +52,7 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑�
 
 Agent Teams 是實驗性功能、預設關閉。開關未設時 Claude **無法**開也無法提議開隊友。
 
-1. 讀 `~/.claude/settings.json` 的 `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`，或查同名環境變數。
+1. 查環境變數 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`（settings.json 的 env 區塊會注入為環境變數；`scripts/extras.ps1` 的 env 項可一鍵設定）。
 2. 未設 → 選單第一個選項改成「先開開關」，並附設定片段與「**需重開 session 才生效**、本輪先停」的說明。
 3. **禁**在開關關閉時假裝開隊友、或靜默退成 subagent 不告知。
 
@@ -107,7 +105,7 @@ Context:
 你是這個團隊的隊友，**不是**接到新需求的主 agent：
 - **禁**跑 dev-workflow 9 階段、禁 brainstorm、禁 write-plan。plan 已經寫好了。
 - 直接依 tdd-cycle 走 5 step（紅 → 跑紅 → 綠 → 跑綠 → commit）。
-- commit 用 CLAUDE.md commit 格式。
+- commit 用 rules.md §Commit 訊息 格式。
 - 跑完自己 task 的 verify command。
 - 有發現會影響別人負責範圍的事 → 直接訊息給該隊友，別默默改。
 
@@ -168,7 +166,7 @@ Agent tool call:
     流程：
     1. Read plan 找 Task <N> section
     2. 依 tdd-cycle 走 5 step（紅 → 跑紅 → 綠 → 跑綠 → commit）
-    3. commit 時用 CLAUDE.md commit 格式
+    3. commit 時用 rules.md §Commit 訊息 格式
     4. 跑該 task 的 verify command
     5. 回報下面 JSON：
        {
@@ -220,7 +218,7 @@ Agent tool call:
 任一 subagent 回 `verify_result: fail`：
 
 1. 主 agent 印 subagent 回報的 `verify_output_tail`
-2. 走 CLAUDE.md §Fail handling：
+2. 走 rules.md §Fail handling：
    - **retry**（重 spawn 同 subagent、prompt 加 「前次 fail 原因：<...>」）
    - **adjust + retry**（主 agent 提具體 plan task 改動、user 點頭再 retry）
    - **rollback**：`git reset --hard <pre-group-sha>` → 整 group 重來

@@ -1,8 +1,7 @@
 ---
 name: write-plan
 description: |
-  從 spec 寫實作 plan（繁中）。觸發：write plan / 規劃 / 拆 task / implementation plan /
-  寫計畫 / 拆步驟 / 任務分解 / TDD plan / 寫做法 / 拆解 / breakdown。
+  從 spec 寫實作 plan（繁中）。載入：dev-workflow Phase 2（brainstorm 產出 spec 後）；亦可由使用者顯式呼叫。
   涵蓋：bite-sized task / 紅綠循環 / 並行性分析（parallel-group） /
   spec → plan 對齊檢查 / 落檔 docs/work/&lt;branch-name&gt;/plan.md。
   上游：brainstorm（產出 spec）。下游：review-plan → execute-plan。

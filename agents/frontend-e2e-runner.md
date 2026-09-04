@@ -176,7 +176,7 @@ caller 會傳：
 
 ## §PII mask
 
-依 CLAUDE.md §PII 安全底線：
+依 rules.md §PII 安全底線：
 
 - **screenshot**：含 email / phone / 身分證 / 信用卡 / 地址 / id_number 原值 → 落檔前用 `mcp__playwright__browser_evaluate` 改 DOM mask（如把字串 replace 成 `***@***`）後再 screenshot；不能事後對圖打碼
 - **console**：用 Grep 過 PII pattern、命中 → 落檔時 replace 成 mask 形式

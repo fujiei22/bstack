@@ -1,11 +1,10 @@
 ---
 name: lock-files
 description: |
-  鎖定編輯範圍（繁中）。觸發：lock / freeze / 鎖檔 / 不要動 / 別改 /
-  限制範圍 / restrict edits / production module / 敏感模組。
+  鎖定編輯範圍（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（使用者顯式要鎖某些檔時）。
   涵蓋：user 顯式宣告哪些檔 / 目錄禁改、skill 啟動時把 lock list 寫到 state、
   寫入動作 pre-check、user 解鎖機制。
-  使用：user 主動觸發；動 prod / 敏感模組 / 大改前用。
+  使用：使用者主動呼叫；動 prod / 敏感模組 / 大改前用。
 ---
 
 # lock-files

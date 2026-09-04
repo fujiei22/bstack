@@ -1,8 +1,7 @@
 ---
 name: safety-guard
 description: |
-  PII / 密鑰 / token 外洩偵測（繁中）。觸發：commit 前 / push 前 / 寫 PR body /
-  寫對話輸出 / 落檔 / write content with user data / 涉敏感資料。
+  PII / 密鑰 / token 外洩偵測（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（寫入 / commit / push / 寫 PR body 前）；亦可由使用者顯式呼叫。
   涵蓋：原值 PII 偵測（email / phone / 身分證 / 信用卡 / 地址）、
   secret pattern 偵測（API key / token / private key / password）、
   落輸出 / commit / log 前掃描、mask suggestion。
@@ -15,7 +14,7 @@ description: |
 > 與其他安全機制的層次：
 > - **file-type-guard** hook：擋整個檔案類型（.env 全擋）
 > - **safety-guard** skill：掃**內容**是否含 PII / secret pattern
-> - **CLAUDE.md PII 底線**：總則
+> - **rules.md §PII 安全底線**：總則
 > - **security-checklist**：實作層 checklist
 
 ## 使用契約
@@ -35,7 +34,7 @@ description: |
 
 ---
 
-## §PII pattern（依 CLAUDE.md「§PII 安全底線」）
+## §PII pattern（依 rules.md「§PII 安全底線」）
 
 ### Email
 - pattern: `[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}`

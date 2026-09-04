@@ -1,8 +1,7 @@
 ---
 name: context-snapshot
 description: |
-  進度快照存（繁中）。觸發：context-save / save context / 存進度 / save progress /
-  存快照 / 留 context / 跨 session 暫停 / 要關電腦 / 中斷 task。
+  進度快照存（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（context 接近 auto-compact 閾值、跨 session 暫停）；亦可由使用者顯式呼叫。
   涵蓋：抽當前 state（spec / plan / phase / decision / pending）寫到
   docs/snapshots/<topic>-<ts>.md、Memory hook 可選、recovery 路徑明確。
   下游：未來 session 用 context-resume 接續。
@@ -149,7 +148,7 @@ snapshot **不是 memory**：
 - snapshot = 當下進度（暫時）
 - memory = 長期偏好 / 領域知識（持久）
 
-但 snapshot 內若出現「值得 long-term 記住」的 decision，user 可手動載 memory：依 CLAUDE.md auto memory 規則寫到 `~/.claude/projects/.../memory/`。
+但 snapshot 內若出現「值得 long-term 記住」的 decision，user 可手動載 memory：依 Claude Code auto memory 規則寫到 `~/.claude/projects/.../memory/`。
 
 snapshot 不主動寫 memory（避免雜訊）。
 

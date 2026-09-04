@@ -128,7 +128,7 @@ caller 會把 N 個 agent 的 unexpected findings 攤開、跟原 hypothesis lis
 
 ---
 
-## §PII（依 CLAUDE.md §PII 安全底線）
+## §PII（依 rules.md §PII 安全底線）
 
 驗證過程可能 grep / read 到含 PII 原值的 log / config / DB dump（email / phone / 身分證 / 信用卡 / 地址 / id_number）。**禁吐原值回主 context**：
 
@@ -149,4 +149,4 @@ PII 違規 = 主 context 也會被污染、整個 incident report 落 git histor
 | 「Unexpected findings 沒什麼可寫、跳過」 | 沒寫不等於沒發現；認真翻一遍驗證過程 |
 | 「主 context 會 grep 一遍、我簡單看就好」 | 不會；fan-out 就是要你做深入驗、別偷懶 |
 | 「我問 user 確認一下」 | 不能；無 AskUserQuestion 能力、回 inconclusive 即可 |
-| 「log 內 PII 原值貼出來、reviewer 才看得清楚」 | **禁**；mask 後再帶進 evidence；CLAUDE.md §PII 不可違反 |
+| 「log 內 PII 原值貼出來、reviewer 才看得清楚」 | **禁**；mask 後再帶進 evidence；rules.md §PII 不可違反 |

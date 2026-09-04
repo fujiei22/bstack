@@ -4,7 +4,7 @@ description: |
   程式語言特化 code reviewer（繁中）。動態 dispatch：主 dispatcher 在 spawn
   時 prompt 內標 language（python / typescript / javascript / sql / golang /
   java / csharp / cpp / rust），本 agent 依該 language 套對應 idiom / pitfall /
-  best practice 做 review。觸發：request-review 階段、依改動副檔名自動派發。
+  best practice 做 review。載入：dev-workflow Phase 5 request-review 階段，依改動副檔名由主 agent 動態 spawn。
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---
@@ -40,7 +40,7 @@ model: sonnet
 4. **error handling**：error / exception 處理是否完整？
 5. **safety**：null / undefined / empty / race / overflow / leak？
 6. **testing**：測試覆蓋 + 測對的東西？
-7. **CLAUDE.md 一致**：註解、PII、DB rule、commit 格式？
+7. **rules.md 一致**：註解、PII、DB rule、commit 格式？
 
 ---
 
@@ -80,7 +80,7 @@ model: sonnet
 - JOIN 順序（小表先）
 - transaction 邊界
 - DDL：大表 online ALTER（避免 long lock）
-- PII：mask / aggregate（依 CLAUDE.md）
+- PII：mask / aggregate（依 rules.md §PII 安全底線）
 
 ### Go
 

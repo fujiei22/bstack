@@ -1,9 +1,8 @@
 ---
 name: security-audit
 description: |
-  OWASP Top 10 + STRIDE 安全稽核（繁中）。觸發：security audit / 安全稽核 /
-  threat model / OWASP / STRIDE / 認證 / 授權 / payment / API 邊界 /
-  涉敏感資料 / 資料層改動 / 涉 PII / production data。
+  OWASP Top 10 + STRIDE 安全稽核（繁中）。載入：dev-workflow Phase 6（receive-review 完；
+  T2 涉認證 / 資料層 / API 邊界才用、T3 必用）；亦可由使用者顯式呼叫。
   涵蓋：判定要不要跑、spawn security-auditor agent（獨立 context 做 STRIDE / OWASP /
   checklist / PII 檢查）、整合 finding、critical user gate。
   上游：receive-review 完。下游：finish-branch。
@@ -97,7 +96,7 @@ Agent:
 
 ## §Major / Minor 處置（§Auto-fix 原則）
 
-依 CLAUDE.md「§Auto-fix」：
+依 rules.md「§Auto-fix」：
 
 - **不危險類**（input validation 補上、log mask 補上、secure header 補上、註解 / 格式類安全建議）→ 自動修、修完整批 diff 給 user
 - **危險類**（改認證邏輯、改 session 行為、改加密、改 DB schema 加 column 加 mask、改 dependency）→ AskUserQuestion 問 user

@@ -1,8 +1,7 @@
 ---
 name: pr-explain
 description: |
-  PR diff 詳盡解釋落檔（繁中）。觸發：PR 開好後自動 / PR 解釋 / explain pr /
-  diff 解釋 / 詳細寫 / 落檔 review。
+  PR diff 詳盡解釋落檔（繁中）。載入：dev-workflow Phase 8（finish-branch 開好 PR 後）；亦可由使用者顯式呼叫。
   涵蓋：fork pr-explainer agent 獨立 context 重讀 diff、依檔分 section 寫
   「為何 + 怎做 + 關聯」、落 docs/work/<branch-name>/pr-review.md、commit、貼到 PR comment。
   上游：finish-branch（PR 已開）。下游：retro（不綁定）。
@@ -82,4 +81,4 @@ gh pr comment <N> --body-file docs/work/<branch-name>/pr-review.md
 - **不**修 source code（只寫解釋）
 - **不**問 user（subagent 內無 AskUserQuestion）
 - PII 違規 → 在「安全 / PII 檢查」section 標 critical、但**不**主動修
-- 套用 CLAUDE.md 強制守則（§PII / §Branch safety / §File-type 等）
+- 套用 rules.md 強制守則（§PII / §Branch safety / §File-type 等）

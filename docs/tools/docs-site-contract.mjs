@@ -25,7 +25,7 @@
  *   node docs/work/refactor/docs-site-redesign/verify/contract.mjs
  *   node docs/work/refactor/docs-site-redesign/verify/contract.mjs --selftest   # 驗 fail 路徑
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -244,6 +244,8 @@ const BASELINE_KEYS = [
   // 後補：這兩個節點一直都在圖上，但先前沒有內嵌全文（baseline 既有缺口 1+2），
   // 是全站唯一點不開文件的兩個 skill。已補進內嵌包。
   'LoadDLang', 'LoadDD',
+  // 2026-09-04 plugin 化：/devwork 入口 skill，prelude 第一個節點。
+  'LoadDevwork',
 ].sort();
 
 const ndStart = js.search(/(?:const|var|let)\s+NODE_DOCS\s*=\s*\{/);
@@ -322,14 +324,14 @@ const nodeCount = Object.keys(FD.nodes).length;
 const edgeCount = FD.edges.length;
 const phaseCount = FD.phases.length;
 const typeCount = new Set(Object.values(FD.nodes).map((n) => n.type || 'default')).size;
-const EXPECT = { nodes: 98, edges: 135, phases: 15, types: 8 };
+const EXPECT = { nodes: 99, edges: 136, phases: 15, types: 8 };
 check(
-  'C8a 資料契約 98 nodes / 135 edges / 15 phases / 8 types',
+  'C8a 資料契約 99 nodes / 136 edges / 15 phases / 8 types',
   nodeCount === EXPECT.nodes && edgeCount === EXPECT.edges &&
     phaseCount === EXPECT.phases && typeCount === EXPECT.types,
   `期望 ${EXPECT.nodes}/${EXPECT.edges}/${EXPECT.phases}/${EXPECT.types}，` +
     `實際 ${nodeCount}/${edgeCount}/${phaseCount}/${typeCount}` +
-    `（後果：改動 data.js 時數字無聲跑掉；歷次基線：84/103 → 88/111 → 90/115 → 100/138）`
+    `（後果：改動 data.js 時數字無聲跑掉；歷次基線：84/103 → 88/111 → 90/115 → 100/138 → 98/135）`
 );
 
 // 圖的完整性：沒有孤兒節點、沒有指向不存在節點的邊
@@ -357,11 +359,48 @@ check(
   refKeys.size === expectedRefCount,
   `期望 ${expectedRefCount}（磁碟推導），實際 ${refKeys.size}（後果：內嵌文件集合與磁碟對不上，F13/F14 的資料底變了）`
 );
+// C8e 從「CLAUDE.md 存在」改成「rules.md 存在且不是空殼」：2026-09-04 plugin 化後 repo 根 CLAUDE.md
+// 只剩三行 @import，內嵌它會讓「根規則」點開是空的而契約照樣綠（review 抓到的「空洞通過」）。
+const rulesEmbedded = (refSrc.match(/"references\/rules\.md"\s*:\s*"((?:[^"\\]|\\.)*)"/) || [])[1] || '';
 check(
-  'C8e CLAUDE.md 在內嵌包裡',
-  refKeys.has('references/CLAUDE.md'),
-  '期望 references/CLAUDE.md 存在（後果：文件索引面板的「根規則」那列點下去載入失敗，' +
-    '且所有指向 CLAUDE.md 章節的交叉引用都解析不到、退回純文字）'
+  'C8e rules.md 在內嵌包裡且含 §事實核實',
+  refKeys.has('references/rules.md') && rulesEmbedded.includes('§事實核實'),
+  `期望 references/rules.md 存在且內容含「§事實核實」，實際 ${refKeys.has('references/rules.md') ? '存在但內容 ' + rulesEmbedded.length + ' 字' : '不存在'}` +
+    '（後果：文件索引面板的「根規則」那列點下去是空殼，且所有 `rules.md §…` 交叉引用解析不到、退回純文字）'
+);
+
+// C8f 交叉引用可解析：內嵌正文裡每個 `<name>.md §` 的 name 都要在抽屜能開的文件名裡
+// （app.js DOC_ID_BY_NAME 用 n 欄比對）。plugin 化把 35 處 `CLAUDE.md §` 改成 `rules.md §`，
+// 若 EXTRA_DOCS 沒跟著改名，這 35 條連結會全部靜默斷掉——這條就是把它變成機械判定。
+const docNamesForXref = new Set([...ndBlock.matchAll(/n:\s*'([^']+)'/g)].map((m) => m[1]));
+const extraNames = [...js.matchAll(/n:\s*'([^']+\.md)'\s*,\s*k:\s*'policy'/g)].map((m) => m[1]);
+extraNames.forEach((n) => docNamesForXref.add(n));
+// 內嵌值是 JS 字串，換行是 `\n` 兩個字元：先還原再抓，否則 `\nrules.md` 會被抓成 nrules.md。
+// skill 自己 references/ 底下的檔（如 design-styles.md）不在抽屜裡、本來就連不到，不算斷鏈。
+const refSrcPlain = refSrc.replace(/\\n/g, '\n');
+const xrefNames = new Set([...refSrcPlain.matchAll(/(?<![A-Za-z0-9._-])([A-Za-z0-9._-]+\.md) §/g)].map((m) => m[1]));
+const skillRefFiles = new Set();
+for (const d of readdirSync(join(REPO, 'skills'), { withFileTypes: true })) {
+  if (!d.isDirectory()) continue;
+  const refDir = join(REPO, 'skills', d.name, 'references');
+  if (existsSync(refDir)) for (const f of readdirSync(refDir)) skillRefFiles.add(f);
+}
+const xrefBroken = [...xrefNames].filter((n) => !docNamesForXref.has(n) && !docNamesForXref.has(n.replace(/\.md$/, '')) && !skillRefFiles.has(n));
+check(
+  'C8f 內嵌正文的 `<name>.md §` 交叉引用都對得到文件',
+  xrefNames.size > 0 && xrefBroken.length === 0,
+  `期望 0 個斷鏈，實際 ${xrefBroken.length} 個：[${xrefBroken.join(', ')}]（後果：正文裡指向守則章節的連結消失，而且不報錯）`
+);
+
+// C8g landing 兩處節點數與 data.js 一致（hero 的 <b>N</b><span>節點</span> 與節點鏈計數器「/ N 個節點」）。
+// C8a 只守 data.js，index.html 的兩個數字曾同時停在 100 而圖已是 98。
+const landingHtml = read('index.html');
+const heroNodes = Number((landingHtml.match(/<b>(\d+)<\/b><span>節點<\/span>/) || [])[1]);
+const deckNodes = Number((landingHtml.match(/\/ (\d+) 個節點/) || [])[1]);
+check(
+  `C8g index.html 節點數 == data.js ${nodeCount}`,
+  heroNodes === nodeCount && deckNodes === nodeCount,
+  `hero=${heroNodes} 節點鏈=${deckNodes}（後果：公開站報錯數字；改處：index.html 的 <b>N</b><span>節點</span> 與「/ N 個節點」）`
 );
 
 // layout.js 仍然不該被動——它是 dagre 參數，不在本次 scope
@@ -539,7 +578,7 @@ for (const name of diskAgents) {
 // 反向檢查抓得到，因為垃圾目錄不會有 NODE_DOCS 條目。
 const strayRefs = [...refKeys].filter((k) => {
   const m = k.match(/^references\/(skills\/([^/]+)\/SKILL\.md|agents\/([^/]+)\.md)$/);
-  if (!m) return k !== 'references/CLAUDE.md';   // CLAUDE.md 是唯一合法的例外
+  if (!m) return k !== 'references/rules.md';   // rules.md（規則書）是唯一合法的例外
   return !docNames.has(m[2] || m[3]);
 });
 check(

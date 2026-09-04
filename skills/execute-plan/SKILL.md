@@ -1,13 +1,12 @@
 ---
 name: execute-plan
 description: |
-  按 plan 推進實作（繁中）。觸發：跑 plan / execute plan / 實作 plan / 照 plan 做 /
-  start coding / 開工 / 進 implementation / 寫 code。
+  按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（review-plan user accept 後；T1 由 brainstorm 直接交棒）；亦可由使用者顯式呼叫。
   涵蓋：讀 plan、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
   task fail 處置、blocker 升級。
-  上游：review-plan（user accept）；T1 依 CLAUDE.md §Tier「plan 跳」由 brainstorm 直接交棒。
+  上游：review-plan（user accept）；T1 依 rules.md §Tier「plan 跳」由 brainstorm 直接交棒。
   下游：verify-done（全 task 完）。
-  **T0 不進本 skill**：CLAUDE.md §Tier 表的 T0 是「brainstorm / plan / TDD / review / security 全跳」，
+  **T0 不進本 skill**：rules.md §Tier 表的 T0 是「brainstorm / plan / TDD / review / security 全跳」，
   dev-workflow 與 brainstorm 皆明訂 T0 直接實作後進 finish-branch。
 ---
 
@@ -25,7 +24,7 @@ description: |
    - 同 `parallel-group` 多 task → 載 `dispatch-parallel`、由它判跑法（Agent Teams / subagent / 串行）並問 user
    - 單 task group → 主 agent 自己跑 tdd-cycle
 4. **每 task 完跑 verify**（plan 內的 verify command + 主 build / test）。
-5. **每 task 完 commit**（繁中、依 CLAUDE.md commit 格式）。
+5. **每 task 完 commit**（繁中、依 rules.md §Commit 訊息 格式）。
 6. **全 task 完** → 交棒 verify-done。
 
 **禁止**：
@@ -50,11 +49,11 @@ description: |
 
 ## §前端檔處理
 
-**先講常規**：task 要動的前端檔**在** `codebase_impact.files` 裡 → 照 §Task 推進規則 第 3 步之前載 `design-language`、寫完跑 `design-language §對齊檢查清單` 四項（元件狀態 / 斷點 / 表單 / dark mode）。這是既有規則，見 `dev-workflow` §跨流程 skill 觸發。
+**先講常規**：task 要動的前端檔**在** `codebase_impact.files` 裡 → 照 §Task 推進規則 第 3 步之前載 `design-language`、寫完跑 `design-language §對齊檢查清單` 四項（元件狀態 / 斷點 / 表單 / dark mode）。這是既有規則，見 `dev-workflow` §跨流程 skill 載入。
 
 **本節其餘講的是例外**：施工中發現要動的前端檔，不在 `codebase_impact.files` 裡——也就是 Phase 0 沒看到它。
 
-判斷副檔名用 `design-language` §前端副檔名 那份清單（**不在本檔重列**），排除同樣照 `design-language` §使用契約 第 1 步：剔除 `~/.claude/skills/**`，或 repo 內含 `*/SKILL.md` 的 `skills/**`。**不得用裸 `skills/` 比對**——`design-language` 明文說明理由：某個專案可能有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除。
+判斷副檔名用 `design-language` §前端副檔名 那份清單（**不在本檔重列**），排除同樣照 `design-language` §使用契約 第 1 步：剔除任何路徑含 `skills/<name>/SKILL.md` 的 skill 定義目錄（plugin 快取、專案 `.claude/skills/`、repo `skills/` 都算）。**不得用裸 `skills/` 比對**——`design-language` 明文說明理由：某個專案可能有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除。
 
 **動作（五步）**：
 
@@ -130,7 +129,7 @@ step 失敗 / verify 失敗時：
 
 1. **不靜默 retry**
 2. **印錯誤 + 評起因**（typo / 缺 dep / 假設錯 / 介面變 / plan step 錯）
-3. **走 CLAUDE.md §Fail handling**：`AskUserQuestion` 提：
+3. **走 rules.md §Fail handling**：`AskUserQuestion` 提：
    - retry — 適暫態 / flaky test
    - adjust + retry — AI 提具體調整、user 點頭跑（如改 plan step）
    - rollback 該 task 的修改、回前一個 commit
@@ -149,7 +148,7 @@ step 失敗 / verify 失敗時：
 
 ## §Commit 格式
 
-依 CLAUDE.md「Commit 訊息格式（繁中）」：
+依 rules.md「§Commit 訊息（繁中）」：
 
 ```
 <type>: <subject 50 字內，繁中>
@@ -235,6 +234,6 @@ dispatch-parallel 期間 skill 欄位變 `execute-plan+dispatch-parallel`。
 | 「task 看起來簡單跳 tdd-cycle」 | 紅綠循環不可跳；trivial 也有測 |
 | 「同 group task 自己跑就好」 | 同 group 多 task 必載 dispatch-parallel |
 | 「verify pass 就 commit」 | verify pass 是 commit 前提；不是 commit 本身 |
-| 「多 task 一個 commit」 | 違反 CLAUDE.md「一 commit 一邏輯改變」|
+| 「多 task 一個 commit」 | 違反 rules.md「一 commit 一邏輯改變」|
 | 「fail 多 retry 一次過了就好」 | 不靜默 retry；走 §Task fail |
 | 「subagent 結果我替他 commit」 | 主 agent 收 subagent 結果、整合後再 commit |

@@ -1,8 +1,8 @@
 ---
 name: db-reviewer
 description: |
-  資料庫 schema / SQL / migration 特化 reviewer（繁中）。觸發：T3 涉 DB schema
-  改動 / migration 改動 / SQL query 大改 / index 改動 / 跨表 JOIN / DDL。
+  資料庫 schema / SQL / migration 特化 reviewer（繁中）。載入：dev-workflow Phase 6
+  security-audit 內，T3 涉 DB schema / migration / SQL query 大改 / index / 跨表 JOIN / DDL 時由主 agent spawn。
   涵蓋：schema 設計合理性、index / query plan、migration 安全性（大表、online DDL）、
   資料一致性、PII 處理、回滾路徑。
 tools: ["Read", "Grep", "Glob", "Bash", "mcp__mysql__mysql_query"]
@@ -55,7 +55,7 @@ model: sonnet
   - filesort？temporary table？
   - JOIN 順序？
 - N+1 問題（ORM 內常見、需 eager load）
-- LIMIT 預設（依 CLAUDE.md 預設 100）
+- LIMIT 預設（依 rules.md §DB 操作 預設 100）
 - 大 IN clause（>1000 → 改 JOIN 或分批）
 
 ### Migration
@@ -75,7 +75,7 @@ model: sonnet
 - foreign key cascade 行為？
 - 軟刪除（soft delete） vs 硬刪？
 
-### PII（依 CLAUDE.md §PII 安全底線）
+### PII（依 rules.md §PII 安全底線）
 
 - SELECT 是否含 PII 原值輸出？
 - WHERE 用 PII 比對 → OK（不落輸出）
@@ -125,7 +125,7 @@ model: sonnet
 
 ## §使用 mysql MCP
 
-依 CLAUDE.md「§DB 操作」：
+依 rules.md「§DB 操作」：
 
 - 用 `mcp__mysql__mysql_query` 跑 SELECT / SHOW / DESCRIBE / EXPLAIN
 - **禁**：bash mysql CLI、手寫 SQL 貼回呼叫端讓他人跑

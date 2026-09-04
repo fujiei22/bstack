@@ -1,14 +1,14 @@
 /**
  * bstack — dev-workflow flowchart 結構化資料
  *
- * 來源：CLAUDE.md 強制守則 + 9 階段流程 + skills/* + agents/*
+ * 來源：rules.md 強制守則 + 9 階段流程 + skills/* + agents/*
  *
  * 節點型別（對應 styles.css 的 --c-* tokens）：
  *   gate    - USER GATE（黃）
  *   agent   - subagent 派遣（藍）
  *   stop    - 強制暫停 / abort（紅）
  *   skill   - skill 載入（綠）
- *   policy  - 主線仲裁 / CLAUDE.md 強制守則（灰）
+ *   policy  - 主線仲裁 / rules.md 強制守則（灰）
  *   impl    - AI 實際寫 code / 操作（紫）
  *   hook    - Hook 攔截點（橙）
  *   default - 一般流程（無 classDef）
@@ -51,9 +51,10 @@ const FLOW_DATA = {
    */
   nodes: {
     // ───────── prelude ─────────
-    Start:        { phase: 'prelude', type: 'default', shape: 'stadium', label: 'user prompt' },
-    ClaudeMd:     { phase: 'prelude', type: 'policy',  shape: 'rect',    label: 'CLAUDE.md 強制守則仲裁\n優先於任何 skill' },
-    DevWfSkill:   { phase: 'prelude', type: 'skill',   shape: 'rect',    label: '載入 skill：dev-workflow\n（寫 / 改 / 修 / 加類 prompt 必載）' },
+    Start:        { phase: 'prelude', type: 'default', shape: 'stadium', label: 'user 輸入 /devwork + 要做的事\n不下指令 = 普通 Claude Code' },
+    LoadDevwork:  { phase: 'prelude', type: 'skill',   shape: 'rect',    label: '載入 skill：devwork\n唯一入口，讀 rules.md' },
+    ClaudeMd:     { phase: 'prelude', type: 'policy',  shape: 'rect',    label: 'rules.md 強制守則仲裁\n優先於任何 skill' },
+    DevWfSkill:   { phase: 'prelude', type: 'skill',   shape: 'rect',    label: '載入 skill：dev-workflow\n（由 devwork 載入，不自動觸發）' },
 
     // ───────── hooks ─────────
     HBranch:      { phase: 'hook', type: 'hook', shape: 'rect',    label: 'branch-safety.ps1 hook\nPreToolUse: Write / Edit / NotebookEdit' },
@@ -186,8 +187,9 @@ const FLOW_DATA = {
    */
   edges: [
     // prelude
-    ['Start',        'ClaudeMd',     '',                           'solid'],
-    ['ClaudeMd',     'DevWfSkill',   '寫 / 改 / 修 / 加',          'solid'],
+    ['Start',        'LoadDevwork',  '',                           'solid'],
+    ['LoadDevwork',  'ClaudeMd',     '讀 rules.md',                'solid'],
+    ['ClaudeMd',     'DevWfSkill',   '',                           'solid'],
     ['DevWfSkill',   'HBranch',      '寫入動作前',                  'dashed'],
     ['DevWfSkill',   'HFile',        'commit / 改特定檔',           'dashed'],
     ['DevWfSkill',   'BS',           '進主流程',                    'solid'],
@@ -209,7 +211,7 @@ const FLOW_DATA = {
     ['P0d',          'TierUp',       'File-type 命中 → 升 Tier',     'dashed'],
     ['P0Design',     'TierSplit',    'Track / Tier / 設計路徑 一次確認', 'solid'],
 
-    // T0 直送：依 CLAUDE.md §Tier 與 finish-branch §特殊情境「Tier T0 直接到此」，
+    // T0 直送：依 rules.md §Tier 與 finish-branch §特殊情境「Tier T0 直接到此」，
     // T0 跳所有中間 Phase 但仍進 finish-branch（不是跳過它直接 commit）。
     ['TierSplit',    'T0Impl',       'T0（不寫 spec）',              'solid'],
     ['T0Impl',       'LoadFin',      'T0 直接到 finish-branch',      'solid'],
@@ -230,9 +232,9 @@ const FLOW_DATA = {
     ['IncidentQ',    'LoadVerify',   'no',                          'solid'],
 
     // Dev Track
-    // T1 依 CLAUDE.md §Tier 機制「plan：跳」直送 execute-plan——review-plan 也只定義
+    // T1 依 rules.md §Tier 機制「plan：跳」直送 execute-plan——review-plan 也只定義
     // T2 / T3 視角，T1 進了 Phase 2 會無視角可派。
-    ['TrackSplit',   'LoadExec',     'Dev + T1\n跳 Phase 2（CLAUDE.md §Tier：plan 跳）', 'solid'],
+    ['TrackSplit',   'LoadExec',     'Dev + T1\n跳 Phase 2（rules.md §Tier：plan 跳）', 'solid'],
     ['TrackSplit',   'LoadWP',       'Dev + T2 / T3',               'solid'],
     ['LoadWP',       'BS',           'scope 過大：停下拆 sub-spec',  'dashed'],
     ['LoadWP',       'WritePlan',    '',                            'solid'],
@@ -370,13 +372,13 @@ const FLOW_DATA = {
    * 改放 sidebar 區塊，明示這些不在主線、但全程適用 / 按需載入。
    *
    * 結構：每組 { id, title, desc, kind, items[] }
-   * - kind='policy' → items 不可點（CLAUDE.md 章節，無獨立 doc）
+   * - kind='policy' → items 不可點（rules.md 章節，無獨立 doc）
    * - kind='skill'  → items 有 docKey，可點開 doc drawer（對應 NODE_DOCS / REFERENCE_DOCS）
    */
   ambient: [
     {
       id: 'policy',
-      title: 'CLAUDE.md 強制守則',
+      title: 'rules.md 強制守則（/devwork 載入）',
       desc: '優先於任何 skill；環境規則，全程適用、非流程步驟',
       kind: 'policy',
       items: [
@@ -394,7 +396,7 @@ const FLOW_DATA = {
     {
       id: 'devflow',
       title: '開發流程政策',
-      desc: 'CLAUDE.md「開發流程」章節；決定流程怎麼跑，本身不是流程步驟',
+      desc: 'rules.md「開發流程」章節；決定流程怎麼跑，本身不是流程步驟',
       kind: 'policy',
       items: [
         { name: '§Tier 機制',     desc: 'T0-T3 決定 brainstorm / plan / TDD / review / security 深度' },
@@ -429,7 +431,7 @@ const FLOW_DATA = {
     { type: 'agent',   label: 'subagent 派遣' },
     { type: 'gate',    label: 'USER GATE / 決策' },
     { type: 'impl',    label: 'AI 實作 / 操作' },
-    { type: 'policy',  label: 'CLAUDE.md 強制守則' },
+    { type: 'policy',  label: 'rules.md 強制守則' },
     { type: 'hook',    label: 'PreToolUse hook' },
     { type: 'stop',    label: 'STOP / abort' },
   ],

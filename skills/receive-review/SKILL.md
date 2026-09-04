@@ -1,9 +1,9 @@
 ---
 name: receive-review
 description: |
-  接收 review finding、執行 auto-fix 或詢 user（繁中）。觸發：
-  收到 review / review 結果 / 處理 review / apply review fix / 改 review 意見。
-  涵蓋：依 CLAUDE.md §Auto-fix 規則分流（危險問 / 非危險自動修）、
+  接收 review finding、執行 auto-fix 或詢 user（繁中）。載入：dev-workflow Phase 5
+  （request-review 產出 finding 後）；亦可由使用者顯式呼叫。
+  涵蓋：依 rules.md §Auto-fix 規則分流（危險問 / 非危險自動修）、
   T3 額外讓 user 看 diff、review reject 流程、空 / 全綠 review 短路。
   上游：request-review。下游：security-audit（依 tier / 條件）或 finish-branch。
 ---
@@ -17,19 +17,19 @@ review subagent 把 finding 丟回來後，**主 agent 處置**：自動修 / �
 **載入後立即動作**：
 
 1. **讀 hand-off state** 取 `review_summary_path`、`tier`、`critical_count`、`major_count`。
-2. **掃 finding 分類**：依 CLAUDE.md §Auto-fix 表分「不危險類」與「危險類」。
+2. **掃 finding 分類**：依 rules.md §Auto-fix 表分「不危險類」與「危險類」。
 3. **不危險類** → 主 agent 直接 fix、commit、把 diff 給 user 看。
 4. **危險類** → `AskUserQuestion` 問 user 該不該修、怎麼修。
 5. **T3 全程**：即使「不危險類」也要 user 看 diff 才 commit（不強制 prompt、但顯式）。
 6. 全部處置完 → 整理 `review_summary_path` 為定稿 → 交下個 phase。
 
-**T0 不進本 skill**：它的上游 request-review 對 T0 就不啟動（CLAUDE.md §Tier 表 T0 review 欄是「跳」）。
+**T0 不進本 skill**：它的上游 request-review 對 T0 就不啟動（rules.md §Tier 表 T0 review 欄是「跳」）。
 
 ---
 
 ## §不危險 vs 危險分類
 
-依 CLAUDE.md §Auto-fix。再加 review-context 細化：
+依 rules.md §Auto-fix。再加 review-context 細化：
 
 ### 不危險（AI 自動修）
 - typo / 註解錯字
@@ -69,7 +69,7 @@ review subagent 把 finding 丟回來後，**主 agent 處置**：自動修 / �
 對每個 finding：
 
 1. 寫 fix code
-2. commit（依 CLAUDE.md commit 格式；type 通常 `style` / `refactor` / `test` / `docs`）
+2. commit（依 rules.md §Commit 訊息 格式；type 通常 `style` / `refactor` / `test` / `docs`）
 3. 印 diff 給 user 看：
    ```
    已自動修：<finding 簡述>
