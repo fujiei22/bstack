@@ -290,7 +290,10 @@ function Add-Mcp {
     $file = if ($scope -eq 'project') { Join-Path (Get-ProjectRoot) '.mcp.json' } else { 'claude mcp (user)' }
     if ($PSCmdlet.ShouldProcess("claude $($args_ -join ' ')", 'run')) {
         if (-not (Test-ClaudeCli)) { return }
-        & claude @args_
+        # 已經裝過（使用者自己裝的）→ 跟其他項目一樣印 [keep]、不記 manifest；claude mcp add 對重複安裝回 exit 1，不能當失敗
+        $existing = (& claude mcp list 2>&1 | Out-String)
+        if ($existing -match '(?m)^\s*playwright\s*:') { Write-Host "  [keep] mcp：playwright 已在 $scope 設定裡，未覆蓋" -ForegroundColor Yellow; return }
+        & claude @args_ 2>&1 | Out-Host
         if ($LASTEXITCODE -ne 0) { Write-Host "  [fail] claude mcp add playwright 回傳 $LASTEXITCODE" -ForegroundColor Red; return }
         Save-Manifest 'mcp' $scope $file @('mcp:playwright')
         $script:Written += @{ item = 'mcp'; scope = $scope; file = $file }
@@ -418,14 +421,16 @@ function Invoke-Migrate {
     try { $s = Read-Json $settingsPath -RequireObject } catch {}
     if ($s -and $s.hooks -and $s.hooks.PreToolUse) {
         $before = (@($s.hooks.PreToolUse) | ForEach-Object { @($_.hooks).Count } | Measure-Object -Sum).Sum
-        foreach ($g in @($s.hooks.PreToolUse)) { $g.hooks = @($g.hooks | Where-Object { $_.command -notmatch 'branch-safety\.ps1|file-type-guard\.ps1' }) }
+        # 只認舊 sync 位置 ~/.claude/hooks/…：plugin 版 hook 不在 settings.json，但使用者自己可能有同名 hook 放別處
+        foreach ($g in @($s.hooks.PreToolUse)) { $g.hooks = @($g.hooks | Where-Object { $_.command -notmatch '[\\/]\.claude[\\/]hooks[\\/](branch-safety|file-type-guard)\.ps1' }) }
         $s.hooks.PreToolUse = @($s.hooks.PreToolUse | Where-Object { @($_.hooks).Count -gt 0 })
         $after = (@($s.hooks.PreToolUse) | ForEach-Object { @($_.hooks).Count } | Measure-Object -Sum).Sum
         if ($after -ne $before) { $touched = $true }
         if (@($s.hooks.PreToolUse).Count -eq 0) { $s.hooks.PSObject.Properties.Remove('PreToolUse') }
         if (@($s.hooks.PSObject.Properties).Count -eq 0) { $s.PSObject.Properties.Remove('hooks') }
     }
-    if ($s -and $s.statusLine -and $s.statusLine.command -match 'statusline\.sh') { $s.PSObject.Properties.Remove('statusLine'); $touched = $true }
+    # 只認舊 sync 位置 ~/.claude/statusline.sh：extras 自己裝的指向 <repo>/extras/statusline.sh，不能被當舊副本拔掉（實跑誤判過）
+    if ($s -and $s.statusLine -and $s.statusLine.command -match '[\\/]\.claude[\\/]statusline\.sh') { $s.PSObject.Properties.Remove('statusLine'); $touched = $true }
 
     # 舊全域 CLAUDE.md：簽名 = 只有舊版才有的那句 + §事實核實。內文重疊（非空行）≥ 90% 視為未被使用者改過。
     $claude = Join-Path $home_ 'CLAUDE.md'; $claudeOld = $false; $claudeModified = $false; $t = ''; $ln = '?'
@@ -553,7 +558,7 @@ function Invoke-SelfTest {
         Set-Content "$tmp/.claude/hooks/file-type-guard.ps1" '# my own PreToolUse hook, nothing to do with bstack' -Encoding UTF8
         $oldClaude = (Get-Content -LiteralPath (Join-Path $RepoRoot 'skills/devwork/rules.md') -Raw -Encoding UTF8) -replace '流程由 `/devwork <要做的事>` 啟動', '「寫 / 改 / 修 / 加」類 prompt 一律進 `dev-workflow`'
         Set-Content "$tmp/.claude/CLAUDE.md" $oldClaude -Encoding UTF8
-        Set-Content $userSettings '{"hooks":{"PreToolUse":[{"matcher":"Write","hooks":[{"type":"command","command":"pwsh x/hooks/branch-safety.ps1"},{"type":"command","command":"echo mine-hook"}]}]}}' -Encoding UTF8
+        Set-Content $userSettings '{"hooks":{"PreToolUse":[{"matcher":"Write","hooks":[{"type":"command","command":"pwsh -File \"C:/Users/x/.claude/hooks/branch-safety.ps1\""},{"type":"command","command":"echo mine-hook"}]}]},"statusLine":{"type":"command","command":"bash \"D:/repo/extras/statusline.sh\""}}' -Encoding UTF8
         $script:Yes = $true
         Invoke-Migrate
         Assert 'e1 舊 skill 副本（有簽名）刪除' (-not (Test-Path "$tmp/.claude/skills/brainstorm"))
@@ -565,6 +570,7 @@ function Invoke-SelfTest {
         Assert 'e4 舊 CLAUDE.md 改名備份' ((-not (Test-Path "$tmp/.claude/CLAUDE.md")) -and (@(Get-ChildItem "$tmp/.claude" -Filter 'CLAUDE.md.bstack-bak-*').Count -eq 1))
         $s = Read-Json $userSettings
         Assert 'e5 settings 只拔舊 hook、自己的留著' ((@($s.hooks.PreToolUse[0].hooks).Count -eq 1) -and ($s.hooks.PreToolUse[0].hooks[0].command -eq 'echo mine-hook'))
+        Assert 'e5b extras 裝的 statusLine（指向 <repo>/extras/）不被當舊副本拔掉' ($s.statusLine.command -match 'extras/statusline\.sh')
         Set-Content "$tmp/.claude/CLAUDE.md" "## 我的規則`n### §事實核實`n我自己寫的一堆內容`n改動 prompt 一律進 dev-workflow" -Encoding UTF8
         Invoke-Migrate
         Assert 'e6 被改過的 CLAUDE.md 不動' (Test-Path "$tmp/.claude/CLAUDE.md")
