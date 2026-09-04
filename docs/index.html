@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <title>bstack：Claude Code 開發流程包</title>
-  <meta name="description" content="27 個 skill、6 個 agent、2 個 PreToolUse hook 與一份 CLAUDE.md 規則書，把 Claude Code 的改動類請求導進固定的九階段流程。" />
+  <meta name="description" content="28 個 skill、6 個 agent、2 個 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
 
   <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC。
        屬性名與 localStorage key 都跟 flow.html 一致，兩頁之間切換主題不會跳。 -->
@@ -41,24 +41,24 @@
 <div class="ldoc">
   <div class="lcol">
   <section class="hero" id="top">
-    <div class="kicker rise">Claude Code 開發流程包 · 零 marketplace 依賴</div>
+    <div class="kicker rise">Claude Code 開發流程包 · 裝成 plugin、一個指令啟動</div>
     <h1 class="rise">讓它每一次<br>都用同一種方式聰明</h1>
-    <p class="sub rise">它本來就很會寫 code。麻煩的是同一句「改一下這裡」，它今天直接動手，明天卻先問你三個問題。bstack 是一份把這件事釘住的設定檔：27 個 skill、6 個 agent、2 個 PreToolUse hook，加上一份誰都繞不過的規則書，同步進 <code>~/.claude/</code> 就生效。</p>
+    <p class="sub rise">它本來就很會寫 code。麻煩的是同一句「改一下這裡」，它今天直接動手，明天卻先問你三個問題。bstack 是一份把這件事釘住的 Claude Code plugin：28 個 skill、6 個 agent、2 個 PreToolUse hook，加上一份規則書。打 <code>/devwork</code> 才啟動，不打就是普通的 Claude Code。</p>
     <div class="stat rise">
-      <div><b>27</b><span>skills</span></div><div><b>6</b><span>agents</span></div>
+      <div><b>28</b><span>skills</span></div><div><b>6</b><span>agents</span></div>
       <div><b>2</b><span>hooks</span></div><div><b>9</b><span>phases</span></div>
-      <div><b>100</b><span>節點</span></div>
+      <div><b>99</b><span>節點</span></div>
     </div>
     <a class="cta rise" href="./flow.html">開啟流程圖<span class="ar">→</span></a>
     <p class="sub rise" style="margin-top:18px;font-size:14.5px;color:var(--ink-3)">往下捲，右邊那條鏈會一節一節接著長出來。</p>
   </section>
 
   <section class="beat" id="b1" data-upto="7" data-nodes="HBranch,HFile,StopBranch,StopFile">
-    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">兩個 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>branch-safety.ps1</code> 在 project repo 內、當前 branch 命中 <code>main / master / production / prod / release</code> 時擋掉寫入。<code>file-type-guard.ps1</code> 按副檔名與路徑分兩級：密鑰類（<code>.env</code>、<code>*.key</code>、<code>*.pem</code>、<code>credentials.*</code>）直接擋、沒有放行管道；敏感類（migration、lockfile、CI、infra）也擋，但你確認過之後可以建一張一次性 token 放行。至於「migration 要載 db-access」「CI 檔要升到 T2」那些，是攔下來之後 CLAUDE.md 要求它做的處置。hook 只負責讓那個動作沒有發生過。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
+    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">兩個 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>branch-safety.ps1</code> 在 project repo 內、當前 branch 命中 <code>main / master / production / prod / release</code> 時擋掉寫入。<code>file-type-guard.ps1</code> 按副檔名與路徑分兩級：密鑰類（<code>.env</code>、<code>*.key</code>、<code>*.pem</code>、<code>credentials.*</code>）直接擋、沒有放行管道；敏感類（migration、lockfile、CI、infra）也擋，但你確認過之後可以建一張一次性 token 放行。至於「migration 要載 db-access」「CI 檔要升到 T2」那些，是攔下來之後規則書要求它做的處置。hook 只負責讓那個動作沒有發生過。兩支 hook 在啟用 plugin 的專案一律生效，不需要 <code>/devwork</code>；不想要就 <code>/plugin disable bstack@bstack</code>。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
   </section>
 
   <section class="beat" id="b2" data-upto="22" data-nodes="P0b,P0c,P0d">
-    <div class="tag rise"><i style="background:var(--c-gate);border-color:var(--c-gate-bd)"></i>判定</div><h2 class="rise">先估這件事有多大，<br>再決定要多認真</h2><p class="rise lead">一行 typo 跟改動資料庫結構，不該用同一套程序處理。</p><p class="rise">每個請求進來先跑 Phase 0：讀 memory、看 codebase、估影響檔、判是修 bug 還是做功能、判量體落在 T0 到 T3 哪一級。判完把三件事併成一張選單問你，只能點<strong>選項</strong>，沒有自由填答欄。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>每次不一樣</div><p>同一句「改一下這裡」，它今天直接動手，明天先寫一份規格再問你三個問題。你沒辦法預期這次會拿到什麼。</p></div><div class="now"><div class="lbl"><b>現在</b>先估量體再分流</div><p>T0 一行改動直接做完，T3 跨模組或動到 DB schema 要走完九個階段。<strong>「好」「OK」這種字一律不算通過</strong>，gate 只認選項。</p></div></div>
+    <div class="tag rise"><i style="background:var(--c-gate);border-color:var(--c-gate-bd)"></i>判定</div><h2 class="rise">先估這件事有多大，<br>再決定要多認真</h2><p class="rise lead">一行 typo 跟改動資料庫結構，不該用同一套程序處理。</p><p class="rise">每個 <code>/devwork</code> 請求進來先跑 Phase 0：讀 memory、看 codebase、估影響檔、判是修 bug 還是做功能、判量體落在 T0 到 T3 哪一級。判完把三件事併成一張選單問你，只能點<strong>選項</strong>，沒有自由填答欄。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>每次不一樣</div><p>同一句「改一下這裡」，它今天直接動手，明天先寫一份規格再問你三個問題。你沒辦法預期這次會拿到什麼。</p></div><div class="now"><div class="lbl"><b>現在</b>先估量體再分流</div><p>T0 一行改動直接做完，T3 跨模組或動到 DB schema 要走完九個階段。<strong>「好」「OK」這種字一律不算通過</strong>，gate 只認選項。</p></div></div>
   </section>
 
   <section class="beat" id="b6" data-upto="30" data-nodes="DesignQ,DesignMap,LoadDD,ThreeWay">
@@ -82,13 +82,13 @@
   </section>
 
   <section class="data" id="inv">
-    <h2 class="rise">裝進 ~/.claude/ 的全部</h2>
+    <h2 class="rise">plugin 裡有什麼</h2>
     <ul class="inv rise">
-      <li><span class="sw" style="background:var(--c-skill);border-color:var(--c-skill-bd)"></span><span class="kk">skills</span><span class="vv">主流程 12 條、跨流程觸發式 9 條、meta 4 條、設計 lane 2 條</span><span class="nn">27</span></li>
+      <li><span class="sw" style="background:var(--c-skill);border-color:var(--c-skill-bd)"></span><span class="kk">skills</span><span class="vv">入口 1 條、主流程 12 條、跨流程 9 條、meta 4 條、設計 lane 2 條</span><span class="nn">28</span></li>
       <li><span class="sw" style="background:var(--c-agent);border-color:var(--c-agent-bd)"></span><span class="kk">agents</span><span class="vv">review / 安全稽核 / e2e / 假設驗證，各自跑獨立 context</span><span class="nn">6</span></li>
       <li><span class="sw" style="background:var(--c-hook);border-color:var(--c-hook-bd)"></span><span class="kk">hooks</span><span class="vv">branch-safety 與 file-type-guard，都是 PreToolUse</span><span class="nn">2</span></li>
-      <li><span class="sw" style="background:var(--c-policy);border-color:var(--c-policy-bd)"></span><span class="kk">CLAUDE.md</span><span class="vv">九條強制守則、Tier 機制、commit 與 branch 規範；優先於任何 skill</span><span class="nn">1</span></li>
-      <li><span class="sw" style="background:var(--c-impl);border-color:var(--c-impl-bd)"></span><span class="kk">其他</span><span class="vv">settings.json（merge 安裝、本機值優先）、statusline.sh、scripts/setup.ps1</span><span class="nn">3</span></li>
+      <li><span class="sw" style="background:var(--c-policy);border-color:var(--c-policy-bd)"></span><span class="kk">rules.md</span><span class="vv">九條強制守則、Tier 機制、commit 與 branch 規範；/devwork 載入、優先於任何 skill</span><span class="nn">1</span></li>
+      <li><span class="sw" style="background:var(--c-impl);border-color:var(--c-impl-bd)"></span><span class="kk">其他</span><span class="vv">extras.ps1（statusLine / permissions / env / MCP 逐項選層級、可逆）、statusline.sh、project-settings 範本</span><span class="nn">3</span></li>
     </ul>
     <h2 class="rise" style="margin-top:38px">Dev track 的九個階段</h2>
     <p class="rise" style="font-size:14.5px;color:var(--ink-2)">Bug track 走 <code>debug-systematic</code> 取代第 2、3 階段，其餘相同。Tier 決定哪幾階段被跳過。</p>
@@ -106,15 +106,13 @@
   </section>
 
   <section class="data" id="install">
-    <h2 class="rise">裝起來要四步</h2>
-    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">需要 git、jq、Node.js 與 npx。mysql MCP 的連線目標可選。</p>
+    <h2 class="rise">裝起來要三步</h2>
+    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">需要 pwsh 7+（hook 必需，缺了不會報錯、保護直接不存在）。statusLine 另需 bash 與 jq，MCP 另需 Node.js。</p>
     <ol class="steps rise">
-      <li><div class="h">取得 repo</div><pre class="cmd">git clone https://github.com/fujiei22/bstack.git
-cd bstack</pre></li>
-      <li><div class="h">同步到 ~/.claude/</div><p><strong>檔案直接覆蓋、不備份</strong>，先自己備份再跑。settings.json 走 merge：hooks 與 statusLine 以 repo 為準，permissions.* 與其他設定一律保留本機既有值。</p><pre class="cmd">pwsh -File scripts/setup.ps1</pre></li>
-      <li><div class="h">裝兩個 MCP</div><p>mysql MCP 的三個寫入開關都設 false，並建議搭配唯讀權限的 DB user 做雙保險。</p><pre class="cmd">claude mcp add mysql --scope user --env ALLOW_INSERT_OPERATION=false …
-claude mcp add playwright --scope user -- npx -y @playwright/mcp@latest</pre></li>
-      <li><div class="h">開新 session</div><p>既有的 Claude Code session 不會載入新裝的 skill，要開新的才生效。</p></li>
+      <li><div class="h">啟用 plugin（推薦專案層級）</div><p>把 <code>templates/project-settings.json</code> 複製成你專案的 <code>.claude/settings.json</code>，開 session 後若沒自動裝再手動裝一次；前面是 plugin 名、後面是 marketplace 名。只想試試就用 <code>--plugin-dir</code> 指向 clone 下來的目錄，只在那個 session 生效。裝在使用者層級的話，兩支 hook 會在你所有專案生效。</p><pre class="cmd">/plugin marketplace add fujiei22/bstack
+/plugin install bstack@bstack</pre></li>
+      <li><div class="h">個人偏好（可跳過）</div><p>statusLine、唯讀權限白名單、Agent Teams 開關、playwright MCP 四項各選裝到使用者層級、目前專案或跳過。不選就什麼都不寫；反悔用 <code>-Uninstall</code>。以前用 setup.ps1 裝過的機器先跑 <code>-Migrate</code> 清舊副本。</p><pre class="cmd">pwsh -File scripts/extras.ps1</pre></li>
+      <li><div class="h">開新 session，下指令</div><p>沒下指令就是普通的 Claude Code。裸 <code>/devwork</code> 目前也可以，打了沒反應再改用帶前綴的寫法。</p><pre class="cmd">/bstack:devwork 要做的事</pre></li>
     </ol>
     <a class="cta rise" href="./flow.html">開啟流程圖<span class="ar">→</span></a>
     <div class="foot rise">MIT LICENSE © 2026 TOMMY SIAN · <a href="https://github.com/fujiei22/bstack">GITHUB.COM/FUJIEI22/BSTACK</a></div>

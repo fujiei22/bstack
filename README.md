@@ -1,15 +1,15 @@
 # bstack
 
-繁中台灣用語、零 marketplace 依賴的 Claude Code 開發流程包。
+繁中台灣用語的 Claude Code 開發流程 plugin。
 
-讓 Claude Code 自動走完整 9 階段開發流程（brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro），並支援自動 Track / Tier 分流、subagent 隔離、TDD 紅綠循環、PR 自動解釋落檔。
+輸入 `/devwork <要做的事>`，讓 Claude Code 走完整 9 階段開發流程（brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro），並支援 Track / Tier 分流、subagent 隔離、TDD 紅綠循環、PR 自動解釋落檔。不下指令時，它就是普通的 Claude Code；安裝不會動你 `~/.claude/` 裡任何既有設定。
 
 ---
 
 ## Features
 
-- **9 階段 dev-workflow** — 任何「寫 / 改 / 修 / 加」類 prompt 自動進主流程，依 **Track**（Bug / Dev）+ **Tier**（T0–T3）決定嚴格度
-- **CLAUDE.md 強制守則** — Task 追蹤、決策點 `AskUserQuestion` 全面取代自由文字 gate、Branch safety、File-type 硬規則、PII 安全底線、DB 唯讀政策
+- **9 階段 dev-workflow** — `/devwork` 顯式啟動，依 **Track**（Bug / Dev）+ **Tier**（T0–T3）決定嚴格度；不因自然語言自動攔截
+- **rules.md 強制守則** — 隨 `/devwork` 載入：Task 追蹤、決策點 `AskUserQuestion` 全面取代自由文字 gate、Branch safety、File-type 硬規則、PII 安全底線、DB 唯讀政策
 - **Subagent 隔離** — review / 安全稽核 / e2e / hypothesis 驗證跑獨立 context，避免重 tool 噪音與球員兼裁判
 - **Hooks** — `branch-safety`（protected branch 寫入 block）、`file-type-guard`（密鑰 / migration / lockfile / CI / infra 自動把關）
 - **Trace 標籤** — 每輪 AI 回覆結尾貼 `[Trace] Phase=… | Tier=… | Track=… | Skill=…`，phase 透明、隨時可審
@@ -18,12 +18,13 @@
 
 ---
 
-## Skills（27）
+## Skills（28）
 
 ### Phase 主流程
 
 | Skill | 在幹嘛 |
 |---|---|
+| **devwork** | 唯一入口：`/devwork <要做的事>` 啟動九階段；讀 rules.md 守則後交給 dev-workflow。不下指令就不生效 |
 | **brainstorm** | 動工前先把需求問清楚、順便判斷這個 task 大不大、是新功能還是修 bug |
 | **write-plan** | 把要做的事拆成一條條 task、落成計畫文件 |
 | **review-plan** | 計畫寫好後找不同視角再 review 一遍 |
@@ -81,10 +82,14 @@
 
 ## Hooks
 
+兩支 PreToolUse hook 由 plugin 的 `hooks/hooks.json` 註冊，在**啟用 plugin 的專案一律生效、不需要 `/devwork`**。不想要就 `/plugin disable bstack@bstack`。每次 Write / Edit 會多起兩個 pwsh 程序，延遲約數百毫秒屬正常。
+
 | Hook | 用途 |
 |---|---|
-| **branch-safety.ps1** | PreToolUse hook，命中 `main / master / production / prod / release` 直接 block 寫入動作 |
-| **file-type-guard.ps1** | PreToolUse hook，按副檔名 / 路徑分流：密鑰禁 commit、migration 載 db-access、lockfile 二次確認、CI / infra 自動升 T2 |
+| **branch-safety.ps1** | 命中 `main / master / production / prod / release` 直接 block 寫入動作，訊息附開 branch 的做法 |
+| **file-type-guard.ps1** | 按副檔名 / 路徑分流：密鑰類硬擋；migration / lockfile / CI / infra 類先擋，二次確認後由 AI 在系統 temp 建一次性 token 放行 |
+
+**pwsh 7+ 是 hook 必需。** 實測：機器上沒有 pwsh 時 hook **靜默失效**，Claude Code 不印任何錯誤、檔案照寫，你不會知道保護不存在。裝法：Windows `winget install Microsoft.PowerShell`、macOS `brew install powershell`、Linux 見 [官方文件](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)。
 
 ---
 
@@ -94,82 +99,110 @@
 
 | 項目 | 用途 |
 |---|---|
+| **pwsh 7+** | 兩支 hook 與 `scripts/extras.ps1`；缺了 hook 靜默失效（見上） |
 | **git** | repo 操作 |
-| **jq** | `statusline.sh` 解 JSON 重度依賴（`winget install jqlang.jq` / `choco install jq` / `scoop install jq`） |
-| **Node.js + npx** | 兩個 MCP 透過 `npx -y` 執行 |
-| **MySQL** | mysql MCP 連線目標（local 或 remote、可選） |
+| **bash + jq** | 只有選了 statusLine 才需要（`winget install jqlang.jq` / `brew install jq`） |
+| **Node.js + npx** | 只有選了 MCP 才需要 |
 
-### Step 1 — Clone
+### A. 啟用 plugin
+
+三種方式，依推薦順序：
+
+**A1. 專案層級（推薦）**：把 `templates/project-settings.json` 複製成你專案的 `.claude/settings.json`（已有的話把 `extraKnownMarketplaces` 與 `enabledPlugins` 兩段合進去）。它同時帶了唯讀權限白名單。開新 session 後若 `/devwork` 沒反應，手動裝一次：
+
+```
+/plugin marketplace add fujiei22/bstack
+/plugin install bstack@bstack
+```
+
+`bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。clone 這個專案的隊友是否會被自動安裝 plugin，官方文件沒明說，所以範本與這兩行都留著。
+
+**A2. 使用者層級**：不放範本、直接跑上面兩行。Claude Code 會把 plugin 快取在 `~/.claude/plugins/`、在它自己的 settings 記一筆 `enabledPlugins`。這是 Claude Code 的登記機制，`/plugin uninstall bstack@bstack` 可反悔，**不會覆蓋你任何既有設定**。代價：兩支 hook 會在你所有專案生效。
+
+**A3. 試用**：不安裝，只在這個 session 載入：
 
 ```bash
 git clone https://github.com/fujiei22/bstack.git
-cd bstack
+claude --plugin-dir ./bstack
 ```
 
-### Step 2 — Sync skill pack → `~/.claude/`
+### B. 個人偏好（可跳過）
+
+plugin 規格帶不了的四項（statusLine、`permissions.allow` 唯讀白名單、`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`、playwright MCP），每項各問一次裝到哪一層：
 
 ```pwsh
-pwsh -File scripts/setup.ps1
+pwsh -File scripts/extras.ps1
 ```
 
-動作（檔案**直接覆蓋、不備份**；先手動備份既有 `~/.claude/` 內容再跑）：
+- `[U]` 使用者層級（你的 Claude 設定目錄裡的 settings.json）、`[P]` 目前專案 `.claude/settings.json`、`[S]` 跳過（預設）。不選就什麼都不寫。
+- MCP 的 `[P]` 寫的是專案根 `.mcp.json`，**會進 git、隊友共用**。mysql MCP 含帳密，腳本只印指令範本讓你自己填。
+- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一主動寫進 `~/.claude/` 的檔）。`-Uninstall` 只拆自己加的，你本來就有的不碰。
+- 請從 clone 的 repo 跑：statusLine 會指到 `extras/statusline.sh` 的絕對路徑。clone 搬家後重跑、選 statusLine 的 `[R]` 重裝。
+- 非互動：`pwsh -File scripts/extras.ps1 -Yes -Items statusLine,env -Scope user`。
 
-- `CLAUDE.md`、`statusline.sh` → `~/.claude/`
-- `hooks/*.ps1` → `~/.claude/hooks/`
-- `skills/<name>/SKILL.md`（及附屬檔）→ `~/.claude/skills/<name>/`
-- `agents/*.md` → `~/.claude/agents/`
-- `settings.json` → `~/.claude/settings.json`（**merge、非覆蓋**，見下）
-- `settings.json` 內 `${CLAUDE_PROJECT_DIR}` 自動轉 global 絕對路徑
+### C. 開新 session，下指令
 
-`settings.json` 的 merge 語意（**本機優先**，避免洗掉 `/config` 寫的設定）：
+既有 session 不會載入新 plugin，開新的才生效。然後：
 
-| 區塊 | 誰為準 |
+```
+/bstack:devwork 要做的事
+```
+
+裸 `/devwork` 目前也可以（實測 Claude Code 2.1.260 會直接解析），但那是實作行為不是文件保證；打了出現 Unknown command 或載到別的東西，就改打帶前綴的寫法。沒下指令時，Claude Code 就是普通的 Claude Code。
+
+---
+
+## 確認 plugin 有載入
+
+1. 輸入 `/devwork`，應看到第一行 `[bstack devwork · plugin] 已載入守則。…`。
+2. 沒有 → 輸入 `/plugin`，看 bstack 是否列為 enabled；沒有就回 §A 裝。
+3. 仍沒有 → 用 `claude --plugin-dir <clone 路徑>` 開一個 session 對照：這樣能載就是登記問題，不能載就是 manifest 問題，開 issue 時請附這一步的結果。
+4. 看到**第二行** `[已載入 dev-workflow]` → 你機器上還有舊版 setup.ps1 留在 `~/.claude/skills/` 的副本，它遮蔽了 plugin 版。跑 `pwsh -File scripts/extras.ps1 -Migrate`，重開 session。
+
+## 什麼時候生效
+
+| 東西 | 生效範圍 |
 |---|---|
-| `hooks`、`statusLine` | repo（同步 hook 路徑正是本腳本目的） |
-| `permissions.*`（含 `allow` / `deny` / `ask` 陣列） | 本機既有值原封保留 |
-| 其他所有 key（`model` / `theme` / `defaultMode` / …） | 本機既有值原封保留 |
-| 本機沒有的 key | 補上 repo 的值（新機器仍拿到完整設定） |
+| 兩支 hook | 啟用 plugin 的專案，**所有 session**，不需要 `/devwork` |
+| rules.md 守則與九階段流程 | 只在 `/devwork` 之後、那個 session 內 |
+| extras 四項 | 你在選單選的層級 |
 
-含意：改 repo 的 `permissions.allow` **不會**再同步到已裝過的機器；要更新請手動編 `~/.claude/settings.json`（或刪掉該區塊後重跑）。單機臨時權限建議寫 `~/.claude/settings.local.json`——本腳本完全不碰該檔。
+---
 
-### Step 3 — 裝兩個 MCP
+## 從舊版（setup.ps1）遷移
 
-兩個 MCP 都裝到 user scope。
+舊版把 skill / agent / hook / CLAUDE.md 複製進 `~/.claude/`。兩件事會讓新版失效：
 
-#### 3a. mysql MCP（[@benborla29/mcp-server-mysql](https://www.npmjs.com/package/@benborla29/mcp-server-mysql)）
+- **user 級同名 skill 會遮蔽 plugin skill**：舊版的 `~/.claude/skills/dev-workflow` 還在，`/devwork` 載到的就是舊版。
+- **舊版 `~/.claude/CLAUDE.md`** 有一句「寫 / 改 / 修 / 加類 prompt 一律進 dev-workflow」，會讓自動攔截復活。
 
-搭配 `db-access` skill 的「MCP 唯讀、寫操作交付 SQL 給 user」政策，**全部 ALLOW 設 false**：
+```pwsh
+pwsh -File scripts/extras.ps1 -Migrate
+```
+
+它會列出舊副本（skills / agents / hooks / statusline / state、settings.json 內指向舊 hook 的條目），確認後刪除；`~/.claude/CLAUDE.md` 若與 bstack 舊版一致就改名成 `CLAUDE.md.bstack-bak-<時間>`，被你改過的則不動、印出那一行的行號請你自行拿掉。之後重開 session。
+
+## 完全移除
+
+| 指令 | 拆什麼 | 不碰什麼 |
+|---|---|---|
+| `/plugin uninstall bstack@bstack` | plugin 核心：skills / agents / hooks / 守則 | 你的 settings、extras 寫的東西 |
+| `pwsh -File scripts/extras.ps1 -Uninstall` | extras 加過的 key 與 playwright MCP（依 manifest） | 你本來就有的同名設定 |
+| `pwsh -File scripts/extras.ps1 -Migrate` | 舊版 setup.ps1 留在 `~/.claude/` 的副本 | 你自己的 skill / hook / 被改過的 CLAUDE.md |
+
+---
+
+## 開發本 repo
 
 ```bash
-claude mcp add mysql --scope user --env MYSQL_HOST=127.0.0.1 --env MYSQL_PORT=3306 --env MYSQL_USER=<your-readonly-user> --env MYSQL_PASS=<your-password> --env ALLOW_INSERT_OPERATION=false --env ALLOW_UPDATE_OPERATION=false --env ALLOW_DELETE_OPERATION=false -- npx -y @benborla29/mcp-server-mysql
+claude --plugin-dir .          # 讓 /devwork 與 hooks 在這個 repo 內生效
+node scripts/plugin-contract.mjs            # plugin 結構契約（在 Git Bash 跑）
+node docs/tools/docs-site-contract.mjs      # docs 站契約
+pwsh -File scripts/build-references.ps1 -Check   # 內嵌文件是否過期；改了 skill 就重跑不帶 -Check
+pwsh -File scripts/extras.ps1 -SelfTest     # extras 行為斷言
 ```
 
-**強烈建議**用一個 `唯獨` 權限的 DB user，雙保險。
-
-#### 3b. playwright MCP（[@playwright/mcp](https://www.npmjs.com/package/@playwright/mcp)）
-
-供 `frontend-test` skill + `frontend-e2e-runner` agent 跑 e2e：
-
-```bash
-claude mcp add playwright --scope user -- npx -y @playwright/mcp@latest
-```
-
-#### 驗證
-
-```bash
-claude mcp list
-```
-
-應看到：
-
-```
-mysql: npx -y @benborla29/mcp-server-mysql - ✓ Connected
-playwright: npx -y @playwright/mcp@latest - ✓ Connected
-```
-
-### Step 4 — 開新 session
-
-既有 Claude Code session **不會**載入新 skill；開新 session 才生效。
+新增 skill 要動的地方見 `skills/write-skill/SKILL.md` §新 skill 落地 checklist。repo 搬家要改 `templates/project-settings.json` 的 `repo`。
 
 ---
 

@@ -244,6 +244,8 @@ const BASELINE_KEYS = [
   // 後補：這兩個節點一直都在圖上，但先前沒有內嵌全文（baseline 既有缺口 1+2），
   // 是全站唯一點不開文件的兩個 skill。已補進內嵌包。
   'LoadDLang', 'LoadDD',
+  // 2026-09-04 plugin 化：/devwork 入口 skill，prelude 第一個節點。
+  'LoadDevwork',
 ].sort();
 
 const ndStart = js.search(/(?:const|var|let)\s+NODE_DOCS\s*=\s*\{/);
@@ -322,14 +324,14 @@ const nodeCount = Object.keys(FD.nodes).length;
 const edgeCount = FD.edges.length;
 const phaseCount = FD.phases.length;
 const typeCount = new Set(Object.values(FD.nodes).map((n) => n.type || 'default')).size;
-const EXPECT = { nodes: 98, edges: 135, phases: 15, types: 8 };
+const EXPECT = { nodes: 99, edges: 136, phases: 15, types: 8 };
 check(
-  'C8a 資料契約 98 nodes / 135 edges / 15 phases / 8 types',
+  'C8a 資料契約 99 nodes / 136 edges / 15 phases / 8 types',
   nodeCount === EXPECT.nodes && edgeCount === EXPECT.edges &&
     phaseCount === EXPECT.phases && typeCount === EXPECT.types,
   `期望 ${EXPECT.nodes}/${EXPECT.edges}/${EXPECT.phases}/${EXPECT.types}，` +
     `實際 ${nodeCount}/${edgeCount}/${phaseCount}/${typeCount}` +
-    `（後果：改動 data.js 時數字無聲跑掉；歷次基線：84/103 → 88/111 → 90/115 → 100/138）`
+    `（後果：改動 data.js 時數字無聲跑掉；歷次基線：84/103 → 88/111 → 90/115 → 100/138 → 98/135）`
 );
 
 // 圖的完整性：沒有孤兒節點、沒有指向不存在節點的邊
