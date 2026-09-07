@@ -20,9 +20,9 @@
 ## 目標 / Success criteria
 
 1. **A description**：34 條（28 skill + 6 agent）合計 ≤2,000 tok（基線 ~5,000）。每條格式固定：第一行「是什麼」一句（docs 站文件抽屜只顯示第一行，`app.js` 的 `parseFrontmatterDesc`）＋「載入：<時點>」一句；devwork / dev-workflow / brainstorm 保留「不因自然語言自動觸發」；契約守的字樣保留（devwork `/devwork`、pr-explain `T3`、lang-reviewer `顯式`、security-auditor `純文件`、design-language `命中…才載`）；全部不含「觸發：」（P3c）。
-2. **B body**：17 個 skill（dev-workflow / design-direction / design-language / dispatch-parallel / incident-investigate / frontend-test / write-skill / security-checklist / cmd-guard / safety-guard / lock-files / context-snapshot / context-resume / db-access / retro / debug-systematic / devwork）+ 6 agents 合計行數 −30%、bytes −20%（bytes 門檻防刪空行灌水）。
-3. **C rules.md**：197 行 / 18,206 bytes → ≤150 行 / ≤14,000 bytes；16 個 § 標題一個不少、不改名（15 個被外部引用）。
-4. **零改變**（機械可驗三層）：`node scripts/plugin-contract.mjs` ALL PASS + `--selftest`；`node docs/tools/docs-site-contract.mjs` ALL PASS；`build-references.ps1` 重產後 `-Check` exit 0；守門快照（`slim-guard-v2.mjs`）對基線比對零差異：使用契約步驟數與順序、被外部引用的 § 標題（白名單見下）、所有 AskUserQuestion 選單 code block、反引號片段不新增、yaml 欄名不減。
+2. **B body**：17 個 skill（dev-workflow / design-direction / design-language / dispatch-parallel / incident-investigate / frontend-test / write-skill / security-checklist / cmd-guard / safety-guard / lock-files / context-snapshot / context-resume / db-access / retro / debug-systematic / devwork）+ 6 agents 合計**非空行** 3,318 → ≤2,674（−19%）、bytes 175,771 → ≤140,600（−20%）。數非空行是 review Eng M7 的要求：`wc -l` 可被刪空行湊數（dev-workflow 光空行就 61 行）；每檔另有 bytes 目標（plan 表）。
+3. **C rules.md**：非空 145 行 / 18,206 bytes → ≤110 非空行 / ≤14,000 bytes（Eng 算可砍區要壓 −31%、零餘裕；到不了攤數字、不動表）；16 個 § 標題一個不少、不改名（15 個被外部引用）。
+4. **零改變**（機械可驗三層）：`node scripts/plugin-contract.mjs` ALL PASS + `--selftest`；`node docs/tools/docs-site-contract.mjs` ALL PASS；`build-references.ps1` 重產後 `-Check` exit 0；守門快照（`slim-guard-v2.mjs`）對基線比對零差異：使用契約步驟序與每步動詞 / 反引號 ⊇ 基線、被外部引用的 § 標題（白名單見下）、**所有 fenced block 逐塊比對（可整塊刪、不可改 / 新增 / 合併）**、yaml 行級（只准刪與 dev-workflow 主 yaml 逐字相同的行）、表格整張可刪不可刪單列、反引號不新增且 regex / 路徑型不消失、agents 三段 bullet 與粗體 ⊇ 基線。
 5. 第四層：review-plan Eng 視角逐檔對 diff 抽驗「步驟 / 選單 / 欄位 / 數字」沒被動到。
 
 ## 範圍 / Scope

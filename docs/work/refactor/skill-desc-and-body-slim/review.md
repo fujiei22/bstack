@@ -26,7 +26,10 @@
 |---|---|---|---|
 | M4 | Eng | Trace 一行式一刀切會把 5 個跨流程 skill 改成會自己冒 phase；context-resume / frontend-test / dispatch-parallel 各有特殊寫法 | 砍法 1 改兩模板 + 三檔 block 原樣留 |
 | M5 | Eng | frontend-test「8a-8d 縮一句」撞守門選單規則；「兩個 yaml 合一」是不同物件 | Task 8 兩砍點刪除、目標 187 → ≤145 |
-| M6 | Eng | 單檔目標可達性（下限算法） | （待 Eng 後半段；先把各檔目標放寬 5-10 行） |
+| M6 | Eng | 單檔目標可達性：cmd-guard / pr-explainer 硬下限就超過目標、retro / frontend-test / dev-workflow / incident 邊緣、各 task 目標加總 3,212 > 總量斷言 3,170 | 目標全部改成**非空行**並依 Eng 下限重算；incident 不合併範本（守門禁）只刪 summary 那份；總量斷言改 = 各 task 目標加總 |
+| M7 | Eng | `wc -l` 目標可被刪空行湊數（dev-workflow 61 空行） | 目標改非空行 `grep -c .` + 每檔 bytes ≤ −20% 雙門檻 |
+| M8 | Eng | rules.md 逐段砍點會動到實質：§設計語言對齊 / §Tier 機制 bullet 裡 P11 / P9a / P12 不查的規則句、§協作 gate 句、§Branch safety P2d 護欄與「hook 隨 plugin 生效」、§Settings.json 三規則、L1-5 blockquote 沒列 | Task 26 逐段列必留子句；bytes 零餘裕如實註明 |
+| M9 | Eng | Task 18 指向 `rules.md §Commit 訊息`——該標題沒有 §；verify-done L72 指向 frontend-test 不存在的兩個 §（既有） | 指向不帶 §；砍法 5 註明；verify-done 懸空記 follow-up |
 | 5 | DX | design-language / design-direction 需要半句分工；frontend-test 與其他不加 | Task 2 |
 | 6 | DX | execute-plan「T0 不進本 skill」只在 description | Task 2 留第三句 |
 | 7 | DX | §Branch safety 豁免段有四個意思、P2d 括號是護欄、「實測」二字是要人跑 node --version 的理由 | Task 26 拆四句 |
