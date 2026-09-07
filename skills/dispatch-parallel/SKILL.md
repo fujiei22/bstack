@@ -81,7 +81,7 @@ AskUserQuestion:
 - 推薦哪個**依判定實據決定，不預設 Agent Teams**。第 2 條（要互相講話）只是勉強成立 → 推薦 subagent。
 - 每個選項都要寫**代價**，不能只寫好處。Agent Teams 至少要寫這兩項：token 隨隊友數線性疊加（每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill）、隊友的權限確認全部彈回主視窗。
 - 三條判準沒全中 → **不問這題**，直接照 §Spawn 細節走 subagent。多問一次選單也是成本。
-- **唯讀 fan-out 不套這張判準表**：review / 驗證 / 稽核類——`review-plan` 多視角、`request-review` T3 雙視角、`incident-investigate` 多假設、`security-audit` + `db-reviewer`——一律 subagent，**連選單都不出**。兩個理由：
+- **唯讀 fan-out 不套這張判準表**：review / 驗證 / 稽核類——`review-plan` 多視角、`request-review` T3 對齊 subagent 與內建 code-review 的 finder、`incident-investigate` 多假設、`security-audit` + `db-reviewer`——一律 subagent，**連選單都不出**。兩個理由：
   - 判準 1「每塊擁有不同檔 / 目錄」的實質是防兩個隊友互蓋（見 §隊友專屬注意）。唯讀工作沒人在動檔，這條套不上；硬要讓它「通過」等於為它開例外。
   - 這類 fan-out 的**產出價值就是驗證者彼此不知道對方在驗什麼**。`incident-investigate` 的派工模板第一句是「你只看到這一條、不知道別的」，目的正是避免假設間交叉污染；`request-review` 要的也是不會自我合理化的獨立視角。開隊友讓他們互相講話，是把這個唯一紅利親手拆掉。
 
