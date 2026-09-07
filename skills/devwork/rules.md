@@ -49,12 +49,12 @@ How：brainstorm 0b 並聯抽樣；write-plan / review-plan 涉資料每點附�
 user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」；平台附 `Other`。**禁文字 token NLP**（`approve / LGTM / 通過 / ✅` 不當 gate 信號）。
 
 ### §Branch safety
-plugin 的 `hooks/branch-safety.ps1`（PreToolUse）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔 Write / Edit / NotebookEdit（見 `hooks/hooks.json` 的 matcher）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。
+plugin 的 `hooks/guard.mjs`（PreToolUse，branch-safety 段）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔 Write / Edit / NotebookEdit（見 `hooks/hooks.json` 的 matcher）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。
 
-**豁免（實測 code 行為，非設計缺陷）**：hook 只管 `$CLAUDE_PROJECT_DIR` **底下**的檔。目標檔在 project repo 之外（例如 plugin 目錄內的檔、使用者的 Claude 設定目錄）一律放行，不論當前在哪個 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也都放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** 另外 hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就 `/plugin disable bstack@bstack`。
+**豁免（契約 P2d 以 fixture 守的行為，非設計缺陷）**：hook 只管 `$CLAUDE_PROJECT_DIR` **底下**的檔。目標檔在 project repo 之外（例如 plugin 目錄內的檔、使用者的 Claude 設定目錄）一律放行，不論當前在哪個 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也都放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** 另外 hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就 `/plugin disable bstack@bstack`。hook 是 node 腳本、Claude Code 自己不帶 node（官方 setup 文件）：node 不在 PATH 時，官方 hooks 文件說會印 non-blocking 通知、工具照跑；Windows 實測（2026-09-07，`claude -p` stream-json）連通知都沒有、檔案照寫——兩種說法下**保護都不存在**，跟舊版缺 pwsh 一樣，只能靠 `node --version` 事前確認。
 
 ### §File-type 硬規則
-plugin 的 `hooks/file-type-guard.ps1` 偵測；Hook 報的**不能跳**。
+plugin 的 `hooks/guard.mjs`（file-type 段，**不看 repo scope**，repo 外的 `~/.gitconfig` 也擋）偵測；Hook 報的**不能跳**。
 
 | 類型 | 範例 | 處置 |
 |---|---|---|

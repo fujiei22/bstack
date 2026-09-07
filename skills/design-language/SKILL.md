@@ -1,11 +1,11 @@
 ---
 name: design-language
 description: |
-  既有專案設計語言辨識與對齊（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0b′ 必跑；
+  既有專案設計語言辨識與對齊（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0b′ 比對命中前端副檔名才載；
   execute-plan 動前端檔的 task 前後）；亦可由使用者顯式問設計語言。
   涵蓋：前端副檔名唯一真相、區塊邊界偵測、設計語言抽取（exact values）、
   design-map.md 產／查／失效檢查、四項對齊檢查清單。
-  **強制**：brainstorm Phase 0b′ 必載；execute-plan 動前端檔的 task 前後必載。
+  **強制**：brainstorm 0b′ 比對命中才載、載入後照本契約從第 1 步跑；execute-plan 動前端檔的 task 前後必載。
   分工：既有事實（這區長什麼樣）→ 本 skill；新設計決策 → `design-direction`；改**完**要驗畫面 → `frontend-test`。
 ---
 
@@ -35,7 +35,7 @@ description: |
 - 憑印象寫 token 值（必須從實際檔案抄 exact values）
 - 用 `Tier` 推導 `size`（見 §兩根尺）
 
-**落檔時機（硬規則）**：本 skill **不在 brainstorm Phase 0 當下寫任何檔**。Phase 0 執行時仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉 repo 內的寫入。`design-map.md` 的落檔一律延到 **branch 建立後**。
+**落檔時機（硬規則）**：本 skill **不在 brainstorm Phase 0 當下寫任何檔**。Phase 0 執行時仍在 `main`，`hooks/guard.mjs`（branch-safety 段）會 `exit 2` 擋掉 repo 內的寫入。`design-map.md` 的落檔一律延到 **branch 建立後**。
 
 ---
 
@@ -45,7 +45,7 @@ description: |
 .css  .scss  .tsx  .jsx  .vue  .svelte  .html
 ```
 
-其他檔案凡引用「前端副檔名」一律**指向本節**，不要各自重列。
+其他檔案凡引用「前端副檔名」一律**指向本節**，不要各自重列。**唯一例外**：`brainstorm` §Phase 0b′ 與 rules.md §設計語言對齊 重列本清單——它們在**不載入本 skill**的情境下也要判得出來；契約 P11 守三處一致，改這裡要同步那兩處。
 
 > **現況分歧（待收斂）**：`.sass` 目前只出現在 `frontend-test` 的 description 觸發詞，`verify-done` §UI / browser e2e 兩處與 `dev-workflow` §跨流程觸發表都沒有。本清單暫不收 `.sass`，與多數處對齊；要收的話需同時補回那兩個檔。
 
@@ -256,7 +256,7 @@ grep -oE '`[^`]+\.(css|scss|sass|ts|js|mjs|cjs)`' docs/reference/design-map.md \
 
 | 呼叫端 | 何時 | 期待輸出 |
 |---|---|---|
-| `brainstorm` §Phase 0b′ | Phase 0，0b 之後、0c 之前。**必跑**（含純後端 task，因為第 1 步是零成本的副檔名比對） | 六個欄位進 hand-off state；**不落檔** |
+| `brainstorm` §Phase 0b′ | Phase 0，0b 之後、0c 之前。brainstorm 自己先做副檔名比對，**命中才載本 skill**、載入後照 §使用契約 從第 1 步跑（重算 involved 必為 true） | 六個欄位進 hand-off state；**不落檔** |
 | `execute-plan` | `design.involved=true` 且 `size=小改`，動到前端檔的 task 前後 | 前：§設計語言抽取 輸出；後：§對齊檢查清單 逐項結果 |
 | `design-direction` | 大改出三方向前，鎖定該區設計語言 | §設計語言抽取 輸出 |
 | `verify-done` | 實際改動檔含前端副檔名但 `design.involved=false`（或 `scope` 對不上）時的漏網複查 | 重跑判定 ＋ §對齊檢查清單 |
@@ -275,5 +275,5 @@ grep -oE '`[^`]+\.(css|scss|sass|ts|js|mjs|cjs)`' docs/reference/design-map.md \
 | 「地圖看起來還能用，跳過失效檢查」 | 失效檢查是機械的，跑一次很便宜 |
 | 「這區沒有 dark mode，我順手加一套」 | 超出本次 scope；要加是獨立決策 |
 | 「抽不到 token，先拿隔壁區的值頂著」 | 這就是「把前台樣式套到後台」 |
-| 「純後端 task，這個 skill 跳過」 | 第 1 步是零成本副檔名比對，不命中就立刻結束，沒有跳的必要 |
+| 「純後端 task，這個 skill 跳過」 | 純後端 task 本 skill 本來就不會被載入（brainstorm 0b′ 比對不命中就不載）；被載入了就代表命中，別在這裡重判要不要跑 |
 | 「先寫個 design-map 再說」 | Phase 0 還在 main，寫檔會被 branch-safety 擋；落檔延到 branch 建立後 |
