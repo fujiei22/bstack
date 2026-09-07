@@ -143,6 +143,7 @@ EOF
 - 理由：merge 進 main **不可逆**（要 revert 是另開 PR）、屬 rules.md「risky actions / 影響共享狀態」類、需 user 明確同意。
 - GitHub Flow 單線：所有 feature 從 main 切出、無 develop / release branch；repo 預設 squash merge，squash 後 commit message 以 PR title 為準。
 - merge 後立即刪 remote feature branch（GitHub 設定 auto-delete head branches）；local 由 `git fetch --prune` 同步清。
+- **stacked PR（下游 PR 的 base 是本 branch）例外**：merge 時**不帶** `--delete-branch`——GitHub 對「base 被刪」的處置是把下游 PR **關掉**而不是 retarget，且下游 rebase force-push 後拒絕 reopen（2026-09-07 #67 實踩，只能重開 #69）。順序：上游 squash merge → 下游 `git rebase --onto main <舊上游 head sha>`、驗證、`push --force-with-lease` → `gh pr edit <下游> --base main` 確認 MERGEABLE → 這時才刪上游 branch。最後一層沒有下游才可直接 `--delete-branch`。
 - **禁** force push 到 `main / master`。
 
 ## §Merge 後：docs 歸檔
