@@ -10,27 +10,14 @@
 
 ### §白話優先（所有對話輸出適用）
 
-解釋技術問題、實作細節、失敗原因時，**術語與白話同時給**，不是二選一：
+解釋技術問題、實作細節、失敗原因時，**術語與白話同時給**，例：`idempotent`（重複執行結果相同，跑幾次都不會壞）——原詞讓你能自己 google 查證，白話讓你當下就懂。
 
-- `file watcher`（監看檔案變動的背景機制）
-- `idempotent`（重複執行結果相同，跑幾次都不會壞）
-- `overlap coefficient`（重疊係數，看兩組東西重疊多少的算法）
-
-同時給的用意：原詞讓你能自己 google 查證，白話讓你當下就懂。
-
-**寫法**
-- **先給結論**再展開理由，不要鋪陳半天才講重點
-- 用**具體例子**代替抽象描述——「這會怎樣」比「這是什麼」有用
+- **先給結論**再展開理由
+- 用**具體例子**代替抽象描述
 - 講機制要附**後果**：壞掉會怎樣、誰受影響
-- 比喻要貼才用；勉強的比喻比沒有更糟
+- 比喻要貼才用
 
-**區分實測與推論**：講事實時交代依據是「實測」「官方文件」還是「推斷」。
-禁把推論用肯定語氣講成事實。
-
-**底線**：白話是為了讓人懂，不是為了模糊。檔名、行號、指令、數字一律精確，
-不得為了口語化而含糊帶過。
-
-**不適用**：commit message、code 註解、文件產出（spec / plan / review）維持既有規範。
+**區分實測與推論**：交代依據是「實測」「官方文件」還是「推斷」，禁把推論用肯定語氣講成事實。**底線**：檔名、行號、指令、數字一律精確，不得為了口語化含糊帶過。**不適用**：commit message、code 註解、文件產出（spec / plan / review）維持既有規範。
 
 ## 強制守則（無例外、優先於任何 skill）
 
@@ -51,7 +38,7 @@ user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」
 ### §Branch safety
 plugin 的 `hooks/guard.mjs`（PreToolUse，branch-safety 段）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔 Write / Edit / NotebookEdit（見 `hooks/hooks.json` 的 matcher）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。
 
-**豁免（契約 P2d 以 fixture 守的行為，非設計缺陷）**：hook 只管 `$CLAUDE_PROJECT_DIR` **底下**的檔。目標檔在 project repo 之外（例如 plugin 目錄內的檔、使用者的 Claude 設定目錄）一律放行，不論當前在哪個 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也都放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** 另外 hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就 `/plugin disable bstack@bstack`。hook 是 node 腳本、Claude Code 自己不帶 node（官方 setup 文件）：node 不在 PATH 時，官方 hooks 文件說會印 non-blocking 通知、工具照跑；Windows 實測（2026-09-07，`claude -p` stream-json）連通知都沒有、檔案照寫——兩種說法下**保護都不存在**，跟舊版缺 pwsh 一樣，只能靠 `node --version` 事前確認。
+**豁免（刻意如此，契約 P2d 守；非設計缺陷）**：hook 只管 `$CLAUDE_PROJECT_DIR` **底下**的檔；目標檔在 project repo 之外（plugin 目錄、使用者的 Claude 設定目錄）一律放行，不論當前 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就 `/plugin disable bstack@bstack`。hook 是 node 腳本、Claude Code 自己不帶 node：node 不在 PATH 時官方 hooks 文件說會印 non-blocking 通知、工具照跑，Windows 實測連通知都沒有、檔案照寫——兩種說法下**保護都不存在**，只能靠 `node --version` 事前確認。
 
 ### §File-type 硬規則
 plugin 的 `hooks/guard.mjs`（file-type 段，**不看 repo scope**，repo 外的 `~/.gitconfig` 也擋）偵測；Hook 報的**不能跳**。
@@ -78,21 +65,19 @@ PII（email / phone / 身分證 / 信用卡 / 地址 / id_number）原值**禁�
 ### §設計語言對齊
 動任何**前端檔**（`.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`）之前，**先讀該區塊的既有設計語言**——載 `design-language`，從實際檔案抄 exact values，不憑印象重畫。
 
-> **豁免：只改文字節點時不適用。** 改的是 HTML／JSX 裡的**文字內容**，完全不碰 token、class、屬性、標籤結構、版面——這種改動 `design-language` 管不到（它管色碼、字級、斷點、dark mode），載了也只會得到一份用不上的設計語言摘要。
-> **邊界**：只要動到 `class` / `style` / 任何屬性值 / 標籤增刪，就不算文字節點改動，規則照舊適用。判不出來就當作適用。
-> 實測依據：2026-09-03 潤 `docs/index.html` 文案時撞到——規則字面命中 `.html`，實質完全不適用，而執行的 agent 只能自己推豁免理由。
+> **豁免：只改文字節點時不適用。** 改的是 HTML／JSX 裡的**文字內容**，完全不碰 token、class、屬性、標籤結構、版面。**邊界**：只要動到 `class` / `style` / 任何屬性值 / 標籤增刪，就不算文字節點改動，規則照舊適用；判不出來就當作適用。
+> 為什麼有此豁免：潤 `docs/index.html` 文案時撞到——規則字面命中 `.html`、實質無設計決策，載 design-language 只得到一份用不上的摘要；不寫明則每次都由執行的 agent 自己推。
 
-- **判定** brainstorm Phase 0b′ 產出 `design.{involved, scope, scope_evidence, size, precedent, map_status}`，與 Track / Tier 合併一個 `AskUserQuestion` 一次確認。**0b′ 必跑**（含純後端 task；brainstorm 自己做零成本的副檔名比對，不命中就不載 design-language；命中則照舊必載——規則不變，只是比對這一步搬到 brainstorm）
+- **判定** brainstorm Phase 0b′ 產出 `design.{involved, scope, scope_evidence, size, precedent, map_status}`，與 Track / Tier 合併一個 `AskUserQuestion` 一次確認。**0b′ 必跑**（含純後端 task）：brainstorm 自己做零成本的副檔名比對，不命中就不載 design-language、命中照舊必載
 - **小改**（沿用既有 token、無新視覺決策）→ 直接改 code，改完跑**四項對齊檢查**（元件狀態 / 斷點 / 表單 / dark mode；該區客觀上無此維度 → 標 N/A 並附依據）
 - **大改**（新頁 / 新區塊 / 改版）→ 先出三方向真實視覺讓 user 選，選定才落 code
-- **禁止用 Tier 推導 `design.size`** 兩根尺各自判：Tier 量 code 改動量體，`size` 量新視覺決策的量體，兩者系統性錯開
-- **禁止拿別區的 token 值頂替** 抽不到就說抽不到——頂替就是「把前台樣式套到後台」的起點
+- **禁止用 Tier 推導 `design.size`**：Tier 量 code 改動量體，`size` 量新視覺決策的量體，兩根尺各自判
+- **禁止拿別區的 token 值頂替**：抽不到就說抽不到——頂替就是「把前台樣式套到後台」的起點
 
 細則 → `design-language`（區塊偵測 / 抽取 / 對齊清單）。
 
 ### §Docs 落檔（按壽命分，不按文件類型分）
-dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs/plans/<topic>/`、`docs/reviews/<pr>.md`、`docs/test-reports/<branch>/`。
-按 feat / fix / refactor 分類在 merge 之後沒有資訊量——找文件用主題找，不用類型找。
+dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs/plans/<topic>/`、`docs/reviews/<pr>.md`、`docs/test-reports/<branch>/`——merge 後找文件用主題找，不用類型找。
 
 | 目錄 | 放什麼 | 壽命 |
 |---|---|---|
@@ -103,15 +88,12 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 | `docs/incidents/<id>/` | 事故調查（不綁 branch） | 長期 |
 | `docs/snapshots/`、`docs/retros/` | context 快照 / 回顧 | 暫存 |
 
-- **目錄**：`docs/work/<branch-name>/`（含 `<type>/` prefix，例 `docs/work/feat/user-auth-jwt/`）
-- **檔名固定**：`spec.md`（brainstorm）/ `plan.md`（write-plan）/ `review.md`（review-plan）/ `pr-review.md`（pr-explain 覆寫；T3 自動、其他 tier 顯式呼叫才有）
+- **目錄與檔名**：`docs/work/<branch-name>/`（含 `<type>/` prefix，例 `docs/work/feat/user-auth-jwt/`）；檔名固定 `spec.md`（brainstorm）/ `plan.md`（write-plan）/ `review.md`（review-plan）/ `pr-review.md`（pr-explain 覆寫；T3 自動、其他 tier 顯式呼叫才有）
 - **時機**：T1+ brainstorm Phase 0 完成後**先 `git checkout -b <branch>` 再寫 spec**（branch-safety 雙保險）
-- **覆寫**：plan / review / pr-review 同 branch 迭代覆寫；spec 修改靠 git history
-- **merge 後搬檔**：finish-branch 把 `docs/work/<branch-name>/` 移到 `docs/archive/<年>/<主題>/`
-- **進 reference 的門檻**：這份寫的是「規則」還是「做過一次的紀錄」？規則才進。一次性調查 / 量測 / 事故報告的**結論寫進 memory**，報告本體進 archive
-- **檔名不放日期**：目錄已表達時序，日期放檔名會讓同一主題散在多處
-- **commit 與否看專案**：docs 被 `.gitignore` 排除的專案就不 commit，別硬 `git add`（會直接報錯）
-- **遷移**：本規則生效後新 branch 用新路徑；舊 PR 不主動搬
+- **覆寫與命名**：plan / review / pr-review 同 branch 迭代覆寫，spec 修改靠 git history；**檔名不放日期**，目錄已表達時序
+- **merge 後搬檔**：finish-branch 把 `docs/work/<branch-name>/` 移到 `docs/archive/<年>/<主題>/`。**進 reference 的門檻**：這份寫的是「規則」還是「做過一次的紀錄」？規則才進。一次性調查 / 量測 / 事故報告的**結論寫進 memory**，報告本體進 archive
+- **commit 與否看專案**：docs 被 `.gitignore` 排除的專案就不 commit，別硬 `git add`
+- **遷移**：新 branch 用新路徑；舊 PR 不主動搬
 
 ## 開發流程（dev-workflow 為骨幹）
 
@@ -127,12 +109,12 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
-- **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構為準；超過表列上限代表 Tier 判低了，回 0d 升 T3。
-- **code review 先看副檔名再看 Tier**：diff 含程式碼副檔名才跑內建 code-review（抓 bug / 可簡化處，不帶 `--fix`、finding 交 receive-review）；只有 .md / 文案 / prompt / 資料檔的純文件 diff 跳過，一致性靠契約腳本與 review-plan。「符合 spec / 規則書」內建的不看：T2 主 agent 自檢、T3 派一個 subagent。判定表見 `request-review` §副檔名分流。
-- **security 同樣先看副檔名再看 Tier**：T3 純文件 diff 且 diff 沒有任何檔命中 §File-type 硬規則表 → 跳 audit + checklist；命中硬規則（密鑰 / ignore 檔 / CI-CD / migration / 鎖檔 / Infra / Shell config）的不論副檔名照跑——那些在 request-review 表裡歸純文件，卻是安全面最該看的檔。判定沿用 request-review 產出的 `code_review_applicable`，security-audit 不自己再比對副檔名；state 沒這欄就當程式碼 diff 照跑。T2 條件（涉認證 / 資料層才 audit）與 db-reviewer 條件不變。
-- **`lang-reviewer` agent 不自動 spawn**：語言 idiom / pitfall 提示由 request-review 依副檔名寫進 T3 對齊 subagent 的 prompt；user 顯式要「用 lang-reviewer 看」才派。
-- **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state。「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
-- 精簡依據見 `docs/archive/2026/` 的 `t2-lane-slim` 主題（2026-09-04 merge 後歸檔；不在此重述，避免常駐吃 context）。
+- **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式見 `brainstorm` §spec 文件結構；超過表列上限代表 Tier 判低了，回 0d 升 T3。
+- **code review 先看副檔名再看 Tier**：diff 含程式碼副檔名才跑內建 code-review（不帶 `--fix`、finding 交 receive-review）；純文件 diff 跳過，一致性靠契約腳本與 review-plan。「符合 spec / 規則書」內建的不看：T2 主 agent 自檢、T3 派一個 subagent。判定表見 `request-review` §副檔名分流。
+- **security 同樣先看副檔名再看 Tier**：T3 純文件 diff 且沒有任何檔命中 §File-type 硬規則表 → 跳 audit + checklist；命中硬規則的不論副檔名照跑（那些在 request-review 表裡歸純文件，卻是安全面最該看的檔）。判定沿用 request-review 產出的 `code_review_applicable`，security-audit 不自己再比對副檔名；state 沒這欄就當程式碼 diff 照跑。T2 條件（涉認證 / 資料層才 audit）與 db-reviewer 條件不變。
+- **`lang-reviewer` agent 不自動 spawn**：語言提示由 request-review 依副檔名寫進 T3 對齊 subagent 的 prompt；user 顯式要「用 lang-reviewer 看」才派。
+- **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state；「該不該做 / 範圍」在 brainstorm 就定案。
+- 精簡依據見 `docs/archive/2026/` 的 `t2-lane-slim` 主題，不在此重述。
 
 ### §協作模式判定（Agent Teams gate）
 判「這件事要不要開 Agent Teams」。**判準是工作者之間要不要互相講話，不是能不能平行**——能平行但不用溝通的工作，subagent 就夠、且便宜得多。
@@ -142,14 +124,14 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 2. **工作者之間需要互相反駁或交換發現**，或你要中途切進某個工作者改方向（只要結果不要過程 → subagent）
 3. **量體 T2+**（T0-T1 協調成本大於收益，直接跳）
 
-三條全中 → `AskUserQuestion` 問跑法（Agent Teams / subagent 平行 / 單一 session 串行），照 §決策點選單：建議選項第一 + 標「（推薦）」，每個選項附**代價**。推薦哪個依判定實據決定，**不預設 Agent Teams**。
+三條全中 → `AskUserQuestion` 問跑法（Agent Teams / subagent 平行 / 單一 session 串行），照 §決策點選單、每個選項附**代價**；推薦哪個依判定實據決定，**不預設 Agent Teams**。
 
 - **禁自行開隊友**：判定只產生選項，一律等 user 選。
-- **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review T3 對齊 subagent 與內建 code-review 的 finder、incident-investigate 多假設、security-audit）**不開隊友、也不問**。兩個理由：這些工作沒人在動檔（判準 1「不同檔案 / 目錄」的實質是防互蓋，唯讀時不成立），且**獨立性本身就是產出價值**——讓驗證者互相聽到彼此結論會污染判斷，等於拆掉 fan-out 的唯一紅利。
-- **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」、其餘照常。
+- **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review T3 對齊 subagent 與內建 code-review 的 finder、incident-investigate 多假設、security-audit）**不開隊友、也不問**——沒人在動檔（判準 1 防互蓋的前提不成立），且**獨立性本身就是產出價值**，互相聽到彼此結論會污染判斷。
+- **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」。
 - **成本告知**：每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill，token 隨隊友數線性疊加。
 
-觸發點：**只有一個**——`execute-plan` 遇 `parallel-group` 同號多 task 而載入 `dispatch-parallel` 時。9 階段裡只有這裡同時滿足「要互相講話」× 「有人在動同一批檔」。判準表 / 選單範本 / 隊友派工範本 → `dispatch-parallel` §協作模式判定。
+觸發點：**只有一個**——`execute-plan` 遇 `parallel-group` 同號多 task 而載入 `dispatch-parallel` 時。判準表 / 選單範本 → `dispatch-parallel` §協作模式判定；隊友派工範本 → 同檔 §隊友派工。
 
 ### §Trace 標籤
 每輪結尾：`[Trace] Phase=<x> | Tier=<T0-T3> | Track=<Bug/Dev/—> | Skill=<active>`。T0 / 純問答省。
@@ -163,7 +145,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 Task / verify / review fail → **不靜默重試**；評起因；`AskUserQuestion` 提 retry / adjust+retry / rollback / 回上層 Phase / escalate。細則 → `dev-workflow`。
 
 ### §Settings.json
-專案 `.claude/settings.json` 的 `permissions.allow` **僅限 read-only / 查詢類**（範本：https://github.com/fujiei22/bstack/blob/main/templates/project-settings.json）；寫入類（Edit / Write / commit / push / checkout / rm / npm install）一律 prompt。個人偏好走 `scripts/extras.ps1` 逐項選層級，本流程不主動寫使用者層級的 settings。注意範本裡的 `Bash(cat/head/tail:*)` 是任意檔讀取、不受 file-type-guard（只管寫入）保護，專案內有密鑰檔就拿掉。
+專案 `.claude/settings.json` 的 `permissions.allow` **僅限 read-only / 查詢類**（範本：https://github.com/fujiei22/bstack/blob/main/templates/project-settings.json）；寫入類（Edit / Write / commit / push / checkout / rm / npm install）一律 prompt。個人偏好走 `scripts/extras.ps1`，本流程不主動寫使用者層級的 settings。範本裡的 `Bash(cat/head/tail:*)` 是任意檔讀取、不受 file-type 段（只管寫入）保護，專案內有密鑰檔就拿掉。
 
 ## 程式碼規範
 

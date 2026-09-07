@@ -151,7 +151,9 @@ for (const n of names) {
   if (added.length) d.push(`新增或改名的 §（§ 只能刪、不能改名）：${added.join(' / ')}`);
   const badBlocks = b.blocks.filter((x) => !a.blocks.includes(x));
   if (badBlocks.length) d.push(`code block 被改或新增 ${badBlocks.length} 個：${badBlocks.map((x) => x.slice(0, 70)).join(' || ')}`);
-  const lostMenus = a.menus.filter((x) => !b.menus.includes(x));
+  // rules.md 沒有任何 AskUserQuestion 選單（選項都寫在同一句括號內），它提到 AskUserQuestion 之後的 bullet 是規則條目、
+  // 不是選項；這條 v1 承襲的啟發式只對 skill 生效，rules.md 的 bullet 由「表格 / 反引號 / § / 契約」四層守
+  const lostMenus = n === 'rules.md' ? [] : a.menus.filter((x) => !b.menus.includes(x));
   if (lostMenus.length) d.push(`選單清單變了 ${lostMenus.length} 個：${lostMenus.map((x) => x.slice(0, 60)).join(' || ')}`);
   const badYaml = b.yamlLines.filter((l) => !a.yamlLines.includes(l) && !mainYaml.has(l) && !/^#\s*承上/.test(l));
   if (badYaml.length) d.push(`yaml 行被改或新增 ${badYaml.length}：${badYaml.slice(0, 5).join(' || ')}`);
