@@ -67,7 +67,7 @@ const norm = (s) => s.replace(/\s+/g, ' ').trim();
 const AGENT_SECTIONS = /^## (角色職責|§輸入契約|§嚴格 output 格式)/;
 
 import { execFileSync } from 'node:child_process';
-let REV = null;   // snapshot --rev <sha>\uFF1A\u5F9E git \u8B80\u8A72 commit \u7684\u6A94\uFF0C\u4E0D\u53D7\u5DE5\u4F5C\u6A39\u72C0\u614B\u5F71\u97FF\uFF08stash \u62CD\u5FEB\u7167\u6703\u62CD\u5230\u5DF2 commit \u7684\u6539\u52D5\uFF0C\u5BE6\u6E2C\u8E29\u904E\uFF09
+let REV = null;   // snapshot --rev <sha>：從 git 讀該 commit 的檔，不受工作樹狀態影響（stash 拍快照會拍到已 commit 的改動，實測踩過）
 function extract(name, srcPath) {
   const raw = srcPath ? readFileSync(srcPath, 'utf8')
     : REV ? execFileSync('git', ['show', `${REV}:${FILES[name]}`], { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 24 })
@@ -134,6 +134,7 @@ if (rest.includes('--rev')) REV = rest[rest.indexOf('--rev') + 1];            //
 if (src && (!only || only.length !== 1)) { console.error('--src 需搭配 --only <單一 name>'); process.exit(2); }
 const names = Object.keys(FILES).filter((n) => !only || only.includes(n));
 const now = Object.fromEntries(Object.keys(FILES).map((n) => [n, extract(n, src && only[0] === n ? src : null)]));
+if (mode === 'snapshot' && !REV) { console.error('snapshot 必須帶 --rev <sha>：從工作樹拍基線會拍到半改完的檔（施工中踩過）'); process.exit(2); }
 if (mode === 'snapshot') { writeFileSync(file, JSON.stringify(now, null, 1)); console.log(`snapshot ${Object.keys(now).length} 檔 -> ${file}`); process.exit(0); }
 if (mode !== 'check') { console.error('用法：snapshot <out.json> | check <baseline.json> [--only a,b] [--src <path>]'); process.exit(2); }
 const base = JSON.parse(readFileSync(file, 'utf8'));
