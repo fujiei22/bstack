@@ -8,8 +8,11 @@
  *   P4 無 ~/.claude 安裝路徑字樣（白名單行跳過，且白名單行數有上限）
  *   P5 全域 sync 路徑已移除、範本合法   P6 rules.md 單一真相
  *   P7 agents frontmatter 與 README 計數   P8 README / index.html skill 計數 == 磁碟
+ *   P9 T2 lane 精簡（施工清單 / code-review 內建 / pr-explain 限 T3）   P10 verify-done 文字節點豁免判定器
+ *   P11 design-language 延遲載入、副檔名清單七處一致   P12 security-audit 純文件 T3 跳的六處同步
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8：P7 先算是因為 P4 要用 agentFiles 掃描。
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
  * 在 pwsh 看 exit code 用 $LASTEXITCODE）：
@@ -442,13 +445,16 @@ const dwSecT3 = (dwMd.match(/^ {3}└─ T3 = .*security-checklist.*$/m) || ['']
 const secQ = (dataJs.match(/^\s*SecQ:.*$/m) || [''])[0];
 const loadChk = (dataJs.match(/^\s*LoadChk:.*$/m) || [''])[0];
 const fbSecLine = (fbMd.match(/^- \[x\] security-audit 過.*$/m) || [''])[0];
-const bareMustRun = /T3 \*{0,2}必[跑用]\*{0,2}(?![^\n]{0,60}純文件)/;   // 同一行 60 字內有「純文件」的不算殘留
+// 殘留掃描吃 P4 的 scanTargets（skills / references / agents / guard.mjs / CLAUDE.md / README / rules.md / index.html / data.js），
+// 不另列清單——第一版自己列 skills + agents + 三個檔，漏了 rules.md 與 references（code-review 抓到）。
+// 只看同一行有 security / audit / checklist / STRIDE / 稽核 字樣的：verify-done 的「T3 | **必跑**（fail 不能放行）」
+// 跟 security 無關，不該被判成 security 殘留。「純文件」同行出現代表已改成新敘述、不算殘留。
+const secLine = /security|audit|checklist|STRIDE|稽核/i;
+const bareMustRun = /T3 \*{0,2}必[跑用]/;
 const mustRunResidue = [];
-for (const dir of ['skills', 'agents']) for (const f of readdirSync(join(REPO, dir), { withFileTypes: true })) {
-  const p = f.isDirectory() ? `${dir}/${f.name}/SKILL.md` : `${dir}/${f.name}`;
-  if (exists(p) && bareMustRun.test(rd(p))) mustRunResidue.push(p);
-}
-for (const p of ['README.md', 'docs/js/data.js', 'docs/index.html']) if (bareMustRun.test(rd(p))) mustRunResidue.push(p);
+for (const p of scanTargets) rd(p).split(/\r?\n/).forEach((line, i) => {
+  if (secLine.test(line) && bareMustRun.test(line) && !/純文件/.test(line)) mustRunResidue.push(`${p}:${i + 1}`);
+});
 const p12 = {
   rulesCell: /純文件 diff/.test(t3Sec) && /File-type/.test(t3Sec) && /audit \+ checklist \+ db-reviewer/.test(t3Sec),
   saStep2: /code_review_applicable/.test(saStep2) && /File-type 硬規則/.test(saStep2),

@@ -95,3 +95,13 @@ diff 檔名命中 rules.md §File-type 硬規則任一列？ → 是 → audit�
 | request-review | T2：`Skill("code-review", args="medium scripts/plugin-contract.mjs")`（純文件佔大宗、只送程式碼檔）+ 主 agent 對 spec 自檢 |
 | 自檢 finding | 1 筆：security-audit 第 2 步範例「純文件 diff：.md .js」自相矛盾（`.js` 是程式碼副檔名），改 `.md .json` |
 | security-audit | T2 不涉認證 / 資料層 → 跳（本 PR 自己就是在改這條規則；依現行 T2 條件本來就不跑） |
+
+### code-review medium（`scripts/plugin-contract.mjs`）finding 與處置
+
+| # | finding | 處置 |
+|---|---|---|
+| 1 | P12 殘留掃描抄 P9a 的 ad-hoc 迴圈，只掃 skills + agents + 三個檔，漏 rules.md / CLAUDE.md / guard.mjs / references，註解卻寫「全 repo」 | 改吃 P4 的 `scanTargets`；負向測：在 rules.md 種一行「security-audit T3 必跑」→ P12 紅、revert 後綠 |
+| 2 | `bareMustRun` 沒綁 security，verify-done 的「T3 \| **必跑**（fail 不能放行）」改個寫法就會被誤判成 security 殘留、FAIL 訊息還指錯檔 | 逐行掃、同一行要有 security / audit / checklist / STRIDE / 稽核 才算；「純文件」同行出現不算殘留 |
+| 3 | 檔頭 docstring 只列 P1-P8，P9-P12 沒進 | 補兩行與段落順序；註明殘留掃描共用 scanTargets |
+
+沒採納：finder 順帶建議把 P9a 的 `dualResidue` 也折進同一個 helper——不在本 PR 範圍（P9a 是 #64 的守門、現在綠著），記為 follow-up。
