@@ -273,6 +273,42 @@ check('P9i design-direction 下游分 T2 / T3；dispatch-parallel task 來源含
   `design-direction 下游 T2 分流=${(ddMd.match(/T2 → 回 `brainstorm`/g) || []).length}/2 dispatch-parallel 施工清單=${/施工清單/.test(dpMd)} 殘留「→ 退 write-plan」=${/→ 退 write-plan$/m.test(dpMd)}` +
     `（後果：T2 大改定案後沒人回寫清單、T2 同 group 派工找不到 Task N；改處：design-direction description 與「§與 dev-workflow 銜接」下游、dispatch-parallel「§使用契約」1-2、「§隊友派工」「§subagent 派工」範本、「§失敗處置」）`);
 
+// ── P10 verify-done 文字節點豁免（2026-09-04）────────────────────────────────
+// T3 前端改動只動文字節點 / data-* 時不派 frontend-e2e-runner，改主 agent smoke；判定器是 scripts/text-only-diff.mjs。
+// P10a 直接 import 判定器對 fixture 執行（code-review 抓到第一版行級比對被四種改法繞過，字樣 grep 守不住判定邏輯）；
+// P10b 守三個文字落點（verify-done / dev-workflow 跨流程表 / 流程圖 UIQ label）任一處沒寫到，Claude 就照舊派整套 e2e。
+const { skeleton: tdSkeleton, judgeFiles: tdJudge } = await import('./text-only-diff.mjs');
+const H = (attrs = '') => `<!doctype html><html><head><script>var k="t";</script><style>.a{color:red}</style></head><body>\n<p class="x"${attrs}>hello</p>\n<p class="y" data-n="1">two</p>\n</body></html>`;
+const fx = [
+  ['文字節點改動 → 豁免', H().replace('hello', 'world'), true],
+  ['data-* 值改動 → 豁免', H().replace('data-n="1"', 'data-n="9"'), true],
+  ['多行文字重排（純文字行）→ 豁免', H().replace('hello', 'hel\nlo'), true],
+  ['class 值改動 → NOT', H().replace('class="x"', 'class="z"'), false],
+  ['新增 data-* 屬性 → NOT', H(' data-hidden="true"'), false],
+  ['標籤順序對調 → NOT', H().replace('<p class="x">hello</p>\n<p class="y" data-n="1">two</p>', '<p class="y" data-n="1">two</p>\n<p class="x">hello</p>'), false],
+  ['inline script 內容改動 → NOT', H().replace('var k="t"', 'var k="u"'), false],
+  ['inline style 內容改動 → NOT', H().replace('color:red', 'color:blue'), false],
+  ['多行標籤的屬性行改動 → NOT', H().replace('<p class="x">', '<p\n  class="w"\n  >'), false],
+];
+const fxBad = fx.filter(([, after, expect]) => tdJudge([{ path: 'a.html', before: H(), after }]).ok !== expect).map(([n]) => n);
+const emptyOk = !tdJudge([]).ok, newFileOk = !tdJudge([{ path: 'b.html', before: null, after: H() }]).ok;
+check('P10a text-only-diff.mjs 判定器對 9 個 fixture 全對、空集合與新增檔 fail-closed',
+  fxBad.length === 0 && emptyOk && newFileOk && typeof tdSkeleton === 'function',
+  `錯的 fixture=[${fxBad.join(' | ')}] 空集合 fail-closed=${emptyOk} 新增檔 fail-closed=${newFileOk}（後果：豁免判錯 → T3 少跑整套 e2e；改處：scripts/text-only-diff.mjs skeleton / judgeFiles）`);
+const vdMd = rd('skills/verify-done/SKILL.md');
+const vdE2e = (vdMd.match(/^## §UI \/ browser e2e[\s\S]*?(?=^## )/m) || [''])[0];
+const dwFeRow = (dwMd.match(/^\| `frontend-test` \|.*$/m) || [''])[0];
+const dataJs = rd('docs/js/data.js');
+const uiqLabel = (dataJs.match(/UIQ:\s*\{[^}]*label:\s*'([^']*)'/) || ['', ''])[1];
+const fbTpl = rd('skills/finish-branch/SKILL.md');
+check('P10b verify-done §UI / browser e2e 有文字節點豁免（呼叫 text-only-diff.mjs + smoke）、yaml e2e 含 smoke；dev-workflow frontend-test 列、data.js UIQ label、finish-branch PR 模板同步',
+  /文字節點/.test(vdE2e) && /text-only-diff\.mjs/.test(vdE2e) && /static-serve\.mjs/.test(vdE2e) && /smoke/.test(vdE2e) && /data-\*/.test(vdE2e) && !/node -e '/.test(vdE2e) &&
+    /e2e: pass \| fail \| skipped \| smoke/.test(vdMd) && /文字節點/.test(dwFeRow) && /smoke/.test(uiqLabel) && /e2e: <pass \| smoke/.test(fbTpl) &&
+    exists('scripts/text-only-diff.mjs') && exists('scripts/static-serve.mjs'),
+  `verify-done 豁免段：文字節點=${/文字節點/.test(vdE2e)} 呼叫判定器=${/text-only-diff\.mjs/.test(vdE2e)} static-serve=${/static-serve\.mjs/.test(vdE2e)} smoke=${/smoke/.test(vdE2e)} 殘留 node -e 一行=${/node -e '/.test(vdE2e)} yaml smoke=${/e2e: pass \| fail \| skipped \| smoke/.test(vdMd)} ` +
+    `dev-workflow 列=${/文字節點/.test(dwFeRow)} UIQ label=「${uiqLabel.slice(0, 40)}」 finish-branch 模板 e2e 欄=${/e2e: <pass \| smoke/.test(fbTpl)}` +
+    `（後果：文字節點改動照樣燒一整套 e2e agent、或 smoke-only 的 PR 被寫成全綠；改處：verify-done「§UI / browser e2e」與「§hand-off state」、dev-workflow「§跨流程 skill 載入」frontend-test 列、data.js UIQ 節點、finish-branch「§PR body 模板」）`);
+
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
 // 用 exitCode 而非 process.exit()：stdout 接 pipe 時 exit() 可能截掉最後幾行（含 ALL PASS 那行）
 process.exitCode = failed === 0 ? 0 : 1;

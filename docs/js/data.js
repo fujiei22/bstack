@@ -125,7 +125,7 @@ const FLOW_DATA = {
     // ───────── Phase 4：verify-done ─────────
     LoadVerify:   { phase: 'phase_verify', type: 'skill',   shape: 'rect',    label: '載入 skill：verify-done' },
     VerifyRun:    { phase: 'phase_verify', type: 'impl',    shape: 'rect',    label: 'test / lint / build / type-check\nT2+ 多輪' },
-    UIQ:          { phase: 'phase_verify', type: 'default', shape: 'diamond', label: 'T3 + UI 改動？' },
+    UIQ:          { phase: 'phase_verify', type: 'default', shape: 'diamond', label: 'T3 + UI 改動？\n只動文字節點 / data-*（text-only-diff.mjs 判）→ 主 agent smoke、不派 runner' },
     LoadFE:       { phase: 'phase_verify', type: 'skill',   shape: 'rect',    label: '載入 skill：frontend-test' },
     FEAgent:      { phase: 'phase_verify', type: 'agent',   shape: 'rect',    label: '派 agent：frontend-e2e-runner\n（Playwright 隔離 context）' },
     LeakQ:        { phase: 'phase_verify', type: 'default', shape: 'diamond', label: '§使用契約 2.5 漏網複查（全 Tier）\n實改含前端檔但 involved=false / scope 對不上？' },
