@@ -8,7 +8,7 @@
 
 **Goal**: 三項效率改動落地、每項附「邏輯零改變」的機械證明（契約 P2d / P2e / P11 + 守門快照 + hook 對照測試約 26 案）。
 
-**Architecture**: group 1 契約先紅；group 2 三塊平行、檔集合互斥——hook（hooks/、scripts/hook-equivalence.mjs）、延遲載入（brainstorm / design-language / rules.md，含這三檔內的 hook 檔名替換）、dev-workflow；group 3 公開文案 + 其餘檔名引用；group 4 重產 + 總驗 + 施工紀錄。
+**Architecture**: group 1 契約先紅；group 2 三塊平行、檔集合互斥——hook（hooks/、docs/work/refactor/skill-load-and-node-hook/hook-equivalence.mjs（一次性，隨 spec 歸檔））、延遲載入（brainstorm / design-language / rules.md，含這三檔內的 hook 檔名替換）、dev-workflow；group 3 公開文案 + 其餘檔名引用；group 4 重產 + 總驗 + 施工紀錄。
 
 **Risks**: hook 重寫（對照測試 + P2d / P2e 守）；三處清單雙寫（P11 守）；公開文案的事實陳述（照官方文件 + 實測，不寫推論）。
 
@@ -19,7 +19,7 @@
 **parallel-group**: 1
 **files**: modify `scripts/plugin-contract.mjs`
 
-- [ ] Step 1: P2a `hookCmds.length >= 2` → `>= 1` 且每個 command 含 `node "` ；P2c 改驗 `hooks/guard.mjs` 存在且不含 `state[\\/]file-guard`；P4 掃描清單 `hooks/*.ps1` → `hooks/guard.mjs`、`scripts/hook-equivalence.mjs`
+- [ ] Step 1: P2a `hookCmds.length >= 2` → `>= 1` 且每個 command 含 `node "` ；P2c 改驗 `hooks/guard.mjs` 存在且不含 `state[\\/]file-guard`；P4 掃描清單 `hooks/*.ps1` → `hooks/guard.mjs`、`docs/work/refactor/skill-load-and-node-hook/hook-equivalence.mjs（一次性，隨 spec 歸檔）`
 - [ ] Step 2: **P2d**（import `decide` / `tokenPathFor`，純函式、無 IO）fixture：
   1. protected branch + repo 內 `src/a.ts` → exit 2、lines 含「目前在」
   2. feature branch + repo 內 → 0
@@ -40,11 +40,11 @@
 ### Task 2: hooks/guard.mjs 移植 + 對照測試 + 缺 node 實測
 
 **parallel-group**: 2
-**files**: create `hooks/guard.mjs`、`scripts/hook-equivalence.mjs`；modify `hooks/hooks.json`；delete 兩支 `.ps1`
+**files**: create `hooks/guard.mjs`、`docs/work/refactor/skill-load-and-node-hook/hook-equivalence.mjs（一次性，隨 spec 歸檔）`；modify `hooks/hooks.json`；delete 兩支 `.ps1`
 
 - [ ] Step 1: 紅 = P2a / P2c / P2d / P2e
 - [ ] Step 2: `guard.mjs`（草稿在 scratch `guard.draft.mjs`，依 review 修）：export `targetOf` / `tokenPathFor(normalized, env)` / `decide(payload, ctx)`；ctx = `{ repoDir, getBranch(), env, selfPath, consumeToken(path)→{existed,valid}, ensureStateDir(dir)→bool }`；順序：branch 段（取不到路徑也查 branch；repo 外才跳）→ file-type 段（不看 scope）；`PROTECTED` 與 tool_name 比對加 `/i` / 小寫；`tokenPathFor` 自己讀 env（win32：`TMP → TEMP → USERPROFILE → windir`；其他：`TMPDIR → /tmp`，.NET 在 Unix 只看 TMPDIR）；WARN 訊息 token 行改 `node "<selfPath 正斜線>" --token "<tokenPath 正斜線>"`；子命令 `--token <path>` 建目錄 + 空檔；consumed.log 布林印 `True/False`；`CLAUDE_PROJECT_DIR` 指到不存在目錄 → git 失敗 → branch null → 放行（刻意差異，spec 列）；主程式判斷用 `argv[1]` 檔名 regex
-- [ ] Step 3: `scripts/hook-equivalence.mjs`：`git show 8dbb203:hooks/<x>.ps1` 到 temp；臨時 repo 建 `main` / `Main`（Windows 不允許就 `Release`）/ `feat/x` 三 branch + detached HEAD + 空 repo；26 案（P2d 全部 + `CLAUDE_PROJECT_DIR` 未設只靠 cwd、相對路徑、大小寫不同 repo 路徑、`repo/../other/a.ts`、`.venv/x`、TEMP 指到檔案）；每案跑舊兩支 + 新一支，比 `max(舊 branch exit, 舊 file-type exit) == 新 exit`、第一行 `[bstack]` 標記集合（目前在 / BLOCK / WARN / state dir）相等、WARN 案兩邊印的 token 路徑相等（正規化分隔符後）、token 案跑完 token 檔已刪且 consumed.log 各多一行；`\r?\n` 切行；輸出對照表（欄位：# / tool / branch / 路徑 / token 狀態 / 舊 b / 舊 f / 舊 max / 新 / 舊標記 / 新標記 / 等價）
+- [ ] Step 3: `docs/work/refactor/skill-load-and-node-hook/hook-equivalence.mjs（一次性，隨 spec 歸檔）`：`git show 8dbb203:hooks/<x>.ps1` 到 temp；臨時 repo 建 `main` / `Main`（Windows 不允許就 `Release`）/ `feat/x` 三 branch + detached HEAD + 空 repo；26 案（P2d 全部 + `CLAUDE_PROJECT_DIR` 未設只靠 cwd、相對路徑、大小寫不同 repo 路徑、`repo/../other/a.ts`、`.venv/x`、TEMP 指到檔案）；每案跑舊兩支 + 新一支，比 `max(舊 branch exit, 舊 file-type exit) == 新 exit`、第一行 `[bstack]` 標記集合（目前在 / BLOCK / WARN / state dir）相等、WARN 案兩邊印的 token 路徑相等（正規化分隔符後）、token 案跑完 token 檔已刪且 consumed.log 各多一行；`\r?\n` 切行；輸出對照表（欄位：# / tool / branch / 路徑 / token 狀態 / 舊 b / 舊 f / 舊 max / 新 / 舊標記 / 新標記 / 等價）
 - [ ] Step 4: 跑對照測試全等；**不等時**：停、不重試；判「ps1 既有行為」→ 零改變照搬（或列刻意差異，寫進 spec）；「移植錯」→ 修 guard.mjs 重跑
 - [ ] Step 5: hooks.json 改 `node "${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"`（shell form、雙引號，與官方範例同）；刪兩支 ps1；P2a-e 綠
 - [ ] Step 6: **缺 node 實測**：把 hooks.json 暫改成 `node-nope`，在臨時專案 `claude --plugin-dir D:/GitHub/bstack -p "<用 Write 建一個檔>" --output-format stream-json` 跑一次，記錄：transcript 有沒有 `non-blocking` 通知、檔案有沒有被寫；改回 `node`。結果進施工紀錄，rules.md / README 依實測寫

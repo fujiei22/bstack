@@ -89,7 +89,7 @@
 |---|---|---|
 | 1 design-language 延遲載入 | brainstorm 0b′ 四步改寫（仍四步）：清單與剔除規則內嵌、不命中不載、命中才載並照其契約從第 1 步跑；design-language description / §前端副檔名 例外句 / 銜接表 / Red Flags 同步；rules.md §設計語言對齊 說明句 | P11 綠（三處清單 tokenize 相等、含「不命中」「不載」「命中才載」「SKILL.md」）；守門快照：使用契約步驟數 / 選單 / § 白名單零差異，反引號新增 11 個（內嵌的清單與剔除規則，刻意） |
 | 2 dev-workflow 去重 | 刪 Track / Tier heuristic 兩表與自動升級段（理由句先搬到 brainstorm 0d）、換一行指回；Phase 0 圖第 35 行、分工表、跨流程 design-language 列同步 | P11 綠；P9c / P10b 仍綠；守門快照零差異 |
-| 3 hook 改 node | hooks/guard.mjs 一支兩段、hooks.json 一個 command、兩支 ps1 刪；scripts/hook-equivalence.mjs 對照 | P2a-e 綠（P2d 24 fixture + tokenPathFor 兩案；P2e 真 spawn 兩案）；對照測試 31 案 ALL EQUAL（下表）；守門快照 finish-branch 反引號新增 hooks/guard.mjs 一個（刻意） |
+| 3 hook 改 node | hooks/guard.mjs 一支兩段、hooks.json 一個 command、兩支 ps1 刪；docs/work/refactor/skill-load-and-node-hook/hook-equivalence.mjs（一次性，隨 spec 歸檔） 對照 | P2a-e 綠（P2d 24 fixture + tokenPathFor 兩案；P2e 真 spawn 兩案）；對照測試 31 案 ALL EQUAL（下表）；守門快照 finish-branch 反引號新增 hooks/guard.mjs 一個（刻意） |
 
 ### hook 對照測試（舊 pwsh 兩支 vs 新 node 一支）
 
@@ -198,3 +198,21 @@ code-review high 中途另抓：`--token` 用 `appendFileSync` 對既存檔不�
 | N/A | token 機制（AI 可自建、hash 可預算、per-user temp）與舊版等價，是既有信任假設 | — |
 | N/A | PII / secret：diff 與 docs/work 三份文件 grep 本機路徑 / email / IP 零命中 | — |
 | 待辦 | UNC 與超長路徑的 `path.resolve` vs .NET `GetFullPath` 正規化差異未實測 | 記 spec 待釐清，不擋本 PR |
+
+### code-review high（8 finder）第一批實測 finding 與處置
+
+finder 的原始候選在彙整前就先處理了實測證實的幾條（最終彙整見下一段）：
+
+| finder | finding | 處置 |
+|---|---|---|
+| removed-behaviour | **8.3 短檔名**：舊 .NET `GetFullPath` 會把 `TOMMY_~1` 展開，`path.resolve` 不會——`CLAUDE_PROJECT_DIR` 短、`file_path` 長（或反向）就誤判 repo 外、main 上放行 | `canonical()`：realpath 展開到最深存在祖先再接回尾段；P2d 加注入 realpath 的 fixture；對照測試加真實短 / 長混合案（兩向實測 exit 2） |
+| removed-behaviour | **git 只有 `.cmd` / `.bat` 包裝**在 PATH 時 `execFileSync` ENOENT → branch null → 靜默放行；舊 pwsh 走 PATHEXT 找得到 | win32 且 ENOENT 才用 shell 重試一次 |
+| removed-behaviour | JSON 字面 `null` 舊版 exit 0，新版當空 stdin 查 branch | `payload === undefined`（真空字串）才查 branch；`null` / scalar → 放行；P2d / 對照各加一案 |
+| A（diff scan） | `--token` 沒帶路徑靜默落入 hook 模式讀 stdin | 印錯誤、exit 1 |
+| A | `readFileSync(0)` 拋錯（EAGAIN）被折成空 stdin → branch 段照查、file-type 段跳過 | 讀不到 → exit 0（自身錯誤放行原則） |
+| A | 對照腳本 `Math.max(null, null) === 0` 把「pwsh 沒跑」記成「放行」、缺 pwsh 時崩在印表前 | 開頭探測 pwsh 沒有就 exit 2；status null 不進 max |
+| simplify | 一次性對照腳本放 `scripts/` 會讓 macOS / Linux 貢獻者當永久測試跑、P4 白掃一支 | 搬到 `docs/work/<branch>/`（隨 spec 歸檔），P4 掃描清單移除 |
+| altitude（記為 follow-up，不在零改變範圍） | `tokenPathFor` 照 .NET env 順序只為相容舊 token 目錄，merge 後沒消費者；缺 node 可用 SessionStart hook 自檢 `node -e 0 \|\| echo …` 讓靜默失效變可見 | 下一支：P2d 改驗「同路徑同 token、不同 user 不同目錄」後換 `os.tmpdir()`；SessionStart 自檢要先實測 Windows 是否會把 stdout 餵給 Claude |
+| reuse（記為 follow-up） | P2d fixture 與對照腳本重列同一組案例；tag 分類靠 grep 人類訊息 | 下一支：抽共用 case 表、`decide()` 回結構化 kind |
+
+對照測試最終 **37 案 ALL EQUAL**（含 D1 / D2 / D3 三筆刻意差異），P2d 30 案、P2e 六步全綠。

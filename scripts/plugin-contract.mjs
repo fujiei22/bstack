@@ -113,6 +113,7 @@ const REPO_FIX = process.platform === 'win32' ? 'C:\\repo' : '/repo';
 const inRepo = (rel) => REPO_FIX + (process.platform === 'win32' ? '\\' : '/') + rel;
 const ctxOf = ({ branch = 'feat/x', token = 'none', stateDir = true } = {}) => ({
   repoDir: REPO_FIX, env: { TMP: 'C:/t', USERNAME: 'u' }, selfPath: 'X:/p/hooks/guard.mjs',
+  realpath: (p) => { throw new Error('nope'); },   // fixture 路徑不存在磁碟上；讓 canonical 退到 path.resolve
   getBranch: () => branch,
   consumeToken: () => token === 'none' ? { existed: false, valid: false } : { existed: true, valid: token === 'valid' },
   ensureStateDir: () => stateDir,
@@ -139,7 +140,7 @@ const P2D = [
   ['17 branch Main → 擋', W(inRepo('a.ts')), ctxOf({ branch: 'Main' }), 2, { b: true }],
   ['18 branch null（非 git）→ 放', W(inRepo('a.ts')), ctxOf({ branch: null }), 0, {}],
   ['19 detached HEAD → 放', W(inRepo('a.ts')), ctxOf({ branch: 'HEAD' }), 0, {}],
-  ['20 空 stdin protected → 擋（只有「目前在」）', null, ctxOf({ branch: 'main' }), 2, { b: true, B: false, W: false }],
+  ['20 空 stdin（payload undefined）protected → 2 只含「目前在」', undefined, ctxOf({ branch: 'main' }), 2, { b: true, B: false, W: false }],
   ['21 Write 無 tool_input protected → 擋', { tool_name: 'Write' }, ctxOf({ branch: 'main' }), 2, { b: true }],
   ['22 Write 無 file_path protected → 擋', { tool_name: 'Write', tool_input: {} }, ctxOf({ branch: 'main' }), 2, { b: true }],
   ['23 未知 tool → 放', { tool_name: 'Bash', tool_input: { command: 'x' } }, ctxOf({ branch: 'main' }), 0, {}],
@@ -148,6 +149,11 @@ const P2D = [
   ['25 file_path 是數字（protected）→ 擋', W(123), ctxOf({ branch: 'main' }), 2, { b: true }],
   ['26 file_path 是物件（protected）→ 擋', W({ a: 1 }), ctxOf({ branch: 'main' }), 2, { b: true }],
   ['27 tool_input 是字串（protected）→ 擋（當沒帶路徑）', { tool_name: 'Write', tool_input: 'x' }, ctxOf({ branch: 'main' }), 2, { b: true }],
+  ['28 JSON 字面 null（protected）→ 放（舊 .tool_name 取 null → exit 0）', null, ctxOf({ branch: 'main' }), 0, {}],
+  ['29 空 stdin（payload undefined、protected）→ 擋', undefined, ctxOf({ branch: 'main' }), 2, { b: true }],
+  // 8.3 短檔名：repoDir 給短檔名、file_path 給長檔名，realpath 注入把兩者都解成長檔名 → 仍在 repo 內 → 擋
+  ['30 repoDir 8.3 短檔名 vs file_path 長檔名（protected）→ 擋', W('C:\\Users\\tommy_sian\\repo\\a.ts'),
+    { ...ctxOf({ branch: 'main' }), repoDir: 'C:\\Users\\TOMMY_~1\\repo', realpath: (p) => p.replace(/TOMMY_~1/i, 'tommy_sian') }, 2, { b: true }],
 ];
 const p2dBad = P2D.filter(([, payload, ctx, exit, tg]) => { const r = G.decide(payload, ctx); const t = tags(r); return r.exit !== exit || Object.entries(tg).some(([k, v]) => t[k] !== v); }).map(([n]) => n);
 // 25 / 26：token 路徑純運算——期望值用舊 ps1 對同一字串算過（2026-09-07：sha256("d:/x/.env") 前 16 hex）
@@ -237,7 +243,7 @@ for (const n of skillDirs) {
 }
 const scanTargets = [
   ...skillDirs.map((n) => `skills/${n}/SKILL.md`), ...refDocs, ...agentFiles.map((f) => `agents/${f}`),
-  'hooks/guard.mjs', 'scripts/hook-equivalence.mjs', 'CLAUDE.md', 'README.md',
+  'hooks/guard.mjs', 'CLAUDE.md', 'README.md',
   'skills/devwork/rules.md', 'docs/index.html', 'docs/js/data.js',
 ].filter(exists);
 const hits = [], allowed = [];

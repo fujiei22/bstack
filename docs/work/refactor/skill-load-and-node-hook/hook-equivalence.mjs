@@ -1,6 +1,8 @@
 /**
  * 一次性對照測試：舊兩支 pwsh hook（從 git 8dbb203 取）vs 新 hooks/guard.mjs，同一組 stdin payload 逐案比對。
- *   node scripts/hook-equivalence.mjs            # 需要 pwsh 7+ 與 git；只在跑的平台上有效（本輪 Windows）
+ * 放在 docs/work/<branch>/（merge 後隨 spec 進 archive）而不是 scripts/：它需要 pwsh 7+（本 PR 之後 pwsh 不再是必需）、
+ * 靠 git history 取舊檔，是一次性量測不是永久契約——永久守的是 plugin-contract 的 P2d / P2e。
+ *   node docs/work/refactor/skill-load-and-node-hook/hook-equivalence.mjs   # 需要 pwsh 7+ 與 git；只在跑的平台上有效（本輪 Windows）
  * 比什麼：max(舊 branch exit, 舊 file-type exit) == 新 exit；[bstack] 標記集合（目前在 / BLOCK / WARN / state dir）相等；
  *         WARN 案兩邊印的 token 路徑相等（正規化分隔符）；token 案跑完 token 檔已刪、consumed.log 各多一行。
  * 依 git history 取舊檔：未來 rewrite history 就跑不了，屬預期（spec 待釐清有記）。
@@ -11,8 +13,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');   // docs/work/refactor/<branch>/ → repo 根
 const BASE = process.argv[2] || '8dbb203';
+// 沒 pwsh 就直接停：否則 spawnSync 回 status null，Math.max(null, null) === 0 會把「舊 hook 沒跑」記成「舊 hook 放行」、整表假紅
+const pwshProbe = spawnSync('pwsh', ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()'], { encoding: 'utf8' });
+if (pwshProbe.status !== 0 || !pwshProbe.stdout) { console.error('需要 pwsh 7+ 在 PATH（這支是對照舊 pwsh hook 的一次性量測；永久契約是 plugin-contract P2d / P2e）'); process.exit(2); }
+const pwshVer = pwshProbe.stdout.trim();
 // realpathSync.native 把 Windows 8.3 短檔名（TOMMY_~1）解成長檔名：.NET GetTempPath 會回長檔名、node 照 env 原樣印，
 // 不解開的話 token 路徑比對會因為同一目錄兩種寫法而假紅
 const work = path.join(realpathSync.native(tmpdir()), `bstack-hook-eq-${process.pid}`);
@@ -69,7 +75,8 @@ function caseRun(name, { branch = 'feat/x', payload, envExtra = {}, cwd, project
   const t2 = prep(tokenMode);
   const n = run(process.execPath, [NEW], input, env, cwd);
   const newTokenGone = t2 ? !existsSync(t2) : null;
-  const oldExit = Math.max(oB.status, oF.status), newExit = n.status;
+  // status null = 子程序沒跑起來（pwsh / node 炸了），不能被 Math.max 吸成 0
+  const oldExit = (oB.status === null || oF.status === null) ? null : Math.max(oB.status, oF.status), newExit = n.status;
   const oldTag = tagOf(oB.stderr + '\n' + oF.stderr), newTag = tagOf(n.stderr);
   const oldTok = tokenIn(oF.stderr), newTok = tokenIn(n.stderr);
   const tokEq = oldTok === null && newTok === null ? 'n/a' : (oldTok === newTok ? 'same' : `DIFF ${oldTok} vs ${newTok}`);
@@ -113,6 +120,10 @@ caseRun('Write 無 tool_input（main）', { branch: 'main', payload: { tool_name
 caseRun('Write 無 file_path（main）', { branch: 'main', payload: { tool_name: 'Write', tool_input: {} } });
 caseRun('未知 tool（main）', { branch: 'main', payload: { tool_name: 'Bash', tool_input: { command: 'x' } } });
 caseRun('壞 JSON（main）', { branch: 'main', payload: '{oops' });
+// JSON 字面 null：舊 .tool_name 取 null → exit 0；新 targetOf 回 isWrite=false → 0
+caseRun('JSON 字面 null（main）', { branch: 'main', payload: 'null' });
+// 8.3 短檔名：os.tmpdir() 在這台是 TOMMY_~1 短檔名、work 已解成長檔名——repoDir 給短、file_path 給長；舊 .NET GetFullPath 展開、新 canonical() 用 realpath 展開
+caseRun('repoDir 8.3 短檔名 vs file_path 長檔名（main）', { branch: 'main', payload: W(R('src/a.ts')), projectDir: path.join(tmpdir(), path.relative(realpathSync.native(tmpdir()), repo)) });
 // D3：file_path 非字串——舊 ps1 對數字隱式轉字串（相對 cwd 解出來在 repo 內 → 擋），對物件 GetFullPath 拋錯 → exit 0；新版一律當沒帶路徑 → branch 照查
 caseRun('file_path 是數字 123（main）', { branch: 'main', payload: { tool_name: 'Write', tool_input: { file_path: 123 } } });
 caseRun('file_path 是物件（main）→ 新版更嚴', { branch: 'main', payload: { tool_name: 'Write', tool_input: { file_path: { a: 1 } } }, expectDiff: 'D3' });
@@ -123,7 +134,6 @@ caseRun('CLAUDE_PROJECT_DIR 指到不存在目錄（main）', { branch: 'main', 
 // D2：舊 ps1 在 TMP 指到檔案時 Join-Path 噴 PowerShell 錯誤、tokenPath 變空、照樣印 WARN（指示是壞的）；新版明確報 state dir 建立失敗。兩邊都 exit 2
 caseRun('TEMP 指到檔案 + Dockerfile → state dir 失敗', { payload: W(R('Dockerfile')), envExtra: { TMP: badTmp, TEMP: badTmp, TMPDIR: badTmp }, expectDiff: 'D2' });
 
-const pwshVer = run('pwsh', ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()'], '', process.env).stdout.trim();
 console.log(`環境：${new Date().toISOString().slice(0, 10)} · 基線 ${BASE} · pwsh ${pwshVer} · node ${process.version} · ${process.platform}`);
 console.log('| # | 案 | branch | token | 舊 b | 舊 f | 舊 max | 新 | 舊標記 | 新標記 | token 路徑 | token 消耗 | 等價 |');
 console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|');

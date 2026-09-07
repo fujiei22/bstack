@@ -49,8 +49,8 @@ const fwd = (p) => String(p).replace(/\\/g, '/');
  * JSON 是 scalar（"x" / 123 / true）→ 舊 ps1 取 .tool_name 得 null → default → exit 0，所以這裡回 isWrite=false。
  */
 export function targetOf(payload) {
-  if (payload === null || payload === undefined) return { isWrite: true, target: null };
-  if (typeof payload !== 'object') return { isWrite: false, target: null };
+  if (payload === undefined) return { isWrite: true, target: null };      // stdin 真的是空字串
+  if (payload === null || typeof payload !== 'object') return { isWrite: false, target: null };   // JSON 字面 null / scalar：舊 .tool_name 取 null → exit 0
   const t = String(payload.tool_name || '').toLowerCase();
   const i = (payload.tool_input && typeof payload.tool_input === 'object') ? payload.tool_input : {};
   // 非字串的 file_path（數字 / 物件）一律當「沒帶路徑」→ branch 段照查、file-type 段沒得判。
@@ -92,13 +92,26 @@ export function decide(payload, ctx) {
   let exit = 0;
 
   // ── branch-safety 段：目標在 repo 外才跳；取不到路徑照舊查（零改變）──
+  // canonical：舊 .NET GetFullPath 會把 Windows 8.3 短檔名（TOMMY_~1）展開；path.resolve 不會，兩邊寫法不同就會誤判「repo 外」放行。
+  // 用 realpath 展開到最深的存在祖先，剩餘段接回去（目標檔常常還不存在）。ctx.realpath 可注入（契約測時不碰磁碟）。
+  const canonical = (p) => {
+    const abs = path.resolve(p);
+    const rp = ctx.realpath || ((x) => realpathSync.native(x));
+    let head = abs, tail = [];
+    for (;;) {
+      try { return path.join(rp(head), ...tail).toLowerCase(); } catch { /* 不存在，往上一層 */ }
+      const parent = path.dirname(head);
+      if (parent === head) return abs.toLowerCase();
+      tail.unshift(path.basename(head)); head = parent;
+    }
+  };
   let inScope = true;
   if (target) {
     try {
-      const absT = path.resolve(target).toLowerCase();
-      const absR = path.resolve(ctx.repoDir).replace(/[\\/]+$/, '').toLowerCase();
+      const absT = canonical(target);
+      const absR = canonical(ctx.repoDir).replace(/[\\/]+$/, '');
       inScope = absT.startsWith(absR + path.sep) || absT.startsWith(absR + '/');
-    } catch { inScope = false; }
+    } catch { inScope = true; }   // 解析失敗 = 不知道，不當「repo 外」；照查 branch（fail-closed）
   }
   if (inScope) {
     const branch = ctx.getBranch();
@@ -147,8 +160,9 @@ export function decide(payload, ctx) {
 function main() {
   const argv = process.argv.slice(2);
   const ti = argv.indexOf('--token');
-  if (ti >= 0 && argv[ti + 1]) {
+  if (ti >= 0) {
     const p = argv[ti + 1];
+    if (!p) { process.stderr.write('[bstack] --token 需要一個路徑參數（照 WARN 訊息第 2 步那行原樣貼）\n'); return 1; }   // 不能靜默落進 hook 模式讀 stdin
     // 只准建在本機當下 env 算出來的 state dir 底下：這支不該變成「順手在任何路徑 touch 空檔」的通用工具（security-audit Minor）
     const expectDir = path.resolve(path.dirname(tokenPathFor('probe', process.env))).replace(/\\/g, '/').toLowerCase();
     const gotDir = path.resolve(path.dirname(p)).replace(/\\/g, '/').toLowerCase();
@@ -161,10 +175,9 @@ function main() {
     return 0;
   }
   let raw = '';
-  try { raw = readFileSync(0, 'utf8'); } catch { raw = ''; }
-  let payload = null;
+  try { raw = readFileSync(0, 'utf8'); } catch { return 0; }   // stdin 讀不到（EAGAIN 之類）= 自身錯誤 → 放行，不假裝成「空 stdin」
+  let payload;   // undefined = 完全空字串（舊 branch 段照查 branch）；JSON null / scalar / 只有空白 → targetOf 回 isWrite=false 或這裡 catch → exit 0
   if (raw !== '') {
-    // 只有「完全空字串」走 payload=null（舊 branch 段照查 branch）；只有空白的 stdin 在舊 ps1 是 ConvertFrom-Json 拋錯 → exit 0
     try { payload = JSON.parse(raw); } catch { return 0; }
   }
   const repoDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
@@ -172,9 +185,17 @@ function main() {
   const ctx = {
     repoDir, env: process.env, selfPath: path.resolve(process.argv[1]),
     getBranch() {
+      const opts = { cwd: repoDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] };
       try {
-        return execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repoDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
-      } catch { return null; }   // 非 git / 無 commit / git 不在 / repoDir 不存在 → 放行
+        return execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], opts).trim() || null;
+      } catch (e) {
+        // Windows：git 只以 git.cmd / git.bat 包裝在 PATH 時，無 shell 的 spawn 找不到（libuv 只試 .com/.exe）；舊 pwsh 走 PATHEXT 找得到。
+        // ENOENT 才退到 shell 版重試一次（多 ~50ms、只在這條路），其他錯誤（非 git / 無 commit）維持放行
+        if (e && e.code === 'ENOENT' && process.platform === 'win32') {
+          try { return execFileSync('git rev-parse --abbrev-ref HEAD', { ...opts, shell: true }).trim() || null; } catch { return null; }
+        }
+        return null;
+      }
     },
     consumeToken(tokenPath) {
       if (!existsSync(tokenPath)) return { existed: false, valid: false };
