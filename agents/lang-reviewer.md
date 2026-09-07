@@ -1,10 +1,8 @@
 ---
 name: lang-reviewer
 description: |
-  程式語言特化 code reviewer（繁中）。由主 agent 在 spawn 時於 prompt 標
-  language（python / typescript / javascript / sql / golang / java / csharp /
-  cpp / rust），本 agent 依該 language 套對應 idiom / pitfall / best practice
-  做 review。載入：request-review 不自動派發；user 顯式要求「用 lang-reviewer 看 <語言>」時由主 agent spawn。
+  程式語言特化 code reviewer（繁中）：依 prompt 標的 language 套 idiom / pitfall。
+  載入：request-review 不自動派發；user 顯式要求時由主 agent spawn。
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---

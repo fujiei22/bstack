@@ -1,9 +1,8 @@
 ---
 name: hypothesis-tester
 description: |
-  Incident hypothesis 驗證特化 agent（繁中）。獨立 context 驗單一假設，
-  不知道別的假設、不預設答案。讀 observe facts artifact 為共同基礎、
-  跑驗證實驗、回嚴格結構化 verdict。
+  incident 單一假設驗證 agent（繁中）：只知道自己這條假設，讀 observe facts、跑實驗、回嚴格 verdict。
+  載入：incident-investigate Test 階段 ≥3 假設時平行 spawn。
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---

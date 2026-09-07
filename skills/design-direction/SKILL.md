@@ -1,13 +1,9 @@
 ---
 name: design-direction
 description: |
-  定設計方向（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0c/0d 合併確認選「出三版」
-  且 branch 已建立、spec 已落檔）；亦可由使用者顯式要求出方向、評審設計。
-  涵蓋：三方向硬門、可變維度（有無先例）、三 subagent 並行、產出落檔、
-  反 AI slop、React+Babel 技術紅線、6 維度評審。
-  分工：既有事實（這區長什麼樣）→ `design-language`；新設計決策 → 本 skill；
-  改完要驗畫面 → `frontend-test`。
-  上游：`design-language`（供給設計語言）。下游：T3 → `write-plan`（依定案方向拆 task）；T2 → 回 `brainstorm` 3.5 依方向回寫 `## 施工清單` 後交 execute-plan。
+  定新設計方向（繁中）：三方向真實視覺讓 user 選、反 AI slop、6 維度評審。
+  載入：brainstorm 合併確認選「出三版」且 branch 已建、spec 已落檔；亦可顯式要求。既有設計語言查 design-language。
+  下游：T3 → write-plan；T2 → 回 `brainstorm` 3.5 回寫施工清單。
 ---
 
 # design-direction

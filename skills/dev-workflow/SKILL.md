@@ -1,10 +1,8 @@
 ---
 name: dev-workflow
 description: |
-  自動化開發流程主入口（繁中）。載入：由 `devwork` skill 載入（使用者輸入 /devwork）；
-  **不因自然語言自動觸發**。涵蓋：Phase 0 入口分流（Track / Tier）、9 階段順序、
-  skill hand-off state、Trace 標籤、Auto-fix、Fail handling、Memory hook、跨流程 skill dispatch。
-  規則書 `devwork/rules.md` 永遠優先於本 skill。
+  開發流程主入口（繁中）：Phase 0 分流、9 階段、hand-off state、跨流程 skill dispatch；rules.md 永遠優先。
+  載入：由 devwork 載入；不因自然語言自動觸發。
 ---
 
 # dev-workflow

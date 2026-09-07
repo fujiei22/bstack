@@ -1,10 +1,8 @@
 ---
 name: db-reviewer
 description: |
-  資料庫 schema / SQL / migration 特化 reviewer（繁中）。載入：dev-workflow Phase 6
-  security-audit 內，T3 涉 DB schema / migration / SQL query 大改 / index / 跨表 JOIN / DDL 時由主 agent spawn。
-  涵蓋：schema 設計合理性、index / query plan、migration 安全性（大表、online DDL）、
-  資料一致性、PII 處理、回滾路徑。
+  DB schema / SQL / migration 特化 reviewer（繁中）：index、migration 安全、一致性、PII、回滾。
+  載入：security-audit 內，T3 涉 DB schema / migration 時由主 agent spawn。
 tools: ["Read", "Grep", "Glob", "Bash", "mcp__mysql__mysql_query"]
 model: sonnet
 ---

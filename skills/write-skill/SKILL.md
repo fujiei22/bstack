@@ -1,9 +1,8 @@
 ---
 name: write-skill
 description: |
-  寫新 skill 的 meta skill（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（要加 / 改 / 評 skill 本身）；亦可由使用者顯式呼叫。
-  涵蓋：SKILL.md frontmatter / body 結構、繁中風格、命名、放置位置、
-  與 dev-workflow / rules.md 相容性、Red Flags。
+  寫 / 改 skill 的 meta skill（繁中）：frontmatter / body 結構、命名、放置、與 dev-workflow 相容。
+  載入：要加 / 改 / 評 skill 本身時。
 ---
 
 # write-skill

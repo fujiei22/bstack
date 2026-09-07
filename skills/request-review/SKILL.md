@@ -1,11 +1,8 @@
 ---
 name: request-review
 description: |
-  自動 code review 派發（繁中）。載入：dev-workflow Phase 5（verify-done 之後）；亦可由使用者顯式呼叫。
-  涵蓋：先依副檔名分流（純文件 diff 跳 code review）/ T1 self review /
-  T2 內建 code-review medium + 主 agent 對 spec 自檢 /
-  T3 內建 code-review high + 1 個 spec / 架構對齊 subagent（附語言提示） / 結果交棒 receive-review。
-  上游：verify-done。下游：receive-review。
+  code review 派發（繁中）：依副檔名分流（純文件跳）；T1 self、T2 內建 code-review medium + spec 自檢、T3 high + 1 個對齊 subagent。
+  載入：dev-workflow Phase 5，verify-done 之後。
 ---
 # request-review
 寫完 + verify 過 → 進 review。抓 bug / 可簡化處交給 Claude Code **內建的 `code-review` skill**（8 個 finder 視角 + 逐條驗證，自寫 prompt 做不到同樣覆蓋）；「符合 spec / 規則書」內建的不看，這題自己派。

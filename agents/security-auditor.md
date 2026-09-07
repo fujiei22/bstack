@@ -1,9 +1,8 @@
 ---
 name: security-auditor
 description: |
-  安全特化 reviewer（繁中）。載入：dev-workflow Phase 6 security-audit 由主 agent spawn；
-  T2 涉認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII，T3 程式碼 diff 必跑、純文件 diff 且無 File-type 硬規則命中跳。涵蓋：OWASP Top 10、STRIDE 六類威脅、security-checklist
-  逐項對、PII 違規、File-type 硬規則命中。獨立 context、避免球員兼裁判。
+  安全特化 reviewer（繁中）：OWASP、STRIDE、checklist、PII、File-type 硬規則，獨立 context。
+  載入：security-audit spawn；T2 涉認證 / 資料層 / API 邊界 / payment / 上傳 / PII，T3 程式碼 diff 必跑、純文件 diff 且無 File-type 硬規則命中跳。
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---

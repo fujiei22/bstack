@@ -1,11 +1,8 @@
 ---
 name: finish-branch
 description: |
-  收尾 development branch + git workflow 細則合一（繁中）。載入：dev-workflow Phase 7
-  （security-audit 或 receive-review 之後）；亦可由使用者顯式呼叫（含任何 git workflow 細節展開需求）。
-  涵蓋：clean check、rebase、push、開 PR、PR body 撰寫、Branch safety 過 hook、
-  按 GitHub Flow squash merge（user 授權才 auto-merge）、commit 範例、PR / branch 命名規範。
-  上游：security-audit（或 receive-review，若 tier 跳 security）。下游：pr-explain（T3）；T0-T2 開完 PR 即停、等 user merge。
+  收尾 branch + git workflow 細則（繁中）：rebase、push、開 PR、squash merge（user 授權才 merge）。
+  載入：dev-workflow Phase 7；亦可顯式呼叫。
 ---
 
 # finish-branch

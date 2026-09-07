@@ -1,10 +1,8 @@
 ---
 name: security-checklist
 description: |
-  安全實作 checklist（繁中）。載入：dev-workflow Phase 6（security-audit 跑 STRIDE 後）；亦可由使用者顯式呼叫。
-  涵蓋：secret 管理、input validation、SQL injection、XSS / CSRF、auth、
-  session、file upload、rate limit、secure header、error handling、log mask。
-  附 FAIL / PASS 範例。security-audit 跑 STRIDE 後載此 skill 做具體實作對齊。
+  安全實作 checklist（繁中）：十二主題附 FAIL / PASS 範例。
+  載入：security-audit 跑 STRIDE 後；亦可顯式呼叫。
 ---
 
 # security-checklist

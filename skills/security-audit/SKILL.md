@@ -1,11 +1,8 @@
 ---
 name: security-audit
 description: |
-  OWASP Top 10 + STRIDE 安全稽核（繁中）。載入：dev-workflow Phase 6（receive-review 完；
-  T2 涉認證 / 資料層 / API 邊界才用、T3 程式碼 diff 必用、純文件 diff 且無 File-type 硬規則命中跳）；亦可由使用者顯式呼叫。
-  涵蓋：判定要不要跑、spawn security-auditor agent（獨立 context 做 STRIDE / OWASP /
-  checklist / PII 檢查）、整合 finding、critical user gate。
-  上游：receive-review 完。下游：finish-branch。
+  OWASP + STRIDE 安全稽核（繁中）：判定要不要跑、spawn security-auditor、整合 finding、critical gate。
+  載入：dev-workflow Phase 6；T2 涉認證 / 資料層 / API 邊界才用、T3 程式碼 diff 必用、純文件 diff 且無 File-type 硬規則命中跳。
 ---
 
 # security-audit

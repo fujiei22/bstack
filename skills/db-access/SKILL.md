@@ -1,10 +1,8 @@
 ---
 name: db-access
 description: |
-  資料庫存取規範（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0b 偵測到 DB 關鍵詞）。
-  涵蓋：MCP 唯讀、讀寫分流、查詢量限、PII mask、產 SQL 交付格式。
-  **強制**：brainstorm Phase 0b 偵測到 DB 關鍵詞時必載；debug-systematic 的 Triage
-  與 security-audit（Phase 6）的 db-reviewer 涉 DB 時亦適用本規則。
+  資料庫存取規範（繁中）：MCP 唯讀、寫入產 SQL 交 user、LIMIT、PII mask。
+  載入：brainstorm 0b 偵測到 DB 關鍵詞必載。
 ---
 
 # db-access

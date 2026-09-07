@@ -1,9 +1,8 @@
 ---
 name: frontend-e2e-runner
 description: |
-  Playwright e2e 執行 specialist（繁中）。獨立 context 跑 browser 自動化、
-  截圖 / 監控 console+network / PII mask、回結構化 pass/fail/inconclusive
-  + evidence path。隔離 Playwright MCP 重 tool 噪音、避免污染主 pipeline。
+  Playwright e2e 執行 specialist（繁中）：獨立 context 跑 browser、截圖、console / network、PII mask，回 pass / fail / inconclusive。
+  載入：frontend-test spawn。
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep",
         "mcp__playwright__browser_navigate",
         "mcp__playwright__browser_navigate_back",

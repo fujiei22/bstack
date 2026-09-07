@@ -1,12 +1,8 @@
 ---
 name: design-language
 description: |
-  既有專案設計語言辨識與對齊（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0b′ 比對命中前端副檔名才載；
-  execute-plan 動前端檔的 task 前後）；亦可由使用者顯式問設計語言。
-  涵蓋：前端副檔名唯一真相、區塊邊界偵測、設計語言抽取（exact values）、
-  design-map.md 產／查／失效檢查、四項對齊檢查清單。
-  **強制**：brainstorm 0b′ 比對命中才載、載入後照本契約從第 1 步跑；execute-plan 動前端檔的 task 前後必載。
-  分工：既有事實（這區長什麼樣）→ 本 skill；新設計決策 → `design-direction`；改**完**要驗畫面 → `frontend-test`。
+  既有設計語言辨識與對齊（繁中）：前端副檔名唯一真相、區塊偵測、exact values、design-map.md、四項對齊檢查。
+  載入：brainstorm 0b′ 比對命中前端副檔名才載；execute-plan 動前端檔的 task 前後必載。新設計決策交 design-direction。
 ---
 
 # design-language

@@ -1,11 +1,8 @@
 ---
 name: receive-review
 description: |
-  接收 review finding、執行 auto-fix 或詢 user（繁中）。載入：dev-workflow Phase 5
-  （request-review 產出 finding 後）；亦可由使用者顯式呼叫。
-  涵蓋：依 rules.md §Auto-fix 規則分流（危險問 / 非危險自動修）、
-  T3 額外讓 user 看 diff、review reject 流程、空 / 全綠 review 短路。
-  上游：request-review。下游：security-audit（依 tier / 條件）或 finish-branch。
+  接收 review finding、auto-fix 或詢 user（繁中）：依 rules.md §Auto-fix 分流。
+  載入：dev-workflow Phase 5，request-review 之後。
 ---
 
 # receive-review

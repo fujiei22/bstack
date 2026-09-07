@@ -1,10 +1,8 @@
 ---
 name: safety-guard
 description: |
-  PII / 密鑰 / token 外洩偵測（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（寫入 / commit / push / 寫 PR body 前）；亦可由使用者顯式呼叫。
-  涵蓋：原值 PII 偵測（email / phone / 身分證 / 信用卡 / 地址）、
-  secret pattern 偵測（API key / token / private key / password）、
-  落輸出 / commit / log 前掃描、mask suggestion。
+  PII / 密鑰 / token 外洩偵測（繁中）：原值 PII 與 secret pattern 掃描、mask 建議。
+  載入：寫入 / commit / push / 寫 PR body 前；亦可顯式呼叫。
 ---
 
 # safety-guard

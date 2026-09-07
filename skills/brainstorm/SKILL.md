@@ -1,10 +1,8 @@
 ---
 name: brainstorm
 description: |
-  需求釐清 + Phase 0 入口分流（繁中）。載入：dev-workflow 使用契約第 2 步；
-  不因自然語言自動觸發。涵蓋：0a 對話釐清（+ 讀 memory）、0b 看 codebase、
-  0b′ UI 面判定、0c Track 判定（Bug/Dev）、0d Tier 判定（T0-T3）、
-  spec 落檔 docs/work/&lt;branch-name&gt;/spec.md。終態 → T1 / T2 交棒 execute-plan（T2 的施工清單在 spec 內）、T3 交棒 write-plan、Bug 交棒 debug-systematic。
+  需求釐清 + Phase 0 入口分流（繁中）：Track / Tier / UI 面判定，spec 落 docs/work/<branch-name>/spec.md。
+  載入：dev-workflow 使用契約第 2 步；不因自然語言自動觸發。
 ---
 
 # brainstorm

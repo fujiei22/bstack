@@ -1,10 +1,8 @@
 ---
 name: cmd-guard
 description: |
-  危險指令防呆（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（AI 將執行不可逆 / 影響系統 / 影響別人的
-  command 前）；亦可由使用者顯式呼叫。
-  涵蓋：偵測危險指令類型、危險度分級、AskUserQuestion 二次確認、
-  user override 後執行、安全替代建議。
+  危險指令防呆（繁中）：不可逆指令執行前 AskUserQuestion 二次確認、給安全替代。
+  載入：dev-workflow §跨流程 skill 載入 所列時點；亦可顯式呼叫。
 ---
 
 # cmd-guard

@@ -1,10 +1,8 @@
 ---
 name: context-snapshot
 description: |
-  進度快照存（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（context 接近 auto-compact 閾值、跨 session 暫停）；亦可由使用者顯式呼叫。
-  涵蓋：抽當前 state（spec / plan / phase / decision / pending）寫到
-  docs/snapshots/<topic>-<ts>.md、Memory hook 可選、recovery 路徑明確。
-  下游：未來 session 用 context-resume 接續。
+  進度快照存檔（繁中）：state 寫到 docs/snapshots/<topic>-<ts>.md 供 context-resume 讀回。
+  載入：context 接近 auto-compact 或跨 session 暫停；亦可顯式呼叫。
 ---
 
 # context-snapshot

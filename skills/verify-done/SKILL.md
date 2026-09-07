@@ -1,11 +1,8 @@
 ---
 name: verify-done
 description: |
-  task 完成前的綜合驗證（繁中）。載入：dev-workflow Phase 4（execute-plan 全 task 完 / tdd-cycle 單 task 完）；亦可由使用者顯式呼叫。
-  涵蓋：test / lint / build / type-check 全跑、T2+ 多輪 verify、
-  T3 UI 改動加 browser e2e、verify fail 處置。
-  上游：execute-plan（task 全完）/ tdd-cycle（單 task 完）。
-  下游：request-review。
+  task 完成前綜合驗證（繁中）：test / lint / build / type-check，T2+ 多輪，T3 UI 改動加 e2e。
+  載入：dev-workflow Phase 4，execute-plan 全 task 完。
 ---
 
 # verify-done

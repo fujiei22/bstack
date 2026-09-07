@@ -1,12 +1,8 @@
 ---
 name: frontend-test
 description: |
-  前端自動化驗證（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（verify-done 偵測前端檔改動；
-  T3 UI 改動必載、T2 可選）；亦可由使用者顯式呼叫跑 e2e。
-  涵蓋：規劃測試矩陣、spawn frontend-e2e-runner agent 跑 Playwright（隔離
-  browser tool 噪音）、收結構化 summary、處置 PASS / FAIL / INCONCLUSIVE。
-  上游：verify-done（偵測前端檔改動；§UI / browser e2e）/ user 顯式呼叫。
-  下游：回 verify-done（整合 e2e 結果）→ request-review。
+  前端自動化驗證（繁中）：測試矩陣、spawn frontend-e2e-runner 跑 Playwright、處置結果。
+  載入：verify-done 偵測前端檔改動（T3 必載、T2 可選）；亦可顯式呼叫。
 ---
 
 # frontend-test

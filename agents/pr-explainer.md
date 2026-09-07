@@ -1,9 +1,8 @@
 ---
 name: pr-explainer
 description: |
-  PR diff 詳盡解釋特化 reviewer（繁中）。在獨立 context 重讀 diff、寫
-  「為何 + 怎做 + 關聯」三層解釋落檔到 docs/work/<branch-name>/pr-review.md。給 reviewer /
-  未來看 PR 的人讀。避免改動者主 context 的「我知道為何這樣寫」偏誤。
+  PR diff 詳盡解釋 reviewer（繁中）：獨立 context 重讀 diff，寫「為何 + 怎做 + 關聯」到 docs/work/<branch-name>/pr-review.md。
+  載入：pr-explain spawn。
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
 model: sonnet
 ---

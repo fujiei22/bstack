@@ -1,9 +1,8 @@
 ---
 name: tdd-cycle
 description: |
-  Test-driven 紅綠循環（繁中）。載入：dev-workflow Phase 3（execute-plan 每 task step 內）；亦可由使用者顯式呼叫。
-  涵蓋：iron law（先紅再綠）、最小通過實作、watch fail、refactor 階段。
-  下游：execute-plan 內每 task step 都進此 cycle。
+  Test-driven 紅綠循環（繁中）：先紅再綠、最小實作、refactor。
+  載入：execute-plan 每 task step 內。
 ---
 
 # tdd-cycle

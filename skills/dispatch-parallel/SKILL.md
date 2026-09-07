@@ -1,10 +1,8 @@
 ---
 name: dispatch-parallel
 description: |
-  平行派發（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（execute-plan 遇 parallel-group >1 task）。
-  涵蓋：協作模式判定（Agent Teams vs subagent vs 串行）、spawn 多 subagent、
-  隊友派工、傳 task prompt、收集結果、整合、處理 conflict、失敗 retry / rollback。
-  上游：execute-plan（遇 parallel-group）。下游：execute-plan（整合完接下個 group）。
+  平行派發（繁中）：協作模式判定、派工、收結果、整合。
+  載入：execute-plan 遇 parallel-group 同號多 task。
 ---
 
 # dispatch-parallel

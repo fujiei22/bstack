@@ -1,10 +1,8 @@
 ---
 name: pr-explain
 description: |
-  PR diff 詳盡解釋落檔（繁中）。載入：dev-workflow Phase 8（**T3** finish-branch 開好 PR 後）；T0-T2 不自動跑，user 顯式呼叫可。
-  涵蓋：fork pr-explainer agent 獨立 context 重讀 diff、依檔分 section 寫
-  「為何 + 怎做 + 關聯」、落 docs/work/<branch-name>/pr-review.md、commit、貼到 PR comment。
-  上游：finish-branch（PR 已開）。下游：retro（不綁定）。
+  PR diff 詳盡解釋落檔（繁中）：fork pr-explainer 寫 docs/work/<branch-name>/pr-review.md 並貼 PR。
+  載入：dev-workflow Phase 8，T3 開好 PR 後；T0-T2 不自動跑。
 context: fork
 agent: pr-explainer
 argument-hint: "[pr-number]（可選；省略則自動取當前 branch 的 PR）"

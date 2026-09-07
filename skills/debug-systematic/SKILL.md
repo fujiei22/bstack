@@ -1,10 +1,8 @@
 ---
 name: debug-systematic
 description: |
-  系統性 bug fix（繁中）。載入：dev-workflow Bug track Phase 3'（brainstorm 判 Track=Bug 後交棒）。
-  涵蓋：Triage / Reproduce / Min Repro / 專注 Fix / 專注 Test 五步驟，
-  每 bug fix 必有測證明 + 防回歸。
-  上游：brainstorm（Bug track 進此）。下游：verify-done。
+  系統性 bug fix（繁中）：Triage → Reproduce → Min Repro → Fix → Test，每 fix 必有測試。
+  載入：Bug track Phase 3'，brainstorm 判 Track=Bug 後。
 ---
 
 # debug-systematic

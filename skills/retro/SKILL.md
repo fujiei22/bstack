@@ -1,11 +1,8 @@
 ---
 name: retro
 description: |
-  期間回顧（繁中）。載入：dev-workflow Phase 9；由使用者顯式呼叫，不自動接在 pr-explain 後。
-  涵蓋：載入時用 AskUserQuestion 取得期間 → 抓 git log + PR + TaskList 分析 →
-  識別模式 → 產 retro 報告 → Memory hook 寫入（補 memory；見 dev-workflow body §Memory hook 點）。
-  使用：9 階段的**第 9 階段**，但**由 user 主動呼叫**、不綁 tier、不接在 pr-explain 後面
-  自動跑；不限週、可任意期間。
+  期間回顧（繁中）：git log + PR + TaskList 找模式、產報告、memory proposal。
+  載入：Phase 9，user 顯式呼叫；不綁 tier、不自動接在 pr-explain 後。
 ---
 
 # retro
