@@ -7,7 +7,7 @@ description: |
 
 # write-skill
 
-寫新 skill 的指引。**Skill 是 prompt、不是 code** — 給 AI 看的指令、不是給 user 看的文件。
+**Skill 是 prompt、不是 code**：給 AI 看的指令、不是給 user 看的文件。
 
 ## 使用契約
 
@@ -23,24 +23,10 @@ description: |
 3. 寫完跑 §Self-review checklist
 4. 落檔 `skills/<skill-name>/SKILL.md`、commit
 
----
-
 ## §什麼時候該寫 skill / 不該寫
 
-### 該寫
-- 反覆出現的工作 pattern（≥3 次）
-- 涉多步驟、需 紀律
-- 需 trigger 詞偵測（user 一講某些詞就該載）
-- 跟 rules.md 強制守則互動緊密
-- 跨 task 重複用
-
-### 不該寫
-- 一次性工作 — 寫 task 就好
-- 純資料表 / reference doc — 放 `docs/` markdown
-- 對個別專案才有用 — 放該專案 `.claude/skills/` 而非 global
-- 跟既有 skill 大量重疊 — 改既有、不新增
-
----
+- **該寫**：反覆出現（≥3 次）、多步驟需紀律、需 trigger 詞偵測、跟 rules.md 守則互動緊密、跨 task 重複用
+- **不該寫**：一次性工作（寫 task）、純資料表 / reference doc（放 `docs/`）、只對個別專案有用（放該專案 `.claude/skills/`）、跟既有 skill 大量重疊（改既有）
 
 ## §SKILL.md 結構
 
@@ -102,24 +88,12 @@ state:
 | ... | ... |
 ```
 
----
-
 ## §Frontmatter 詳解
 
-### `name`
-- kebab-case
-- 唯一（跨 skills/ 不重複）
-- 簡潔（最好 1-3 字）
-- 避用既有 plugin 同名（不用 `superpowers-brainstorming`、用 `brainstorm`）
+- `name`：kebab-case、跨 skills/ 唯一、1-3 字、避用既有 plugin 同名（不用 `superpowers-brainstorming`、用 `brainstorm`）
+- `description`：四段：一句總結 → 「載入：」+ 誰在哪個階段載入（dev-workflow Phase N / §跨流程 skill 載入 表所列時點；可加「亦可由使用者顯式呼叫」）→ 「涵蓋：」+ 範疇 → 「上游 / 下游：」（如有）。**不寫「觸發：」+ 自然語言清單**——plugin 只由 `/devwork` 啟動，觸發詞會攔到沒下指令的對話（plugin-contract P3c 守）
 
-### `description`
-- **繁中**為主、英文專有名詞保留
-- 第一段：一句總結這 skill 做什麼
-- 第二段：「載入：」+ 一句「誰在哪個階段載入」（dev-workflow Phase N / §跨流程 skill 載入 表所列時點；可加「亦可由使用者顯式呼叫」）。**不寫「觸發：」+ 自然語言清單**——plugin 只由 `/devwork` 啟動，描述裡的觸發詞會讓沒下指令的對話也被攔（plugin-contract P3c 守）
-- 第三段：「涵蓋：」+ 範疇 bullet
-- 第四段（如有）：「上游 / 下游：」+ skill 間銜接
-
-範例好的 description：
+範例：
 ```
 按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（T3 由 review-plan user accept 後；
 T1 / T2 由 brainstorm 直接交棒、plan_path 為 null）；亦可由使用者顯式呼叫。
@@ -129,39 +103,12 @@ task fail 處置、blocker 升級。
 下游：verify-done（全 task 完）。
 ```
 
----
-
 ## §Body 風格規則
 
-### 對話風格
-- **繁中、台灣用語**
-- 英文專有名詞保留原文（commit / branch / hook / Tier 等）
-- **不**自誇（不寫「我是最好的 skill」/「我能完美處理」）
-- **第二人稱**指 AI 自己（你必須 / 你要） — 因為 AI 是 user
-
-### 結構
-- **§<段名>** 用 `## §` prefix（方便 grep）
-- 表格優先（key/value 對比清晰）
-- code block 範例優先（具體勝抽象）
-- bullet 列、不大段 prose
-
-### 強制語氣
-- **強制**規則用 **bold**
-- **禁**字明確列、不繞
-- 用「必」「禁」「應」、不用「建議」「最好」（除非真的是 soft 建議）
-
-### Red Flags 表
-每 skill 結尾**必**含 Red Flags 表 — 防 AI 自己 rationalize 跳規則：
-
-```markdown
-## §Red Flags
-
-| 想法 | 真相 |
-|---|---|
-| 「<rationalization 範例>」 | <為何不對 + 該怎麼做> |
-```
-
----
+- **對話風格**：**繁中、台灣用語**；英文專有名詞保留原文；**不**自誇；**第二人稱**指 AI 自己
+- **結構**：§<段名> 用 `## §` prefix；表格優先；code block 範例優先；bullet 列、不大段 prose
+- **強制語氣**：**強制**規則用 **bold**；**禁**字明確列、不繞；用「必」「禁」「應」、不用「建議」「最好」
+- **Red Flags 表**：每 skill 結尾**必**含（格式見 §SKILL.md 結構 範本）；防 AI rationalize 跳規則
 
 ## §放置位置
 
@@ -181,59 +128,29 @@ task fail 處置、blocker 升級。
 6. `README.md` 「## Skills（N）」與表格一列 → plugin-contract P8
 7. `docs/index.html` :8 :48 :87 三處計數 → P8
 
----
-
 ## §與 dev-workflow 相容
 
-新 skill 若要嵌進 dev-workflow 9 階段流程：
-
-1. **改 `skills/dev-workflow/SKILL.md`** — 加 routing / hand-off state 規則（§Track × Tier × Phase 路徑 / §跨流程 skill 載入 表）
-2. **註明上下游 phase**：description 寫清楚、body 對齊
-
-若 skill 是**橫向觸發**（非 phase 序列）：
-
-1. 改 dev-workflow「§跨流程 skill 載入」表加一行
-2. 列觸發條件
-3. body 描述「載入後動作」、不必描 phase
-
----
+- 嵌進 9 階段：**改 `skills/dev-workflow/SKILL.md`** 加 routing / hand-off state（§Track × Tier × Phase 路徑 / §跨流程 skill 載入 表）；description 與 body 註明上下游 phase
+- **橫向觸發**（非 phase 序列）：dev-workflow「§跨流程 skill 載入」表加一行 + 觸發條件；body 只描「載入後動作」
 
 ## §Self-review checklist
 
-寫完跑：
-
-- [ ] `name` kebab-case、唯一
-- [ ] `description` 觸發詞列足（含中英 / 同義詞）
-- [ ] 上下游 skill 已標
-- [ ] 使用契約段落清楚
+- [ ] `name` kebab-case、唯一；`description` 觸發詞列足（含中英 / 同義詞）
+- [ ] 上下游 skill 已標；使用契約段落清楚
 - [ ] 對齊 rules.md（無衝突）
-- [ ] Red Flags 表 ≥3 個
-- [ ] hand-off state 已列
-- [ ] Trace 標籤格式
+- [ ] Red Flags 表 ≥3 個；hand-off state 已列；Trace 標籤格式
 - [ ] 繁中、英文專有名詞保留
 - [ ] 無 plugin 名（superpowers / gstack / ecc）出現於 user-facing 文字
 
----
-
 ## §改既有 skill
 
-改既有 skill 注意：
-
-- 仍走 dev-workflow 完整流程（自己改自己的 skill 也要 brainstorm → plan → ... ）
-- **特別**：要改 dev-workflow 本身 → tier 自動升 T3（這是大改 + 影響全 repo）
-- skill 之間銜接的 hand-off state 改動 → 所有引用的 skill 都要同步改
-
----
+- 仍走 dev-workflow 完整流程（改自己的 skill 也不例外）
+- 改 dev-workflow 本身 → tier 自動升 T3（影響全 repo）
+- hand-off state 改動 → 所有引用的 skill 同步改
 
 ## §結尾 Trace 標籤
 
-```
-[Trace] Phase=write-skill | Tier=<T1+> | Track=Dev | Skill=write-skill
-```
-
-寫 / 改 skill 是 Dev track 任務。
-
----
+結尾貼 rules.md §Trace 標籤（Phase=write-skill、Track=Dev）
 
 ## §Red Flags
 
@@ -242,6 +159,5 @@ task fail 處置、blocker 升級。
 | 「1 次性 task 寫 skill 比較整齊」 | 1 次性 = 用 task；skill 是 reusable 行為 |
 | 「skill 是文件」 | skill 是 **prompt**；給 AI 看的紀律性指令 |
 | 「自誇好 skill 更威」 | description 純功能描述；AI 不看花言巧語 |
-| 「不寫 Red Flags 沒差」 | Red Flags 是 anti-rationalization；必寫 |
-| 「skill 引用其他 skill 不必標 hand-off」 | hand-off state 是流程連貫的關鍵；必標 |
+| 「不寫 Red Flags / 不標 hand-off 沒差」 | Red Flags 是 anti-rationalization、hand-off state 是流程連貫的關鍵；必寫 |
 | 「英文 skill 比較專業」 | 繁中；對話風格依 rules.md |
