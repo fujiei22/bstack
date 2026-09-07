@@ -172,7 +172,7 @@ state:
 每個 phase 結束時：
 - `current_phase` 推進
 - `trace_chain` append
-- 自身產出寫進 state（如 plan_path / review_summary / verify_result）
+- 自身產出寫進 state（如 plan_path / review_summary_path / verify_results；欄名以各 phase skill §hand-off state 寫的為準）
 - **下一 phase skill 載入時，宣告它讀進來的 state 欄位**
 - **下一 phase skill 載入時，若 context 內找不到 rules.md 的「§事實核實」標題 → 先重 Read `devwork/rules.md`**（經 `/devwork` 讀進來的規則書是普通 tool result，長 session 會被摘要洗掉；在 bstack repo 內因 CLAUDE.md @import 常駐則不必）
 

@@ -31,7 +31,7 @@ description: |
 | 命中 rules.md §File-type 硬規則 的 CI / CD、Infra、DB migration 類（`.github/workflows/*.yml`、`docker-compose.yml`、`Dockerfile`、`*.tf`、`migrations/*.sql`） | `true`，**不看副檔名** | 硬規則寫「套 review」、Tier 也為此升到 T2+；hook 只做二次確認，內容 review 就是這裡 |
 | 純文件 + **產出器重產的檔**（例本 repo 的 `docs/js/references-data.js`，由 `build-references.ps1` 從 markdown 內嵌產生） | `false` | 那是 markdown 的鏡像不是邏輯；判 `true` 會讓 finder 吃 200 KB 字串 churn |
 
-**邊界**：`.html` / `.css` 歸純文件（沒有可執行邏輯；樣式歸 design-language、畫面歸 frontend-test），含 `<script>` 的 `.html` 判 `true`。判不出來就當 `true`（多跑一次的代價是 token，漏跑的代價是 bug）。混合 diff 裡純文件佔大宗時可給 path target 只送程式碼檔：`Skill("code-review", args="medium scripts/")`。跳過時 `code_review_skipped_reason` 寫「純文件 diff：<副檔名列表>」，進 hand-off state。
+**邊界**：`.html` / `.css` 歸純文件（沒有可執行邏輯；樣式歸 design-language、畫面歸 frontend-test），含 `<script>` 的 `.html` 判 `true`。判不出來就當 `true`（多跑一次的代價是 token，漏跑的代價是 bug）。混合 diff 裡純文件佔大宗時可給 path target 只送程式碼檔：`Skill("code-review", args="medium scripts/")`。**stacked branch**（base 不是 main）給 PR 號當 target：`Skill("code-review", args="medium <PR 號>")`，否則預設的 `main...HEAD` 會把上游 branch 的 diff 一起餵給 finder（2026-09-04 #68 實測）。跳過時 `code_review_skipped_reason` 寫「純文件 diff：<副檔名列表>」，進 hand-off state。
 ## §T1 self review
 主 agent 自己跑，不另開 subagent、不叫 code-review：看完整 `git diff <base>...HEAD`、對 spec 看 coverage、對 rules.md「§程式註解」看註解完整、列「值得 user 注意」清單。回報範本見 §結果整合 的 T1 段。
 ## §T2：內建 code-review + spec 自檢
