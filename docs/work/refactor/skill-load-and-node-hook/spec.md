@@ -21,7 +21,7 @@
 
 ## 範圍 / Scope
 
-**包含**：`skills/brainstorm/SKILL.md`（0b′）、`skills/design-language/SKILL.md`（frontmatter description「必載」與 §與 dev-workflow 銜接 那列改「命中才載」）、`skills/dev-workflow/SKILL.md`（去重 + 跨流程表 design-language 列）、`skills/devwork/rules.md`（§設計語言對齊 判定句、§Branch safety / §File-type 的檔名與「缺 pwsh 靜默失效」豁免句）、`hooks/guard.mjs`（新）、`hooks/hooks.json`、刪兩支 `.ps1`、`scripts/plugin-contract.mjs`（P2a ≥2 → ≥1、P2b / P2c / P4 檔名、新 P2d fixture、P11 副檔名清單一致）、`README.md`（hooks 表、pwsh 必需段、Prerequisites）、`docs/index.html`（第 128 行一句文字節點）、`scripts/install.ps1`（hook 提醒句）、`docs/js/data.js`（HBranch / HFile / LoadDLang 三個 label）、五個 skill 的檔名引用（brainstorm:57、design-direction:37、design-language:38、finish-branch:170、dispatch-parallel:136）、`docs/js/references-data.js` 重產。
+**包含**：`skills/brainstorm/SKILL.md`（0b′）、`skills/design-language/SKILL.md`（frontmatter description「必載」與 §與 dev-workflow 銜接 那列改「命中才載」）、`skills/dev-workflow/SKILL.md`（去重 + 跨流程表 design-language 列）、`skills/devwork/rules.md`（§設計語言對齊 判定句、§Branch safety / §File-type 的檔名與「缺 pwsh 靜默失效」豁免句）、`hooks/guard.mjs`（新）、`hooks/hooks.json`、刪兩支 `.ps1`、`scripts/plugin-contract.mjs`（P2a ≥2 → ≥1、P2b / P2c / P4 檔名、新 P2d fixture、P11 副檔名清單一致）、`README.md`（hooks 表、pwsh 必需段、Prerequisites）、`docs/index.html`（8 處文字節點：meta description × 3、hero 一句、stat 數字、inventory 一列、第 75 行 hook 段、第 128 行安裝句、第 130 行「兩支」）、`scripts/install.ps1`（前置檢查加 node、兩句提醒）、`docs/js/data.js`（HBranch / HFile / LoadDLang 三個 label）、五個 skill 的檔名引用（brainstorm:57、design-direction:37、design-language:38、finish-branch:170、dispatch-parallel:136）、`docs/js/references-data.js` 重產。
 
 **排除**：`scripts/extras.ps1` 第 411 行的舊 hook 檔名清單不動——那是 `-Migrate` 用來清 setup.ps1 時代裝在 `~/.claude/hooks/` 的舊副本，檔名就是舊的；security-audit 純文件跳（第 4 項）另開 PR；SKILL.md 拆 references 不做（DX 視角點名過 references 可能不被讀）。
 
@@ -43,7 +43,7 @@
 
 ## 設計方向
 
-`design.involved=true`（`docs/index.html` 在改動檔內）、`size=小改`、`scope=文件站`、`scope_evidence=docs/css/styles.css`、`map_status=absent`（本 repo 無 design-map.md）。**但**改動是第 128 行一句文字節點，rules.md §設計語言對齊 豁免：不碰 token / class / 屬性，四項對齊檢查 N/A。verify-done：diff 含 `docs/js/data.js`（.js）→ `text-only-diff.mjs` 依規則判 NOT-TEXT-ONLY → T3 派 frontend-e2e-runner 跑 docs 站（index + flow 兩頁）。**不豁免、不用 --ignore**（data.js 不是產出器重產的檔）。
+`design.involved=true`（`docs/index.html` 在改動檔內）、`size=小改`、`scope=文件站`、`scope_evidence=docs/css/styles.css`、`map_status=absent`（本 repo 無 design-map.md）。**但**改動全是文字節點與 meta content（8 處，見 §範圍），rules.md §設計語言對齊 豁免：不碰 token / class / 屬性，四項對齊檢查 N/A。verify-done：diff 含 `docs/js/data.js`（.js）→ `text-only-diff.mjs` 依規則判 NOT-TEXT-ONLY → T3 派 frontend-e2e-runner 跑 docs 站（index + flow 兩頁）。**不豁免、不用 --ignore**（data.js 不是產出器重產的檔）。
 
 ## §等價清單（hook 移植逐條對照）
 
@@ -66,6 +66,8 @@
 | C3 | 缺 pwsh → 靜默失效（memory 實測 Windows） | 缺 node → 官方文件說印 non-blocking 通知、工具照跑；本機實測見施工紀錄，rules.md 豁免句照實測寫 |
 | C4 | **file-type 段不看 repo scope**：repo 外的 `~/.gitconfig` / `~/.npmrc` 也 WARN（§File-type 列 shell config 的用意）；只有 branch 段有 B4 的 repo 外放行 | 同——B4 只 early-return branch 段，file-type 段照跑 |
 | D1 | **刻意差異**：`CLAUDE_PROJECT_DIR` 指到不存在的目錄——ps1 `Push-Location` 失敗後 git 在原 cwd 跑、結果依 cwd 而定 | node spawn 失敗 → catch → branch null → 放行 |
+| D2 | **刻意差異**：`TMP` / `TEMP` 指到一個檔案——ps1 `Join-Path` 噴 PowerShell 錯誤、tokenPath 變空、照樣印 WARN（指示是壞的） | 明報「state dir 建立失敗」；兩邊都 exit 2 |
+| D3 | **刻意差異（比舊版嚴）**：`file_path` 非字串——ps1 對數字隱式轉字串（相對 cwd 解出來落在 repo 內 → 擋）、對物件 `GetFullPath` 拋錯 → exit 0 放行 | 一律當「沒帶路徑」：branch 段照查（protected → 擋）、file-type 段沒得判。security-audit 實測第一版會被數字繞過（`path.resolve` 拋錯被 catch 成「repo 外」），修正後補 fixture |
 
 ## 風險與 trade-off
 
@@ -126,11 +128,15 @@ exit 規則：新 == max(舊 branch, 舊 file-type)。stderr 允許差異：僅 
 | 28 | Write 無 file_path（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
 | 29 | 未知 tool（main） | main | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
 | 30 | 壞 JSON（main） | main | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
-| 31 | TEMP 指到檔案 + Dockerfile → state dir 失敗 | feat/x | none | 0 | 2 | 2 | 2 | WARN | statedir | DIFF | n/a | ✓（刻意差異 D2） |
+| 31 | file_path 是數字 123（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 32 | file_path 是物件（main）→ 新版更嚴 | main | none | 0 | 0 | 0 | 2 | - | branch | n/a | n/a | ✓（刻意差異 D3） |
+| 33 | main + Dockerfile + token valid（file 段吃 token、branch 段擋） | main | valid | 2 | 0 | 2 | 2 | branch | branch | n/a | both-consumed | ✓ |
+| 34 | CLAUDE_PROJECT_DIR 指到不存在目錄（main） | main | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓（刻意差異 D1） |
+| 35 | TEMP 指到檔案 + Dockerfile → state dir 失敗 | feat/x | none | 0 | 2 | 2 | 2 | WARN | statedir | DIFF | n/a | ✓（刻意差異 D2） |
 
-ALL EQUAL（31 案）
+ALL EQUAL（35 案）
 
-第 31 案是刻意差異 D2：舊 ps1 在 TMP 指到檔案時 `Join-Path` 噴 PowerShell 錯誤、tokenPath 變空、照樣印 WARN（指示是壞的）；新版明報 state dir 建立失敗。兩邊都 exit 2。
+刻意差異三筆（spec §等價清單 D1-D3）：D1 `CLAUDE_PROJECT_DIR` 不存在（舊擋新放，只驗兩邊跑完）；D2 TMP 指到檔案（舊印壞的 WARN、新明報 state dir 失敗，兩邊 exit 2）；D3 `file_path` 是物件（舊 exit 0、新當沒帶路徑照查 branch）。其餘 32 案 exit / 標記 / token 路徑 / token 消耗全等。
 
 ### 耗時（PowerShell Measure-Command，各 5 次取中位數，Windows 11 / node 22.14 / pwsh 7.4.19）
 
@@ -162,3 +168,33 @@ hooks.json 暫改成 `node-nope`、`claude --plugin-dir <臨時 plugin> -p "用 
 | flow-index-panel-consistency | 1280×720 | INCONCLUSIVE | 測試矩陣假設 rules.md 在索引有獨立項目，實際設計是 ambient 短摘要、不可點；data.js 全文對舊檔名 0 命中，內容確為重產版。**既有缺陷（非本 PR）**：文件索引的 CLAUDE.md 項目點了不開抽屜，console「NODE_DOCS 查無此節點：CLAUDE」（app.js:968），本 branch 未動 app.js，另開 issue |
 
 截圖：`test-reports/20260907-e2e/screenshots/{index-desktop,index-mobile,flow-doc-panel,flow-ambient-panel}.png`。`verify_results.e2e = pass`、`frontend_test.ran = true`。
+
+### 對齊 reviewer（request-review T3）finding 與處置
+
+| 級 | finding | 處置 |
+|---|---|---|
+| Major | 永久契約沒有一案真的 spawn git（P2d 全 mock、P2e 兩案都不進 git） | P2e 加臨時 `git init -b main` repo 真跑 → 擋 |
+| Major | `--token` 子命令與 consumeToken 的真實 IO 零測試 | P2e 加 WARN → `--token` 建檔 → 再跑放行、token 已刪、consumed.log 有 `valid=True` |
+| Major | design-language「唯一例外」寫成事實，實際同一份清單 7 處（另 4 處是觸發用） | P11 擴到七處；design-language 那句改寫 |
+| Major | `argv[1]` 檔名 regex 當主程式判斷會被同名 importer 誤觸 | 改 realpath 比對（`realpathSync.native` + 小寫），同名 importer 實測不誤觸 |
+| Minor | scalar JSON / 只有空白的 stdin 舊版是 exit 0，新版當空 stdin 查 branch | 照舊：只有完全空字串走查 branch；scalar → isWrite=false；P2d 加案 |
+| Minor | `tokenPathFor` 用 `existsSync` 是 IO，不算純函式 | `dirExists` 注入，契約傳 `() => false` |
+| Minor | 對照測試缺 D1、C1 怪癖；D2 沒進 §等價清單 | 三筆補齊（D1 exit 舊擋新放、只驗兩邊跑完；C1 兩邊都 exit 2 且 token 被吃） |
+| Minor | index.html / install.ps1「Windows 實測不會報錯」範圈講大 | 補「非互動模式」 |
+| Minor | spec §範圍 / §設計方向 只寫 index.html 一句，實際 8 處文字節點；plan TMPDIR 順序寫錯 | 改正 |
+| Nit | guard.mjs 檔頭「1.4 秒」無出處、缺 node 寫成肯定句；`<code>file-type</code>` 誤導 | 改 1.1 秒 / 3.2 秒並附 Windows caveat；改 `<code>guard.mjs</code> 的 file-type 段` |
+| Nit | dev-workflow 去重的零改變是論證不是機械檢查 | 記在此：brainstorm §Phase 0c / 0d 的表是被刪那兩張的超集（多 report / 報錯 / 跑不起來 / 換 / 多步 bug fix），刪掉的沒有一列不在 brainstorm |
+
+code-review high 中途另抓：`--token` 用 `appendFileSync` 對既存檔不刷新 mtime，舊 `New-Item -Force` 會重建 → TTL 起算點不同 → 改 `writeFileSync` + `utimesSync(now)`。
+
+
+### security-audit（T3 必跑）finding 與處置
+
+| 級 | finding | 處置 |
+|---|---|---|
+| **Major（實測繞過）** | `file_path` 是數字時 `path.resolve` 拋 TypeError、catch 成「repo 外」→ branch 段整段跳過、main 上放行；舊 pwsh 隱式轉字串反而擋得住（真 regression） | `targetOf` 驗型別：非字串一律當「沒帶路徑」→ branch 照查；P2d 加 3 案（數字 / 物件 / tool_input 是字串）、對照測試加 2 案；列 D3 |
+| Minor | `.env.`（尾端句點）不被 BLOCK regex 命中——舊版同缺口，實測建出的檔名就是字面 `.env.`，dotenv 讀不到、無實際危害 | 零改變原則下不改 regex，記錄 |
+| Minor | `--token <path>` 不驗路徑，可當通用 touch 工具 | 只准建在當下 env 算出的 state dir 底下，否則 exit 1 並印期望目錄 |
+| N/A | token 機制（AI 可自建、hash 可預算、per-user temp）與舊版等價，是既有信任假設 | — |
+| N/A | PII / secret：diff 與 docs/work 三份文件 grep 本機路徑 / email / IP 零命中 | — |
+| 待辦 | UNC 與超長路徑的 `path.resolve` vs .NET `GetFullPath` 正規化差異未實測 | 記 spec 待釐清，不擋本 PR |

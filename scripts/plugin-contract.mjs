@@ -144,24 +144,48 @@ const P2D = [
   ['22 Write 無 file_path protected → 擋', { tool_name: 'Write', tool_input: {} }, ctxOf({ branch: 'main' }), 2, { b: true }],
   ['23 未知 tool → 放', { tool_name: 'Bash', tool_input: { command: 'x' } }, ctxOf({ branch: 'main' }), 0, {}],
   ['24 state dir 建不起來 + WARN → 擋、含 state dir', W(inRepo('Dockerfile')), ctxOf({ stateDir: false }), 2, { S: true, W: false }],
+  // security-audit 實測繞過：file_path 是數字 → 舊版 path.resolve 拋錯被 catch 成「repo 外」放行；現在當沒帶路徑、branch 照查
+  ['25 file_path 是數字（protected）→ 擋', W(123), ctxOf({ branch: 'main' }), 2, { b: true }],
+  ['26 file_path 是物件（protected）→ 擋', W({ a: 1 }), ctxOf({ branch: 'main' }), 2, { b: true }],
+  ['27 tool_input 是字串（protected）→ 擋（當沒帶路徑）', { tool_name: 'Write', tool_input: 'x' }, ctxOf({ branch: 'main' }), 2, { b: true }],
 ];
 const p2dBad = P2D.filter(([, payload, ctx, exit, tg]) => { const r = G.decide(payload, ctx); const t = tags(r); return r.exit !== exit || Object.entries(tg).some(([k, v]) => t[k] !== v); }).map(([n]) => n);
 // 25 / 26：token 路徑純運算——期望值用舊 ps1 對同一字串算過（2026-09-07：sha256("d:/x/.env") 前 16 hex）
-const tp25 = G.tokenPathFor('d:/x/.env', { TMP: 'C:/t', USERNAME: 'u' }, 'win32').replace(/\\/g, '/');
-const tp26 = G.tokenPathFor('d:/x/.env', { TEMP: 'C:/t2', USER: 'v' }, 'win32').replace(/\\/g, '/');
+const tp25 = G.tokenPathFor('d:/x/.env', { TMP: 'C:/t', USERNAME: 'u' }, 'win32', () => false).replace(/\\/g, '/');
+const tp26 = G.tokenPathFor('d:/x/.env', { TEMP: 'C:/t2', USER: 'v' }, 'win32', () => false).replace(/\\/g, '/');
+// scalar JSON / 只有空白的 stdin 在舊 ps1 都是 exit 0（.tool_name 取 null → default；ConvertFrom-Json 拋錯 → catch）
+const p2dScalar = G.decide('x', ctxOf({ branch: 'main' })).exit === 0 && G.decide(123, ctxOf({ branch: 'main' })).exit === 0;
 const HASH25 = '5cda4cbfd584ef07';
-check(`P2d guard.mjs 純判定 ${P2D.length} 案全對、token 路徑照 .NET 順序`,
-  p2dBad.length === 0 && tp25 === `C:/t/bstack-file-guard-u/${HASH25}.token` && tp26 === `C:/t2/bstack-file-guard-v/${HASH25}.token`,
-  `錯的案=[${p2dBad.join(' | ')}] tp25=${tp25} tp26=${tp26}（後果：該擋沒擋 / 不該擋擋了、或 token 目錄跟舊版對不上；改處：hooks/guard.mjs decide / tokenPathFor）`);
-// P2e：真 spawn，守「CLI 有接上兩段」——P2d 只測純函式，CLI 少呼叫一段照樣綠
-const { spawnSync } = await import('node:child_process');   // 在 else 區塊內，不能用 import 宣告
+check(`P2d guard.mjs 純判定 ${P2D.length} 案全對、scalar JSON 放行、token 路徑照 .NET 順序`,
+  p2dBad.length === 0 && p2dScalar && tp25 === `C:/t/bstack-file-guard-u/${HASH25}.token` && tp26 === `C:/t2/bstack-file-guard-v/${HASH25}.token`,
+  `錯的案=[${p2dBad.join(' | ')}] scalar 放行=${p2dScalar} tp25=${tp25} tp26=${tp26}（後果：該擋沒擋 / 不該擋擋了、或 token 目錄跟舊版對不上；改處：hooks/guard.mjs decide / tokenPathFor）`);
+// P2e：真 spawn，守「CLI 有接上兩段 + 真的跑 git + --token 子命令 + consumeToken 的 IO」——P2d 全部 mock，這些只有這裡守
+const { spawnSync, execFileSync: xgit } = await import('node:child_process');   // 在 else 區塊內，不能用 import 宣告
 const { tmpdir } = await import('node:os');
-const spawnHook = (payload) => spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify(payload), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: REPO } });
-const e1 = spawnHook({ tool_name: 'Read', tool_input: { file_path: join(REPO, 'README.md') } });
-const e2 = spawnHook({ tool_name: 'Write', tool_input: { file_path: join(tmpdir(), 'bstack-p2e', '.env') } });
-check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → 2 + BLOCK',
-  e1.status === 0 && e2.status === 2 && /BLOCK/.test(e2.stderr || ''),
-  `Read exit=${e1.status} .env exit=${e2.status} stderr=${(e2.stderr || '').split('\n')[0].slice(0, 60)}（後果：hooks.json 指到的 CLI 沒接上判定；改處：hooks/guard.mjs main()）`);
+const { mkdirSync: mkd, rmSync, writeFileSync: wf, readFileSync: rf } = await import('node:fs');
+const p2eDir = join(tmpdir(), `bstack-p2e-${process.pid}`); rmSync(p2eDir, { recursive: true, force: true }); mkd(p2eDir, { recursive: true });
+const p2eRepo = join(p2eDir, 'repo'); mkd(p2eRepo);
+let gitOk = true;
+try { xgit('git', ['init', '-q', '-b', 'main'], { cwd: p2eRepo, stdio: 'ignore' }); wf(join(p2eRepo, 'a'), 'x'); xgit('git', ['add', 'a'], { cwd: p2eRepo, stdio: 'ignore' }); xgit('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'i'], { cwd: p2eRepo, stdio: 'ignore' }); } catch { gitOk = false; }
+const p2eEnv = { ...process.env, CLAUDE_PROJECT_DIR: p2eRepo, TMP: p2eDir, TEMP: p2eDir, TMPDIR: p2eDir }; delete p2eEnv.XDG_RUNTIME_DIR;
+const spawnHook = (payload, extra = []) => spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs'), ...extra], { input: payload === undefined ? '' : JSON.stringify(payload), encoding: 'utf8', env: p2eEnv, cwd: p2eRepo });
+const e1 = spawnHook({ tool_name: 'Read', tool_input: { file_path: join(p2eRepo, 'a') } });
+const e2 = spawnHook({ tool_name: 'Write', tool_input: { file_path: join(p2eDir, 'outside', '.env') } });
+const e3 = spawnHook({ tool_name: 'Write', tool_input: { file_path: join(p2eRepo, 'src', 'a.ts') } });   // 真 git：main → 擋
+const dockerOut = join(p2eDir, 'outside', 'Dockerfile');
+const e4 = spawnHook({ tool_name: 'Write', tool_input: { file_path: dockerOut } });                    // WARN、印 --token 指令
+const tokenPath = ((e4.stderr || '').match(/--token "([^"]+)"/) || [])[1];
+const e5 = tokenPath ? spawnHook(undefined, ['--token', tokenPath]) : { status: -1 };                  // 子命令建 token
+const tokenMade = tokenPath ? exists(tokenPath) || (await import('node:fs')).existsSync(tokenPath) : false;
+const e6 = spawnHook({ tool_name: 'Write', tool_input: { file_path: dockerOut } });                    // 有 token → 放行、token 刪、log +1
+const tokenGone = tokenPath ? !(await import('node:fs')).existsSync(tokenPath) : false;
+const logOk = tokenPath ? /consumed .*valid=True/.test((() => { try { return rf(join(tokenPath, '..', 'consumed.log'), 'utf8'); } catch { return ''; } })()) : false;
+rmSync(p2eDir, { recursive: true, force: true });
+check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → BLOCK；真 git main → 擋；WARN → --token 建檔 → 再跑放行且 token 已刪、consumed.log 有 valid=True',
+  gitOk && e1.status === 0 && e2.status === 2 && /BLOCK/.test(e2.stderr || '') && e3.status === 2 && /目前在/.test(e3.stderr || '') &&
+    e4.status === 2 && /WARN/.test(e4.stderr || '') && !!tokenPath && e5.status === 0 && tokenMade && e6.status === 0 && tokenGone && logOk,
+  `git=${gitOk} Read=${e1.status} .env=${e2.status} main擋=${e3.status}/${/目前在/.test(e3.stderr || '')} WARN=${e4.status} tokenPath=${!!tokenPath} --token=${e5.status}/${tokenMade} 放行=${e6.status} token刪=${tokenGone} log=${logOk}` +
+    `（後果：CLI 沒接上判定、git spawn 寫壞會靜默放行、或 WARN 指示照抄卻建不出 token；改處：hooks/guard.mjs main() / consumeToken / --token）`);
 
 // ── P3 skills ───────────────────────────────────────────────────────────────
 const skillDirs = readdirSync(join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
@@ -378,15 +402,23 @@ const bs0b = section(bsMd, /^## §Phase 0b′[^\n]*\n/m);
 const dlExt = (section(rd('skills/design-language/SKILL.md'), /^## §前端副檔名[^\n]*\n/m).match(/```[^\n]*\r?\n([\s\S]*?)```/) || ['', ''])[1];   // 檔案可能是 CRLF
 const rulesDL = section(rulesMd, /^### §設計語言對齊[^\n]*\n/m);
 const dlMd = rd('skills/design-language/SKILL.md');
+// 同一份清單另有 4 處「觸發用」引用（frontend-test / verify-done / dev-workflow 跨流程表 / 流程圖 DesignQ label），一起守
+const others = {
+  'frontend-test': (rd('skills/frontend-test/SKILL.md').match(/^\| T2 \+ 前端檔改動.*$/m) || [''])[0],
+  'verify-done': (rd('skills/verify-done/SKILL.md').match(/^改動含 UI \/ 前端檔.*$/m) || [''])[0],
+  'dev-workflow': (dwMd.match(/^\| `frontend-test` \|.*$/m) || [''])[0],
+  'data.js DesignQ': (rd('docs/js/data.js').match(/DesignQ:.*$/m) || [''])[0],
+};
+const othersBad = Object.entries(others).filter(([, seg]) => exts(seg) !== exts(dlExt)).map(([n, seg]) => `${n}=[${exts(seg)}]`);
 const dw0bLine = (dwMd.match(/^0b′ UI 面判定.*$/m) || [''])[0];
 const dwDLRow = (dwMd.match(/^\| `design-language` \|.*$/m) || [''])[0];
-check('P11 副檔名清單三處一致（brainstorm 0b′ / design-language §前端副檔名 / rules.md §設計語言對齊）；brainstorm 內嵌剔除規則且命中才載；dev-workflow 去重同步',
-  exts(dlExt) !== '' && exts(bs0b) === exts(dlExt) && exts(rulesDL) === exts(dlExt) &&
+check('P11 副檔名清單七處一致（判定用：brainstorm 0b′ / design-language §前端副檔名 / rules.md；觸發用：frontend-test / verify-done / dev-workflow / DesignQ）；brainstorm 內嵌剔除規則且命中才載；dev-workflow 去重同步',
+  exts(dlExt) !== '' && exts(bs0b) === exts(dlExt) && exts(rulesDL) === exts(dlExt) && othersBad.length === 0 &&
     /不命中/.test(bs0b) && /不載/.test(bs0b) && /命中/.test(bs0b) && /才載|才載入/.test(bs0b) && /SKILL\.md/.test(bs0b) &&
     /^## §Phase 0c/m.test(bsMd) && /^## §Phase 0d/m.test(bsMd) &&
     !/Track 判定 heuristic|Tier 判定 heuristic/.test(dwMd) && /命中.{0,8}才載/.test(dwDLRow) && !/← 載 design-language/.test(dw0bLine) &&
     !/沒有跳的必要/.test(dlMd),
-  `期望三處清單相同；實際 brainstorm=[${exts(bs0b)}] design-language=[${exts(dlExt)}] rules.md=[${exts(rulesDL)}]；` +
+  `期望七處清單相同；實際 brainstorm=[${exts(bs0b)}] design-language=[${exts(dlExt)}] rules.md=[${exts(rulesDL)}] 觸發用不符=[${othersBad.join(' ')}]；` +
     `brainstorm 0b′ 不命中=${/不命中/.test(bs0b)} 不載=${/不載/.test(bs0b)} 才載=${/才載|才載入/.test(bs0b)} 內嵌 SKILL.md 剔除規則=${/SKILL\.md/.test(bs0b)}；` +
     `dev-workflow 殘留 heuristic 表=${/Track 判定 heuristic|Tier 判定 heuristic/.test(dwMd)} design-language 列命中才載=${/命中.{0,8}才載/.test(dwDLRow)} Phase 0 圖殘留「← 載」=${/← 載 design-language/.test(dw0bLine)} design-language Red Flags 殘留=${/沒有跳的必要/.test(dlMd)}` +
     `（改法：design-language §前端副檔名 是唯一真相，改它之後同步 brainstorm §Phase 0b′ 第 1 步與 rules.md §設計語言對齊；後果：不同步時 brainstorm 對某副檔名判不命中、不載 design-language，前端改動漏掉設計對齊）`);

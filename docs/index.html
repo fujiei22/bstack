@@ -72,7 +72,7 @@
   </section>
 
   <section class="beat" id="b1" data-upto="7" data-nodes="HBranch,HFile,StopBranch,StopFile">
-    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">一支 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>guard.mjs</code> 的 branch-safety 段在 project repo 內、當前 branch 命中 <code>main / master / production / prod / release</code> 時擋掉寫入。<code>file-type</code> 段按副檔名與路徑分兩級：密鑰類（<code>.env</code>、<code>*.key</code>、<code>*.pem</code>、<code>credentials.*</code>）直接擋、沒有放行管道；敏感類（migration、lockfile、CI、infra）也擋，但你確認過之後可以建一張一次性 token 放行。至於「migration 要載 db-access」「CI 檔要升到 T2」那些，是攔下來之後規則書要求它做的處置。hook 只負責讓那個動作沒有發生過。hook 在啟用 plugin 的專案一律生效，不需要 <code>/devwork</code>；不想要就 <code>/plugin disable bstack@bstack</code>。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
+    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">一支 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>guard.mjs</code> 的 branch-safety 段在 project repo 內、當前 branch 命中 <code>main / master / production / prod / release</code> 時擋掉寫入。<code>guard.mjs</code> 的 file-type 段按副檔名與路徑分兩級：密鑰類（<code>.env</code>、<code>*.key</code>、<code>*.pem</code>、<code>credentials.*</code>）直接擋、沒有放行管道；敏感類（migration、lockfile、CI、infra）也擋，但你確認過之後可以建一張一次性 token 放行。至於「migration 要載 db-access」「CI 檔要升到 T2」那些，是攔下來之後規則書要求它做的處置。hook 只負責讓那個動作沒有發生過。hook 在啟用 plugin 的專案一律生效，不需要 <code>/devwork</code>；不想要就 <code>/plugin disable bstack@bstack</code>。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
   </section>
 
   <section class="beat" id="b2" data-upto="22" data-nodes="P0b,P0c,P0d">
@@ -125,7 +125,7 @@
 
   <section class="data" id="install">
     <h2 class="rise">裝起來要三步</h2>
-    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">hook 與 MCP 都跑在 Node.js 上，node 要在啟動 Claude Code 的 PATH 內（Claude Code 自己不帶 node；缺了 hook 起不來、Windows 實測不會報錯、保護直接不存在）。pwsh 7+ 只有 install.ps1 / extras.ps1 這兩支可選腳本需要；statusLine 另需 bash 與 jq。懶得逐步做：clone 後跑 <code>pwsh -File scripts/install.ps1</code>，它會把下面三步一步一步問完。</p>
+    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">hook 與 MCP 都跑在 Node.js 上，node 要在啟動 Claude Code 的 PATH 內（Claude Code 自己不帶 node；缺了 hook 起不來、Windows 非互動模式實測不會報錯、保護直接不存在）。pwsh 7+ 只有 install.ps1 / extras.ps1 這兩支可選腳本需要；statusLine 另需 bash 與 jq。懶得逐步做：clone 後跑 <code>pwsh -File scripts/install.ps1</code>，它會把下面三步一步一步問完。</p>
     <ol class="steps rise">
       <li><div class="h">啟用 plugin（推薦專案層級）</div><p>把 <code>templates/project-settings.json</code> 複製成你專案的 <code>.claude/settings.json</code>，開 session 後若沒自動裝再手動裝一次；前面是 plugin 名、後面是 marketplace 名。只想試試就用 <code>--plugin-dir</code> 指向 clone 下來的目錄，只在那個 session 生效。裝在使用者層級的話，hook 會在你所有專案生效。</p><pre class="cmd">/plugin marketplace add fujiei22/bstack
 /plugin install bstack@bstack</pre></li>

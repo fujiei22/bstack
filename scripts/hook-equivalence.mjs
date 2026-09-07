@@ -74,8 +74,9 @@ function caseRun(name, { branch = 'feat/x', payload, envExtra = {}, cwd, project
   const oldTok = tokenIn(oF.stderr), newTok = tokenIn(n.stderr);
   const tokEq = oldTok === null && newTok === null ? 'n/a' : (oldTok === newTok ? 'same' : `DIFF ${oldTok} vs ${newTok}`);
   const consumedEq = t1 ? (oldTokenGone === newTokenGone ? 'both-consumed' : 'DIFF') : 'n/a';
-  // expectDiff：spec §等價清單 列的刻意差異（D 系列）——exit 仍要相等，標記 / 路徑允許不同
-  const ok = oldExit === newExit && (expectDiff || (oldTag === newTag && !tokEq.startsWith('DIFF') && consumedEq !== 'DIFF'));
+  // expectDiff：spec §等價清單 列的刻意差異（D 系列）——D2 exit 仍相等、標記不同；D1 連 exit 都不同（舊擋新放），只驗兩邊都跑完不崩
+  const ok = (expectDiff === 'D1' || expectDiff === 'D3') ? (oldExit !== null && newExit !== null)
+    : oldExit === newExit && (expectDiff || (oldTag === newTag && !tokEq.startsWith('DIFF') && consumedEq !== 'DIFF'));
   if (!ok) bad++;
   rows.push(`| ${rows.length + 1} | ${name} | ${branch} | ${tokenMode} | ${oB.status} | ${oF.status} | ${oldExit} | ${newExit} | ${oldTag} | ${newTag} | ${tokEq.startsWith('DIFF') ? 'DIFF' : tokEq} | ${consumedEq} | ${ok ? (expectDiff ? `✓（刻意差異 ${expectDiff}）` : '✓') : '✗'} |`);
 }
@@ -112,6 +113,13 @@ caseRun('Write 無 tool_input（main）', { branch: 'main', payload: { tool_name
 caseRun('Write 無 file_path（main）', { branch: 'main', payload: { tool_name: 'Write', tool_input: {} } });
 caseRun('未知 tool（main）', { branch: 'main', payload: { tool_name: 'Bash', tool_input: { command: 'x' } } });
 caseRun('壞 JSON（main）', { branch: 'main', payload: '{oops' });
+// D3：file_path 非字串——舊 ps1 對數字隱式轉字串（相對 cwd 解出來在 repo 內 → 擋），對物件 GetFullPath 拋錯 → exit 0；新版一律當沒帶路徑 → branch 照查
+caseRun('file_path 是數字 123（main）', { branch: 'main', payload: { tool_name: 'Write', tool_input: { file_path: 123 } } });
+caseRun('file_path 是物件（main）→ 新版更嚴', { branch: 'main', payload: { tool_name: 'Write', tool_input: { file_path: { a: 1 } } }, expectDiff: 'D3' });
+// C1 怪癖（零改變照搬）：main 上改 Dockerfile 且 token 有效 → file 段吃掉 token、branch 段照擋；兩邊都 exit 2、標記 branch、token 被消耗
+caseRun('main + Dockerfile + token valid（file 段吃 token、branch 段擋）', { branch: 'main', payload: W(R('Dockerfile')), tokenMode: 'valid' });
+// D1：CLAUDE_PROJECT_DIR 指到不存在的目錄——舊 ps1 Push-Location 失敗後 git 在原 cwd（這裡是 repo、main）跑 → 擋；新版 spawn 失敗 → 放行
+caseRun('CLAUDE_PROJECT_DIR 指到不存在目錄（main）', { branch: 'main', payload: W(R('a.ts')), projectDir: path.join(work, 'nope'), expectDiff: 'D1' });
 // D2：舊 ps1 在 TMP 指到檔案時 Join-Path 噴 PowerShell 錯誤、tokenPath 變空、照樣印 WARN（指示是壞的）；新版明確報 state dir 建立失敗。兩邊都 exit 2
 caseRun('TEMP 指到檔案 + Dockerfile → state dir 失敗', { payload: W(R('Dockerfile')), envExtra: { TMP: badTmp, TEMP: badTmp, TMPDIR: badTmp }, expectDiff: 'D2' });
 

@@ -79,7 +79,7 @@ else { Write-Host "  ✘ 找不到 claude CLI（不在 PATH）。先裝 Claude C
 if (Get-Command git -ErrorAction SilentlyContinue) { Write-Host "  ✔ git" } else { Write-Host "  ✘ 找不到 git" -ForegroundColor Red; $ok = $false }
 if (-not (Test-Path -LiteralPath $Extras)) { Write-Host "  ✘ 找不到 $Extras，請在 clone 的 repo 內跑" -ForegroundColor Red; $ok = $false }
 if (-not $ok) { exit 1 }
-Write-Host "  提醒：hook 需要 node 在**啟動 Claude Code 的環境** PATH 內（Dock / 捷徑開的 app 未必吃到 shell 的 PATH）；沒有時 hook 起不來、Windows 實測不會報錯、保護不存在。"
+Write-Host "  提醒：hook 需要 node 在**啟動 Claude Code 的環境** PATH 內（Dock / 捷徑開的 app 未必吃到 shell 的 PATH）；沒有時 hook 起不來、Windows 非互動模式實測不會報錯、保護不存在。"
 
 # ── 2. 清舊副本 ──────────────────────────────────────────────────────────────
 Step 2 '清舊 setup.ps1 副本'

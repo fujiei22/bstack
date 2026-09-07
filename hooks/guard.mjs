@@ -10,16 +10,17 @@
  * JSON 壞 / git 失敗 / 路徑解析失敗 → 放行：hook 不因自身錯誤擋人。
  * 但 stdin 空、或 Write / Edit 沒帶 file_path 時 branch 段照舊查 branch（舊 ps1 就是這樣，零改變照搬）。
  *
- * 為什麼從 pwsh 改 node：pwsh -NoProfile 啟動約 1.4 秒 × 2 支 = 每次編輯 3 秒；node 約 0.4 秒。
- * 注意 Claude Code 是 native binary、不自帶 node（官方 /setup 文件）；node 不在 PATH 時 hook 起不來 → Claude Code 印
- * non-blocking 通知、工具照跑、保護不存在（官方 /hooks 文件），跟舊版缺 pwsh 一樣沒保護。
+ * 為什麼從 pwsh 改 node：pwsh -NoProfile 單支啟動約 1.1 秒、兩支每次編輯合計約 3.2 秒；node 約 0.3-0.5 秒（2026-09-07 實測）。
+ * 注意 Claude Code 是 native binary、不自帶 node（官方 /setup 文件）；node 不在 PATH 時 hook 起不來——官方 /hooks 文件說會印
+ * non-blocking 通知、工具照跑；Windows 非互動模式實測連通知都沒有、檔案照寫。兩種說法下保護都不存在，跟舊版缺 pwsh 一樣。
  *
  * decide() / tokenPathFor() 是純函式（不做 IO），契約 P2d 直接 import 對 fixture 測；CLI 段只負責讀 stdin / 跑 git / 碰 token 檔。
  * 子命令 `--token <path>`：建 confirm token（給 Claude 照抄，免拼引號與反斜線）。
  */
-import { readFileSync, existsSync, statSync, unlinkSync, appendFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync, utimesSync, appendFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const PROTECTED = /^(main|master|production|prod|release)$/i;   // pwsh -match 預設不分大小寫
@@ -42,13 +43,21 @@ export const TOKEN_TTL_SEC = 300;
 const DISABLE_HINT = '若你沒在用 bstack 流程、不想要這個檢查：/plugin disable bstack@bstack';
 const fwd = (p) => String(p).replace(/\\/g, '/');
 
-/** tool_name 大小寫不敏感（pwsh switch 預設）；回 { isWrite, target }。非三類寫入 tool → isWrite=false。 */
+/**
+ * tool_name 大小寫不敏感（pwsh switch 預設）；回 { isWrite, target }。非三類寫入 tool → isWrite=false。
+ * payload === null 代表 stdin 真的是空字串：舊 branch 段這時照樣查 branch（零改變）。
+ * JSON 是 scalar（"x" / 123 / true）→ 舊 ps1 取 .tool_name 得 null → default → exit 0，所以這裡回 isWrite=false。
+ */
 export function targetOf(payload) {
-  if (!payload || typeof payload !== 'object') return { isWrite: true, target: null };   // 空 stdin：舊 branch 段照樣查 branch
+  if (payload === null || payload === undefined) return { isWrite: true, target: null };
+  if (typeof payload !== 'object') return { isWrite: false, target: null };
   const t = String(payload.tool_name || '').toLowerCase();
-  const i = payload.tool_input || {};
-  if (t === 'edit' || t === 'write') return { isWrite: true, target: i.file_path || null };
-  if (t === 'notebookedit') return { isWrite: true, target: i.notebook_path || null };
+  const i = (payload.tool_input && typeof payload.tool_input === 'object') ? payload.tool_input : {};
+  // 非字串的 file_path（數字 / 物件）一律當「沒帶路徑」→ branch 段照查、file-type 段沒得判。
+  // 不能讓它進 path.resolve 拋錯再 catch 成「repo 外」放行——那是 security-audit 實測繞過 protected branch 的路（D3）
+  const str = (v) => (typeof v === 'string' && v !== '' ? v : null);
+  if (t === 'edit' || t === 'write') return { isWrite: true, target: str(i.file_path) };
+  if (t === 'notebookedit') return { isWrite: true, target: str(i.notebook_path) };
   return { isWrite: false, target: null };
 }
 
@@ -58,9 +67,9 @@ export function targetOf(payload) {
  * tmp 依 .NET GetTempPath 順序（舊 ps1 用它）：win32 TMP → TEMP → USERPROFILE → windir；其他 TMPDIR → /tmp。
  * 不用 os.tmpdir()——它在 win32 是 TEMP → TMP，兩者不同時 token 目錄會跟舊版對不上。
  */
-export function tokenPathFor(normalized, env = process.env, platform = process.platform) {
+export function tokenPathFor(normalized, env = process.env, platform = process.platform, dirExists = existsSync) {
   let base;
-  if (env.XDG_RUNTIME_DIR && existsSync(env.XDG_RUNTIME_DIR)) base = env.XDG_RUNTIME_DIR;
+  if (env.XDG_RUNTIME_DIR && dirExists(env.XDG_RUNTIME_DIR)) base = env.XDG_RUNTIME_DIR;   // dirExists 可注入，契約測時不碰磁碟
   else if (platform === 'win32') base = env.TMP || env.TEMP || env.USERPROFILE || env.windir || 'C:/Temp';
   else base = env.TMPDIR || '/tmp';
   const user = env.USERNAME || env.USER || 'user';
@@ -140,16 +149,23 @@ function main() {
   const ti = argv.indexOf('--token');
   if (ti >= 0 && argv[ti + 1]) {
     const p = argv[ti + 1];
+    // 只准建在本機當下 env 算出來的 state dir 底下：這支不該變成「順手在任何路徑 touch 空檔」的通用工具（security-audit Minor）
+    const expectDir = path.resolve(path.dirname(tokenPathFor('probe', process.env))).replace(/\\/g, '/').toLowerCase();
+    const gotDir = path.resolve(path.dirname(p)).replace(/\\/g, '/').toLowerCase();
+    if (gotDir !== expectDir) { process.stderr.write(`[bstack] --token 拒絕：路徑不在 state dir（期望 ${fwd(expectDir)}）\n`); return 1; }
     mkdirSync(path.dirname(p), { recursive: true });
-    appendFileSync(p, '');
+    // writeFileSync（不是 append）：舊 ps1 是 New-Item -Force，對既存檔會重建、mtime 刷新到現在——TTL 從「這次確認」起算
+    writeFileSync(p, '');
+    const now = new Date(); utimesSync(p, now, now);
     console.log(`token created: ${fwd(p)}`);
     return 0;
   }
   let raw = '';
   try { raw = readFileSync(0, 'utf8'); } catch { raw = ''; }
   let payload = null;
-  if (raw.trim()) {
-    try { payload = JSON.parse(raw); } catch { return 0; }   // JSON 壞 → 放行
+  if (raw !== '') {
+    // 只有「完全空字串」走 payload=null（舊 branch 段照查 branch）；只有空白的 stdin 在舊 ps1 是 ConvertFrom-Json 拋錯 → exit 0
+    try { payload = JSON.parse(raw); } catch { return 0; }
   }
   const repoDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const targetForLog = targetOf(payload).target;
@@ -180,8 +196,12 @@ function main() {
   return exit;
 }
 
-// 直接執行才跑 CLI；被 import（契約 P2d）時只匯出函式。用 argv[1] 檔名 regex 判（同 scripts/text-only-diff.mjs 先例；
-// import.meta.url 與 argv[1] 在 Windows 會有磁碟機大小寫 / %20 差異）
-if (process.argv[1] && /guard\.mjs$/.test(process.argv[1].replace(/\\/g, '/'))) {
-  process.exitCode = main();
+// 直接執行才跑 CLI；被 import（契約 P2d、或別支腳本）時只匯出函式。
+// 不用檔名 regex：任何叫 *guard.mjs 的呼叫端 import 本檔都會誤觸 main() 偷讀 stdin（對齊 review 實測）。
+// 改比 realpath：磁碟機大小寫、8.3 短檔名、%20 都在 realpathSync.native + toLowerCase 後消掉。
+function isMainModule() {
+  if (!process.argv[1]) return false;
+  const norm = (p) => { try { return realpathSync.native(p).replace(/\\/g, '/').toLowerCase(); } catch { return path.resolve(p).replace(/\\/g, '/').toLowerCase(); } };
+  return norm(process.argv[1]) === norm(fileURLToPath(import.meta.url));
 }
+if (isMainModule()) process.exitCode = main();
