@@ -27,11 +27,8 @@ description: |
 
 ## 為什麼要有這一層
 
-以前這套流程靠 27 個 skill 描述裡的關鍵詞自動攔截，使用者沒有「這次不要走流程」的選項，
-而且守則放在全域 CLAUDE.md、對所有專案生效。現在守則跟著 `/devwork` 走，不下指令就不生效。
+以前流程靠 skill 描述的關鍵詞自動攔截、守則放全域 CLAUDE.md 對所有專案生效，使用者沒有「這次不要走流程」的選項；現在守則跟著 `/devwork` 走，不下指令就不生效。
 
 ## 顯式呼叫其他 skill
 
-流程內的 skill 都能單獨呼叫（`/bstack:finish-branch`、`/bstack:retro`、`/bstack:context-snapshot` …），
-它們預期 hand-off state 存在；單獨呼叫時缺的欄位由該 skill 用 AskUserQuestion 補問。
-這是全 repo 唯一寫出 `/bstack:` 前綴清單的地方。
+流程內的 skill 都能單獨呼叫（`/bstack:finish-branch`、`/bstack:retro`、`/bstack:context-snapshot` …），缺的 hand-off state 欄位由該 skill 用 AskUserQuestion 補問。這是全 repo 唯一寫出 `/bstack:` 前綴清單的地方。
