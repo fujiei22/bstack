@@ -7,25 +7,21 @@ description: |
 
 # retro
 
-任意期間的工作回顧：找重複出現的模式、把「值得記住」的東西寫進 memory。**不綁 tier、不自動觸發、不限週期**。
+找期間內重複出現的模式、把值得記住的寫進 memory。**不綁 tier、不自動觸發、不限週期**。
 
 ## §使用契約（強制）
 
-**載入後立即動作**：
-
-1. 確認 user 想跑 retro（觸發詞已明示，無需 paraphrase）。
-2. **取得期間**（§期間選擇）：用 `AskUserQuestion` 問 user 想 retro 什麼範圍。
+1. 確認 user 想跑 retro（觸發詞明示、免 paraphrase）。
+2. **取得期間**（§期間選擇）：`AskUserQuestion` 問範圍。
 3. **資料來源蒐集**（§資料蒐集細節）：依期間抓 git log + PR + TaskList。
 4. **分析模式**：什麼順、什麼不順、反覆出現的事情。
 5. **產 retro 報告**（§報告結構）。
 6. **Memory hook**（§Memory hook 流程）：分析中發現「值得長期記住」的東西 → 產 memory 更新 proposal → user review → 寫入。
 7. **不修 code、不開 PR**（retro 是 reflection、不是動作）。
 
----
-
 ## §期間選擇
 
-載入後第一件事：`AskUserQuestion` 取得期間。預設選項：
+`AskUserQuestion` 選項：
 
 | 選項 | 對應期間 |
 |---|---|
@@ -41,11 +37,9 @@ description: |
 2. 若無報告 → 退回「本週」並告知 user
 3. 取得起點後 → 印「本次 retro 期間：<start> ~ <end>」給 user 確認
 
----
-
 ## §報告結構
 
-落 `docs/retros/<period-slug>.md`，`<period-slug>` 規則：
+落 `docs/retros/<period-slug>.md`，slug 規則：
 
 | 期間類型 | slug |
 |---|---|
@@ -53,8 +47,6 @@ description: |
 | 本週 | `<YYYY>-W<##>`（ISO 週號） |
 | 本月 | `<YYYY-MM>` |
 | 本季 | `<YYYY>-Q<#>` |
-
-報告內容：
 
 ```markdown
 # 回顧 <period-slug>
@@ -96,11 +88,9 @@ description: |
 - ...
 ```
 
----
-
 ## §Memory hook 流程
 
-對每個 proposal 用 `AskUserQuestion`：
+每個 proposal 各問一次 `AskUserQuestion`：
 
 ```
 問：發現本期反覆出現的模式：<簡述>
@@ -114,15 +104,8 @@ description: |
   3. 不寫
 ```
 
-選 1 → Write 進 `~/.claude/projects/.../memory/<name>.md` + 更新 `MEMORY.md` index
-選 2 → 等 user 改 → 再寫
-選 3 → 略過、不寫
-
-依 CLAUDE.md「auto memory」段的格式（含 frontmatter `name / description / metadata.type`）。
-
-**禁**：未經 user 同意直接寫 memory。
-
----
+選 1 → Write 進 `~/.claude/projects/.../memory/<name>.md` + 更新 `MEMORY.md` index；選 2 → 等 user 改再寫；選 3 → 略過。
+格式依 CLAUDE.md「auto memory」段（`name / description / metadata.type`）；**禁**未經 user 同意寫 memory。
 
 ## §禁止的 retro 行為
 
@@ -134,11 +117,7 @@ description: |
 | 在 retro 動 code / 改 plan | retro 只反思、不執行 |
 | 跑超頻（一週 3+ 次本週 retro） | 太頻會雜訊；本週 retro 建議 ≤1 / 週、本月 ≤1 / 月 |
 
----
-
 ## §資料蒐集細節
-
-期間以 `<start>` ~ `<end>` 兩個錨點為界。
 
 ### git log
 ```bash
@@ -150,36 +129,24 @@ git log --since="<start>" --until="<end>" --pretty="%s" --no-merges \
   | grep -oE "^(feat|fix|refactor|docs|chore|test|hotfix)" | sort | uniq -c
 ```
 
-若起點是 commit SHA：用 `<sha>..HEAD` 取代 `--since`。
+起點是 commit SHA 時用 `<sha>..HEAD` 取代 `--since`。
 
-### PR
 ```bash
 gh pr list --search "created:>=<start> created:<=<end>" \
   --json number,title,state,createdAt,mergedAt
 ```
 
-### TaskList
-- 主 agent 在本對話內可用 TaskList 工具讀
-- 跨 session 的 task 已不可見（task 是 session-bound）；只看當前 session
-
----
+TaskList：工具直接讀；task 是 session-bound、只看當前 session。
 
 ## §結尾 Trace 標籤
 
-```
-[Trace] Phase=retro | Tier=— | Track=— | Skill=retro
-```
-
----
+結尾貼 rules.md §Trace 標籤（Phase=retro）。
 
 ## §Red Flags
 
 | 想法 | 真相 |
 |---|---|
-| 「找不到值得 memory 的就硬塞」 | 沒就沒；memory 是品質、不是量 |
-| 「直接寫 CLAUDE.md」 | 禁；CLAUDE.md 改要 PR review |
-| 「retro 順便修一下 code」 | 禁；retro 不執行 |
+| 「找不到值得 memory 的就硬塞」「proposal 不用 user 點頭」 | 沒就沒，memory 是品質不是量；必 AskUserQuestion |
+| 「直接寫 CLAUDE.md」「retro 順便修一下 code」 | 禁；CLAUDE.md 改要 PR review、retro 不執行 |
 | 「貼 git log 全文進 retro」 | 抽 pattern、不貼全文 |
-| 「memory proposal 不用 user 點頭」 | 必 AskUserQuestion；user 控 memory |
-| 「user 喊 retro 就預設本週」 | 必問期間（AskUserQuestion）；不靜默套本週 |
-| 「自上次 retro 找不到日期就 abort」 | 退回「本週」並告知 user；不打斷流程 |
+| 「喊 retro 就預設本週」「找不到上次日期就 abort」 | 必問期間（AskUserQuestion）；找不到日期退回「本週」並告知 user、不打斷 |
