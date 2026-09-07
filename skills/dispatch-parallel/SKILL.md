@@ -133,7 +133,7 @@ Context:
 | 隊友會載入完整 CLAUDE.md 與全套 skill | 派工 prompt **必須**明講「不要跑 9 階段流程」，否則隊友會自己 brainstorm 起來 |
 | 隊友不繼承 lead 的對話歷史 | spec / plan 全文要貼進派工 prompt，不能只給檔案路徑就算 |
 | 權限確認彈回 lead 視窗 | 開工前先跟 user 講；常用操作可先進 `permissions.allow` 減少中斷 |
-| 隊友沿用 lead 的權限模式與兩個 PreToolUse hook | branch-safety / file-type-guard 照常生效，不用另外處理 |
+| 隊友沿用 lead 的權限模式與 PreToolUse hook（`hooks/guard.mjs`，branch-safety / file-type 兩段） | 照常生效，不用另外處理 |
 | 兩個隊友改同一檔會互相蓋掉 | 派工前檔案歸屬必須切乾淨；切不乾淨就不該選 Agent Teams |
 | 隊友可能沒標完成就閒置、卡住後續 task | lead 要盯任務清單狀態，卡住就直接訊息該隊友 |
 | 恢復對話不會還原隊友 | `/resume`、`/rewind` 後 lead 可能去找不存在的隊友；告訴 lead 重開 |

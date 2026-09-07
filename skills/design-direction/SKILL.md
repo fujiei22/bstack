@@ -34,7 +34,7 @@ description: |
 6. 三版一起攤出來，走 `AskUserQuestion` 讓 user 選（見 §選定與落檔）。
 7. 定案方向 ＋ user 選擇原話回寫 `spec.md`。
 
-**落檔時機（硬規則）**：本 skill 寫的檔（3 份 HTML ＋ 3 張截圖 ＋ 回寫 `spec.md`）**全部落在 `docs/work/<branch-name>/` 底下，必須 branch 已建立**。Phase 0 期間仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉。`<branch-name>` 的解析沿用 `frontend-test` §branch-name fallback 鏈（feature branch → `task-<id>` → `manual-<sha>`），`/` 保留為目錄層。
+**落檔時機（硬規則）**：本 skill 寫的檔（3 份 HTML ＋ 3 張截圖 ＋ 回寫 `spec.md`）**全部落在 `docs/work/<branch-name>/` 底下，必須 branch 已建立**。Phase 0 期間仍在 `main`，`hooks/guard.mjs`（branch-safety 段）會 `exit 2` 擋掉。`<branch-name>` 的解析沿用 `frontend-test` §branch-name fallback 鏈（feature branch → `task-<id>` → `manual-<sha>`），`/` 保留為目錄層。
 
 **禁止**：
 - 讓 user 在「只有文字、沒看到真實視覺」時選方向——沒有依據的選擇是無效的

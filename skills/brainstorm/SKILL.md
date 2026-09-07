@@ -47,14 +47,14 @@ description: |
 
 ## §Phase 0b′ — UI 面判定
 
-**目的**：判斷本次改動有沒有碰前端、屬於哪一套設計語言、是小改還是大改。**必跑**——包含看起來純後端的 task；`design-language` 的第 1 步是零成本的副檔名比對，不命中就立刻回傳結束。
+**目的**：判斷本次改動有沒有碰前端、屬於哪一套設計語言、是小改還是大改。**必跑**——包含看起來純後端的 task；比對是零成本，不命中就不載 `design-language`（17 KB），這是它延遲載入的唯一入口。
 
-1. **載入 `design-language` skill**，把 0b 得到的 `codebase_impact.files` 交給它。
-2. 取回六個欄位（`involved` / `scope` / `scope_evidence` / `size` / `precedent` / `map_status`），寫進 hand-off state 的 `design:` 區塊。
-3. **`involved=false` → 到此為止**，繼續 0c。
+1. **自己做副檔名比對**（不載 design-language）：對 0b 的 `codebase_impact.files` **先剔除路徑含 `skills/<name>/SKILL.md` 的 skill 定義目錄底下的檔**（plugin 快取、專案 `.claude/skills/`、repo `skills/` 都算；**不得用裸 `skills/` 比對**——某些專案有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除；與 design-language §使用契約 第 1 步同一條規則），再比對前端副檔名 `.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`（唯一真相在 design-language §前端副檔名，契約 P11 守本處 / 該節 / rules.md §設計語言對齊 三處一致）。
+2. **不命中** → hand-off state 寫 `design: {involved: false, scope: null, scope_evidence: null, size: null, precedent: false, map_status: unknown}`，**不載 design-language**，直接進 0c。
+3. **命中才載**：載入 `design-language`，**照它的使用契約從第 1 步跑**（第 1 步會重算 `involved`，結果必為 true，多一層自我校驗），取回六欄寫進 `design:` 區塊。
 4. **`involved=true`** → 判定結果進 §Phase 0c/0d 合併確認 的第 3 題一起問。
 
-**本階段只判不做、不寫任何檔（硬規則）**。Phase 0 仍在 `main`，`hooks/branch-safety.ps1` 會 `exit 2` 擋掉 repo 內的寫入：`design-map.md` 延到 branch 建立後落檔；`size=大改` 的三方向流程在 branch 建立且 spec 落檔之後才跑（見 §spec 文件結構與落檔），**不得在 Phase 0 期間載入 `design-direction`**。判定結果只進 hand-off state 與 `spec.md` 的「設計方向」段落。
+**本階段只判不做、不寫任何檔（硬規則）**。Phase 0 仍在 `main`，`hooks/guard.mjs`（branch-safety 段）會 `exit 2` 擋掉 repo 內的寫入：`design-map.md` 延到 branch 建立後落檔；`size=大改` 的三方向流程在 branch 建立且 spec 落檔之後才跑（見 §spec 文件結構與落檔），**不得在 Phase 0 期間載入 `design-direction`**。判定結果只進 hand-off state 與 `spec.md` 的「設計方向」段落。
 
 **禁止用 Tier 推導 `size`**（0d 還沒判，也不准先看量體猜；細則見 `design-language` §兩根尺）。**判不出來時**：`map_status: absent`（專案尚無設計語言）照樣繼續、`precedent=false`，不要卡住流程。
 
@@ -81,7 +81,7 @@ T0 / T1 / T2 / T3。Heuristic：
 | 3-10 個檔 / 單模組 feature / 中型 refactor / 多步 bug fix | T2 |
 | >10 個檔 / 跨模組 / 新建 module / DB schema 改動 / API 介面 / 架構決策 / 含 migration | T3 |
 
-判定結果留給 §Phase 0c/0d 合併確認 一次問，**本節不單獨發問**。**Tier 升降 trigger**：File-type 硬規則（見 rules.md）命中 DB migration / CI/CD / lock / infra 等 → 自動升至少 T2。
+判定結果留給 §Phase 0c/0d 合併確認 一次問，**本節不單獨發問**。**Tier 升降 trigger**（理由：這幾類的爆炸半徑與行數無關）：File-type 硬規則（見 rules.md）命中 DB migration / CI/CD / lock / infra 等 → 自動升至少 T2。
 
 ## §Phase 0c/0d 合併確認
 
@@ -245,6 +245,6 @@ T0 task 不貼。
 | 「user 看起來知道要做什麼，跳 0a；memory 太雜不用讀」 | 0a 就是要把「知道」結構化；memory 必讀，user 偏好若漏會走錯路 |
 | 「我猜 tier 算了不問」 | tier 必經 `AskUserQuestion` |
 | 「spec 短到不用落檔 / 設計這麼簡單還要 spec」 | T1+ 都要落 docs/work/；spec 短也要、user approval 不可省 |
-| 「純後端 task，0b′ 跳過」 | 0b′ 必跑；第 1 步是零成本副檔名比對，不命中就結束 |
+| 「純後端 task，0b′ 跳過」 | 0b′ 必跑；brainstorm 自己做零成本副檔名比對，不命中就不載 design-language |
 | 「T1 這麼小，不用問 UI 判定」 | 禁止用 Tier 推導 size；兩根尺各自判 |
 | 「T2 也寫個 plan.md 比較保險」 | rules.md §Tier 表：T2 的計畫就是施工清單，寫 plan.md 是走回舊 lane |

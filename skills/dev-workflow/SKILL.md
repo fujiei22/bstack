@@ -32,7 +32,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
    ↓
 0b 看 codebase ← Read / Grep 影響檔；DB 關鍵詞 → 載 db-access
    ↓
-0b′ UI 面判定  ← 載 design-language；產出 design.* 六欄
+0b′ UI 面判定  ← 比對前端副檔名，命中才載 design-language；產出 design.* 六欄
    ↓
 0c Track 判定  ← Bug or Dev
    ↓
@@ -47,24 +47,7 @@ brainstorm skill 內建。Phase 0 結尾產出 `{Track, Tier, spec, codebase-imp
 
 **0b′ 與 0c/0d 的關係**：`design.size` 與 `Tier` 是**獨立的兩根尺**，禁止互推（細則見 `design-language` §兩根尺）。三者合併在同一個 `AskUserQuestion` 確認，讓錯位當場可見。
 
-**Track 判定 heuristic**：
-| 觸發詞 | 預判 Track |
-|---|---|
-| 修 / fix / bug / 壞了 / 不對 / 異常 / 失敗 / 沒反應 / report | Bug |
-| 加 / 改 / 寫 / 實作 / build / feature / refactor / 重構 / 整合 / 升級 | Dev |
-| 模糊 / 兩者皆可 | Dev（保守、走完整流程） |
-
-**Tier 判定 heuristic**：
-| 量體訊號 | 預判 Tier |
-|---|---|
-| 改 1 行 / 純設定值 / typo | T0 |
-| 改 ≤2 個檔 / 單模組局部 / 小 helper | T1 |
-| 改 3-10 檔 / 單模組 feature / 中型 refactor | T2 |
-| >10 檔 / 跨模組 / 新建 module / DB schema / API 介面 / 架構決策 | T3 |
-
-**Tier 自動升級（覆蓋上表的預判）**：改動命中 rules.md §File-type 硬規則的
-DB migration / CI/CD / 鎖檔 / Infra 類 → **自動升至少 T2**，不論量體多小。
-理由：這幾類的爆炸半徑與行數無關。細則見 `brainstorm` §Phase 0d。
+Track / Tier 的預判表與「命中 File-type 硬規則自動升至少 T2」的規則見 `brainstorm` §Phase 0c / §Phase 0d；本 skill 不重貼，以免兩份漂移（Phase 0 執行時 brainstorm 一定已載入，這裡的表從來不是判定依據）。
 
 **0b′／0c／0d 三者合併成一個 `AskUserQuestion` 一次確認**（推薦選項 = AI 預判結果）。
 
@@ -247,7 +230,7 @@ Phase-bound memory 互動點（rules.md 開發流程 intro 內聲明）：
 | Skill | 觸發 |
 |---|---|
 | `db-access` | **固定載入點**：brainstorm 0b 偵測到 DB 關鍵詞。其餘（write-plan 涉 schema、execute-plan 動 DB、review 涉 SQL）是**規則適用範圍**，那些 skill 本身沒有載入它的步驟 |
-| `design-language` | brainstorm 0b′（**必跑**，含純後端 task）／ `design.involved=true` 且 `size=小改` 時，execute-plan **動到前端檔的 task 前後**／ execute-plan §前端檔處理 的中途轉進補判／ verify-done §漏網複查 的補判／ user 顯式問設計語言 |
+| `design-language` | brainstorm 0b′ 比對命中前端副檔名才載（比對本身在 brainstorm，不命中不載）／ `design.involved=true` 且 `size=小改` 時，execute-plan **動到前端檔的 task 前後**／ execute-plan §前端檔處理 的中途轉進補判／ verify-done §漏網複查 的補判／ user 顯式問設計語言 |
 | `design-direction` | brainstorm 0c/0d 合併確認第 3 題選「出三版」，且 **branch 已建立、`spec.md` 已落檔**／ user 顯式要求出方向、評審設計。**選「跳過三方向」不載入** |
 | `lock-files` | user 顯式要鎖某些檔（動 prod / 敏感模組）|
 | `cmd-guard` | AI 將執行 rm -rf / drop / force push / sudo / dd 等危險指令 |
@@ -287,7 +270,8 @@ Phase-bound memory 互動點（rules.md 開發流程 intro 內聲明）：
 |---|---|
 | 強制守則（Task / 決策點 / Branch / File-type / PII / DB / Settings） | rules.md（聖旨）|
 | Track / Tier / Phase / Trace / Auto-fix / Fail / Memory hook **政策** | rules.md（聲明）|
-| Track / Tier / Phase 詳細 **routing 表 + hand-off state + heuristic** | 本 skill |
+| Track / Tier / Phase 詳細 **routing 表 + hand-off state** | 本 skill |
+| Track / Tier **heuristic 表**與自動升級規則 | `brainstorm` §Phase 0c / §Phase 0d |
 | 各 phase 自身行為 | 對應 phase skill（brainstorm / write-plan / ...）|
 
 衝突時：**rules.md > 本 skill > phase skill**。
