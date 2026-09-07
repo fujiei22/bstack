@@ -429,6 +429,42 @@ check('P11 副檔名清單七處一致（判定用：brainstorm 0b′ / design-l
     `dev-workflow 殘留 heuristic 表=${/Track 判定 heuristic|Tier 判定 heuristic/.test(dwMd)} design-language 列命中才載=${/命中.{0,8}才載/.test(dwDLRow)} Phase 0 圖殘留「← 載」=${/← 載 design-language/.test(dw0bLine)} design-language Red Flags 殘留=${/沒有跳的必要/.test(dlMd)}` +
     `（改法：design-language §前端副檔名 是唯一真相，改它之後同步 brainstorm §Phase 0b′ 第 1 步與 rules.md §設計語言對齊；後果：不同步時 brainstorm 對某副檔名判不命中、不載 design-language，前端改動漏掉設計對齊）`);
 
+// ── P12 security-audit 純文件 T3 跳（2026-09-07，lane 改變）──────────────────
+// T3 security 欄從「必跑」改「程式碼 diff 必跑、純文件 diff 且無 File-type 硬規則命中跳」。
+// 判定沿用 request-review 產出的 code_review_applicable，不另發明副檔名表；File-type 例外是因為
+// .github/workflows/*.yml、docker-compose.yml、.npmrc 在 request-review 表裡歸純文件、卻是安全面最該看的檔。
+// 六處文字任一處留「T3 必跑」，Claude 在那一步就照舊 spawn security-auditor，所以反向掃全 repo（不含 docs/archive）。
+const saMd = rd('skills/security-audit/SKILL.md'), saAgent = rd('agents/security-auditor.md');
+const t3Sec = (tierT3.split('|').map((s) => s.trim())[7]) || '';   // 欄序：'' T3 量體 brainstorm plan TDD review security pr-explain
+const saStep2 = (saMd.match(/^2\. \*\*判定要不要跑\*\*[\s\S]*?(?=^3\. )/m) || [''])[0];
+const saState = (saMd.match(/## §hand-off state[\s\S]*?```[\s\S]*?```/) || [''])[0];
+const dwSecT3 = (dwMd.match(/^ {3}└─ T3 = .*security-checklist.*$/m) || [''])[0];
+const secQ = (dataJs.match(/^\s*SecQ:.*$/m) || [''])[0];
+const loadChk = (dataJs.match(/^\s*LoadChk:.*$/m) || [''])[0];
+const fbSecLine = (fbMd.match(/^- \[x\] security-audit 過.*$/m) || [''])[0];
+const bareMustRun = /T3 \*{0,2}必[跑用]\*{0,2}(?![^\n]{0,60}純文件)/;   // 同一行 60 字內有「純文件」的不算殘留
+const mustRunResidue = [];
+for (const dir of ['skills', 'agents']) for (const f of readdirSync(join(REPO, dir), { withFileTypes: true })) {
+  const p = f.isDirectory() ? `${dir}/${f.name}/SKILL.md` : `${dir}/${f.name}`;
+  if (exists(p) && bareMustRun.test(rd(p))) mustRunResidue.push(p);
+}
+for (const p of ['README.md', 'docs/js/data.js', 'docs/index.html']) if (bareMustRun.test(rd(p))) mustRunResidue.push(p);
+const p12 = {
+  rulesCell: /純文件 diff/.test(t3Sec) && /File-type/.test(t3Sec) && /audit \+ checklist \+ db-reviewer/.test(t3Sec),
+  saStep2: /code_review_applicable/.test(saStep2) && /File-type 硬規則/.test(saStep2),
+  saState: /security_skipped_reason/.test(saState),
+  dw: /純文件/.test(dwSecT3),
+  secQ: /純文件/.test(secQ),
+  loadChk: /純文件|同 SecQ|跳/.test(loadChk),
+  agentDesc: /純文件/.test(description(frontmatter(saAgent))),
+  fb: /純文件/.test(fbSecLine),
+  residue: mustRunResidue.length === 0,
+};
+check('P12 security-audit 純文件 T3 跳：rules.md T3 security 欄、security-audit 第 2 步（讀 code_review_applicable + 查 File-type 硬規則）與 state（security_skipped_reason）、dev-workflow 第 6 行、data.js SecQ / LoadChk、security-auditor 描述、finish-branch checklist 六處同步；全 repo 無裸「T3 必跑 / 必用」',
+  Object.values(p12).every(Boolean),
+  `${Object.entries(p12).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；T3 security 欄=「${t3Sec}」 dev-workflow 第 6 行=「${dwSecT3.trim()}」 殘留「T3 必跑 / 必用」=[${mustRunResidue.join(', ')}]` +
+    `（後果：Tier 表是 lane 唯一真相，任一處留「T3 必跑」Claude 就照舊 spawn security-auditor、純文件 PR 多燒 3-5 分鐘；改處：rules.md §Tier 表 T3 security 欄、security-audit §使用契約 第 2 步與 §hand-off state、dev-workflow 9 階段圖第 6 行、data.js SecQ / LoadChk、agents/security-auditor.md description、finish-branch PR 模板 checklist）`);
+
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
 // 用 exitCode 而非 process.exit()：stdout 接 pipe 時 exit() 可能截掉最後幾行（含 ALL PASS 那行）
 process.exitCode = failed === 0 ? 0 : 1;
