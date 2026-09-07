@@ -93,7 +93,7 @@ state:
 - `name`：kebab-case、跨 skills/ 唯一、1-3 字、避用既有 plugin 同名（不用 `superpowers-brainstorming`、用 `brainstorm`）
 - `description`：**兩句式**——第一行「<是什麼>（繁中）：3-6 個名詞」、第二行「載入：」+ 誰在哪個階段載入（dev-workflow Phase N / §跨流程 skill 載入 表所列時點；可加「亦可顯式呼叫」）。不寫「涵蓋：」「上游 / 下游：」（body 與 dev-workflow 已有，description 每 session 常駐、每字都是成本）。**不寫「觸發：」+ 自然語言清單**——plugin 只由 `/devwork` 啟動，觸發詞會攔到沒下指令的對話（plugin-contract P3c 守）
 
-範例見現行 `skills/execute-plan/SKILL.md` 的 description（兩行）。
+範例見現行 execute-plan skill 的 description（兩行）。
 
 ## §Body 風格規則
 
