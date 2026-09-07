@@ -95,14 +95,73 @@ if (!hooks.__err && hooks.hooks) {
 }
 const badCmd = hookCmds.filter((c) => !c.includes('${CLAUDE_PLUGIN_ROOT}'));
 const missingScript = hookCmds.map((c) => (c.match(/\$\{CLAUDE_PLUGIN_ROOT\}\/([^"']+)/) || [])[1]).filter(Boolean).filter((rel) => !exists(rel));
-check('P2a hooks.json 合法且每個 command 用 ${CLAUDE_PLUGIN_ROOT}',
-  !hooks.__err && hookCmds.length >= 2 && badCmd.length === 0,
-  `期望 ≥2 個 command 全含 \${CLAUDE_PLUGIN_ROOT}，實際 ${hooks.__err || `${hookCmds.length} 個、${badCmd.length} 個沒用變數`}（後果：hook 路徑寫死本機）`);
+// 2026-09-07 起 hook 是一支 node（hooks/guard.mjs，兩段檢查），取代兩支 pwsh；command 走 shell form + 雙引號（官方範例同寫法）
+const notNode = hookCmds.filter((c) => !/^node "/.test(c));
+check('P2a hooks.json 合法、≥1 個 command、全用 node + ${CLAUDE_PLUGIN_ROOT}',
+  !hooks.__err && hookCmds.length >= 1 && badCmd.length === 0 && notNode.length === 0,
+  `期望 ≥1 個 command 全為 node "\${CLAUDE_PLUGIN_ROOT}/…"，實際 ${hooks.__err || `${hookCmds.length} 個、${badCmd.length} 個沒用變數、${notNode.length} 個不是 node`}（後果：hook 路徑寫死本機、或又回到每次編輯 3 秒的 pwsh）`);
 check('P2b hooks.json 指到的腳本都存在', missingScript.length === 0,
   `期望 0 個缺，實際缺 [${missingScript.join(', ')}]（後果：每次 Write / Edit 噴 hook 執行失敗）`);
-check('P2c file-type-guard 不再寫 plugin 目錄內的 state/（含 docstring）',
-  exists('hooks/file-type-guard.ps1') && !/state[\\/]file-guard|\.\.[\\/]state/.test(rd('hooks/file-type-guard.ps1')),
-  `期望全文無 ../state/file-guard，實際有（後果：token 寫進 plugin 快取，更新即清空）`);
+check('P2c guard.mjs 不寫 plugin 目錄內的 state/（含 docstring）、舊 ps1 已刪',
+  exists('hooks/guard.mjs') && !/state[\\/]file-guard|\.\.[\\/]state/.test(rd('hooks/guard.mjs')) && !exists('hooks/branch-safety.ps1') && !exists('hooks/file-type-guard.ps1'),
+  `guard.mjs 存在=${exists('hooks/guard.mjs')} 舊 ps1 殘留=${exists('hooks/branch-safety.ps1') || exists('hooks/file-type-guard.ps1')}（後果：token 寫進 plugin 快取更新即清空；或兩套 hook 並存）`);
+
+// P2d：guard.mjs 的純判定對 fixture 執行——擋 / 放 / 雙訊息 / token 三態 / 大小寫 / 取不到路徑 / repo 外 shell config，
+// 全部照 spec §等價清單（docs/archive 或 docs/work 的 skill-load-and-node-hook/spec.md）。字樣 grep 守不住判定邏輯，所以直接跑。
+const G = await import('../hooks/guard.mjs');
+const REPO_FIX = process.platform === 'win32' ? 'C:\\repo' : '/repo';
+const inRepo = (rel) => REPO_FIX + (process.platform === 'win32' ? '\\' : '/') + rel;
+const ctxOf = ({ branch = 'feat/x', token = 'none', stateDir = true } = {}) => ({
+  repoDir: REPO_FIX, env: { TMP: 'C:/t', USERNAME: 'u' }, selfPath: 'X:/p/hooks/guard.mjs',
+  getBranch: () => branch,
+  consumeToken: () => token === 'none' ? { existed: false, valid: false } : { existed: true, valid: token === 'valid' },
+  ensureStateDir: () => stateDir,
+});
+const W = (file_path, tool_name = 'Write') => ({ tool_name, tool_input: { file_path } });
+const tags = (r) => ({ b: r.lines.some((l) => l.includes('目前在')), B: r.lines.some((l) => l.includes('BLOCK')), W: r.lines.some((l) => l.includes('WARN')), S: r.lines.some((l) => l.includes('state dir')) });
+const P2D = [
+  ['1 protected + repo 內 → 擋', W(inRepo('src/a.ts')), ctxOf({ branch: 'main' }), 2, { b: true }],
+  ['2 feature + repo 內 → 放', W(inRepo('src/a.ts')), ctxOf(), 0, {}],
+  ['3 repo 外 settings.json（protected）→ 放', W('C:/Users/x/.claude/settings.json'), ctxOf({ branch: 'main' }), 0, {}],
+  ['4 repo 外 .gitconfig（protected）→ WARN、無「目前在」', W('C:/Users/x/.gitconfig'), ctxOf({ branch: 'main' }), 2, { b: false, W: true }],
+  ['5 protected + .env → 雙訊息', W(inRepo('.env')), ctxOf({ branch: 'main' }), 2, { b: true, B: true }],
+  ['6 .env.example → 放', W(inRepo('.env.example')), ctxOf(), 0, {}],
+  ['7 .env.local → BLOCK', W(inRepo('.env.local')), ctxOf(), 2, { B: true }],
+  ['8 NotebookEdit id_rsa → BLOCK', { tool_name: 'NotebookEdit', tool_input: { notebook_path: inRepo('.ssh/id_rsa') } }, ctxOf(), 2, { B: true }],
+  ['9 裸 credentials.json（無前導斜線）→ 放（既有行為）', W('credentials.json'), ctxOf(), 0, {}],
+  ['10 migrations/x.sql 無 token → WARN', W(inRepo('db/migrations/x.sql')), ctxOf(), 2, { W: true }],
+  ['11 同檔 token valid → 放', W(inRepo('db/migrations/x.sql')), ctxOf({ token: 'valid' }), 0, {}],
+  ['12 同檔 token expired → WARN', W(inRepo('db/migrations/x.sql')), ctxOf({ token: 'expired' }), 2, { W: true }],
+  ['13 package-lock.json → WARN', W(inRepo('package-lock.json')), ctxOf(), 2, { W: true }],
+  ['14 Dockerfile → WARN', W(inRepo('Dockerfile')), ctxOf(), 2, { W: true }],
+  ['15 a.ts feature → 放', W(inRepo('a.ts')), ctxOf(), 0, {}],
+  ['16 tool_name 小寫 edit → 視同 Edit', W(inRepo('.env'), 'edit'), ctxOf(), 2, { B: true }],
+  ['17 branch Main → 擋', W(inRepo('a.ts')), ctxOf({ branch: 'Main' }), 2, { b: true }],
+  ['18 branch null（非 git）→ 放', W(inRepo('a.ts')), ctxOf({ branch: null }), 0, {}],
+  ['19 detached HEAD → 放', W(inRepo('a.ts')), ctxOf({ branch: 'HEAD' }), 0, {}],
+  ['20 空 stdin protected → 擋（只有「目前在」）', null, ctxOf({ branch: 'main' }), 2, { b: true, B: false, W: false }],
+  ['21 Write 無 tool_input protected → 擋', { tool_name: 'Write' }, ctxOf({ branch: 'main' }), 2, { b: true }],
+  ['22 Write 無 file_path protected → 擋', { tool_name: 'Write', tool_input: {} }, ctxOf({ branch: 'main' }), 2, { b: true }],
+  ['23 未知 tool → 放', { tool_name: 'Bash', tool_input: { command: 'x' } }, ctxOf({ branch: 'main' }), 0, {}],
+  ['24 state dir 建不起來 + WARN → 擋、含 state dir', W(inRepo('Dockerfile')), ctxOf({ stateDir: false }), 2, { S: true, W: false }],
+];
+const p2dBad = P2D.filter(([, payload, ctx, exit, tg]) => { const r = G.decide(payload, ctx); const t = tags(r); return r.exit !== exit || Object.entries(tg).some(([k, v]) => t[k] !== v); }).map(([n]) => n);
+// 25 / 26：token 路徑純運算——期望值用舊 ps1 對同一字串算過（2026-09-07：sha256("d:/x/.env") 前 16 hex）
+const tp25 = G.tokenPathFor('d:/x/.env', { TMP: 'C:/t', USERNAME: 'u' }, 'win32').replace(/\\/g, '/');
+const tp26 = G.tokenPathFor('d:/x/.env', { TEMP: 'C:/t2', USER: 'v' }, 'win32').replace(/\\/g, '/');
+const HASH25 = '5cda4cbfd584ef07';
+check(`P2d guard.mjs 純判定 ${P2D.length} 案全對、token 路徑照 .NET 順序`,
+  p2dBad.length === 0 && tp25 === `C:/t/bstack-file-guard-u/${HASH25}.token` && tp26 === `C:/t2/bstack-file-guard-v/${HASH25}.token`,
+  `錯的案=[${p2dBad.join(' | ')}] tp25=${tp25} tp26=${tp26}（後果：該擋沒擋 / 不該擋擋了、或 token 目錄跟舊版對不上；改處：hooks/guard.mjs decide / tokenPathFor）`);
+// P2e：真 spawn，守「CLI 有接上兩段」——P2d 只測純函式，CLI 少呼叫一段照樣綠
+const { spawnSync } = await import('node:child_process');   // 在 else 區塊內，不能用 import 宣告
+const { tmpdir } = await import('node:os');
+const spawnHook = (payload) => spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify(payload), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: REPO } });
+const e1 = spawnHook({ tool_name: 'Read', tool_input: { file_path: join(REPO, 'README.md') } });
+const e2 = spawnHook({ tool_name: 'Write', tool_input: { file_path: join(tmpdir(), 'bstack-p2e', '.env') } });
+check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → 2 + BLOCK',
+  e1.status === 0 && e2.status === 2 && /BLOCK/.test(e2.stderr || ''),
+  `Read exit=${e1.status} .env exit=${e2.status} stderr=${(e2.stderr || '').split('\n')[0].slice(0, 60)}（後果：hooks.json 指到的 CLI 沒接上判定；改處：hooks/guard.mjs main()）`);
 
 // ── P3 skills ───────────────────────────────────────────────────────────────
 const skillDirs = readdirSync(join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
@@ -154,7 +213,7 @@ for (const n of skillDirs) {
 }
 const scanTargets = [
   ...skillDirs.map((n) => `skills/${n}/SKILL.md`), ...refDocs, ...agentFiles.map((f) => `agents/${f}`),
-  'hooks/branch-safety.ps1', 'hooks/file-type-guard.ps1', 'CLAUDE.md', 'README.md',
+  'hooks/guard.mjs', 'scripts/hook-equivalence.mjs', 'CLAUDE.md', 'README.md',
   'skills/devwork/rules.md', 'docs/index.html', 'docs/js/data.js',
 ].filter(exists);
 const hits = [], allowed = [];
@@ -308,6 +367,29 @@ check('P10b verify-done §UI / browser e2e 有文字節點豁免（呼叫 text-o
   `verify-done 豁免段：文字節點=${/文字節點/.test(vdE2e)} 呼叫判定器=${/text-only-diff\.mjs/.test(vdE2e)} static-serve=${/static-serve\.mjs/.test(vdE2e)} smoke=${/smoke/.test(vdE2e)} 殘留 node -e 一行=${/node -e '/.test(vdE2e)} yaml smoke=${/e2e: pass \| fail \| skipped \| smoke/.test(vdMd)} ` +
     `dev-workflow 列=${/文字節點/.test(dwFeRow)} UIQ label=「${uiqLabel.slice(0, 40)}」 finish-branch 模板 e2e 欄=${/e2e: <pass \| smoke/.test(fbTpl)}` +
     `（後果：文字節點改動照樣燒一整套 e2e agent、或 smoke-only 的 PR 被寫成全綠；改處：verify-done「§UI / browser e2e」與「§hand-off state」、dev-workflow「§跨流程 skill 載入」frontend-test 列、data.js UIQ 節點、finish-branch「§PR body 模板」）`);
+
+// ── P11 design-language 延遲載入（2026-09-07）────────────────────────────────
+// brainstorm 0b′ 自己做副檔名比對、命中才載 design-language；清單因此三寫（brainstorm / design-language / rules.md），
+// 任一處漂掉 brainstorm 就對某副檔名判不命中、前端改動漏掉設計對齊。用區段切片 + tokenize 比（直接字串比會被格式差咬死）。
+const section = (text, startRe) => { const m = text.match(startRe); if (!m) return ''; const rest = text.slice(m.index + m[0].length); const end = rest.search(/^#{2,3} /m); return end < 0 ? rest : rest.slice(0, end); };
+const exts = (seg) => [...new Set((seg.match(/\.(css|scss|sass|less|tsx|jsx|vue|svelte|html)\b/g) || []))].sort().join(' ');
+const bs0b = section(bsMd, /^## §Phase 0b′[^\n]*\n/m);
+// design-language 只抓該節的 fenced block（節內另有「.sass 現況分歧」註記，不是清單）
+const dlExt = (section(rd('skills/design-language/SKILL.md'), /^## §前端副檔名[^\n]*\n/m).match(/```[^\n]*\r?\n([\s\S]*?)```/) || ['', ''])[1];   // 檔案可能是 CRLF
+const rulesDL = section(rulesMd, /^### §設計語言對齊[^\n]*\n/m);
+const dlMd = rd('skills/design-language/SKILL.md');
+const dw0bLine = (dwMd.match(/^0b′ UI 面判定.*$/m) || [''])[0];
+const dwDLRow = (dwMd.match(/^\| `design-language` \|.*$/m) || [''])[0];
+check('P11 副檔名清單三處一致（brainstorm 0b′ / design-language §前端副檔名 / rules.md §設計語言對齊）；brainstorm 內嵌剔除規則且命中才載；dev-workflow 去重同步',
+  exts(dlExt) !== '' && exts(bs0b) === exts(dlExt) && exts(rulesDL) === exts(dlExt) &&
+    /不命中/.test(bs0b) && /不載/.test(bs0b) && /命中/.test(bs0b) && /才載|才載入/.test(bs0b) && /SKILL\.md/.test(bs0b) &&
+    /^## §Phase 0c/m.test(bsMd) && /^## §Phase 0d/m.test(bsMd) &&
+    !/Track 判定 heuristic|Tier 判定 heuristic/.test(dwMd) && /命中.{0,8}才載/.test(dwDLRow) && !/← 載 design-language/.test(dw0bLine) &&
+    !/沒有跳的必要/.test(dlMd),
+  `期望三處清單相同；實際 brainstorm=[${exts(bs0b)}] design-language=[${exts(dlExt)}] rules.md=[${exts(rulesDL)}]；` +
+    `brainstorm 0b′ 不命中=${/不命中/.test(bs0b)} 不載=${/不載/.test(bs0b)} 才載=${/才載|才載入/.test(bs0b)} 內嵌 SKILL.md 剔除規則=${/SKILL\.md/.test(bs0b)}；` +
+    `dev-workflow 殘留 heuristic 表=${/Track 判定 heuristic|Tier 判定 heuristic/.test(dwMd)} design-language 列命中才載=${/命中.{0,8}才載/.test(dwDLRow)} Phase 0 圖殘留「← 載」=${/← 載 design-language/.test(dw0bLine)} design-language Red Flags 殘留=${/沒有跳的必要/.test(dlMd)}` +
+    `（改法：design-language §前端副檔名 是唯一真相，改它之後同步 brainstorm §Phase 0b′ 第 1 步與 rules.md §設計語言對齊；後果：不同步時 brainstorm 對某副檔名判不命中、不載 design-language，前端改動漏掉設計對齊）`);
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
 // 用 exitCode 而非 process.exit()：stdout 接 pipe 時 exit() 可能截掉最後幾行（含 ALL PASS 那行）
