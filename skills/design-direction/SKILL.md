@@ -2,7 +2,7 @@
 name: design-direction
 description: |
   定新設計方向（繁中）：三方向真實視覺讓 user 選、反 AI slop、6 維度評審。
-  載入：brainstorm 合併確認選「出三版」且 branch 已建、spec 已落檔；亦可顯式要求。既有設計語言查 design-language。
+  載入：brainstorm 合併確認選「出三版」且 branch 已建、spec 已落檔；亦可顯式要求。既有設計語言查 design-language；改完驗畫面用 frontend-test。
   下游：T3 → write-plan；T2 → 回 `brainstorm` 3.5 回寫施工清單。
 ---
 

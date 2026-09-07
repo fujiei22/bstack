@@ -92,7 +92,7 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 - **時機**：T1+ brainstorm Phase 0 完成後**先 `git checkout -b <branch>` 再寫 spec**（branch-safety 雙保險）
 - **覆寫與命名**：plan / review / pr-review 同 branch 迭代覆寫，spec 修改靠 git history；**檔名不放日期**，目錄已表達時序
 - **merge 後搬檔**：finish-branch 把 `docs/work/<branch-name>/` 移到 `docs/archive/<年>/<主題>/`。**進 reference 的門檻**：這份寫的是「規則」還是「做過一次的紀錄」？規則才進。一次性調查 / 量測 / 事故報告的**結論寫進 memory**，報告本體進 archive
-- **commit 與否看專案**：docs 被 `.gitignore` 排除的專案就不 commit，別硬 `git add`
+- **commit 與否看專案**：docs 被 `.gitignore` 排除的專案就不 commit，別硬 `git add`（會直接報錯）
 - **遷移**：新 branch 用新路徑；舊 PR 不主動搬
 
 ## 開發流程（dev-workflow 為骨幹）
@@ -109,11 +109,11 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
-- **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式見 `brainstorm` §spec 文件結構；超過表列上限代表 Tier 判低了，回 0d 升 T3。
+- **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構與落檔 為準；超過表列上限代表 Tier 判低了，回 0d 升 T3。
 - **code review 先看副檔名再看 Tier**：diff 含程式碼副檔名才跑內建 code-review（不帶 `--fix`、finding 交 receive-review）；純文件 diff 跳過，一致性靠契約腳本與 review-plan。「符合 spec / 規則書」內建的不看：T2 主 agent 自檢、T3 派一個 subagent。判定表見 `request-review` §副檔名分流。
 - **security 同樣先看副檔名再看 Tier**：T3 純文件 diff 且沒有任何檔命中 §File-type 硬規則表 → 跳 audit + checklist；命中硬規則的不論副檔名照跑（那些在 request-review 表裡歸純文件，卻是安全面最該看的檔）。判定沿用 request-review 產出的 `code_review_applicable`，security-audit 不自己再比對副檔名；state 沒這欄就當程式碼 diff 照跑。T2 條件（涉認證 / 資料層才 audit）與 db-reviewer 條件不變。
 - **`lang-reviewer` agent 不自動 spawn**：語言提示由 request-review 依副檔名寫進 T3 對齊 subagent 的 prompt；user 顯式要「用 lang-reviewer 看」才派。
-- **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state；「該不該做 / 範圍」在 brainstorm 就定案。
+- **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state；「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
 - 精簡依據見 `docs/archive/2026/` 的 `t2-lane-slim` 主題，不在此重述。
 
 ### §協作模式判定（Agent Teams gate）
@@ -128,7 +128,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 
 - **禁自行開隊友**：判定只產生選項，一律等 user 選。
 - **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review T3 對齊 subagent 與內建 code-review 的 finder、incident-investigate 多假設、security-audit）**不開隊友、也不問**——沒人在動檔（判準 1 防互蓋的前提不成立），且**獨立性本身就是產出價值**，互相聽到彼此結論會污染判斷。
-- **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」。
+- **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」、其餘照常。
 - **成本告知**：每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill，token 隨隊友數線性疊加。
 
 觸發點：**只有一個**——`execute-plan` 遇 `parallel-group` 同號多 task 而載入 `dispatch-parallel` 時。判準表 / 選單範本 → `dispatch-parallel` §協作模式判定；隊友派工範本 → 同檔 §隊友派工。

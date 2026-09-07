@@ -9,7 +9,7 @@ description: |
 
 ## 使用契約（強制）
 
-**自我觸發**：每次 Bash 即將跑 command 前，主 agent **自查**是否命中 §自查 pattern；命中 → 載此 skill，然後：
+**自我觸發**：每次 Bash 即將跑 command 前，主 agent **自查**是否落入 §危險度分級 任一級（keyword 見 §自查 pattern）；落入 → 載此 skill，然後：
 
 1. 識別危險度等級（L1-L4）
 2. 印 command + 風險 + 安全替代建議

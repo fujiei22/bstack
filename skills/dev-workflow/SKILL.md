@@ -206,7 +206,7 @@ state:
 
 | 想法 | 真相 |
 |---|---|
-| 「這是 trivial 不用走流程」「先看 codebase / 直接寫 code」 | T0 由 0d 判、看 codebase 是 0b，都在 Phase 0 內，不是你跳 |
+| 「這是 trivial 不用走流程」「先看 codebase / 我先想一下 / 直接寫 code」 | T0 由 0d 判、看 codebase 是 0b、「想」是 0a 要結構化，都在 Phase 0 內，不是你跳 |
 | 「不問 user 直接決定 tier」 | tier 必經 AskUserQuestion |
 | 「risky 改動我評估安全」 | Auto-fix 危險類**必須**問 user |
 | 「skill 之間自由跳」「Trace / memory 省一次沒差」 | 嚴格按 Phase 序、state hand-off；每輪貼 Trace（T0 除外）；0a 必讀 memory |

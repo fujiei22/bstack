@@ -142,7 +142,7 @@ const src = rest.includes('--src') ? rest[rest.indexOf('--src') + 1] : null;   /
 if (rest.includes('--rev')) REV = rest[rest.indexOf('--rev') + 1];            // snapshot 專用：從 git 該 rev 讀基線
 if (src && (!only || only.length !== 1)) { console.error('--src 需搭配 --only <單一 name>'); process.exit(2); }
 const names = Object.keys(FILES).filter((n) => !only || only.includes(n));
-const now = Object.fromEntries(Object.keys(FILES).map((n) => [n, extract(n, src && only[0] === n ? src : null)]));
+const now = Object.fromEntries((mode === 'snapshot' ? Object.keys(FILES) : names).map((n) => [n, extract(n, src && only[0] === n ? src : null)]));
 if (mode === 'snapshot' && !REV) { console.error('snapshot 必須帶 --rev <sha>：從工作樹拍基線會拍到半改完的檔（施工中踩過）'); process.exit(2); }
 if (mode === 'snapshot') { writeFileSync(file, JSON.stringify(now, null, 1)); console.log(`snapshot ${Object.keys(now).length} 檔 -> ${file}`); process.exit(0); }
 if (mode !== 'check') { console.error('用法：snapshot <out.json> | check <baseline.json> [--only a,b] [--src <path>]'); process.exit(2); }

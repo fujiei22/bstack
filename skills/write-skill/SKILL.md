@@ -91,17 +91,9 @@ state:
 ## §Frontmatter 詳解
 
 - `name`：kebab-case、跨 skills/ 唯一、1-3 字、避用既有 plugin 同名（不用 `superpowers-brainstorming`、用 `brainstorm`）
-- `description`：四段：一句總結 → 「載入：」+ 誰在哪個階段載入（dev-workflow Phase N / §跨流程 skill 載入 表所列時點；可加「亦可由使用者顯式呼叫」）→ 「涵蓋：」+ 範疇 → 「上游 / 下游：」（如有）。**不寫「觸發：」+ 自然語言清單**——plugin 只由 `/devwork` 啟動，觸發詞會攔到沒下指令的對話（plugin-contract P3c 守）
+- `description`：**兩句式**——第一行「<是什麼>（繁中）：3-6 個名詞」、第二行「載入：」+ 誰在哪個階段載入（dev-workflow Phase N / §跨流程 skill 載入 表所列時點；可加「亦可顯式呼叫」）。不寫「涵蓋：」「上游 / 下游：」（body 與 dev-workflow 已有，description 每 session 常駐、每字都是成本）。**不寫「觸發：」+ 自然語言清單**——plugin 只由 `/devwork` 啟動，觸發詞會攔到沒下指令的對話（plugin-contract P3c 守）
 
-範例：
-```
-按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（T3 由 review-plan user accept 後；
-T1 / T2 由 brainstorm 直接交棒、plan_path 為 null）；亦可由使用者顯式呼叫。
-涵蓋：讀 task 來源、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
-task fail 處置、blocker 升級。
-上游：review-plan（T3）；brainstorm（T1 / T2，T2 的 task 來源 = spec ## 施工清單）。
-下游：verify-done（全 task 完）。
-```
+範例見現行 `skills/execute-plan/SKILL.md` 的 description（兩行）。
 
 ## §Body 風格規則
 
@@ -135,7 +127,7 @@ task fail 處置、blocker 升級。
 
 ## §Self-review checklist
 
-- [ ] `name` kebab-case、唯一；`description` 觸發詞列足（含中英 / 同義詞）
+- [ ] `name` kebab-case、唯一；`description` 第一行一眼看得出是什麼、無觸發詞、無「涵蓋 / 上游 / 下游」
 - [ ] 上下游 skill 已標；使用契約段落清楚
 - [ ] 對齊 rules.md（無衝突）
 - [ ] Red Flags 表 ≥3 個；hand-off state 已列；Trace 標籤格式

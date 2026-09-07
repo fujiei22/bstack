@@ -93,7 +93,7 @@ state:
 
 ## §False positive 處理
 
-- 「user@example.com」文件 placeholder、`sk-test_abc` stripe test key 這類誤殺 → 仍建議移、不嚴擋；`AskUserQuestion` 給 user override（選項 2）
+- 「user@example.com」文件 placeholder → user 可說 OK 放行；`sk-test_abc` stripe test key → 仍建議移、不嚴擋；`AskUserQuestion` 給 user override（選項 2）
 
 ## §跟 git 互動
 

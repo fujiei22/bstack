@@ -77,6 +77,8 @@ design:
 
 ## §首次偵測（`design-map.md` 不存在時）
 
+只在 `involved=true` 且地圖 absent 時才跑。
+
 1. **找 token 來源檔**：先 `Glob` 具名檔 `**/tokens*.css` `**/theme.{ts,js}` `**/colors.{ts,js}` `**/_variables.{scss,sass}` `**/globals.css` `**/styles.css` `**/tailwind.config.*`，**再用 `**/*.{css,scss}` 兜底**，以「檔內含 `--` custom property 或 `$` / `@` 變數宣告」篩選。
    > 為什麼要兜底：具名檔清單會漏掉 style 進入點叫 `app.css` / `main.css` / `index.css` 的專案；不做會**不報錯、直接說這專案沒有設計語言**——比報錯更糟。
 2. **排除 vendor 與產物**：`node_modules/`、`dist/`、`build/`、`vendor/`、`.gitignore` 命中的路徑、`**/design-demos/`。

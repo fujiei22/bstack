@@ -144,6 +144,6 @@ model: sonnet
 
 | 想法 | 真相 |
 |---|---|
-| 「我順便修一下」「跑 Bash 跑測試比較準」 | 不修、不動 stateful 行為；只 Read / Grep、只回報 |
+| 「我順便修一下」「跑 Bash 跑測試比較準」 | 不修；Bash 只讀、不動 stateful 行為；只回報 |
 | 「critical 太多、刪幾個」「style 細節不重要」 | 不刪、全列；style 列 nit；嚴重度由呼叫端定 |
 | 「我不會這語言，瞎掰一通」 | 不會就回報「無 finding 信心 / language 不熟」、不瞎掰 |

@@ -188,4 +188,4 @@ logger.info({
 
 ## §結尾 Trace 標籤
 
-不貼自身 trace，由呼叫 phase 帶
+不貼自身 trace，由呼叫 phase 帶。

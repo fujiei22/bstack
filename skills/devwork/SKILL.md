@@ -2,7 +2,7 @@
 name: devwork
 description: |
   bstack 九階段開發流程的唯一入口（繁中）。
-  載入：使用者輸入 `/devwork <要做的事>`（Unknown command 時改打 `/bstack:devwork`）；不因「寫 / 改 / 修 / 加」等自然語言自動載入。
+  載入：使用者輸入 `/devwork <要做的事>`（Unknown command 時改打 `/bstack:devwork`）；不因「寫 / 改 / 修 / 加」等自然語言自動載入；沒下指令時 Claude Code 就是普通的 Claude Code。
 ---
 
 # devwork

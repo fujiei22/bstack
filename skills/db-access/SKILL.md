@@ -35,7 +35,7 @@ EXPLAIN SELECT id, name FROM users WHERE created_at > '2026-01-01' LIMIT 100;
 
 ## 寫（INSERT / UPDATE / DELETE / DDL / TRUNCATE / REPLACE / MERGE）
 
-**禁試跑**。產 SQL 交 user，交付附三欄 **目的**（一句話）/ **影響範圍**（表 / 估算 row 數）/ **回滾**（反向 SQL 或 backup 指引），主操作 SQL 前附預檢 COUNT 查詢供 user 先看筆數。
+**禁試跑**。產 SQL 交 user，交付附三欄 **目的**（一句話）/ **影響範圍**（表 / 估算 row 數）/ **回滾**（反向 SQL 或 backup 指引），主操作 SQL 在前、預檢 COUNT 查詢在後（註明執行前可先跑看筆數）。
 
 DDL / migration 額外提醒：
 - 大表加欄位 → online DDL 工具（pt-osc / gh-ost）
