@@ -1,10 +1,8 @@
 ---
 name: review-plan
 description: |
-  Implementation plan 多視角 review（繁中）。載入：dev-workflow Phase 2（**T3** write-plan 產出 plan 後）；亦可由使用者顯式呼叫。
-  涵蓋：視角依改動面向 1-3（Eng 下限 / DX / Design）；每視角 spawn
-  subagent 做 review、主 agent 整合 → 提 user gate。
-  上游：write-plan。下游：execute-plan（user 確認後）。
+  plan 多視角 review（繁中）：視角依改動面向 1-3（Eng 下限 / DX / Design），整合後 user gate。
+  載入：dev-workflow Phase 2，T3 write-plan 之後。
 ---
 
 # review-plan

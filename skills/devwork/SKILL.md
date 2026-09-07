@@ -1,10 +1,8 @@
 ---
 name: devwork
 description: |
-  bstack 九階段開發流程的唯一入口（繁中）。使用者輸入 `/devwork <要做的事>` 才啟動
-  （打了出現 Unknown command 或載到別的東西時改打 `/bstack:devwork`）；
-  **不因「寫 / 改 / 修 / 加」等自然語言自動載入**。載入後：讀 rules.md → 載 dev-workflow → Phase 0。
-  沒下這個指令時，Claude Code 就是普通的 Claude Code。
+  bstack 九階段開發流程的唯一入口（繁中）。
+  載入：使用者輸入 `/devwork <要做的事>`（Unknown command 時改打 `/bstack:devwork`）；不因「寫 / 改 / 修 / 加」等自然語言自動載入；沒下指令時 Claude Code 就是普通的 Claude Code。
 ---
 
 # devwork
@@ -29,11 +27,8 @@ description: |
 
 ## 為什麼要有這一層
 
-以前這套流程靠 27 個 skill 描述裡的關鍵詞自動攔截，使用者沒有「這次不要走流程」的選項，
-而且守則放在全域 CLAUDE.md、對所有專案生效。現在守則跟著 `/devwork` 走，不下指令就不生效。
+以前流程靠 skill 描述的關鍵詞自動攔截、守則放全域 CLAUDE.md 對所有專案生效，使用者沒有「這次不要走流程」的選項；現在守則跟著 `/devwork` 走，不下指令就不生效。
 
 ## 顯式呼叫其他 skill
 
-流程內的 skill 都能單獨呼叫（`/bstack:finish-branch`、`/bstack:retro`、`/bstack:context-snapshot` …），
-它們預期 hand-off state 存在；單獨呼叫時缺的欄位由該 skill 用 AskUserQuestion 補問。
-這是全 repo 唯一寫出 `/bstack:` 前綴清單的地方。
+流程內的 skill 都能單獨呼叫（`/bstack:finish-branch`、`/bstack:retro`、`/bstack:context-snapshot` …），缺的 hand-off state 欄位由該 skill 用 AskUserQuestion 補問。這是全 repo 唯一寫出 `/bstack:` 前綴清單的地方。

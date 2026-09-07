@@ -1,10 +1,8 @@
 ---
 name: db-access
 description: |
-  資料庫存取規範（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（brainstorm 0b 偵測到 DB 關鍵詞）。
-  涵蓋：MCP 唯讀、讀寫分流、查詢量限、PII mask、產 SQL 交付格式。
-  **強制**：brainstorm Phase 0b 偵測到 DB 關鍵詞時必載；debug-systematic 的 Triage
-  與 security-audit（Phase 6）的 db-reviewer 涉 DB 時亦適用本規則。
+  資料庫存取規範（繁中）：MCP 唯讀、寫入產 SQL 交 user、LIMIT、PII mask。
+  載入：brainstorm 0b 偵測到 DB 關鍵詞必載。
 ---
 
 # db-access
@@ -37,21 +35,7 @@ EXPLAIN SELECT id, name FROM users WHERE created_at > '2026-01-01' LIMIT 100;
 
 ## 寫（INSERT / UPDATE / DELETE / DDL / TRUNCATE / REPLACE / MERGE）
 
-**禁試跑**。產 SQL 交 user。交付格式：
-
-````markdown
-**目的**：<一句話>
-**影響範圍**：<表 / 估算 row 數>
-**回滾**：<反向 SQL 或 backup 指引>
-
-```sql
--- 主操作
-UPDATE users SET status = 'inactive' WHERE last_login < '2025-01-01';
-
--- 預檢（執行前可先跑此查筆數）
-SELECT COUNT(*) FROM users WHERE last_login < '2025-01-01';
-```
-````
+**禁試跑**。產 SQL 交 user，交付附三欄 **目的**（一句話）/ **影響範圍**（表 / 估算 row 數）/ **回滾**（反向 SQL 或 backup 指引），主操作 SQL 在前、預檢 COUNT 查詢在後（註明執行前可先跑看筆數）。
 
 DDL / migration 額外提醒：
 - 大表加欄位 → online DDL 工具（pt-osc / gh-ost）
@@ -81,8 +65,4 @@ SELECT DATE(created_at) AS d, COUNT(*) AS n FROM users GROUP BY d;
 - **brainstorm Phase 0b** 偵測到 DB 關鍵詞 → 載入本 skill（唯一的固定載入點）
 - **debug-systematic 的 Triage** 涉 DB → 此 skill 規則生效
 - **security-audit（Phase 6）派 `db-reviewer`** → reviewer 摘要含 PII 須依本 skill mask
-- **風險表「DB schema / migration」命中** → 升一級
-
-> **phase 編號以 `dev-workflow` §Track × Tier × Phase 路徑為準**：Phase 2 是 write-plan、
-> Phase 6 是 security-audit、Phase 8 是 pr-explain。舊版本檔寫的「Phase 2 triage」與
-> 「Phase 8c DB reviewer」兩個編號都是錯的，已更正。
+- **風險表「DB schema / migration」命中** → 升一級；phase 編號以 `dev-workflow` §Track × Tier × Phase 路徑為準

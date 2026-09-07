@@ -1,23 +1,15 @@
 ---
 name: frontend-test
 description: |
-  前端自動化驗證（繁中）。載入：dev-workflow §跨流程 skill 載入 表所列時點（verify-done 偵測前端檔改動；
-  T3 UI 改動必載、T2 可選）；亦可由使用者顯式呼叫跑 e2e。
-  涵蓋：規劃測試矩陣、spawn frontend-e2e-runner agent 跑 Playwright（隔離
-  browser tool 噪音）、收結構化 summary、處置 PASS / FAIL / INCONCLUSIVE。
-  上游：verify-done（偵測前端檔改動；§UI / browser e2e）/ user 顯式呼叫。
-  下游：回 verify-done（整合 e2e 結果）→ request-review。
+  前端自動化驗證（繁中）：測試矩陣、spawn frontend-e2e-runner 跑 Playwright、處置結果。
+  載入：verify-done 偵測前端檔改動（T3 必載、T2 可選）；亦可顯式呼叫。
 ---
 
 # frontend-test
 
-verify-done 的「UI / browser e2e」子流程。**Mode A 架構**：skill 留主 context 做規劃 / user gate / state、實際 Playwright 執行 spawn `frontend-e2e-runner` agent 跑（隔離 22 個 browser MCP tool 的噪音、避免污染主 pipeline）。
+verify-done 的「UI / browser e2e」子流程，**Mode A 架構**：規劃 / user gate / state 留主 context，Playwright 由 spawn 的 `frontend-e2e-runner` agent 跑（隔離 22 個 browser MCP tool 噪音）。
 
-> 層次：
-> - **verify-done**：總綱（test + lint + build + type-check + e2e）
-> - **frontend-test**（本 skill）：e2e 子段、協調殼
-> - **frontend-e2e-runner**（agent）：實際 Playwright 執行
-> - **tdd-cycle**：單元測試、非 user-flow 級
+> 層次：verify-done 總綱 → 本 skill 協調殼 → frontend-e2e-runner 實際執行；單元測試歸 tdd-cycle。
 
 ## §載入時機
 
@@ -32,7 +24,7 @@ verify-done 的「UI / browser e2e」子流程。**Mode A 架構**：skill 留�
 ## §流程（主 context 跑）
 
 1. **讀 hand-off state** 取 `tier`、`codebase_impact.files`、`track`、`plan_path`。
-2. **抽測試範圍**：依改動檔對應 §測試矩陣 找哪些 page / route / component / flow 需驗。
+2. **抽測試範圍**：依改動檔對 §測試矩陣。
 3. **確認 preview URL**：state 有 → 用；沒有 → `AskUserQuestion` 問 user。
 4. **解析 `<branch-name>`**（§branch-name fallback 鏈）、建 `docs/work/<branch-name>/test-reports/<YYYYMMDD-HHmm>/screenshots/`。
 5. **規劃測試矩陣 table**（含 scenario / viewport / steps / expected 4 欄）。
@@ -66,11 +58,9 @@ Agent:
     按 system prompt 跑、寫 report.md 落 output_dir、回嚴格結構化 summary。
 ```
 
-**Session lifecycle 由 agent 自管**：啟動 `browser_close` + `browser_navigate` 重置、結束 `browser_close` 清狀態（Playwright MCP session 跨對話共用、必須顯式管理；驗證見 PR commit message）。
+**Session lifecycle 由 agent 自管**：啟動 `browser_close` + `browser_navigate` 重置、結束 `browser_close` 清狀態（MCP session 跨對話共用）。
 
 ## §測試矩陣
-
-依改動檔案 / 類型套對應 case：
 
 | 改動類型 | 必跑 case |
 |---|---|
@@ -85,7 +75,7 @@ Agent:
 | 改 auth / login flow | 登入 e2e + 失敗訊息 + 登出 + protected route 擋 |
 | 改 i18n / 多語 | 切語言後排版不爛、文案出來 |
 
-**Viewport 規格**（跨 viewport 統一用這組）：
+**Viewport 規格**（排版類跑三組；功能類只跑 desktop，除非明確涉 responsive）：
 
 | 名稱 | 寬 x 高 |
 |---|---|
@@ -93,22 +83,17 @@ Agent:
 | tablet | 834 x 1194 |
 | mobile | 390 x 844 |
 
-排版類 case 跑三組 viewport、功能類預設只跑 desktop（除非改動明確涉 responsive）。
-
 ## §branch-name fallback 鏈
 
-決定 `docs/work/<branch-name>/` 那一段。依序試：
+決定 `docs/work/<branch-name>/` 那一段，依序試（`/` 保留為目錄層、不轉 `-`，報告才與同 branch 的 spec / plan 同夾）：
 
-1. feature branch（`git rev-parse --abbrev-ref HEAD`）→ **branch 名照原樣當路徑**、`/` 保留為目錄層
-   （`feat/user-auth-jwt` → `docs/work/feat/user-auth-jwt/`）
+1. feature branch（`git rev-parse --abbrev-ref HEAD`）→ **branch 名照原樣當路徑**（`feat/user-auth-jwt` → `docs/work/feat/user-auth-jwt/`）
 2. 不在 feature + state 有 `task_id` → `task-<task-id>`
 3. 兩者皆無（user 手動呼叫、無流程 state）→ `manual-<git-short-sha>`
 
-`/` 保留而非轉 `-`：測試報告要跟同一支 branch 的 spec / plan / review 落在同一夾，merge 後整夾一起搬進 archive。
-
 ## §Result handling（8a-8d 完整分支）
 
-**前提**：agent 端 INCONCLUSIVE **語意窄** — 只給「環境性、可重試」失敗（connection / navigate timeout / 中斷 / port 不對）。selector 失效 / element missing 是 spec drift 或 code 改動、agent 端判 **FAIL**、不會落到 INCONCLUSIVE。所以 8c 不必處理 code 層問題。
+**前提**：agent 端 INCONCLUSIVE **語意窄**，只給環境性可重試失敗（connection / timeout / port 不對）；selector 失效是 spec drift 或 code 改動、判 **FAIL**；8c 不處理 code 層問題。
 
 ```
 8a. 全 PASS（無 FAIL / INCONCLUSIVE）→ 直接 hand-off
@@ -128,10 +113,7 @@ Agent:
       user 一次決
 ```
 
-**特殊規則**（沿用原版）：
-- screenshot 對但 console 有 error → **仍 FAIL**（regression 訊號）
-- mobile FAIL / desktop PASS → 不算過、必修
-- 既有 flow regression（不在改動範圍但壞了）→ **必 FAIL**、回 execute-plan
+**特殊規則**：screenshot 對但 console 有 error → **仍 FAIL**；mobile FAIL / desktop PASS → 不算過；既有 flow regression → **必 FAIL**、回 execute-plan。
 
 ## §hand-off state（本 skill 寫入欄位）
 
@@ -152,10 +134,7 @@ state:
   current_phase: verify-done-frontend-test-done
 ```
 
-T3 UI 改動 frontend-test 有 FAIL → verify-done **必 fail**、不能短路。
-T2 frontend-test FAIL 視為一般 verify fail（走 §Result handling）。
-
-**下一 phase**：→ 回 `verify-done` → `request-review`
+T3 UI 改動有 FAIL → verify-done **必 fail**、不能短路；T2 FAIL 走 §Result handling。**下一 phase**：→ 回 `verify-done` → `request-review`
 
 ## §結尾 Trace 標籤
 
@@ -173,15 +152,8 @@ user 直接呼叫：
 
 | 想法 | 真相 |
 |---|---|
-| 「unit test 過了不必跑 browser」 | unit ≠ user 體驗；前端改動達門檻必跑 e2e 才算 verify-done |
-| 「截圖太麻煩、PASS / FAIL 就好」 | 失敗截圖是診斷關鍵；T3 連 PASS 也落、用作 visual baseline |
-| 「desktop 過就算過」 | 響應式時代必跨 viewport；至少 desktop + mobile |
-| 「dev server 沒起就直接 navigate」 | 必先確認 server 起；否則測的是 connection refused |
-| 「console error 不影響功能可忽略」 | regression 訊號；必抓、必回報、原則必修 |
-| 「Playwright MCP browser session 只能主 context 跑、不能 spawn subagent」 | **錯**（PR #16 驗過）；session 跨對話共用、agent 內可正常呼叫 browser tool。**但**必加 lifecycle 管理 |
-| 「production URL 也能跑」 | 禁；只在 local / preview / ephemeral；正式環境寫入類會污染 |
-| 「screenshot 直接貼對話」 | 對話貼 path、檔案落 docs/work/<branch-name>/test-reports/；含 user 資料先 mask |
-| 「跑一次過就算過」 | flaky 至少 retry 確認；連續 3 次仍 flaky 標 flaky_tests |
-| 「Playwright MCP 沒在就跳過」 | 必告知 user、不能跳；T3 UI 改動沒 e2e 不能 ship |
-| 「branch 名含 / 要轉成 `-` 才能當目錄」 | 不轉；`/` 保留為目錄層，報告才會跟同 branch 的 spec / plan 落同一夾 |
-| 「INCONCLUSIVE 看起來像失敗、當 FAIL 處」 | 環境問題 vs code 問題下游處置不同、必分流 |
+| 「unit test 過了不必跑 browser」「Playwright MCP 沒在就跳過」 | unit ≠ user 體驗，達門檻必跑 e2e；MCP 沒在必告知 user，T3 UI 沒 e2e 不能 ship |
+| 「截圖太麻煩」「screenshot 直接貼對話」「branch 名含 / 要轉成 `-`」 | 失敗截圖是診斷關鍵，T3 連 PASS 也落作 baseline；對話貼 path、檔落 docs/work/<branch-name>/test-reports/、`/` 不轉；含 user 資料先 mask |
+| 「desktop 過就算過」「console error 可忽略」「跑一次過就算過」 | 至少 desktop + mobile；console error 是 regression 訊號、必修；flaky 至少 retry，連續 3 次仍 flaky 標 flaky_tests |
+| 「dev server 沒起就 navigate」「INCONCLUSIVE 當 FAIL 處」「production URL 也能跑」 | 先確認 server 起，否則測的是 connection refused；環境 vs code 問題下游處置不同、必分流；只跑 local / preview / ephemeral |
+| 「Playwright MCP session 只能主 context 跑、不能 spawn subagent」 | **錯**；session 跨對話共用、agent 內可呼叫 browser tool，**但**必加 lifecycle 管理 |

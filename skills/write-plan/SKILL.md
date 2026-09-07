@@ -1,10 +1,8 @@
 ---
 name: write-plan
 description: |
-  從 spec 寫實作 plan（繁中）。載入：dev-workflow Phase 2（**T3 only**；brainstorm 產出 spec 後。T2 的施工清單在 spec 內，不進本 skill）；亦可由使用者顯式呼叫。
-  涵蓋：bite-sized task / 紅綠循環 / 並行性分析（parallel-group） /
-  spec → plan 對齊檢查 / 落檔 docs/work/&lt;branch-name&gt;/plan.md。
-  上游：brainstorm（產出 spec）。下游：review-plan → execute-plan。
+  從 spec 寫 implementation plan（繁中）：bite-sized task、parallel-group，落 docs/work/<branch-name>/plan.md。
+  載入：dev-workflow Phase 2，T3 only（T2 施工清單在 spec 內）。
 ---
 
 # write-plan

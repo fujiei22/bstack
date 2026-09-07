@@ -1,13 +1,8 @@
 ---
 name: execute-plan
 description: |
-  按 plan 推進實作（繁中）。載入：dev-workflow Phase 3（T3 由 review-plan user accept 後；T1 / T2 由 brainstorm 直接交棒、`plan_path` 為 null）；亦可由使用者顯式呼叫。
-  涵蓋：讀 plan、逐 task 紅綠循環、parallel-group 派 subagent、verify、commit、
-  task fail 處置、blocker 升級。
-  上游：review-plan（T3，user accept）；brainstorm（T1 / T2，`plan_path` null；T2 的 task 來源 = spec `## 施工清單`）。
-  下游：verify-done（全 task 完）。
-  **T0 不進本 skill**：rules.md §Tier 表的 T0 是「brainstorm / plan / TDD / review / security 全跳」，
-  dev-workflow 與 brainstorm 皆明訂 T0 直接實作後進 finish-branch。
+  逐 task 紅綠循環施工（繁中）：讀 plan（T3）或 spec 施工清單（T2）、verify、commit、fail 處置。
+  載入：dev-workflow Phase 3；T3 由 review-plan accept 後、T1 / T2 由 brainstorm 交棒；T0 不進本 skill。
 ---
 
 # execute-plan
