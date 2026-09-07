@@ -30,6 +30,10 @@
 | M7 | Eng | `wc -l` 目標可被刪空行湊數（dev-workflow 61 空行） | 目標改非空行 `grep -c .` + 每檔 bytes ≤ −20% 雙門檻 |
 | M8 | Eng | rules.md 逐段砍點會動到實質：§設計語言對齊 / §Tier 機制 bullet 裡 P11 / P9a / P12 不查的規則句、§協作 gate 句、§Branch safety P2d 護欄與「hook 隨 plugin 生效」、§Settings.json 三規則、L1-5 blockquote 沒列 | Task 26 逐段列必留子句；bytes 零餘裕如實註明 |
 | M9 | Eng | Task 18 指向 `rules.md §Commit 訊息`——該標題沒有 §；verify-done L72 指向 frontend-test 不存在的兩個 §（既有） | 指向不帶 §；砍法 5 註明；verify-done 懸空記 follow-up |
+| M10 | Eng | 22 個 subagent 同一工作樹跑契約：跨檔 check 半改狀態假紅、P9h / P12 訊息點不出檔、P2e 真 spawn 建刪 token 競態 | subagent 成品寫 `out/<name>.md`、不碰 skills/ 不跑契約、只跑守門 `--src`；主 agent 逐檔 copy + 守門 + 契約 + commit |
+| m1-m2 | Eng | 非白名單 § 改名算新增；headings 掃到 code block 內的 `##` | 守則 4 明寫「§ 只能刪不能改名」；守門標題只掃 code block 外 |
+| m3-m8 | Eng | Task 3 漏 §跨流程 skill 載入 表；白名單抓取範圍沒寫；spec「#67 / 9 個」實為 #69 / 11 個；缺 Step 2；lang-reviewer 焦點不是表；`-Check` 紅要告知 subagent | 全部改進 plan / spec |
+| nit | Eng | 加碽→加嚴、步驤→步驟、§Phase 0 圖正名；P9i 契約訊息提的 § 不存在（範圍外） | 前三改；最後記 follow-up |
 | 5 | DX | design-language / design-direction 需要半句分工；frontend-test 與其他不加 | Task 2 |
 | 6 | DX | execute-plan「T0 不進本 skill」只在 description | Task 2 留第三句 |
 | 7 | DX | §Branch safety 豁免段有四個意思、P2d 括號是護欄、「實測」二字是要人跑 node --version 的理由 | Task 26 拆四句 |
@@ -66,3 +70,4 @@
 | hypothesis-tester §輸入契約 刪一個 bullet | 紅 | 紅（步驟動詞 + bullet 數） |
 | security-checklist 整塊刪一個 code block | 綠 | 綠 |
 | 另：devwork description 刪 `/devwork`、rules.md 改 Tier 表一字、pr-explainer 改格式 block 標題、dev-workflow 圖刪一行、security-audit 第 3 步 spawn 改字 | 紅 | 全紅 |
+| `--src out/cmd-guard.md`（Red Flags 砍到 3 列的成品）對 baseline 檢查 | 綠 | 綠 |

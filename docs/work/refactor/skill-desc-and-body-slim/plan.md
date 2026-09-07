@@ -8,7 +8,7 @@
 
 **Goal**：A 34 條 description 合計 ≤2,000 tok；B 17 skill body + 6 agents 合計 **非空行** 3,318 → ≤2,674（−19%；review Eng M7 改數非空行）、bytes 175,771 → ≤140,600（−20%）（軟目標，總量以 Task 27 的量測為準、到不了攤數字）、bytes 同步降；C rules.md 非空 145 行 → ≤110、18,206 bytes → ≤14,000。三契約全綠、守門快照零差異。
 
-**Architecture**：先建守門腳本 v2 並對基線拍快照（Task 1），之後每個改動都能機械比對。A 與 C 由主 agent 親手改。B 每檔一個 subagent 平行改、不 commit，主 agent 收回後跑契約 + 守門、逐檔 commit。最後重產 references、總量斷言、施工紀錄。
+**Architecture**：先建守門腳本 v2 並對基線拍快照（Task 1），之後每個改動都能機械比對。A 與 C 由主 agent 親手改。B 每檔一個 subagent 平行改，**成品寫到 `docs/work/refactor/skill-desc-and-body-slim/out/<name>.md`、不碰 `skills/` `agents/`、不跑契約**（review Eng M10：22 個 subagent 在同一工作樹半改狀態下跑契約會間歇假紅、P2e 真 spawn 建刪 token 檔會競態）；subagent 只跑 `slim-guard-v2 check --only <name> --src out/<name>.md`。主 agent 逐檔 copy 進去、跑守門 + 三契約、commit。最後重產 references、總量斷言、施工紀錄。
 
 **Risks**：description 砍太短讓 `/bstack:<name>` 顯式呼叫時辨識變差（第一行「是什麼」保留；design-language / design-direction 各留半句分工）；rules.md 改壞是全 repo 事故（主 agent 改 + 三契約 + 守門 + review-plan Eng 逐行）；yaml「承上」實際只能刪與 dev-workflow 主 yaml **逐字相同**的行（多數 skill 的 yaml 值寫法不同，例 `tier: <T2/T3>` vs `<T0|T1|T2|T3>`），省幅會遠小於 spec 估的 344 行——施工紀錄如實記。
 
@@ -22,8 +22,8 @@
 1. frontmatter 整段一個字都不改（description 由主 agent 另一個 task 改，你不碰）。
 2. 「## 使用契約」底下的**編號步驟數量與順序**；每步的動作動詞（讀 / 判 / spawn / 交棒 / 跑 / commit / 回傳 / 寫 / 載 / 派 / 問 / AskUserQuestion）與反引號片段保留，句子可縮。沒有使用契約段的檔（agents / security-checklist / db-access）：「角色職責」「§輸入契約」「§嚴格 output 格式」段的**每一條 bullet 與粗體關鍵詞**都保留，句子可縮。
 3. **所有 AskUserQuestion 選單逐字保留**：含 `AskUserQuestion` 字樣的句子之後的第一個清單整塊不動。
-4. **被外部引用的 § 標題不改名、不刪**（白名單 task 各自列）；白名單外的 § 可合併 / 刪；**不新增本來沒有的 §**。
-5. 契約斷言字樣：改完跑 `node scripts/plugin-contract.mjs 2>&1 | grep -E "FAIL|ALL PASS"`，**只處理錯誤訊息點名到自己這個檔的 FAIL**（把那句改回去），別檔的 FAIL 原樣回報、**不改契約**。
+4. **§ 標題只能整段刪、不能改名、不能新增**（守門用全等比對，「§Result handling（8a-8d 完整分支）」縮成「§Result handling」也算改名）；被外部引用的白名單 § 連刪都不行（task 各自列）。code block 內長得像標題的行（write-skill 範本 `## §<段一名>`、pr-explainer 格式 block `## 整體脈絡`）是內容不是標題，守門不掃、你也不動（守則 7）。
+5. **不跑 `scripts/plugin-contract.mjs`、不跑 `build-references.ps1`**（跨檔契約在別人半改狀態下會假紅、P2e 有競態、`-Check` 從 Task 2 起就紅是刻意的）。契約由主 agent 收檔後跑；被點名到你的檔時主 agent 會附訊息重派。你只跑守門：`node docs/work/refactor/skill-desc-and-body-slim/slim-guard-v2.mjs check docs/work/refactor/skill-desc-and-body-slim/baseline-4de4e83.json --only <name> --src <你的成品路徑>`。
 6. 指令 / 路徑 / 檔名 / regex / 反引號片段 / 數字精確保留（一般名詞片段可隨段落刪；**regex / 路徑 / 旗標型片段不准消失**）；**不新增反引號片段**。
 7. **code block 只能整塊刪、不能改、不能新增、不能合併**（守門逐塊比對）。yaml 區塊例外走行級：只能刪與 dev-workflow §Skill hand-off state 主 yaml **逐字相同**的行、並補一行 `# 承上 dev-workflow §Skill hand-off state`；其餘行一個字不改。**表格**：整張可刪（改成指向），**不可刪單列、改列、新增列**；只有 §Red Flags 表可合併改寫（≤5 列）。
 8. **agent 檔與跨流程 skill 裡「依 rules.md §X」後面內嵌的規則條目逐條留**——agent 在獨立 context 只有自己的 md，rules.md / security-checklist / 其他 skill 都讀不到；指向句可以加、**不能取代**內嵌條目（db-reviewer §使用 mysql MCP 三條、security-auditor §Checklist 主題 14 條、hypothesis-tester §PII、frontend-e2e-runner PII 段、lang-reviewer PII 行都屬此類）。
@@ -36,12 +36,11 @@
 5. 別檔已有的表 / 清單 → 一行 `見 <skill> §<段名>` 或 `見 rules.md §<段名>`（**指向前先 grep 該標題存在**，把 `檔:行` 寫進回報；rules.md 的「Commit 訊息」「Branch 命名」「GitHub Flow」等標題**沒有 §**，指向時不帶 §）。
 6. 空行 / `---` 分隔線可刪但不算數——bytes 也要降。
 
-**產出（回報格式，不 commit、不動別的檔）**：
+**產出（成品寫 `out/<name>.md`；不 commit、不動 `skills/` `agents/`）**：
 ```
-檔：<path>
-行數：N → M（目標 T）  bytes：B0 → B1
-守門：node docs/work/refactor/skill-desc-and-body-slim/slim-guard-v2.mjs check docs/work/refactor/skill-desc-and-body-slim/baseline-4de4e83.json --only <name> → PASS | FAIL <訊息原文>
-契約：ALL PASS | FAIL <點名自己檔的條目與處置> | 其他檔 FAIL：<原樣>
+檔：<原路徑> → 成品：docs/work/refactor/skill-desc-and-body-slim/out/<name>.md
+非空行：N → M（目標 T）  bytes：B0 → B1（目標 ≤B）
+守門：… check … --only <name> --src out/<name>.md → PASS | FAIL <訊息原文>
 砍掉的段：<列>
 刪掉的引言：<每條：原句一句摘要 + 基線 檔:行>
 改寫（非刪除）的段：<列段名>
@@ -51,7 +50,7 @@ yaml 承上刪掉的行：<列，或「無」>
 被迫動到「不能動」項：無 | <哪一條、為什麼>
 ```
 
-**失敗處置（主 agent）**：行數差目標 ≤10% → 接受、施工紀錄註明；差 >10% 或動到「不能動」項或守門紅 → `git checkout <檔>` 回基線、附上守門訊息重派一次；第二次仍到不了 → 接受現況、施工紀錄與 PR body 明列。**不得由 subagent 自行放寬。**
+**失敗處置（主 agent）**：copy 進 `skills/` 後跑守門 + `node scripts/plugin-contract.mjs`；非空行差目標 ≤10% → 接受、施工紀錄註明；差 >10% 或守門 / 契約點名該檔紅 → `git checkout <檔>` 回基線、附上訊息重派一次；第二次仍到不了 → 接受現況、施工紀錄與 PR body 明列。**不得由 subagent 自行放寬。**
 
 ---
 
@@ -61,10 +60,11 @@ yaml 承上刪掉的行：<列，或「無」>
 **files**: `docs/work/refactor/skill-desc-and-body-slim/{slim-guard-v2.mjs, measure.mjs, baseline-4de4e83.json}`
 
 - [ ] Step 1: 紅 = 檔不存在
-- [ ] Step 3: 守門抽取與規則（review Eng C1 / C2 / M1 / M2 / M3 補強後）：
+- [ ] Step 3: 守門腳本自寫（#69 那輪的 slim-guard.mjs 只在當時 session 的 scratchpad、沒進 archive）；抽取與規則（review Eng C1 / C2 / M1 / M2 / M3 / m1 / m2 補強後）：
   - fmRest（frontmatter 去 description）逐字；description 第一行非空、無「觸發：」、PROTECTED 字樣仍在（devwork `/devwork` `不因`、dev-workflow / brainstorm `不因自然語言自動觸發`、pr-explain `T3`、design-language `命中` `才載`、**design-direction `T2 → 回 \`brainstorm\``（P9i 全檔計數 === 2，其中一處在 description）**、lang-reviewer `顯式`、security-auditor `純文件`）。
   - 使用契約步驟：編號序全等 + **每步動詞集合與反引號集合 砍後 ⊇ 基線**；沒有使用契約段的檔退到 body 第一個編號清單。
-  - § 白名單必留、不新增 §。
+  - § 白名單必留、不新增 / 不改名（全等比對）；標題只掃 code block 之外。
+  - `--src <path>`：用 out/ 成品當某檔現況比對（subagent 用）。
   - **所有 fenced block** normalize 後必須等於某個基線 block（可整塊刪、不可改 / 新增）；yaml 行級：砍後每行 ∈ 基線該檔 ∪ dev-workflow 主 yaml ∪ `# 承上`，消失的行 ⊆ 主 yaml。
   - AskUserQuestion 後不在 code block 的選單清單全等。
   - **表格以連續 `|` 行為一張**：整張可刪、不可刪單列 / 改列 / 新增列；§Red Flags 表除外（已改動時 ≤5 列）。
@@ -96,11 +96,11 @@ yaml 承上刪掉的行：<列，或「無」>
 **parallel-group**: 3
 **files**: 各自 `skills/<name>/SKILL.md`
 
-五步相同：Step 1 紅 = **非空行** `grep -c . <檔>` > 目標；Step 3 依 §共同施工守則 + 下表；Step 4 非空行 ≤ 目標（軟）**且 bytes ≤ 基線 −20%**（兩個都要，防刪空行湊數——dev-workflow 光刪空行就從 290 到 229）、契約 ALL PASS、守門 PASS；Step 5 主 agent commit `refactor: <name> 文本瘦身`。
+五步相同（Step 2「跑紅」併入 Step 1 的量測、不另列）：Step 1 紅 = **非空行** `grep -c . <檔>` > 目標；Step 3 依 §共同施工守則 + 下表；Step 4 非空行 ≤ 目標（軟）**且 bytes ≤ 基線 −20%**（兩個都要，防刪空行湊數——dev-workflow 光刪空行就從 290 到 229）、契約 ALL PASS、守門 PASS；Step 5 主 agent commit `refactor: <name> 文本瘦身`。
 
 | Task | 檔 | 行 → 目標 | 白名單 § | 砍點 / 必留 |
 |---|---|---|---|---|
-| 3 | dev-workflow | 非空 229 → ≤185（bytes ≤11,300） | §Track × Tier × Phase 路徑 §Skill hand-off state §Trace 標籤 §Auto-fix 原則 §Fail handling §Memory hook 點 §跨流程 skill 載入 | Phase 0 圖、Dev / Bug track 圖、主 yaml 三個 block 逐字（守門逐塊比）；§Trace 標籤 留格式 + 省略時機、範例刪一個 block；§Auto-fix / §Fail handling 各縮成「見 rules.md §同名」+ 本 skill 特有一句（T3 加碼 / fail_history append）；§跟 rules.md 的關係 表**整張留或整張刪**（不縮列）→ 刪、改一句；§載入此 skill 後第一句台詞 留台詞 block；Red Flags 10→5（留「trivial 不用走流程」「不問 user 直接決定 tier」「risky 改動我評估安全」「skill 之間自由跳」「fail 多 retry」） |
+| 3 | dev-workflow | 非空 229 → ≤185（bytes ≤11,300） | §Track × Tier × Phase 路徑 §Skill hand-off state §Trace 標籤 §Auto-fix 原則 §Fail handling §Memory hook 點 §跨流程 skill 載入 | §Phase 0 入口分流 的圖、Dev / Bug track 圖、主 yaml 三個 block 逐字（守門逐塊比）；**§跨流程 skill 載入 表整張逐字**（P9c / P10b / P11 讀其中三列）；§Trace 標籤 留格式 + 省略時機、範例刪一個 block；§Auto-fix / §Fail handling 各縮成「見 rules.md §同名」+ 本 skill 特有一句（T3 加嚴 / fail_history append）；§跟 rules.md 的關係 表**整張留或整張刪**（不縮列）→ 刪、改一句；§載入此 skill 後第一句台詞 留台詞 block；Red Flags 10→5（留「trivial 不用走流程」「不問 user 直接決定 tier」「risky 改動我評估安全」「skill 之間自由跳」「fail 多 retry」） |
 | 4 | design-direction | 非空 240 → ≤175（bytes ≤16,000） | §對外契約 §與 dev-workflow 銜接 | §核心哲學 / §反 AI slop 散文各縮半、清單項不刪；三 subagent prompt block 逐字；§References 路由 表整張留；§圖片是不是必需 縮散文、表留；body 的 `T2 → 回 \`brainstorm\`` 那句逐字（P9i）；Red Flags 10→5 |
 | 5 | design-language | 非空 203 → ≤150（bytes ≤14,000） | §前端副檔名 §對外契約 §兩根尺 §首次偵測 §設計語言抽取 §對齊檢查清單 §與 dev-workflow 銜接 | §前端副檔名 block 與 `.sass` 註記逐字（P11）；§對外契約 表逐字；§`design-map.md` 格式 範例表整張留（不縮列）、欄說明表留；§失效檢查 三條件、終止條件、bash block 留；引言處理（**一行必含要素**）：「為什麼這步必須在最前面」→ 每專案每 task 付偵測成本；「為什麼錨定 `*/SKILL.md`」→ 產品目錄叫 skills/ 會被靜默排除；「為什麼要兜底」→ 失效方式是**靜默**說沒設計語言；§失效檢查「第 3 條治的是」→ 新區塊長在舊 glob 底下、前兩條不響、比沒地圖更糟；「為什麼不用數量門檻」→ **保留 26 vs 34 兩個數字**；§對齊檢查清單「什麼時候要回去補讀」的括號理由（前一版無限迴圈）**留一行**；Red Flags 8→5（必留「T1 這麼小」「抽不到拿隔壁區頂替」「先寫 design-map」） |
 | 6 | dispatch-parallel | 非空 218 → ≤165（bytes ≤11,000） | §協作模式判定 §隊友派工 §Spawn 細節 | §協作模式判定 判準表、選單範本 block、硬規則四點、「唯讀 fan-out」兩理由逐字（rules.md 指向這裡）；派工 prompt / Spawn prompt block 逐字；「完成後」引言縮一行**必含**：五個 subagent 全部只送 idle 訊號、原因是沒人告訴它們要送；§隊友專屬注意 表**整張留**（不縮列）；§跟 user 互動 縮半；P9i 守 `施工清單` 在、無 `→ 退 write-plan$`；Red Flags 13→5（必留「能平行就開 Agent Teams」「多視角 review 互辯」「判定完直接開隊友」） |
@@ -128,7 +128,7 @@ yaml 承上刪掉的行：<列，或「無」>
 | 20 | db-reviewer | 非空 113 → ≤92（bytes ≤3,800） | §檢查焦點 §回報格式 | §檢查焦點 每焦點留「查什麼 + 紅線」、範例句刪；結論範本 block 逐字；§使用 mysql MCP **三條規則逐條留**（agent 讀不到 rules.md），只刪四條「例：」 |
 | 21 | frontend-e2e-runner | 非空 160 → ≤125（bytes ≤6,800） | §輸入契約 §嚴格 output 格式 §使用 tool 範圍 | §Session lifecycle 步驟留、理由縮；§判定標準 表整張留；output 格式 block 逐字；**PII 段內嵌規則逐條留**；Red Flags 8→5 |
 | 22 | hypothesis-tester | 非空 102 → ≤85（bytes ≤4,900） | §輸入契約 §嚴格 output 格式 §使用 tool 範圍 §PII | output 格式 block 逐字；§三種 Verdict / §Confidence 標準 各縮句（**不合成新表**）；§Unexpected findings 的價值 縮一段；**§PII 內嵌規則逐條留**；Red Flags 6→5 |
-| 23 | lang-reviewer | 非空 134 → ≤115（bytes ≤4,550） | §回報格式 | §語言檢查焦點 88 行內容表**整張留**，每語言說明句縮；§通用 review 框架 縮；結論範本 block 逐字；**PII 行留** |
+| 23 | lang-reviewer | 非空 134 → ≤115（bytes ≤4,550） | §回報格式 | §語言檢查焦點 88 行是 `###` 分語言 + bullet（不是表）：**九個語言小節與每條 bullet 都留**，只縮 bullet 內說明句；§通用 review 框架 縮；結論範本 block 逐字；**PII 行留** |
 | 24 | pr-explainer | 非空 107 → ≤100（bytes ≤3,700；75 行是兩個逐字留的格式 block，Eng 算硬下限 110 含空行） | §Tier 控詳盡度 §文件結構標準 §使用 tool 範圍 | §文件結構標準 範本 block 逐字（pr-explain 指向）；「風格」段縮；六段引言縮一行；Red Flags 7→5 |
 | 25 | security-auditor | 非空 120 → ≤98（bytes ≤5,300） | §PII 安全底線 §回報格式 §使用 tool 範圍 | STRIDE / OWASP 兩表整張留、說明縮；**§Checklist 主題 14 條主題名逐條留**（可縮到主題名 + 括號 2-3 關鍵字；agent 讀不到 security-checklist），只刪「STRIDE 抓架構威脅 → checklist 抓實作 bug」類說明句、指向句可加不可取代；結論範本 block 逐字；Red Flags 7→5 |
 

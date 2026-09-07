@@ -5,7 +5,7 @@
 
 ## 動機 / Why
 
-#67 只瘦了九階段 skill 的散文（行 −38%、bytes −13%），沒碰 frontmatter description、其餘 17 個 skill、6 個 agents、rules.md。量測（基線，token 為估算：CJK 1.2 / 字、ASCII 3.8 字 / token）：
+#69（接替 #67）只瘦了 11 個階段 skill 的散文（行 −38%、bytes −13%），沒碰 frontmatter description、其餘 17 個 skill、6 個 agents、rules.md。量測（基線，token 為估算：CJK 1.2 / 字、ASCII 3.8 字 / token）：
 
 | 類別 | 量 | 載入時機 |
 |---|---|---|
@@ -28,11 +28,11 @@
 ## 範圍 / Scope
 
 **包含**：A、B、C 三塊（user 2026-09-07 選定）。
-**排除**：design-direction 的 4 份 references（33k tok，內容目錄非冗文、只在大改路徑載；user 同意不動）；#67 已瘦的 9 個 skill body 不再動（description 除外）；README / docs 站文案；契約腳本（只在 FAIL 點名時把字改回去，不改契約本身）。
+**排除**：design-direction 的 4 份 references（33k tok，內容目錄非冗文、只在大改路徑載；user 同意不動）；#69 已瘦的 11 個 skill body 不再動（description 除外）；README / docs 站文案；契約腳本（只在 FAIL 點名時把字改回去，不改契約本身）。
 
 ## 零改變界線（user 確認）
 
-**一字不動**：使用契約編號步驤數與順序、每步動作動詞；AskUserQuestion 選單全部選項文字；yaml 欄位名；契約斷言字樣；指令 / 路徑 / 檔名 / regex / 反引號片段 / 數字；被外部引用的 § 標題名。
+**一字不動**：使用契約編號步驟數與順序、每步動作動詞；AskUserQuestion 選單全部選項文字；yaml 欄位名；契約斷言字樣；指令 / 路徑 / 檔名 / regex / 反引號片段 / 數字；被外部引用的 § 標題名。
 **可砍**：措辭、重複說明、同類範例只留一個、歷史敘事（日期 + 實測經過 → 留「機制一句 + 後果一句」或整段刪）、別檔已有的表改一行指向、`§結尾 Trace 標籤` 整段改一行「結尾貼 rules.md §Trace 標籤」、hand-off yaml 只留本 skill 新增 / 改寫的欄（上游欄以「承上」一行代替；欄名一個不少）、Red Flags 表 ≤5 列（同義列合併）。
 
 ## 影響檔案 / Codebase impact
@@ -47,7 +47,7 @@
 | `docs/js/references-data.js` | 重產 | 產出檔 |
 | `docs/work/…/slim-guard-v2.mjs` | new（一次性） | 守門腳本，隨 spec 歸檔 |
 
-## 被外部引用的 § 標題白名單（守門必留、不改名；xref 自動抓，基線 4de4e83）
+## 被外部引用的 § 標題白名單（守門必留、不改名；xref 自動抓，基線 4de4e83；抓取範圍 = 全部 skill / agent / rules.md / README / docs/index.html / docs/js/data.js / 兩支契約 / hooks/guard.mjs）
 
 - design-direction：`§對外契約` `§與 dev-workflow 銜接`
 - design-language：`§前端副檔名` `§對外契約` `§兩根尺` `§首次偵測` `§設計語言抽取` `§對齊檢查清單` `§與 dev-workflow 銜接`
@@ -57,7 +57,8 @@
 - write-skill：`§新 skill 落地 checklist`
 - rules.md：全部 16 個（`§白話優先` `§事實核實` `§Task 追蹤` `§決策點選單` `§Branch safety` `§File-type 硬規則` `§PII 安全底線` `§DB 操作` `§設計語言對齊` `§Docs 落檔` `§Tier 機制` `§協作模式判定` `§Trace 標籤` `§Auto-fix` `§Fail handling` `§Settings.json`）
 - agents：db-reviewer `§檢查焦點` `§回報格式`；frontend-e2e-runner / hypothesis-tester `§輸入契約` `§嚴格 output 格式` `§使用 tool 範圍`；lang-reviewer `§回報格式`；pr-explainer `§Tier 控詳盡度` `§文件結構標準` `§使用 tool 範圍`；security-auditor `§PII 安全底線` `§回報格式` `§使用 tool 範圍`
-- 其餘 skill 的 § 只被自己引用，可合併 / 刪，**不得新增本來沒有的 §**。
+- 其餘 skill 的 § 只被自己引用，可整段刪，**不得新增、不得改名**（守門全等比對）。
+- 抓法看不到「引用了但目標不存在」：verify-done L72 指向 frontend-test 不存在的 §測試流程 / §測試報告、rules.md §協作模式判定 末句指向不存在的 dispatch-parallel「隊友派工範本」段名、契約 P9i 訊息提的 dispatch-parallel §subagent 派工 / §失敗處置 不存在——前兩個 Task 26 / follow-up 處理，契約訊息範圍外記 follow-up。
 
 ## 設計方向
 
