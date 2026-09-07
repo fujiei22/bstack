@@ -7,7 +7,7 @@ description: |
 
 # context-snapshot
 
-把當前 dev-workflow state + 關鍵 decision + pending 寫到磁碟、下個 session 可被 context-resume 接回。
+把 dev-workflow state + 關鍵 decision + pending 寫到磁碟，供下個 session 用 context-resume 接回。
 
 ## 使用契約
 
@@ -23,8 +23,6 @@ description: |
 2. 詢 user 是否要存（無顯式觸發 case 才問；顯式觸發直接存）
 3. 寫到 `docs/snapshots/<topic-slug>-<ISO-ts>.md`
 4. 印 path、告知 user 怎麼 resume
-
----
 
 ## §快照結構
 
@@ -96,61 +94,26 @@ Resume 流程：
 3. 接續 progress 列的「進行中 task」「下一步」
 ```
 
----
-
 ## §存哪些東西
 
-**存**：
-- state YAML（完整）
-- 已 / 進行中 / 未開始 task 清單
-- 關鍵 decision（gate point 選擇、tier override、review override）
-- pending user input（如未答 AskUserQuestion）
-- relevant file path（spec / plan / review / snapshot 自身）
-
-**不存**：
-- code diff（已在 git 內，重複）
-- 整個 codebase（重複）
-- review subagent 完整 output（太大；保留摘要）
-- secret / PII（依 safety-guard 篩）
-
----
+- **存**：state YAML、已 / 進行中 / 未開始 task 清單、關鍵 decision（gate 選擇、tier / review override）、pending user input、相關 path（spec / plan / review / snapshot 自身）
+- **不存**：code diff / codebase（git 已有）、review 完整 output（留摘要）、secret / PII（依 safety-guard 篩）
 
 ## §存哪裡
 
-`docs/snapshots/<topic-slug>-<ISO-ts>.md`
-
-- `topic-slug`：對齊 `docs/work/<branch-name>/` 的 slug
-- ISO-ts：`2026-05-13T14-30-00`（檔名禁`:`，用 `-`）
-
-可選：`docs/snapshots/index.md` 維 list（每 entry 1 行）— 但這需 user 啟動才做、不自動。
-
----
+- `docs/snapshots/<topic-slug>-<ISO-ts>.md`；`topic-slug` 對齊 `docs/work/<branch-name>/`；ISO-ts 如 `2026-05-13T14-30-00`（檔名禁`:`，用 `-`）
+- 可選 `docs/snapshots/index.md`（每 entry 1 行），user 啟動才做、不自動
 
 ## §commit snapshot 不？
 
-snapshot 是 transient state、不算 deliverable。
-
-預設 **不 commit snapshot**：
-- 加到 `.gitignore` 的 `docs/snapshots/`
-- snapshot 是 local-only
-
-但若 user 想跨機器 / 跨 session 用：
-- `AskUserQuestion` 問是否 commit
-- 確認 sensitive content 已被 safety-guard 篩過才 commit
-
----
+- 預設**不 commit**：transient、非 deliverable、local-only；`docs/snapshots/` 進 `.gitignore`
+- user 要跨機器 / 跨 session 用：
+  - `AskUserQuestion` 問是否 commit
+  - 確認 sensitive content 已被 safety-guard 篩過才 commit
 
 ## §跟 memory 系統互動
 
-snapshot **不是 memory**：
-- snapshot = 當下進度（暫時）
-- memory = 長期偏好 / 領域知識（持久）
-
-但 snapshot 內若出現「值得 long-term 記住」的 decision，user 可手動載 memory：依 Claude Code auto memory 規則寫到 `~/.claude/projects/.../memory/`。
-
-snapshot 不主動寫 memory（避免雜訊）。
-
----
+snapshot 是暫時進度、memory 是持久偏好 / 領域知識；snapshot 不主動寫 memory（避免雜訊）。值得長期記住的 decision，user 手動依 auto memory 規則寫到 `~/.claude/projects/.../memory/`。
 
 ## §hand-off state
 
@@ -162,13 +125,9 @@ state:
 
 不推進 phase（橫向 skill）。
 
----
-
 ## §結尾 Trace 標籤
 
-由呼叫 phase 帶。
-
----
+不貼自身 trace，由呼叫 phase 帶。
 
 ## §Red Flags
 
