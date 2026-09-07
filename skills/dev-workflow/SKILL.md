@@ -90,7 +90,7 @@ Track / Tier 的預判表與「命中 File-type 硬規則自動升至少 T2」�
    ↓
 6. security-audit（OWASP + STRIDE）
    ├─ T2 = 涉認證 / 資料層 / API 邊界才用
-   └─ T3 = 必用 + security-checklist + db-reviewer（DB 改動）
+   └─ T3 = 程式碼 diff 必用 + security-checklist + db-reviewer（DB 改動）；純文件 diff 且無 File-type 硬規則命中 → 跳（沿用 request-review 的 code_review_applicable）
    ↓
 7. finish-branch（含 git workflow 細則 + branch-safety）
    ↓

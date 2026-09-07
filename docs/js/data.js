@@ -144,11 +144,11 @@ const FLOW_DATA = {
     AskFix:       { phase: 'phase_review', type: 'gate',    shape: 'diamond', label: '危險：AskUserQuestion\n問該不該修 / 怎麼修' },
 
     // ───────── Phase 6：security-audit + checklist + db-reviewer ─────────
-    SecQ:         { phase: 'phase_sec', type: 'default', shape: 'diamond', label: '觸發 security？\nT2 涉認證 / 資料層；T3 必跑' },
+    SecQ:         { phase: 'phase_sec', type: 'default', shape: 'diamond', label: '觸發 security？\nT2 涉認證 / 資料層；T3 程式碼 diff 必跑\n純文件 diff 且無 File-type 硬規則命中 → 跳' },
     LoadSec:      { phase: 'phase_sec', type: 'skill',   shape: 'rect',    label: '載入 skill：security-audit' },
     SecAgent:     { phase: 'phase_sec', type: 'agent',   shape: 'rect',    label: '派 agent：security-auditor\nOWASP Top 10 + STRIDE + PII 檢查' },
     SecCritical:  { phase: 'phase_sec', type: 'gate',    shape: 'diamond', label: '§Critical-finding 流程（4 選項）\n採用建議 fix / 改 fix / 標 known issue 進 PR\n/ 退回 execute-plan 重做\n多個 Critical 一個一個問，不批次' },
-    LoadChk:      { phase: 'phase_sec', type: 'skill',   shape: 'rect',    label: '載入 skill：security-checklist\n（T3 必跑）' },
+    LoadChk:      { phase: 'phase_sec', type: 'skill',   shape: 'rect',    label: '載入 skill：security-checklist\n（T3 程式碼 diff 必跑；純文件 diff 同 SecQ 跳）' },
     DBQ:          { phase: 'phase_sec', type: 'default', shape: 'diamond', label: 'T3 涉 DB schema / migration？' },
     DBAgent:      { phase: 'phase_sec', type: 'agent',   shape: 'rect',    label: '派 agent：db-reviewer\nschema / index / migration 安全' },
 
