@@ -127,7 +127,7 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
-- **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構為準；超過 8 列代表 Tier 判低了，回 0d 升 T3。
+- **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構為準；超過表列上限代表 Tier 判低了，回 0d 升 T3。
 - **code review 先看副檔名再看 Tier**：diff 含程式碼副檔名才跑內建 code-review（抓 bug / 可簡化處，不帶 `--fix`、finding 交 receive-review）；只有 .md / 文案 / prompt / 資料檔的純文件 diff 跳過，一致性靠契約腳本與 review-plan。「符合 spec / 規則書」內建的不看：T2 主 agent 自檢、T3 派一個 subagent。判定表見 `request-review` §副檔名分流。
 - **`lang-reviewer` agent 不自動 spawn**：語言 idiom / pitfall 提示由 request-review 依副檔名寫進 T3 對齊 subagent 的 prompt；user 顯式要「用 lang-reviewer 看」才派。
 - **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state。「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
