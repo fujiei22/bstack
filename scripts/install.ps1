@@ -69,14 +69,17 @@ if ($Yes -and -not $Scope) { throw '-Yes 需搭配 -Scope user|project' }
 Step 1 '前置檢查'
 $ok = $true
 if ($PSVersionTable.PSVersion.Major -lt 7) {
-    Write-Host "  ✘ 需要 pwsh 7+（目前 $($PSVersionTable.PSVersion)）。Windows：winget install Microsoft.PowerShell；macOS：brew install powershell" -ForegroundColor Red; $ok = $false
-} else { Write-Host "  ✔ pwsh $($PSVersionTable.PSVersion)" }
+    Write-Host "  ✘ 本腳本需要 pwsh 7+（目前 $($PSVersionTable.PSVersion)；hook 不需要 pwsh，hook 跑 node）。Windows：winget install Microsoft.PowerShell；macOS：brew install powershell" -ForegroundColor Red; $ok = $false
+} else { Write-Host "  ✔ pwsh $($PSVersionTable.PSVersion)（本腳本用；hook 不需要）" }
+# hook 是 node 腳本（hooks/guard.mjs）；Claude Code 是 native binary、不自帶 node，缺了 hook 起不來、保護不存在
+if (Get-Command node -ErrorAction SilentlyContinue) { Write-Host "  ✔ node $((node --version 2>$null))（hook 用）" }
+else { Write-Host "  ✘ 找不到 node（hook 必需）。Windows：winget install OpenJS.NodeJS.LTS；macOS：brew install node" -ForegroundColor Red; $ok = $false }
 if (Get-Command claude -ErrorAction SilentlyContinue) { Write-Host "  ✔ claude CLI：$((claude --version 2>$null | Select-Object -First 1))" }
 else { Write-Host "  ✘ 找不到 claude CLI（不在 PATH）。先裝 Claude Code 再跑本腳本。" -ForegroundColor Red; $ok = $false }
 if (Get-Command git -ErrorAction SilentlyContinue) { Write-Host "  ✔ git" } else { Write-Host "  ✘ 找不到 git" -ForegroundColor Red; $ok = $false }
 if (-not (Test-Path -LiteralPath $Extras)) { Write-Host "  ✘ 找不到 $Extras，請在 clone 的 repo 內跑" -ForegroundColor Red; $ok = $false }
 if (-not $ok) { exit 1 }
-Write-Host "  提醒：hook 需要 pwsh 在**啟動 Claude Code 的環境** PATH 內；沒有時 hook 會靜默失效。"
+Write-Host "  提醒：hook 需要 node 在**啟動 Claude Code 的環境** PATH 內（Dock / 捷徑開的 app 未必吃到 shell 的 PATH）；沒有時 hook 起不來、Windows 實測不會報錯、保護不存在。"
 
 # ── 2. 清舊副本 ──────────────────────────────────────────────────────────────
 Step 2 '清舊 setup.ps1 副本'
@@ -91,7 +94,7 @@ else {
 
 # ── 3. 裝 plugin ─────────────────────────────────────────────────────────────
 Step 3 '裝 plugin'
-Write-Host "  [u] 使用者層級：所有專案都能用 /devwork；兩支 hook 在你所有專案生效"
+Write-Host "  [u] 使用者層級：所有專案都能用 /devwork；hook 在你所有專案生效"
 Write-Host "  [p] 目前專案：只在 $ProjectRoot 生效（寫進該專案 .claude/settings.json）"
 Write-Host "  [t] 不安裝，只印試用指令（claude --plugin-dir）"
 Write-Host "  [s] 跳過"

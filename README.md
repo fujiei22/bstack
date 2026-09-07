@@ -82,14 +82,14 @@
 
 ## Hooks
 
-兩支 PreToolUse hook 由 plugin 的 `hooks/hooks.json` 註冊，在**啟用 plugin 的專案一律生效、不需要 `/devwork`**。不想要就 `/plugin disable bstack@bstack`。每次 Write / Edit 會多起兩個 pwsh 程序：實測（pwsh 7.4、Windows 11）每支約 1.2 秒，兩支合計約 2.5 秒，屬正常，大部分是 pwsh 啟動時間。
+一支 PreToolUse hook（`hooks/guard.mjs`，兩段檢查）由 plugin 的 `hooks/hooks.json` 註冊，在**啟用 plugin 的專案一律生效、不需要 `/devwork`**。不想要就 `/plugin disable bstack@bstack`。每次 Write / Edit 會起一個 node 程序：實測（node 22、Windows 11）repo 內的檔約 0.45 秒（含一次 `git rev-parse`）、repo 外約 0.27 秒；2026-09-07 之前是兩支 pwsh 合計約 3 秒。
 
-| Hook | 用途 |
+| 段 | 用途 |
 |---|---|
-| **branch-safety.ps1** | 命中 `main / master / production / prod / release` 直接 block 寫入動作，訊息附開 branch 的做法 |
-| **file-type-guard.ps1** | 按副檔名 / 路徑分流：密鑰類硬擋；migration / lockfile / CI / infra 類先擋，二次確認後由 AI 在系統 temp 建一次性 token 放行 |
+| **branch-safety 段** | 命中 `main / master / production / prod / release` 直接 block 寫入動作，訊息附開 branch 的做法；只管 project repo 底下的檔 |
+| **file-type 段** | 按副檔名 / 路徑分流：密鑰類硬擋；migration / lockfile / CI / infra / shell config 類先擋，二次確認後由 AI 用 `node hooks/guard.mjs --token <path>` 在系統 temp 建一次性 token 放行；**不看 repo 範圍**，`~/.gitconfig` 也擋 |
 
-**pwsh 7+ 是 hook 必需，而且要在啟動 Claude Code 的環境 PATH 內**（macOS 從 Dock 開的 app 不一定吃到 brew 的 PATH；用 `which pwsh` / `Get-Command pwsh` 驗）。Windows 實測：PATH 裡沒有 pwsh 時 hook **靜默失效**，Claude Code 不印任何錯誤、檔案照寫，你不會知道保護不存在。macOS / Linux 未實測，推斷會在 transcript 印一行 hook 錯誤但一樣照寫。裝法：Windows `winget install Microsoft.PowerShell`、macOS `brew install powershell`、Linux 見 [官方文件](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)。
+**hook 需要 `node` 在啟動 Claude Code 的環境 PATH 內**（`node --version` 驗；macOS 從 Dock 開的 app 不一定吃到 brew 的 PATH）。**Claude Code 自己不帶 node**——官方 setup 文件寫明 `claude` 是 native binary、npm 裝法也只是下載 binary，所以 native 安裝的機器要另裝 node。缺了會怎樣：官方 hooks 文件說 hook 起不來會印一行 non-blocking 通知、工具照跑；Windows 實測（2026-09-07，`claude -p` stream-json）連通知都沒有、檔案照寫——**保護一樣不存在**，跟舊版缺 pwsh 一樣。pwsh 7+ **只有 `scripts/install.ps1` / `scripts/extras.ps1` 兩支可選的輔助腳本需要**，不跑它們、照下面 `/plugin` 兩行也裝得起來；貢獻者另需 pwsh 跑 `scripts/build-references.ps1`。
 
 ---
 
@@ -99,10 +99,10 @@
 
 | 項目 | 用途 |
 |---|---|
-| **pwsh 7+** | 兩支 hook 與 `scripts/extras.ps1`；缺了 hook 靜默失效（見上） |
+| **Node.js**（含 npx） | **hook 必需**（缺了 hook 起不來、保護不存在，見上）；MCP 也用 |
 | **git** | repo 操作 |
+| **pwsh 7+** | 只有 `scripts/install.ps1` / `scripts/extras.ps1` 這兩支可選腳本、與開發本 repo（`build-references.ps1`）需要 |
 | **bash + jq** | 只有選了 statusLine 才需要（`winget install jqlang.jq` / `brew install jq`） |
-| **Node.js + npx** | 只有選了 MCP 才需要 |
 
 ### 一站式（推薦第一次裝的人）
 
@@ -131,7 +131,7 @@ pwsh -File scripts/install.ps1
 
 `bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。clone 這個專案的隊友是否會被自動安裝 plugin，官方文件沒明說，所以範本與這兩行都留著。
 
-**A2. 使用者層級**：不放範本、直接跑上面兩行。Claude Code 會把 plugin 快取在 `~/.claude/plugins/`、在它自己的 settings 記一筆 `enabledPlugins`。這是 Claude Code 的登記機制，`/plugin uninstall bstack@bstack` 可反悔，**不會覆蓋你任何既有設定**。代價：兩支 hook 會在你所有專案生效。
+**A2. 使用者層級**：不放範本、直接跑上面兩行。Claude Code 會把 plugin 快取在 `~/.claude/plugins/`、在它自己的 settings 記一筆 `enabledPlugins`。這是 Claude Code 的登記機制，`/plugin uninstall bstack@bstack` 可反悔，**不會覆蓋你任何既有設定**。代價：hook 會在你所有專案生效。
 
 **A3. 試用**：不安裝，只在這個 session 載入：
 
@@ -177,7 +177,7 @@ pwsh -File scripts/extras.ps1
 
 | 東西 | 生效範圍 |
 |---|---|
-| 兩支 hook | 啟用 plugin 的專案，**所有 session**，不需要 `/devwork` |
+| hook（`guard.mjs` 兩段） | 啟用 plugin 的專案，**所有 session**，不需要 `/devwork` |
 | rules.md 守則與九階段流程 | 只在 `/devwork` 之後、那個 session 內 |
 | extras 四項 | 你在選單選的層級 |
 
