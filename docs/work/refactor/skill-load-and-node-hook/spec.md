@@ -201,7 +201,7 @@ code-review high 中途另抓：`--token` 用 `appendFileSync` 對既存檔不�
 
 ### code-review high（8 finder）第一批實測 finding 與處置
 
-finder 的原始候選在彙整前就先處理了實測證實的幾條（最終彙整見下一段）：
+finder 的原始候選在彙整前就先處理了實測證實的幾條。**最終彙整沒有產出**：跑 `/code-review high` 的背景 fork 在主 session `/compact` 時被終止（實測 2026-09-07，`TaskOutput` 回 No task found、fork transcript 停在「等 8 個 finder 回報」那一則），verifier 去重 / 確認那一層因此沒跑；8 個 finder 的原始輸出已逐一讀過、實測證實的條目如下表，沒證實的不列。
 
 | finder | finding | 處置 |
 |---|---|---|
