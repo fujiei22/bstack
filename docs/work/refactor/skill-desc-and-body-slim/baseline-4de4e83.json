@@ -123,14 +123,12 @@
   "tables": [
    [
     "| user prompt 關鍵詞 | 預判 |",
-    "|---|---|",
     "| 修 / fix / bug / 壞了 / 不對 / 異常 / 失敗 / 沒反應 / report / 報錯 / 跑不起來 | Bug |",
     "| 加 / 改 / 寫 / 實作 / build / feature / refactor / 重構 / 整合 / 升級 / 換 | Dev |",
     "| 兼有 / 模糊 | Dev（保守、走完整流程；若中途發現純 bug 再 fallback） |"
    ],
    [
     "| 量體訊號 | Tier |",
-    "|---|---|",
     "| 1 行 / 純設定值 / typo / 註解 | T0 |",
     "| ≤2 個檔 / 單模組局部 / 小 helper / 簡單 bug fix | T1 |",
     "| 3-10 個檔 / 單模組 feature / 中型 refactor / 多步 bug fix | T2 |",
@@ -138,7 +136,6 @@
    ],
    [
     "| 情境 | 問幾題 |",
-    "|---|---|",
     "| `design.involved=false` | 2 題：Track、Tier |",
     "| `design.involved=true` | 3 題：Track、Tier、UI 判定 |"
    ]
@@ -288,7 +285,6 @@
   "tables": [
    [
     "| L | 類型 | 範例 | 處置 |",
-    "|---|---|---|---|",
     "| **L4** 災難級 | 整 disk 寫、不可逆系統改 | `rm -rf /`、`dd if=... of=/dev/sda`、`mkfs.*`、`shutdown -h now`、`> /dev/sda` | **拒絕**、印理由、要 user 顯式說「我知道風險、跑」才執行 |",
     "| **L3** 高危險 | 大範圍刪 / 改 / 不可逆 | `rm -rf <dir>`、`git reset --hard`、`git push --force` 到 main、`DROP TABLE`、`TRUNCATE`、`chmod -R 777`、`sudo *` | AskUserQuestion 強迫二次確認 + 列風險 |",
     "| **L2** 中等 | 可逆但影響大 | `git push --force-with-lease`、`npm uninstall`、`rm <file>`、`git clean -fd`、`docker system prune` | AskUserQuestion 一般確認 |",
@@ -296,7 +292,6 @@
    ],
    [
     "| L3 危險 | safer 替代 |",
-    "|---|---|",
     "| `rm -rf <dir>` | `mv <dir> <dir>.bak.<date>` 再考慮真的要刪嗎 |",
     "| `git reset --hard` | `git stash` 或 `git branch backup-<date>` 再 reset |",
     "| `git push --force` | `git push --force-with-lease`（檢查 remote 沒被別人推） |",
@@ -606,7 +601,6 @@
   "tables": [
    [
     "| 項 | 規則 |",
-    "|---|---|",
     "| Tool | `mcp__mysql__mysql_query` |",
     "| 禁用 | bash mysql / psql CLI / 手寫 SQL 貼對話他處 |",
     "| 量限 | 預設 `LIMIT 100`；超量分頁（OFFSET / cursor） |",
@@ -614,7 +608,6 @@
    ],
    [
     "| 場景 | 處置 |",
-    "|---|---|",
     "| SELECT 輸出含 PII 欄位 | mask 或改 aggregate |",
     "| WHERE 條件用 PII 比對 | 可原值（不落輸出即可） |",
     "| LIKE / 模糊查 | 仍禁原值落對話 |",
@@ -705,7 +698,6 @@
   "tables": [
    [
     "| 項 | 內容 |",
-    "|---|---|",
     "| 症狀 | user 看到 / 感受到什麼？error message / wrong output / hang / crash？|",
     "| 影響 | 多少 user 受影響？單一 / 所有？production / staging / local？|",
     "| 急迫 | 阻塞 user 工作？資料損壞？安全風險？ |",
@@ -872,7 +864,6 @@
   "tables": [
    [
     "| 元素 | 為什麼是 slop | 什麼情況可以用 |",
-    "|---|---|---|",
     "| 激進紫色漸層 | 「科技感」的萬能公式，出現在每一個 SaaS / AI 落地頁 | 該區設計語言本來就用紫漸層 |",
     "| Emoji 當圖示 | 「不夠專業就用 emoji 湊」的病 | 該區既有元件本來就這樣用 |",
     "| 圓角卡片 ＋ 左彩色 border accent | 2020-2024 時期的爛大街組合，已成視覺噪音 | user 明確要求，或該組合在既有設計語言裡 |",
@@ -882,20 +873,17 @@
    ],
    [
     "| `precedent` | 鎖死 | 可變 |",
-    "|---|---|---|",
     "| **`true`**（該區有可繼承的設計語言） | 色彩 token / 字型 / 元件庫（用 `design-language` 抄出的 exact values） | 版面結構、資訊層級、互動模式 |",
     "| **`false`**（0→1 或全新區塊、無先例） | —— | 連設計語言本身一起變 |"
    ],
    [
     "| 內容類型 | 判定 |",
-    "|---|---|",
     "| 介紹一個具體事物（產品 / 地點 / 人物 / 生物 / 歷史） | 圖片**內容必需** |",
     "| 工具 / 資料 / 文件 / 純觀點型 | 可能不需要 |",
     "| 拿不準 | **按內容必需處理**（寧可取真圖） |"
    ],
    [
     "| 維 | 名稱 | 備註 |",
-    "|---|---|---|",
     "| 0 | **概念 / 立意** | **權重最高**，且有一票否決：概念 ≤5 分時總評封頂 6.0 |",
     "| 1 | 哲學一致性 | `precedent=false` 走風格庫時才有明確輸入；否則以該區設計語言為對照 |",
     "| 2 | 視覺層級 | |",
@@ -905,13 +893,11 @@
    ],
    [
     "| 檔 | 為什麼 |",
-    "|---|---|",
     "| `references/content-guidelines.md` | 反 slop 與可讀性底線，每一版都要對 |",
     "| `references/typography.md` | 每一版都要選字型 |"
    ],
    [
     "| 條件 | 讀 |",
-    "|---|---|",
     "| `precedent=false`（要從風格庫取方向） | `references/design-styles.md` §網頁風格庫 |",
     "| 決定色彩時（兩條路徑都適用） | `references/design-styles.md` §色彩推導協議 |",
     "| 三版要用 inline React + Babel | `references/react-setup.md`（**含 6 個 integrity hash，subagent 必讀**） |",
@@ -920,13 +906,11 @@
    ],
    [
     "| 資產 | 用途 |",
-    "|---|---|",
     "| `assets/design_canvas.jsx` | 三版並排展示的網格版面（讀內容 → inline 進展示 HTML） |",
     "| `scripts/fetch_images.py` | 從 Wikimedia Commons 取公共領域真圖 |"
    ],
    [
     "| 呼叫端 | 何時 | 期待輸出 |",
-    "|---|---|---|",
     "| user 顯式呼叫 | 「出三版看看」「這個要改版」 | 三版 ＋ 選定結果回寫 `spec.md` |",
     "| `brainstorm` | 合併確認第 3 題選「出三版」，且 branch 已建立、`spec.md` 已落檔 | 同上 |"
    ]
@@ -1135,7 +1119,6 @@
   "tables": [
    [
     "| 情境 | involved | scope | scope_evidence | size | precedent | map_status |",
-    "|---|---|---|---|---|---|---|",
     "| 不含前端檔 | `false` | null | null | null | `false` | `unknown` |",
     "| 含前端檔、專案無設計語言 | `true` | null | null | 小改/大改 | `false` | `absent` |",
     "| 含前端檔、命中地圖 | `true` | 區塊名 | token 檔路徑 | 小改/大改 | `true` | `ok` |",
@@ -1145,19 +1128,16 @@
    ],
    [
     "| 尺 | 量什麼 | 決定什麼 |",
-    "|---|---|---|",
     "| `Tier`（T0-T3） | code 改動量體與風險 | TDD ／ review 視角數 ／ security ／ plan 要不要寫 |",
     "| `size`（小改／大改） | 新視覺決策的量體 | 要不要先出三版讓 user 選 |"
    ],
    [
     "| 判準 | size |",
-    "|---|---|",
     "| 沿用既有 token 與元件，無新視覺決策（加欄位、改文案、補既有狀態） | 小改 |",
     "| 新頁 / 新區塊 / 改版 / 需要新的版面結構或資訊層級 | 大改 |"
    ],
    [
     "| 欄 | 內容 | 為什麼要 |",
-    "|---|---|---|",
     "| 區塊 | 人看得懂的名字 | `scope` 的值 |",
     "| 檔案範圍 | glob | 由改動檔反查區塊；**§失效檢查 只吃這一欄** |",
     "| 選擇器範圍 | class prefix，無則填 `—` | 同檔多區時用；不參與路徑比對 |",
@@ -1168,7 +1148,6 @@
    ],
    [
     "| # | 類別 |",
-    "|---|---|",
     "| 1 | 色彩 token |",
     "| 2 | 字體（display / body / mono，含 fallback 鏈） |",
     "| 3 | 間距 scale |",
@@ -1178,7 +1157,6 @@
    ],
    [
     "| 呼叫端 | 何時 | 期待輸出 |",
-    "|---|---|---|",
     "| `brainstorm` §Phase 0b′ | Phase 0，0b 之後、0c 之前。brainstorm 自己先做副檔名比對，**命中才載本 skill**、載入後照 §使用契約 從第 1 步跑（重算 involved 必為 true） | 六個欄位進 hand-off state；**不落檔** |",
     "| `execute-plan` | `design.involved=true` 且 `size=小改`，動到前端檔的 task 前後 | 前：§設計語言抽取 輸出；後：§對齊檢查清單 逐項結果 |",
     "| `design-direction` | 大改出三方向前，鎖定該區設計語言 | §設計語言抽取 輸出 |",
@@ -1392,19 +1370,16 @@
   "tables": [
    [
     "| 類別 | 範例 | 處置 |",
-    "|---|---|---|",
     "| **不危險類** | typo、lint、import 順序、變數名、格式、註解、純 refactor | AI **自動修** + 把 diff 貼給 user |",
     "| **危險類** | DB schema、認證邏輯、payment、檔案刪除、dependency 改動、infra、migration | `AskUserQuestion` 問 user 該不該修、怎麼修 |"
    ],
    [
     "| Phase | 動作 |",
-    "|---|---|",
     "| brainstorm 0a | **讀** memory：user 偏好 / 領域背景 / 過去關鍵決策 |",
     "| retro | **補** memory：期間（user 選）git log + PR + TaskList 分析模式 → 產 proposal → user review → 寫入 |"
    ],
    [
     "| Skill | 觸發 |",
-    "|---|---|",
     "| `db-access` | **固定載入點**：brainstorm 0b 偵測到 DB 關鍵詞。其餘（write-plan 涉 schema、execute-plan 動 DB、review 涉 SQL）是**規則適用範圍**，那些 skill 本身沒有載入它的步驟 |",
     "| `design-language` | brainstorm 0b′ 比對命中前端副檔名才載（比對本身在 brainstorm，不命中不載）／ `design.involved=true` 且 `size=小改` 時，execute-plan **動到前端檔的 task 前後**／ execute-plan §前端檔處理 的中途轉進補判／ verify-done §漏網複查 的補判／ user 顯式問設計語言 |",
     "| `design-direction` | brainstorm 0c/0d 合併確認第 3 題選「出三版」，且 **branch 已建立、`spec.md` 已落檔**／ user 顯式要求出方向、評審設計。**選「跳過三方向」不載入** |",
@@ -1421,7 +1396,6 @@
    ],
    [
     "| 項目 | 落點 |",
-    "|---|---|",
     "| 強制守則（Task / 決策點 / Branch / File-type / PII / DB / Settings） | rules.md（聖旨）|",
     "| Track / Tier / Phase / Trace / Auto-fix / Fail / Memory hook **政策** | rules.md（聲明）|",
     "| Track / Tier / Phase 詳細 **routing 表 + hand-off state** | 本 skill |",
@@ -1649,7 +1623,6 @@
   "tables": [
    [
     "| 面向 | 選 Agent Teams | 選 subagent | 選串行 |",
-    "|---|---|---|---|",
     "| 依賴 | ≥3 塊互不依賴 | 2+ 塊互不依賴 | 有先後順序 |",
     "| 檔案歸屬 | 每塊擁有不同檔 / 目錄 | 同上 | 會撞同一批檔 |",
     "| 產出性質 | 要討論、互相挑戰後收斂 | 只要結果 | — |",
@@ -1658,7 +1631,6 @@
    ],
    [
     "| 事項 | 處置 |",
-    "|---|---|",
     "| 隊友會載入完整 CLAUDE.md 與全套 skill | 派工 prompt **必須**明講「不要跑 9 階段流程」，否則隊友會自己 brainstorm 起來 |",
     "| 隊友不繼承 lead 的對話歷史 | spec / plan 全文要貼進派工 prompt，不能只給檔案路徑就算 |",
     "| 權限確認彈回 lead 視窗 | 開工前先跟 user 講；常用操作可先進 `permissions.allow` 減少中斷 |",
@@ -1811,7 +1783,6 @@
   "tables": [
    [
     "| 新功能 | bug fix | 純重構 | 純測試 | 純文件 |",
-    "|---|---|---|---|---|",
     "| `feat` | `fix` | `refactor` | `test` | `docs` |"
    ]
   ],
@@ -2184,7 +2155,6 @@
   "tables": [
    [
     "| 觸發 | 是否載入 |",
-    "|---|---|",
     "| T3 + UI / 前端檔改動 | **必載**；例外：diff 只動文字節點 / `data-*`（verify-done §UI / browser e2e 用 `scripts/text-only-diff.mjs` 判 TEXT-ONLY）→ 不載、verify-done 主 agent 做 smoke |",
     "| T2 + 前端檔改動（`.tsx / .jsx / .vue / .svelte / .html / .css / .scss`）| **可載**（牽動 user flow 建議載）|",
     "| T1 + 前端改動 | 預設不載；user 明說再載 |",
@@ -2193,7 +2163,6 @@
    ],
    [
     "| 改動類型 | 必跑 case |",
-    "|---|---|",
     "| 新 page / route | navigate → snapshot（a11y）→ 主互動 click → 跨 viewport 排版 |",
     "| 改既有 page | 改動區互動 + 既有 flow regression smoke |",
     "| 改 shared component | grep 引用該 component 的 page → 每 page snapshot + 主互動 |",
@@ -2207,7 +2176,6 @@
    ],
    [
     "| 名稱 | 寬 x 高 |",
-    "|---|---|",
     "| desktop | 1280 x 720 |",
     "| tablet | 834 x 1194 |",
     "| mobile | 390 x 844 |"
@@ -2333,7 +2301,6 @@
   "tables": [
    [
     "| 來源 | 看什麼 |",
-    "|---|---|",
     "| log（app / web server / DB / proxy）| timestamp、error message、stack trace |",
     "| metric / dashboard | latency / error rate / CPU / memory 突變點 |",
     "| user report | 症狀、影響、首見時間 |",
@@ -2578,7 +2545,6 @@
   "tables": [
    [
     "| 項目 | 判定 | 條件 |",
-    "|---|---|---|",
     "| typo / 註解錯字、import 排序 / 未用 import、純 formatting / lint、加缺漏的 docstring / 註解 / type annotation、加新測試 | 不危險 | 全 tier 自動修 |",
     "| 變數命名、純 refactor | 不危險 | 不改 public API name、不改 behavior |",
     "| 邏輯重構（改 implementation 但 behavior 不變） | 依 tier | T1/T2 不危險、自動修；T3 仍給 user 看 diff |",
@@ -2697,7 +2663,6 @@
   "tables": [
    [
     "| diff 內容 | `code_review_applicable` | 為什麼 |",
-    "|---|---|---|",
     "| 含任一程式碼副檔名：`.js .mjs .cjs .ts .tsx .jsx .py .go .rs .sql .java .cs .cpp .c .h .rb .php .kt .swift .sh .ps1` | `true` | 有可執行邏輯，finder 找得到 bug / 重複 / 可簡化處 |",
     "| 只有純文件：`.md .txt .json .yml .yaml .toml .csv .html .css`、prompt、文案、資料檔 | `false`（跳 code review） | 8 個 finder 對純文字找不到「會壞的情境」，只燒 token；一致性靠契約腳本（如本 repo 的 `plugin-contract.mjs`）與 T3 review-plan |",
     "| 混合（例：改 skill 文本順手改一支 `.mjs` 契約） | `true` | 有程式碼就跑；finder 會自己忽略純文字 hunk |",
@@ -2706,7 +2671,6 @@
    ],
    [
     "| 副檔名 | 提示 |",
-    "|---|---|",
     "| `.py` | mutable default arg、裸 except、f-string 拼 SQL、type hint 與實際回傳不符 |",
     "| `.ts .tsx .js .jsx .mjs` | `==` 與 truthy 比較、未 await 的 promise、regex 對 CRLF、`any` 逃逸 |",
     "| `.sql` | 無 LIMIT 的重 query、隱式型別轉換讓 index 失效、migration 無回滾 |",
@@ -2717,7 +2681,6 @@
    ],
    [
     "| code-review 輸出 | 轉成 |",
-    "|---|---|",
     "| JSON 陣列每筆（`summary` + `failure_scenario`） | 有具體觸發情境且會壞 → **Critical / Major**（看爆炸半徑）；重複 / 可簡化 / 效率 / 慣例類 → **Minor**；已 merge 或前置既有、本 PR 只是暴露 → **Minor 附註「pre-existing」** |",
     "| 純文字 `path:line — 問題` 行 | 同上 |",
     "| `[]` / `(none)` | code-review 側 0 finding；**自檢 / 對齊 subagent 的 finding 仍算**，全部為零才讓 receive-review 短路 |",
@@ -2873,7 +2836,6 @@
   "tables": [
    [
     "| 選項 | 對應期間 |",
-    "|---|---|",
     "| 自上次 retro（**推薦**） | 抓上一次 retro 報告日期；首次跑則退回「本週」 |",
     "| 本週 | 過去 7 天 |",
     "| 本月 | 過去 30 天 |",
@@ -2882,7 +2844,6 @@
    ],
    [
     "| 期間類型 | slug |",
-    "|---|---|",
     "| 自上次 retro / 自定起點 | `<YYYYMMDD>-to-<YYYYMMDD>` |",
     "| 本週 | `<YYYY>-W<##>`（ISO 週號） |",
     "| 本月 | `<YYYY-MM>` |",
@@ -2890,7 +2851,6 @@
    ],
    [
     "| 禁 | 為何 |",
-    "|---|---|",
     "| 把 retro 結果直接 commit 進 repo（如 `.claude/retro/<period>.md`） | retro 是給 user 看的、不該污染 repo（除非 user 明說要 commit） |",
     "| 直接寫 CLAUDE.md | CLAUDE.md 是聖旨；改要走 review |",
     "| 把 PII / 敏感 commit 內容貼進 retro 報告 | 對話歷史可能被 share；rules.md §PII 適用 |",
@@ -3030,7 +2990,6 @@
   "tables": [
    [
     "| 原本問（code） | markdown / prompt 類標的改問 |",
-    "|---|---|",
     "| API 介面、response shape | skill 對使用者與對呼叫端的**兩個介面**：何時觸發、問什麼、回傳什麼、跟哪些 skill 邊界重疊 |",
     "| failure mode、回退路徑 | **規則互相矛盾**——兩條規則打架時 AI 會挑一條照做，**而且不報錯** |",
     "| test coverage | **斷言有沒有效**：pattern 在原文存不存在、guard 會不會恆綠／恆真 |",
@@ -3139,7 +3098,6 @@
   "tables": [
    [
     "| 類型 | pattern |",
-    "|---|---|",
     "| AWS Access Key | `AKIA[0-9A-Z]{16}` |",
     "| AWS Secret | `[A-Za-z0-9/+=]{40}`（context 含 AWS / S3） |",
     "| GitHub PAT | `ghp_[A-Za-z0-9]{36}` / `github_pat_[A-Za-z0-9_]{82}` |",
@@ -3481,7 +3439,6 @@
   "tables": [
    [
     "| 情境 | 用不用 |",
-    "|---|---|",
     "| 新功能 / 新 module / 新 endpoint / 行為改動 | 永遠用 |",
     "| bug fix | 永遠用；fix 前先寫重現 bug 的測試 |",
     "| refactor | 永遠用；refactor 前測試先到位、refactor 中保持綠 |",
@@ -3582,7 +3539,6 @@
   "tables": [
    [
     "| 項目 | T1 | T2 | T3 |",
-    "|---|---|---|---|",
     "| 基本盤：動到的測試檔 + lint（T1 動到範圍、T2 起全 repo 改動範圍）+ type-check（如有） | ✓ | ✓ | ✓ |",
     "| 周邊回歸（動到的 module + 依賴它的 module 的測試）+ build | | ✓ | ✓ |",
     "| 整個 test suite；改動含 DB → migration dry-run + schema diff 對齊 | | | ✓ |",
@@ -3590,7 +3546,6 @@
    ],
    [
     "| Tier | 行為 |",
-    "|---|---|",
     "| T1 | 預設不跑；user 明說再跑 |",
     "| T2 | 可選；AI 視改動量自判（牽動 user flow 建議跑） |",
     "| T3 | **必跑**（fail 不能放行 verify-done）；**文字節點豁免**見下 |"
@@ -3776,7 +3731,6 @@
   "tables": [
    [
     "| 項 | 內容 |",
-    "|---|---|",
     "| 新建的檔 | 路徑 + 一句職責 |",
     "| 改動的檔 | 路徑 + 動什麼 + 為何 |",
     "| 介面 | 跨檔的 function signature / class 邊界 |",
@@ -3784,7 +3738,6 @@
    ],
    [
     "| 禁 | 替代 |",
-    "|---|---|",
     "| `TBD` / `TODO` / `稍後實作` / `fill in` | 直接寫實際內容 |",
     "| `加入適當 error handling` / `處理 edge case` | 列出每個 error / edge case + 對策 |",
     "| `寫測試覆蓋上面` 但無測試 code、步驟只講 what 沒 code block、`同 Task N` 但不重貼 code | 直接寫 test code / 補 code block / 重貼 code（reader 可能跳讀） |",
@@ -3908,7 +3861,6 @@
   "tables": [
    [
     "| Skill 類型 | 路徑 |",
-    "|---|---|",
     "| plugin（隨 bstack 發布） | repo `skills/<name>/SKILL.md` |",
     "| 專案特定 | 該專案 `.claude/skills/<name>/SKILL.md` |",
     "| 暫時 / experimental | 該專案 `.claude/skills/_experimental/<name>/SKILL.md`（user 自管）|"
@@ -4026,7 +3978,6 @@
   "tables": [
    [
     "| 類型 | 範例 | 處置 |",
-    "|---|---|---|",
     "| 密鑰 / secret | `.env`、`*.key`、`*.pem`、`credentials.*` | **禁 commit**、hook block |",
     "| ignore 檔 | `.dockerignore` | 二次確認（`.gitignore` 刻意不列：改動頻繁，攔它的干擾大於收益） |",
     "| CI / CD | `.github/workflows/*.yml`、`.gitlab-ci.yml` | 升 T2+、套 review |",
@@ -4037,7 +3988,6 @@
    ],
    [
     "| 目錄 | 放什麼 | 壽命 |",
-    "|---|---|---|",
     "| `docs/work/<branch-name>/` | 施工中的 spec / plan / review / pr-review / 測試報告 | 到 merge |",
     "| `docs/archive/<年>/<主題>/` | merge 後從 work 搬進來，備查 | 長期 |",
     "| `docs/paused/<主題>/` | 有 spec / plan 但查無實作 commit（丟 archive 會被誤認做過了） | 到解凍 |",
@@ -4047,7 +3997,6 @@
    ],
    [
     "| Tier | 量體 | brainstorm | plan | TDD | review | security | pr-explain |",
-    "|---|---|---|---|---|---|---|---|",
     "| **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |",
     "| **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |",
     "| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium` + 主 agent 對 spec 自檢；純文件 diff 跳 code-review、自檢照做 | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |",
@@ -4411,7 +4360,6 @@
   "tables": [
    [
     "| 假設類型 | 驗證方式 |",
-    "|---|---|",
     "| code 邏輯（如 connection leak）| `Grep` 找 resource acquire / release path、檢查所有分支是否對齊 |",
     "| 設定值（如 pool size）| `Read` config / env / 啟動 log；估算實際 vs 上限 |",
     "| dep 升降 | `git log` / `git diff` 找 dep 改動、查 changelog |",
@@ -4617,7 +4565,6 @@
   "tables": [
    [
     "| Tier | 每區塊長度 |",
-    "|---|---|",
     "| **T1** | 2-3 句說明做什麼 |",
     "| **T2** | 1 段解釋（what + why）、重要邏輯逐行 |",
     "| **T3** | 獨立 sub-section、含邏輯流、邊界、failure mode |"
@@ -4722,7 +4669,6 @@
   "tables": [
    [
     "| 字 | 威脅 | 問什麼 |",
-    "|---|---|---|",
     "| **S** Spoofing | 身份偽造 | 認證機制？token 是否會被偽造？session fixation？ |",
     "| **T** Tampering | 資料竄改 | 資料完整性？signature？資料庫寫入是否驗 schema / 權限？ |",
     "| **R** Repudiation | 否認 | log 是否能追責？audit trail？ |",
@@ -4732,7 +4678,6 @@
    ],
    [
     "| 改動類 | OWASP 條目 |",
-    "|---|---|",
     "| 認證 / 授權 / session | A01 Broken Access Control、A07 Identification & Auth Failures |",
     "| 加密 / token 處理 | A02 Cryptographic Failures |",
     "| 資料層 / DB query / ORM | A03 Injection（SQL / NoSQL / OS / LDAP） |",

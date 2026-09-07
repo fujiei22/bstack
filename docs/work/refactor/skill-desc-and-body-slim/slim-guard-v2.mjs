@@ -66,8 +66,13 @@ const VERBS = /(AskUserQuestion|spawn|commit|讀|判|交棒|跑|回傳|回報|�
 const norm = (s) => s.replace(/\s+/g, ' ').trim();
 const AGENT_SECTIONS = /^## (角色職責|§輸入契約|§嚴格 output 格式)/;
 
+import { execFileSync } from 'node:child_process';
+let REV = null;   // snapshot --rev <sha>\uFF1A\u5F9E git \u8B80\u8A72 commit \u7684\u6A94\uFF0C\u4E0D\u53D7\u5DE5\u4F5C\u6A39\u72C0\u614B\u5F71\u97FF\uFF08stash \u62CD\u5FEB\u7167\u6703\u62CD\u5230\u5DF2 commit \u7684\u6539\u52D5\uFF0C\u5BE6\u6E2C\u8E29\u904E\uFF09
 function extract(name, srcPath) {
-  const t = readFileSync(srcPath ? srcPath : join(REPO, FILES[name]), 'utf8').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+  const raw = srcPath ? readFileSync(srcPath, 'utf8')
+    : REV ? execFileSync('git', ['show', `${REV}:${FILES[name]}`], { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 24 })
+    : readFileSync(join(REPO, FILES[name]), 'utf8');
+  const t = raw.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
   const hasFm = /^---\n/.test(t);
   const fm = hasFm ? (t.match(/^---\n([\s\S]*?)\n---/) || ['', ''])[1] : '';
   const descM = fm.match(/^description:[ \t]*(?:[|>]-?[ \t]*\n((?:(?:[ \t]+.*|[ \t]*)(?:\n|$))*)|(.+)$)/m);
@@ -107,6 +112,7 @@ function extract(name, srcPath) {
     if (/^## /.test(l)) inRF = /Red Flags/.test(l);
     if (!/^\|/.test(l)) { if (cur) { tables.push(cur); cur = null; } continue; }
     if (inRF) { if (!/^\|\s*-{2,}|想法\s*\|/.test(l)) rfRows.push(norm(l)); continue; }
+    if (/^\|\s*:?-{2,}/.test(l)) continue;   // `|---|---|` 分隔列各表相同，算進去會讓「整張刪」被誤判成「留了一列」（dev-workflow subagent 實測）
     (cur ||= []).push(norm(l));
   }
   if (cur) tables.push(cur);
@@ -124,6 +130,7 @@ function extract(name, srcPath) {
 const [mode, file, ...rest] = process.argv.slice(2);
 const only = rest.includes('--only') ? rest[rest.indexOf('--only') + 1].split(',') : null;
 const src = rest.includes('--src') ? rest[rest.indexOf('--src') + 1] : null;   // 用這個檔的內容當 <name> 的現況（subagent 成品在 out/ 時用；需 --only 單一 name）
+if (rest.includes('--rev')) REV = rest[rest.indexOf('--rev') + 1];            // snapshot 專用：從 git 該 rev 讀基線
 if (src && (!only || only.length !== 1)) { console.error('--src 需搭配 --only <單一 name>'); process.exit(2); }
 const names = Object.keys(FILES).filter((n) => !only || only.includes(n));
 const now = Object.fromEntries(Object.keys(FILES).map((n) => [n, extract(n, src && only[0] === n ? src : null)]));
