@@ -9,11 +9,7 @@ description: |
 
 寫入 / 落檔 / commit / push 前**最後一道**偵測 PII + secret 外洩。
 
-> 與其他安全機制的層次：
-> - **file-type-guard** hook：擋整個檔案類型（.env 全擋）
-> - **safety-guard** skill：掃**內容**是否含 PII / secret pattern
-> - **rules.md §PII 安全底線**：總則
-> - **security-checklist**：實作層 checklist
+> 層次：file-type-guard hook 擋檔案類型（.env 全擋）、本 skill 掃**內容**的 pattern；總則 rules.md §PII 安全底線、實作層 security-checklist。
 
 ## 使用契約
 
@@ -24,47 +20,23 @@ description: |
 3. 寫對話輸出含 grep 結果 / log / DB query result 前
 4. Edit / Write 大量 content 前（>50 行）
 
-**載入後立即動作**：
+**載入後**：
 
 1. 對目標內容跑 regex pattern 掃
 2. 命中 → 列出 + 建議 mask
 3. 全 clean → 放行
 
----
-
 ## §PII pattern（依 rules.md「§PII 安全底線」）
 
-### Email
-- pattern: `[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}`
-- mask: `<2 字 abbrev>***@<domain>` 例 `to***@example.com`
-
-### Phone（台灣 / 國際）
-- 台灣手機: `09\d{2}-?\d{3}-?\d{3}`、市話 `0\d-?\d{6,8}`
-- 國際: `\+\d{1,3}[-\s]?\d{2,4}[-\s]?\d{4}[-\s]?\d{4}`
-- mask: `09**-***-<後 3 碼>`
-
-### 身分證 / ID
-- 台灣身分證: `[A-Z][12]\d{8}`
-- mask: `<首字>****<尾 4 碼>`
-
-### 信用卡
-- pattern: `\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}`
-- Luhn check 過才報（避誤殺隨機 16 digit）
-- mask: `****-****-****-<尾 4 碼>`
-
-### 地址
-- 含「市 / 區 / 路 / 街 / 號 / 樓」連續模式
-- 較難準確 regex；建議 reviewer 人工複檢
-
-### 其他 id_number / userId
-- 純數字 6-20 位連續出現 + context 含「user / id / member」
-- mask: `<首 2 碼>***<尾 2 碼>`
-
----
+- **Email**：`[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}`；mask `<2 字 abbrev>***@<domain>`，例 `to***@example.com`
+- **Phone**：手機 `09\d{2}-?\d{3}-?\d{3}`、市話 `0\d-?\d{6,8}`、國際 `\+\d{1,3}[-\s]?\d{2,4}[-\s]?\d{4}[-\s]?\d{4}`；mask `09**-***-<後 3 碼>`
+- **身分證 / ID**：台灣 `[A-Z][12]\d{8}`；mask `<首字>****<尾 4 碼>`
+- **信用卡**：`\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}`，Luhn 過才報（避誤殺隨機 16 位）；mask `****-****-****-<尾 4 碼>`
+- **地址**：「市 / 區 / 路 / 街 / 號 / 樓」連續模式；regex 難準、人工複檢
+- **其他 id_number / userId**：純數字 6-20 位 + context 含「user / id / member」；mask `<首 2 碼>***<尾 2 碼>`
 
 ## §Secret pattern
 
-### API key / token
 | 類型 | pattern |
 |---|---|
 | AWS Access Key | `AKIA[0-9A-Z]{16}` |
@@ -78,16 +50,9 @@ description: |
 | Bearer token in URL | `[?&]token=[A-Za-z0-9-_]{20,}` |
 | Password in connection string | `://[^:]+:[^@]+@` |
 
-### Generic
-- `password\s*[:=]\s*['"][^'"]+['"]`
-- `secret\s*[:=]\s*['"][^'"]+['"]`
-- `api_?key\s*[:=]\s*['"][^'"]+['"]`
-
----
+Generic：`password\s*[:=]\s*['"][^'"]+['"]` / `secret\s*[:=]\s*['"][^'"]+['"]` / `api_?key\s*[:=]\s*['"][^'"]+['"]`
 
 ## §報告格式
-
-命中 → 印：
 
 ```
 [SAFETY-GUARD] 發現 <N> 個 PII / secret 候選
@@ -104,14 +69,10 @@ description: |
    - 建議: 移除原值、改用 `<env:OPENAI_API_KEY>` placeholder
 ```
 
----
-
 ## §處置
 
-主 agent 看完報告後：
-
-1. **可自動 mask 類**（email / phone / id_number 等 PII） → 直接套 mask、繼續流程
-2. **不可自動類**（secret / private key / 密碼） → **拒寫 / 拒 commit**、`AskUserQuestion` 問 user：
+1. **可自動 mask 類**（email / phone / id_number 等 PII）→ 套 mask、續流程
+2. **不可自動類**（secret / private key / 密碼）→ **拒寫 / 拒 commit**、`AskUserQuestion` 問 user：
    ```
    發現可能的 secret：<簡述、不貼原值>
    options:
@@ -119,8 +80,6 @@ description: |
      2. user 確認是測試 / placeholder、可寫
      3. 取消整個動作
    ```
-
----
 
 ## §hand-off state
 
@@ -132,31 +91,17 @@ state:
 
 不推進 phase（橫向 skill）。
 
----
-
 ## §False positive 處理
 
-regex 有時誤殺：
-- 「user@example.com」是文件 placeholder → user 可說 OK
-- `sk-test_abc` 是 stripe test key → 仍建議移、但不嚴擋
-
-`AskUserQuestion` 給 user override 機會（選項 2「user 確認可寫」）。
-
----
+- 「user@example.com」文件 placeholder、`sk-test_abc` stripe test key 這類誤殺 → 仍建議移、不嚴擋；`AskUserQuestion` 給 user override（選項 2）
 
 ## §跟 git 互動
 
-**禁** 自動 `git filter-branch` / `git filter-repo` 清歷史。歷史清理由 user 決定走 BFG / git-filter-repo / GitHub support 流程。
-
-safety-guard 只擋當下要 commit 的東西、**不動既有 history**。
-
----
+**禁**自動 `git filter-branch` / `git filter-repo` 清歷史；只擋當下要 commit 的東西、**不動既有 history**，清理由 user 走 BFG / GitHub support。
 
 ## §結尾 Trace 標籤
 
-由呼叫 phase 帶。
-
----
+不貼自身 trace，由呼叫 phase 帶。
 
 ## §Red Flags
 
