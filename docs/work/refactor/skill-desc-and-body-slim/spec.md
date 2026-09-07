@@ -19,7 +19,7 @@
 
 ## 目標 / Success criteria
 
-1. **A description**：34 條（28 skill + 6 agent）合計 ≤2,000 tok（基線 ~5,000）。每條格式固定：第一行「是什麼」一句（docs 站文件抽屜只顯示第一行，`app.js:132`）＋「載入：<時點>」一句；devwork / dev-workflow / brainstorm 保留「不因自然語言自動觸發」；契約守的字樣保留（devwork `/devwork`、pr-explain `T3`、lang-reviewer `顯式`、security-auditor `純文件`、design-language `命中…才載`）；全部不含「觸發：」（P3c）。
+1. **A description**：34 條（28 skill + 6 agent）合計 ≤2,000 tok（基線 ~5,000）。每條格式固定：第一行「是什麼」一句（docs 站文件抽屜只顯示第一行，`app.js` 的 `parseFrontmatterDesc`）＋「載入：<時點>」一句；devwork / dev-workflow / brainstorm 保留「不因自然語言自動觸發」；契約守的字樣保留（devwork `/devwork`、pr-explain `T3`、lang-reviewer `顯式`、security-auditor `純文件`、design-language `命中…才載`）；全部不含「觸發：」（P3c）。
 2. **B body**：17 個 skill（dev-workflow / design-direction / design-language / dispatch-parallel / incident-investigate / frontend-test / write-skill / security-checklist / cmd-guard / safety-guard / lock-files / context-snapshot / context-resume / db-access / retro / debug-systematic / devwork）+ 6 agents 合計行數 −30%、bytes −20%（bytes 門檻防刪空行灌水）。
 3. **C rules.md**：197 行 / 18,206 bytes → ≤150 行 / ≤14,000 bytes；16 個 § 標題一個不少、不改名（15 個被外部引用）。
 4. **零改變**（機械可驗三層）：`node scripts/plugin-contract.mjs` ALL PASS + `--selftest`；`node docs/tools/docs-site-contract.mjs` ALL PASS；`build-references.ps1` 重產後 `-Check` exit 0；守門快照（`slim-guard-v2.mjs`）對基線比對零差異：使用契約步驟數與順序、被外部引用的 § 標題（白名單見下）、所有 AskUserQuestion 選單 code block、反引號片段不新增、yaml 欄名不減。
