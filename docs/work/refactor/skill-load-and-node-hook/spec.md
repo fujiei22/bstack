@@ -149,3 +149,16 @@ hooks.json 暫改成 `node-nope`、`claude --plugin-dir <臨時 plugin> -p "用 
 - P11 第一版對 design-language 那節整段 tokenize 會抓到「現況分歧」註記的 .sass；改成只抓 fenced block，且要容 CRLF。
 - Task 6 依 review 建議把 brainstorm / design-language 的檔名替換併進 Task 3；index.html 除了 spec 列的三行還有 meta description × 3、hero 一句、stat 數字、inventory 一列寫「2 個 hook」，一併改成「1 支兩段式」。
 - guard.mjs 主程式判斷用 argv[1] 檔名 regex（同 text-only-diff.mjs 先例）。
+
+### verify-done：frontend-test（frontend-e2e-runner，docs 站）
+
+`text-only-diff.mjs` 對本 branch 判 NOT-TEXT-ONLY（diff 含 `docs/js/data.js` 與 `.mjs`），依規則派 runner。伺服器 `node scripts/static-serve.mjs docs 8765`。
+
+| scenario | viewport | 結果 | 依據 |
+|---|---|---|---|
+| index-load | 1280×720 | PASS | console 零 error；hero stat「1 hook」；第一段含 guard.mjs、無舊檔名 / 「兩支 hook」；安裝段含 node 與「pwsh 7+ 只有 install.ps1 / extras.ps1」 |
+| index-mobile | 390×844 | PASS | scrollWidth == clientWidth（無水平捲軸） |
+| flow-hook-nodes | 1280×720 | PASS | 圖上找到「guard.mjs（branch-safety 段）」「guard.mjs（file-type 段）」與 design-language 新 label；點 design-language → 文件面板含「唯一例外」 |
+| flow-index-panel-consistency | 1280×720 | INCONCLUSIVE | 測試矩陣假設 rules.md 在索引有獨立項目，實際設計是 ambient 短摘要、不可點；data.js 全文對舊檔名 0 命中，內容確為重產版。**既有缺陷（非本 PR）**：文件索引的 CLAUDE.md 項目點了不開抽屜，console「NODE_DOCS 查無此節點：CLAUDE」（app.js:968），本 branch 未動 app.js，另開 issue |
+
+截圖：`test-reports/20260907-e2e/screenshots/{index-desktop,index-mobile,flow-doc-panel,flow-ambient-panel}.png`。`verify_results.e2e = pass`、`frontend_test.ran = true`。
