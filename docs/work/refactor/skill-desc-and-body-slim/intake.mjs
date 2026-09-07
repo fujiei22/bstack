@@ -5,8 +5,11 @@
  */
 import { readFileSync, readdirSync, copyFileSync, statSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';   // 參數陣列、不經 shell：out/ 檔名若含 & | ^ % 也不會變成第二條命令（security-audit Major）
-import { join } from 'node:path';
-const REPO = 'D:/GitHub/bstack', G = join(REPO, 'docs/work/refactor/skill-desc-and-body-slim');
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+/** 腳本所在目錄就是施工目錄（歸檔後一起搬、路徑不用改）；repo 根問 git */
+const G = dirname(fileURLToPath(import.meta.url));
+const REPO = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: G, encoding: 'utf8' }).trim();
 const TARGETS = { 'dev-workflow': [185, 11300], 'design-direction': [175, 16000], 'design-language': [150, 14000], 'dispatch-parallel': [165, 11000], 'incident-investigate': [175, 7700], 'frontend-test': [125, 7650], 'write-skill': [140, 6100], 'security-checklist': [175, 6500], 'cmd-guard': [105, 4000], 'safety-guard': [100, 4200], 'lock-files': [68, 2750], 'context-snapshot': [100, 3700], 'context-resume': [92, 3300], 'db-access': [58, 2500], 'retro': [115, 4900], 'debug-systematic': [105, 4000], 'db-reviewer': [92, 3800], 'frontend-e2e-runner': [125, 6800], 'hypothesis-tester': [85, 4900], 'lang-reviewer': [115, 4550], 'pr-explainer': [100, 3700], 'security-auditor': [98, 5300] };
 const AGENTS = new Set(['db-reviewer', 'frontend-e2e-runner', 'hypothesis-tester', 'lang-reviewer', 'pr-explainer', 'security-auditor']);
 const apply = process.argv.includes('--apply');

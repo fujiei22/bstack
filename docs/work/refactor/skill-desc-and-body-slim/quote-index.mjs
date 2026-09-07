@@ -5,14 +5,18 @@
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { join } from 'node:path';
-const REPO = 'D:/GitHub/bstack';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+/** repo 根目錄：問 git，不硬編路徑——歸檔到 docs/archive 或換機器仍能跑（code-review conventions finder） */
+const REPO = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: dirname(fileURLToPath(import.meta.url)), encoding: 'utf8' }).trim();
 const REV = process.argv.includes('--rev') ? process.argv[process.argv.indexOf('--rev') + 1] : '4de4e83';
 const files = [];
 for (const d of readdirSync(join(REPO, 'skills'))) { const p = `skills/${d}/SKILL.md`; if (existsSync(join(REPO, p))) files.push(p); }
 files.push('skills/devwork/rules.md');
 for (const f of readdirSync(join(REPO, 'agents'))) if (f.endsWith('.md')) files.push(`agents/${f}`);
+/** 把 fenced code block 內的行換成空字串（保留行號對位），引言只算 block 外的 */
 const stripCode = (t) => { let inCode = false; return t.split('\n').map((l) => { if (/^```/.test(l)) { inCode = !inCode; return ''; } return inCode ? '' : l; }); };
+/** 把連續的 `> ` 行合成一段 { start: 起始行號, text: [各行] }，只留含「為什麼」或「實測」的段（spec 對「引言」的定義） */
 const quotes = (lines) => { const out = []; let cur = null; lines.forEach((l, i) => { if (/^>\s?/.test(l)) { if (!cur) cur = { start: i + 1, text: [] }; cur.text.push(l.replace(/^>\s?/, '').trim()); } else if (cur) { out.push(cur); cur = null; } }); if (cur) out.push(cur); return out.filter((q) => /為什麼|實測/.test(q.text.join(' '))); };
 let total = 0, removed = 0, shortened = 0;
 console.log('| 檔 | 基線 行 | 原引言（首句） | 現況 |\n|---|---|---|---|');

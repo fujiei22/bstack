@@ -17,8 +17,11 @@
  *   bullets     agents 的「角色職責」「§輸入契約」「§嚴格 output 格式」段：bullet 數不減、粗體關鍵詞集合 ⊇ 基線
  */
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-const REPO = 'D:/GitHub/bstack';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+/** repo 根目錄：問 git，不硬編路徑——歸檔到 docs/archive 或換機器仍能跑（code-review conventions finder） */
+const REPO = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: dirname(fileURLToPath(import.meta.url)), encoding: 'utf8' }).trim();
 
 const FILES = {};
 for (const d of readdirSync(join(REPO, 'skills'))) {
@@ -62,12 +65,18 @@ const PROTECTED = {
   'agent:lang-reviewer': ['顯式'],
   'agent:security-auditor': ['純文件'],
 };
+/** 使用契約每一步的「動作動詞」集合：砍後不得少於基線。清單來自 rules.md / dev-workflow 對 skill 步驤的慣用動詞（讀 / 判 / spawn / 交棒 / 跑 / commit …），不是窮舉——漏掉的動詞不會誤紅，只是沒守到 */
 const VERBS = /(AskUserQuestion|spawn|commit|讀|判|交棒|跑|回傳|回報|寫|載|派|問|停|退|檢|抽|比對|印|確認|整合|收)/g;
 const norm = (s) => s.replace(/\s+/g, ' ').trim();
 const AGENT_SECTIONS = /^## (角色職責|§輸入契約|§嚴格 output 格式)/;
 
-import { execFileSync } from 'node:child_process';
 let REV = null;   // snapshot --rev <sha>：從 git 讀該 commit 的檔，不受工作樹狀態影響（stash 拍快照會拍到已 commit 的改動，實測踩過）
+/**
+ * 抽一個檔的「不能動」快照。
+ * @param {string} name FILES 的 key（skill 名 / 'rules.md' / 'agent:<name>'）
+ * @param {string|null} srcPath 給了就讀這個路徵的內容當現況（subagent 成品在 out/ 時用）；否則依 REV 從 git 或工作樹讀
+ * @returns 見檔頭「抽什麼」清單；check 模式逐項與基線比
+ */
 function extract(name, srcPath) {
   const raw = srcPath ? readFileSync(srcPath, 'utf8')
     : REV ? execFileSync('git', ['show', `${REV}:${FILES[name]}`], { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 24 })
