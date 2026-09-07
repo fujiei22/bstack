@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');   // docs/work/refactor/<branch>/ → repo 根
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');   // docs/archive/2026/<主題>/ → repo 根（原在 docs/work/refactor/<branch>/，深度相同）
 const BASE = process.argv[2] || '8dbb203';
 // 沒 pwsh 就直接停：否則 spawnSync 回 status null，Math.max(null, null) === 0 會把「舊 hook 沒跑」記成「舊 hook 放行」、整表假紅
 const pwshProbe = spawnSync('pwsh', ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()'], { encoding: 'utf8' });
