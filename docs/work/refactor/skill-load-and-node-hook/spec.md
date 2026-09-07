@@ -77,3 +77,75 @@
 ## 待釐清
 
 - 無（本次）。**記錄不修**：`git rev-parse --abbrev-ref HEAD` 在 branch 名有歧義時回 `heads/main`，舊新兩邊都放行（都錯）；`hook-equivalence.mjs` 靠 `git show 8dbb203:` 取舊檔，未來 rewrite history 就跑不了，屬預期。
+
+
+## 施工紀錄
+
+### 三項的落地與證明
+
+| 項 | 做了 | 證明 |
+|---|---|---|
+| 1 design-language 延遲載入 | brainstorm 0b′ 四步改寫（仍四步）：清單與剔除規則內嵌、不命中不載、命中才載並照其契約從第 1 步跑；design-language description / §前端副檔名 例外句 / 銜接表 / Red Flags 同步；rules.md §設計語言對齊 說明句 | P11 綠（三處清單 tokenize 相等、含「不命中」「不載」「命中才載」「SKILL.md」）；守門快照：使用契約步驟數 / 選單 / § 白名單零差異，反引號新增 11 個（內嵌的清單與剔除規則，刻意） |
+| 2 dev-workflow 去重 | 刪 Track / Tier heuristic 兩表與自動升級段（理由句先搬到 brainstorm 0d）、換一行指回；Phase 0 圖第 35 行、分工表、跨流程 design-language 列同步 | P11 綠；P9c / P10b 仍綠；守門快照零差異 |
+| 3 hook 改 node | hooks/guard.mjs 一支兩段、hooks.json 一個 command、兩支 ps1 刪；scripts/hook-equivalence.mjs 對照 | P2a-e 綠（P2d 24 fixture + tokenPathFor 兩案；P2e 真 spawn 兩案）；對照測試 31 案 ALL EQUAL（下表）；守門快照 finish-branch 反引號新增 hooks/guard.mjs 一個（刻意） |
+
+### hook 對照測試（舊 pwsh 兩支 vs 新 node 一支）
+
+exit 規則：新 == max(舊 branch, 舊 file-type)。stderr 允許差異：僅 token 指令行（新版印 `node "<guard.mjs>" --token "<path>"`、正斜線）。只在 Windows 實測，Linux 為推斷。
+
+環境：2026-09-07 · 基線 8dbb203 · pwsh 7.4.19 · node v22.14.0 · win32
+| # | 案 | branch | token | 舊 b | 舊 f | 舊 max | 新 | 舊標記 | 新標記 | token 路徑 | token 消耗 | 等價 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | protected + repo 內 a.ts | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 2 | feat + repo 內 a.ts | feat/x | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 3 | repo 外 settings.json（main） | main | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 4 | repo 外 .gitconfig（main）→ WARN 不看 scope | main | none | 0 | 2 | 2 | 2 | WARN | WARN | same | n/a | ✓ |
+| 5 | protected + .env 雙訊息 | main | none | 2 | 2 | 2 | 2 | BLOCK+branch | BLOCK+branch | n/a | n/a | ✓ |
+| 6 | .env.example | feat/x | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 7 | .env.local | feat/x | none | 0 | 2 | 2 | 2 | BLOCK | BLOCK | n/a | n/a | ✓ |
+| 8 | NotebookEdit id_rsa | feat/x | none | 0 | 2 | 2 | 2 | BLOCK | BLOCK | n/a | n/a | ✓ |
+| 9 | 裸 credentials.json（相對路徑） | feat/x | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 10 | .venv/x | feat/x | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 11 | migrations 無 token | feat/x | none | 0 | 2 | 2 | 2 | WARN | WARN | same | n/a | ✓ |
+| 12 | migrations token valid | feat/x | valid | 0 | 0 | 0 | 0 | - | - | n/a | both-consumed | ✓ |
+| 13 | migrations token expired | feat/x | expired | 0 | 2 | 2 | 2 | WARN | WARN | same | both-consumed | ✓ |
+| 14 | package-lock.json | feat/x | none | 0 | 2 | 2 | 2 | WARN | WARN | same | n/a | ✓ |
+| 15 | Dockerfile | feat/x | none | 0 | 2 | 2 | 2 | WARN | WARN | same | n/a | ✓ |
+| 16 | tool_name 小寫 edit + .env | feat/x | none | 0 | 2 | 2 | 2 | BLOCK | BLOCK | n/a | n/a | ✓ |
+| 17 | branch Release（大小寫） | Release | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 18 | detached HEAD | detached | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 19 | 空 repo 無 commit | false | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 20 | 非 git 目錄 | false | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 21 | CLAUDE_PROJECT_DIR 未設、cwd=repo（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 22 | 相對路徑 src/a.ts（main、cwd=repo） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 23 | repo 路徑大小寫不同（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 24 | repo/../other/a.ts 走出 repo（main） | main | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 25 | 正斜線 Windows 路徑（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 26 | 空 stdin（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 27 | Write 無 tool_input（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 28 | Write 無 file_path（main） | main | none | 2 | 0 | 2 | 2 | branch | branch | n/a | n/a | ✓ |
+| 29 | 未知 tool（main） | main | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 30 | 壞 JSON（main） | main | none | 0 | 0 | 0 | 0 | - | - | n/a | n/a | ✓ |
+| 31 | TEMP 指到檔案 + Dockerfile → state dir 失敗 | feat/x | none | 0 | 2 | 2 | 2 | WARN | statedir | DIFF | n/a | ✓（刻意差異 D2） |
+
+ALL EQUAL（31 案）
+
+第 31 案是刻意差異 D2：舊 ps1 在 TMP 指到檔案時 `Join-Path` 噴 PowerShell 錯誤、tokenPath 變空、照樣印 WARN（指示是壞的）；新版明報 state dir 建立失敗。兩邊都 exit 2。
+
+### 耗時（PowerShell Measure-Command，各 5 次取中位數，Windows 11 / node 22.14 / pwsh 7.4.19）
+
+| | 舊（兩支 pwsh） | 新（一支 node） |
+|---|---|---|
+| repo 內檔（含 git rev-parse） | 約 3,200 ms（Bash time；pwsh 單支啟動 1,129 ms） | **456 ms** |
+| repo 外檔（不跑 git） | 同上 | **268 ms** |
+
+### 缺 node 實測（2026-09-07）
+
+hooks.json 暫改成 `node-nope`、`claude --plugin-dir <臨時 plugin> -p "用 Write 建 probe.txt" --output-format stream-json`：輸出裡 **零筆** 含 hook / non-blocking / node-nope 的訊息，probe.txt 照樣被寫。結論：Windows 非互動模式下 command 不存在是**完全靜默**、保護不存在——與官方文件「印 non-blocking 通知」不符（互動模式是否印通知未測）。文案照此寫：兩種說法下保護都不存在，只能 `node --version` 事前確認。
+
+### 執行偏差
+
+- 對照測試第一輪 5 案假紅：測試環境給的 TMP 是 Windows 8.3 短檔名（TOMMY_~1），.NET GetTempPath 回長檔名、node 照 env 印；改用 realpathSync.native 解開後全等。
+- P11 第一版對 design-language 那節整段 tokenize 會抓到「現況分歧」註記的 .sass；改成只抓 fenced block，且要容 CRLF。
+- Task 6 依 review 建議把 brainstorm / design-language 的檔名替換併進 Task 3；index.html 除了 spec 列的三行還有 meta description × 3、hero 一句、stat 數字、inventory 一列寫「2 個 hook」，一併改成「1 支兩段式」。
+- guard.mjs 主程式判斷用 argv[1] 檔名 regex（同 text-only-diff.mjs 先例）。
