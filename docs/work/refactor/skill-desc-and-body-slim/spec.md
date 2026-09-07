@@ -84,3 +84,51 @@
 ## 施工紀錄
 
 <!-- execute-plan 施工中追加 -->
+
+### 1. 前後對照（基線 `4de4e83` vs HEAD；非空行 / bytes / 估 tok，同一把尺）
+
+| 類別 | 前 | 後 | 變化 | 目標 | 達成 |
+|---|---|---|---|---|---|
+| A 34 條 description | ~4,971 tok | ~2,271 tok | −54% | ≤2,000 | **未達**：餘量是契約守的字樣（`/devwork` `T3` `顯式` `純文件` `命中…才載` `T2 → 回 brainstorm`）、三個 skill 的「不因自然語言自動觸發」、security-audit / security-auditor 的 T2 / T3 lane 條件句、design-* 兩處半句分工；再砍就改行為 |
+| B 17 skill + 6 agent | 3,318 非空行 / 175,771 bytes | 2,511 / 146,787 | −24% / −16% | ≤2,674 / ≤140,600 | 行 **達**；bytes **未達**（−16.5% vs −20%）：每檔 subagent 都回報剩餘是凍結項（frontmatter + code block + 表 佔 45-60%），22 檔中 21 檔單檔在目標 +10% 內、lang-reviewer bytes +10.07% 接受 |
+| C rules.md | 145 非空行 / 18,206 bytes | 131 / 16,832 | −10% / −8% | ≤110 / ≤14,000 | **未達**：review Eng M8 事先算出可砍區要壓 −31% 才到、零餘裕；三張表 + §事實核實 + 契約字樣佔六成，一輪壓完停手不動表 |
+| 全部 35 檔 | 4,718 行 / 278,551 bytes / ~91,437 tok | 3,868 / 249,982 / ~81,853 | −18% / −10% / −10% | — | 常駐部分（description + rules.md）從 ~11,000 降到 ~7,900 tok |
+
+逐檔數字見 plan v2 各 task 目標與 `node measure.mjs`；`node measure.mjs --assert` 最終 FAIL 五項（description / B bytes / lang-reviewer bytes / rules.md 行 / rules.md bytes），全部是上表註明的「到不了、不砍保護項」。
+
+### 2. 砍法對照（每種一個例子）
+
+| 砍法 | 例 |
+|---|---|
+| Trace 段 → 一行指向 rules.md | incident-investigate `§結尾 Trace 標籤` 8 行 → §hand-off state 末一行「結尾貼 rules.md §Trace 標籤（Phase=incident-investigate）」；跨流程 skill（cmd-guard 等 5 檔）用「不貼自身 trace，由呼叫 phase 帶」 |
+| Red Flags ≤5 列 | dispatch-parallel 13 → 5（「subagent 自己 push」「fail 重 spawn」「conflict 自 resolve」「prompt 不含 spec」「只給路徑」「隊友再開隊友」六列併一列） |
+| 引言縮一行（機制 + 後果） | dispatch-parallel「完成後」四行 → 一行（含「五個 subagent 全部只送 idle、原因是沒人告訴它們要送」） |
+| 範例 block 只留一 | security-checklist 每主題只留一組 FAIL / PASS，多的整塊刪（17 → 12 block）；write-skill 刪 §Body 風格規則 內重複的 Red Flags 範本 block |
+| 表改指向（整張刪） | dev-workflow §Auto-fix 原則 三欄表 → 「見 rules.md §Auto-fix」+ T3 加嚴一句；design-direction §與 dev-workflow 銜接 呼叫端表刪（description 已載） |
+| yaml 承上 | **零行**：22 檔的 hand-off yaml 沒有一行與 dev-workflow 主 yaml 逐字相同（值寫法不同，例 `tier: <T2/T3>` vs `<T0|T1|T2|T3>`），spec 估的 344 行省幅落空，如 plan v2 Risks 預告 |
+
+### 3. 刪除 / 縮寫的「為什麼」索引（`node quote-index.mjs` 機械比對 + 人工核對）
+
+基線含「為什麼 / 實測」的 blockquote 共 9 段：原樣 4、縮成一行 5、刪除 0。
+
+| 檔 | 基線 行 | 原引言 | 現況 |
+|---|---|---|---|
+| design-direction | 241 | 實測本機可跑（browser binary 來自 `@playwright/mcp`）；沒 playwright CLI 改用 frontend-test | 縮：`> 為什麼沒 playwright CLI 就改用 frontend-test：…不做會卡在現場下載`（腳本因首句改寫判成刪，人工核對為縮） |
+| design-language | 181 | 為什麼需要終止條件：未被 import 的新建檔永遠歸不了區 | 縮一行，要素全在 |
+| design-language | 213 | 為什麼不用數量門檻：940 行檔 26 vs 34 | 縮一行，四個數字保留 |
+| dispatch-parallel | 124 | 「完成後」是 2026-09-03 補的：五個 subagent 全部只送 idle | 縮：`> 為什麼要寫「完成後」：實測五個 subagent 全部只送 idle…原因是沒人告訴它們要送`（同上，人工核對為縮） |
+| rules.md | 81 | 設計語言豁免 + 實測依據 2026-09-03 | 縮：規則兩句 + 邊界一句 + 一行無日期理由（含 `docs/index.html` 例） |
+
+design-language 另三段（「這步必須在最前面」「錨定 `*/SKILL.md`」「為什麼要兜底」）與 rules.md §Branch safety 的 node 敘事不含「為什麼 / 實測」關鍵詞、不在腳本統計內，subagent 回報均縮一行且含 plan 指定要素。
+
+### 4. 什麼沒砍
+
+見 spec §零改變界線：步驟 / 選單 / yaml 欄 / 契約字樣 / 數字 / 被外部引用的 § 一字不動；design-direction references 33k tok 不在範圍。機械證據：守門 v2 對 35 檔 ALL PASS（fenced block 逐塊、表格整張、步驟動詞、規則型反引號、agent bullet、rules.md 表格行）、plugin-contract ALL PASS + selftest、docs-site-contract ALL PASS、`build-references -Check` exit 0。
+
+### 執行偏差
+
+- **守門 v2 三個 bug 施工中抓到並修**：(a) `|---|---|` 分隔列各表相同，整張刪表被誤判「少一列」（dev-workflow subagent 實測）→ 分隔列不計；(b) 用 `git stash` 拍基線快照拍到已 commit 的 Task 2 / 26 改動 → 加 `--rev 4de4e83` 直接從 git 讀；(c) AskUserQuestion 選單啟發式對 rules.md 的規則 bullet 誤判為選單 → rules.md 不套（它沒有選單）。這些改動都以負向測 8 案重跑確認。
+- **選單啟發式過寬**：design-language / dispatch-parallel / lang-reviewer / frontend-test 的 subagent 都回報「AskUserQuestion 字樣後 15 行內的第一個清單」把非選單的編號步驟鎖住、無法縮。保守方向的誤判，接受；下輪可改成只認 code block 內 `選項：` 與 `- **x** —` 兩型。
+- **subagent 越界：零**。22 個成品全在 out/、無人動 skills/ agents/、無人跑契約；9 個回報被 16k 字截斷，改用守門 + intake + quote-index 機械驗收，不再要回報。
+- **CRLF**：成品為 LF，磁碟原檔 CRLF；本表 bytes 以 git blob（LF）為準。
+- follow-up（不在本 PR）：verify-done L72 指向 frontend-test 不存在的 §測試流程 / §測試報告；契約 P9i 訊息提的 dispatch-parallel §subagent 派工 / §失敗處置 不存在。
