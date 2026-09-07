@@ -82,7 +82,7 @@ PII（email / phone / 身分證 / 信用卡 / 地址 / id_number）原值**禁�
 > **邊界**：只要動到 `class` / `style` / 任何屬性值 / 標籤增刪，就不算文字節點改動，規則照舊適用。判不出來就當作適用。
 > 實測依據：2026-09-03 潤 `docs/index.html` 文案時撞到——規則字面命中 `.html`，實質完全不適用，而執行的 agent 只能自己推豁免理由。
 
-- **判定** brainstorm Phase 0b′ 產出 `design.{involved, scope, scope_evidence, size, precedent, map_status}`，與 Track / Tier 合併一個 `AskUserQuestion` 一次確認。**0b′ 必跑**（含純後端 task；第一步是零成本的副檔名比對，不命中就結束）
+- **判定** brainstorm Phase 0b′ 產出 `design.{involved, scope, scope_evidence, size, precedent, map_status}`，與 Track / Tier 合併一個 `AskUserQuestion` 一次確認。**0b′ 必跑**（含純後端 task；brainstorm 自己做零成本的副檔名比對，不命中就不載 design-language；命中則照舊必載——規則不變，只是比對這一步搬到 brainstorm）
 - **小改**（沿用既有 token、無新視覺決策）→ 直接改 code，改完跑**四項對齊檢查**（元件狀態 / 斷點 / 表單 / dark mode；該區客觀上無此維度 → 標 N/A 並附依據）
 - **大改**（新頁 / 新區塊 / 改版）→ 先出三方向真實視覺讓 user 選，選定才落 code
 - **禁止用 Tier 推導 `design.size`** 兩根尺各自判：Tier 量 code 改動量體，`size` 量新視覺決策的量體，兩者系統性錯開
