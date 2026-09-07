@@ -281,7 +281,7 @@ logger.info({
 
 ## §載入 / 結束
 
-無 hand-off state。固定載入點只有一個：`security-audit` 使用契約第 7 步（T3 必用；
+無 hand-off state。固定載入點只有一個：`security-audit` 使用契約第 7 步（T3 程式碼 diff 必用、純文件 diff 隨 audit 一起跳；
 T2 涉敏感情境時可選）。其餘情況是 user 顯式要求跑 checklist。
 
 跑完該主題、產 finding 交呼叫方。

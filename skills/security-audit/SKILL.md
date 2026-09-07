@@ -2,7 +2,7 @@
 name: security-audit
 description: |
   OWASP Top 10 + STRIDE 安全稽核（繁中）。載入：dev-workflow Phase 6（receive-review 完；
-  T2 涉認證 / 資料層 / API 邊界才用、T3 必用）；亦可由使用者顯式呼叫。
+  T2 涉認證 / 資料層 / API 邊界才用、T3 程式碼 diff 必用、純文件 diff 且無 File-type 硬規則命中跳）；亦可由使用者顯式呼叫。
   涵蓋：判定要不要跑、spawn security-auditor agent（獨立 context 做 STRIDE / OWASP /
   checklist / PII 檢查）、整合 finding、critical user gate。
   上游：receive-review 完。下游：finish-branch。
@@ -13,8 +13,15 @@ description: |
 
 ## 使用契約（強制）
 **載入後立即動作**：
-1. **讀 hand-off state** 取 `tier`、`codebase_impact`、`commits`、`diff`。
-2. **判定要不要跑**：T3 **必跑**；T2 涉**認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII** 才跑；T0 / T1 跳、直接交 finish-branch。
+1. **讀 hand-off state** 取 `tier`、`codebase_impact`、`commits`、`diff`、`code_review_applicable`、`code_review_skipped_reason`（後兩欄由 request-review §副檔名分流 產出）。
+2. **判定要不要跑**：
+   - T0 / T1 跳、直接交 finish-branch。
+   - T2 涉**認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII** 才跑。
+   - T3 依序判三條，**全中才跳**：
+     (a) `state.code_review_applicable === false`——request-review 已判為純文件 diff。state **沒這欄**（例如 user 顯式呼叫本 skill）就當 `true` 照跑，**不自己補判副檔名**；
+     (b) `git diff <base>...HEAD --name-only` 沒有任何檔命中 rules.md §File-type 硬規則表任一列（密鑰 / ignore 檔 / CI-CD / DB migration / 鎖檔 / Infra / Shell config）——這些在 request-review 表裡歸純文件、卻是安全面最該看的檔，所以硬規則命中就照跑；
+     (c) Tier 是 T3。
+     三條全中 → 不 spawn agent、不載 security-checklist，state 寫 `security_skipped_reason`（例「純文件 diff：.md .json；無 File-type 硬規則命中」），直接交 finish-branch。任一不中 → 照舊：audit + checklist + db-reviewer（DB 改動）。
 3. **spawn `security-auditor` agent**（見 §Dispatch）。
 4. **收 agent finding**、整合到 hand-off state。
 5. **Critical** → 走 §Critical-finding 流程交 user。
@@ -71,6 +78,7 @@ state:
     nit: [...]
     pass: [...]
   security_topics_checked: [...]
+  security_skipped_reason: <純文件 diff：<副檔名列表>；無 File-type 硬規則命中 | null>   # 第 2 步跳過時才有值；有值則上面 findings 全空
   security_user_decisions:    # critical / 危險 major 的 user 選項紀錄
     - finding: <id>
       decision: <option>
@@ -87,6 +95,8 @@ state:
 | 想法 | 真相 |
 |---|---|
 | 「沒涉認證跳 audit」 | 認證只是一條；涉資料層 / API 邊界 / PII 也要跑 |
+| 「純文件 diff 就跳」 | 還要查 File-type 硬規則：`.github/workflows/*.yml`、`docker-compose.yml`、`.npmrc` 都是純文字、都要 audit |
+| 「state 沒有 code_review_applicable，我自己看副檔名判」 | 沒這欄就當程式碼 diff 照跑；副檔名表只在 request-review 一處，不在這裡長第二套 |
 | 「skill 自己跑 STRIDE 比較快」 | 球員兼裁判；改動者的 context 對自家 code 有偏誤；必走 agent |
 | 「critical agent 自己降級成 major」 | 嚴重度由 agent 標、skill 不擅自改；user gate 才是分流點 |
 | 「PII 違規可以後修」 | PII 違規 = critical = 立即處（rules.md §PII 安全底線） |
