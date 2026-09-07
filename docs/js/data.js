@@ -57,8 +57,8 @@ const FLOW_DATA = {
     DevWfSkill:   { phase: 'prelude', type: 'skill',   shape: 'rect',    label: '載入 skill：dev-workflow\n（由 devwork 載入，不自動觸發）' },
 
     // ───────── hooks ─────────
-    HBranch:      { phase: 'hook', type: 'hook', shape: 'rect',    label: 'branch-safety.ps1 hook\nPreToolUse: Write / Edit / NotebookEdit' },
-    HFile:        { phase: 'hook', type: 'hook', shape: 'rect',    label: 'file-type-guard.ps1 hook\n密鑰 / migration / lockfile / CI / infra' },
+    HBranch:      { phase: 'hook', type: 'hook', shape: 'rect',    label: 'guard.mjs（branch-safety 段）\nPreToolUse: Write / Edit / NotebookEdit' },
+    HFile:        { phase: 'hook', type: 'hook', shape: 'rect',    label: 'guard.mjs（file-type 段）\n密鑰 / migration / lockfile / CI / infra' },
     StopBranch:   { phase: 'hook', type: 'stop', shape: 'rect',    label: 'STOP：命中 main / master / production\n→ AskUserQuestion 取 branch 名 → checkout' },
     StopFile:     { phase: 'hook', type: 'stop', shape: 'rect',    label: 'STOP：密鑰 / .env 禁 commit\n→ block；其他類型 → 二次確認' },
 
@@ -71,7 +71,7 @@ const FLOW_DATA = {
     LoadDB:       { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：db-access\n（mysql MCP 唯讀規範）' },
     P0c:          { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'Phase 0c：Track 判定\nAskUserQuestion: Bug / Dev' },
     P0d:          { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'Phase 0d：Tier 判定\nAskUserQuestion: T0 / T1 / T2 / T3' },
-    LoadDLang:    { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：design-language\nPhase 0b′ 必跑（第 1 步是零成本副檔名比對）' },
+    LoadDLang:    { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：design-language\n0b′ 比對命中前端副檔名才載（比對在 brainstorm）' },
     DesignQ:      { phase: 'phase0', type: 'default', shape: 'diamond', label: '改動檔含前端副檔名？\n.css .scss .tsx .jsx .vue .svelte .html' },
     DesignMap:    { phase: 'phase0', type: 'default', shape: 'rect',    label: '查 design-map.md + 失效檢查\n得 scope / scope_evidence / size' },
     P0Design:     { phase: 'phase0', type: 'gate',    shape: 'diamond', label: '合併確認第 3 題：設計路徑\n（involved=true 且 size=大改 才出現）' },

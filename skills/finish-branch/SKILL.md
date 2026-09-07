@@ -167,7 +167,7 @@ mv docs/work/<branch-name> docs/archive/<年>/<主題>
 
 ## §Branch safety 雙保險
 
-- **Hook**：plugin 的 `hooks/branch-safety.ps1`（PreToolUse 擋 Write / Edit / NotebookEdit）；命中主分支（`main / master / production / prod / release`）→ exit 2 阻擋
+- **Hook**：plugin 的 `hooks/guard.mjs`（branch-safety 段；PreToolUse 擋 Write / Edit / NotebookEdit）；命中主分支（`main / master / production / prod / release`）→ exit 2 阻擋
 - **rules.md**：見 rules.md §Branch safety
 - 處置：依 rules.md「§決策點選單」走 AskUserQuestion 取 feature branch 名 → `git checkout -b <name>` → retry
 
