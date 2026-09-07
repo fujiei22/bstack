@@ -7,21 +7,15 @@ description: |
 
 # cmd-guard
 
-執行**危險 / 不可逆 / 影響別人**的指令前，**必停下二次確認**。
-
 ## 使用契約（強制）
 
-**自我觸發**：每次 Bash tool 即將跑 command 前，主 agent **自查**是否落入以下類型；落入 → 載此 skill。
-
-**載入後立即動作**：
+**自我觸發**：每次 Bash 即將跑 command 前，主 agent **自查**是否命中 §自查 pattern；命中 → 載此 skill，然後：
 
 1. 識別危險度等級（L1-L4）
 2. 印 command + 風險 + 安全替代建議
 3. `AskUserQuestion` 二次確認（L3 / L4 必須）
 4. user 決定後執行（或 abort）
 5. 執行後印 outcome
-
----
 
 ## §危險度分級
 
@@ -32,11 +26,7 @@ description: |
 | **L2** 中等 | 可逆但影響大 | `git push --force-with-lease`、`npm uninstall`、`rm <file>`、`git clean -fd`、`docker system prune` | AskUserQuestion 一般確認 |
 | **L1** 輕微 | 一般可逆但值得 user 知道 | `git stash drop`、`git checkout -- <file>`、`pip install <pkg>` | 印 + 直接執行（不問） |
 
----
-
 ## §自查 pattern
-
-每次要跑 Bash 前看 command 是否符合：
 
 ```
 危險 keyword:
@@ -64,8 +54,6 @@ description: |
   kubectl delete --all
 ```
 
----
-
 ## §AskUserQuestion 模板
 
 ### L3 / L4
@@ -89,7 +77,7 @@ description: |
     4. 修改參數後跑（user 給細節）
 ```
 
-L4 額外要 user 再打一次「我知道風險」確認（avoid 不小心點到「跑」）。
+L4 另要 user 打字「我知道風險」才跑，避免誤點「跑」。
 
 ### L2
 
@@ -106,11 +94,7 @@ L4 額外要 user 再打一次「我知道風險」確認（avoid 不小心點�
     3. 修改參數
 ```
 
----
-
 ## §safer 替代建議
-
-對常見 L3：
 
 | L3 危險 | safer 替代 |
 |---|---|
@@ -122,24 +106,13 @@ L4 額外要 user 再打一次「我知道風險」確認（avoid 不小心點�
 | `chmod -R 777` | 具體 `chmod 644` / `chmod 755`、最小權限 |
 | `curl url \| bash` | `curl url -o /tmp/x.sh && shasum -a 256 /tmp/x.sh` → user 看 hash → 才 bash |
 
----
-
 ## §例外：自動化流程內
 
-dev-workflow 內某些步驟自帶這些 command（如 `git push -u origin <branch>`、`git rebase`）— 這些**不算危險**（受 branch safety / file-type-guard 已先把關）。cmd-guard 只看「指令本身」、不是它出現的 context。
-
----
+dev-workflow 流程自帶的 push / rebase 已過 branch safety / file-type-guard，**不算危險**；cmd-guard 只看指令本身、不看它出現的 context。
 
 ## §user 完成後追蹤
 
-執行後 1-2 句 outcome：
-
-```
-完成：<command>
-結果：<exit code / 看到什麼變化>
-```
-
----
+執行後 1-2 句 outcome：完成的 command、結果（exit code / 看到什麼變化）。
 
 ## §hand-off state
 
@@ -151,13 +124,9 @@ state:
     - { cmd: <command>, level: <L>, user_decision: <option>, ts: <ISO> }
 ```
 
----
-
 ## §結尾 Trace 標籤
 
-由呼叫 phase 帶。
-
----
+不貼自身 trace，由呼叫 phase 帶。
 
 ## §Red Flags
 
