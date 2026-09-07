@@ -21,7 +21,7 @@ description: |
      (a) `state.code_review_applicable === false`——request-review 已判為純文件 diff。state **沒這欄**（例如 user 顯式呼叫本 skill）就當 `true` 照跑，**不自己補判副檔名**；
      (b) `git diff <base>...HEAD --name-only` 沒有任何檔命中 rules.md §File-type 硬規則表任一列（密鑰 / ignore 檔 / CI-CD / DB migration / 鎖檔 / Infra / Shell config）——這些在 request-review 表裡歸純文件、卻是安全面最該看的檔，所以硬規則命中就照跑；
      (c) Tier 是 T3。
-     三條全中 → 不 spawn agent、不載 security-checklist，state 寫 `security_skipped_reason`（例「純文件 diff：.md .js；無 File-type 硬規則命中」），直接交 finish-branch。任一不中 → 照舊：audit + checklist + db-reviewer（DB 改動）。
+     三條全中 → 不 spawn agent、不載 security-checklist，state 寫 `security_skipped_reason`（例「純文件 diff：.md .json；無 File-type 硬規則命中」），直接交 finish-branch。任一不中 → 照舊：audit + checklist + db-reviewer（DB 改動）。
 3. **spawn `security-auditor` agent**（見 §Dispatch）。
 4. **收 agent finding**、整合到 hand-off state。
 5. **Critical** → 走 §Critical-finding 流程交 user。

@@ -83,3 +83,15 @@ diff 檔名命中 rules.md §File-type 硬規則任一列？ → 是 → audit�
 ## 施工紀錄
 
 <!-- execute-plan 施工中追加 -->
+
+### 執行紀錄（2026-09-07）
+
+| 項 | 結果 |
+|---|---|
+| 施工清單 4 列 | 4 commit，P12 先紅（9 子條件全 FAIL）→ Task 2 後剩 6 → Task 3 後 ALL PASS |
+| 施工清單外的改動 | P12 殘留掃描多抓到 `skills/security-checklist/SKILL.md:284`「T3 必用」，spec 影響檔表沒列；併入 Task 3 一起改。教訓：列「要同步的處」時先 grep 一次舊字樣，別憑記憶列 |
+| 設計語言四項對齊 | N/A（依據：改動檔副檔名 `.md .js .mjs`，不含 design-language §前端副檔名 七項；`docs/index.html` 未動） |
+| 契約 | plugin-contract ALL PASS（含 P12）、docs-site-contract ALL PASS、`build-references -Check` exit 0、`node --check docs/js/data.js` OK |
+| request-review | T2：`Skill("code-review", args="medium scripts/plugin-contract.mjs")`（純文件佔大宗、只送程式碼檔）+ 主 agent 對 spec 自檢 |
+| 自檢 finding | 1 筆：security-audit 第 2 步範例「純文件 diff：.md .js」自相矛盾（`.js` 是程式碼副檔名），改 `.md .json` |
+| security-audit | T2 不涉認證 / 資料層 → 跳（本 PR 自己就是在改這條規則；依現行 T2 條件本來就不跑） |
