@@ -132,3 +132,9 @@ design-language 另三段（「這步必須在最前面」「錨定 `*/SKILL.md`
 - **subagent 越界：零**。22 個成品全在 out/、無人動 skills/ agents/、無人跑契約；9 個回報被 16k 字截斷，改用守門 + intake + quote-index 機械驗收，不再要回報。
 - **CRLF**：成品為 LF，磁碟原檔 CRLF；本表 bytes 以 git blob（LF）為準。
 - follow-up（不在本 PR）：verify-done L72 指向 frontend-test 不存在的 §測試流程 / §測試報告；契約 P9i 訊息提的 dispatch-parallel §subagent 派工 / §失敗處置 不存在。
+
+### request-review / security-audit 紀錄
+
+- **code-review high 中途停止（user 決定）**：diff 唯一的程式碼是 `docs/work/` 底下四支一次性腳本，request-review 分流表把 `.mjs` 歸程式碼、觸發 T3 high；user 判對丟棄式工具不值 10 分鐘 / 15 萬 token，停在 finder 階段。已到的兩個 finder 原始輸出（simplify / conventions）裡確定成立的已修：註解 `\u` 逃逸、snapshot 強制 `--rev`、四支腳本硬編 `D:/GitHub/bstack` 改問 git、函式 docstring；其餘（選單啟發式過寬、腳本間重複、Red Flags 合併可讀性、Trace stub §）記 follow-up 未驗證。
+- **lane 缺口（follow-up）**：`docs/work/**` 一次性腳本與 `scripts/` 正式程式碼被同等對待；request-review §副檔名分流 可加一條「`docs/work/**` 腳本 → 不算程式碼 diff」，是 lane 改變、另開 PR。
+- **security-audit**：T3、`code_review_applicable=true` → 跑。結果 1 Major（intake.mjs `execSync` 字串拼命令，檔名可注入）已修成 `execFileSync` 參數陣列 + TARGETS 白名單、以 `foo & bar.md` 實測擋下；其餘 PASS——rules.md §PII / §File-type 與 main 逐 byte 相同，safety-guard 六類 PII regex 與 mask、security-checklist 十二主題、agents 的 STRIDE / OWASP / PII 規則零削弱。
