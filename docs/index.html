@@ -237,36 +237,36 @@
 <section id="what" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
   <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:baseline;justify-content:space-between;margin-bottom:clamp(22px,4vh,38px)">
     <div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Behaviour · 01 / 它管什麼</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Behaviour · 01 / 管理</div>
       <h2 style="margin:0;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">有些事勸不動<br />就得擋在前面</h2>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(272px,31%)),1fr));align-content:start;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain">
-    <a href="./flow.html" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+    <a href="./flow.html" data-node="HBranch" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#FF8A3D"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">不會直接改 main</div>
       <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">人在 <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:2px">main / master / production</code> 上時，它寫不進檔案 —— 不是提醒你，是動作直接失敗，並告訴你怎麼開 branch。密鑰檔一樣寫不進去，沒有例外通道。</p>
       <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">guard.mjs · 兩段檢查 →</div>
     </a>
-    <a href="./flow.html" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+    <a href="./flow.html" data-node="BS" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#FFC531"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">gate</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">動手前先問清楚</div>
       <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">每個請求它會先讀相關檔案，判斷這是修 bug 還是做新功能、以及改動有多大，然後用一張選單跟你確認。要點選項才算數，回「好」不算。</p>
       <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">brainstorm · 0a–0d →</div>
     </a>
-    <a href="./flow.html" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+    <a href="./flow.html" data-node="LoadDLang" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#B388FF"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">design</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">改樣式先看現有的</div>
       <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">改樣式前，它會先去讀這一區現在用的顏色與字級，照抄既有的值，不憑印象自己配一組新的。做新頁或改版時會先給三個方向讓你挑。</p>
       <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">design-language · design-direction →</div>
     </a>
-    <a href="./flow.html" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+    <a href="./flow.html" data-node="LoadReq" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#4FA8FF"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">agent</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">寫的跟審的分開</div>
       <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">自己寫的 code 自己看都合理，因為記得每一行的來由。所以 review、安全檢查、e2e 一律交給另外開的 agent —— 它們只看得到成品，看不到寫的過程。</p>
       <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">6 個 agent →</div>
     </a>
-    <a href="./flow.html" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+    <a href="./flow.html" data-node="LoadPrEx" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#9AA0AA"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">trace</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">每次改動都留下紀錄</div>
       <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">每輪回覆最後都標明現在走到哪一步、這次改動算多大。比較大的改動開完 PR 後，會另外寫一份「為什麼改、改了什麼」貼回 PR。</p>
@@ -282,7 +282,7 @@
 </section>
 
 <section id="phases" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Nine Phases · 02 / 九個階段</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Nine Phases · 02 / 階段</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">不是階段多才嚴謹<br />是每一步都說得出為什麼</h2>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:clamp(18px,3vw,40px);align-items:start;min-height:0;overflow-y:auto;overscroll-behavior:contain">
     <div style="border-top:1px solid var(--line)">
@@ -325,7 +325,7 @@
 </section>
 
 <section id="tier" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Four Tiers · 03 / 四種量體</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Four Tiers · 03 / 量體</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">一行 typo 不必大費周章<br />動到 schema 不能便宜行事</h2>
   <div style="overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:2px;min-height:0;overscroll-behavior:contain">
     <table style="width:100%;min-width:780px;border-collapse:collapse;font-size:13px;line-height:1.7">
@@ -386,7 +386,7 @@
 </section>
 
 <section id="inv" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 04 / 裝了什麼</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 04 / 內涵</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">不多給你選項<br />只給已經決定好的四樣</h2>
   <div style="border-top:1px solid var(--line)">
     <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、九條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">28</span></div>
@@ -397,7 +397,7 @@
 </section>
 
 <section id="index" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Index · 05 / 索引</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Index · 05 / 功能索引</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">28 支 skill 不用背<br />想查的時候查得到</h2>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px">
     <input type="search" value="{{ query }}" onInput="{{ onQuery }}" placeholder="例：review、design、db、context" style="flex:1 1 260px;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:2px;background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink);outline:none;transition:border-color var(--t)" style-focus="border-color:var(--accent)" />
@@ -421,7 +421,7 @@
 
 <section id="install" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Install · 06 / 三步</div>
-  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">三個指令<br />沒有第四步</h2>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">三個指令<br />快速安裝</h2>
   <p style="margin:0 0 clamp(18px,3vh,28px);font-size:14.5px;line-height:1.8;color:var(--ink-2);max-width:64ch">前置兩件：node 要在啟動 Claude Code 的 PATH 內（hook 需要），以及 git。</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(240px,31%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;flex:none;min-height:0;overflow:auto;overscroll-behavior:contain">
     <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
@@ -863,18 +863,23 @@ class Component extends DCLogic {
    * load 事件會再補送一次；流程圖那邊若圖還沒佈局完也會自己排隊。
    */
   focusInFlow(name) {
-    this._pendingFocus = name;
+    this._pendingFocus = { doc: name };
     this.closeDoc();
     this.slideFlow(true);
     this.postFocus();
   }
 
-  /** 把排隊中的 focus 送進 iframe；送不出去就留著，等 load 或下一次呼叫。 */
+  /**
+   * 把排隊中的 focus 送進 iframe；送不出去就留著，等 load 或下一次呼叫。
+   * _pendingFocus 是 {doc:'<名字>'}（索引彈窗）或 {node:'<id>'}（「它管什麼」卡片），
+   * 兩種都由 flow.html 的 focusFrom() 處理。
+   */
   postFocus() {
     if (!this._pendingFocus) return;
     try {
       if (!this.flowFrame || !this.flowFrame.contentWindow) return;
-      this.flowFrame.contentWindow.postMessage({ bstack: 'focus', doc: this._pendingFocus }, '*');
+      this.flowFrame.contentWindow.postMessage(
+        Object.assign({ bstack: 'focus' }, this._pendingFocus), '*');
       this._pendingFocus = null;
     } catch (_) {}
   }
@@ -1250,7 +1255,13 @@ class Component extends DCLogic {
       const a = e.target.closest && e.target.closest('a[href$=".html"]:not([href*="index"]), a[href*="flow"]');
       if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.defaultPrevented) return;
       e.preventDefault();
+      // 連結上掛了 data-node 就順便讓流程圖選取該節點（「它管什麼」那幾張卡片）。
+      // 刻意用屬性而不是 onClick：dc-runtime 綁的 onClick 會擋掉冒泡，這個全域攔截就吃不到，
+      // 連 slideFlow 都不會跑（索引彈窗那個連結就是這樣，只好自己 preventDefault）。
+      const node = a.getAttribute('data-node');
+      if (node) this._pendingFocus = { node };
       this.slideFlow(true);
+      if (node) this.postFocus();
     });
     window.addEventListener('message', e => {
       const d = e.data;

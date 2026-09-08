@@ -690,6 +690,18 @@ check(
 // landing 的節點鏈是手填的節點 id，打錯不會有任何錯誤訊息、只會靜默少一格。
 const landingNodeIds = [...landing.matchAll(/data-nodes="([^"]+)"/g)].flatMap((m) => m[1].split(','));
 const badLandingIds = landingNodeIds.filter((id) => !FD.nodes[id.trim()]);
+// C19d：「它管什麼」那幾張卡片用 data-node 指定要 focus 的節點。
+// 打錯字是**靜默失效**——focusFrom() 找不到節點就什麼都不做，畫面上只是滑進流程圖沒選取，
+// 看起來像「這張卡本來就沒有對應節點」，不會有任何錯誤訊息。
+const focusIds = [...landing.matchAll(/data-node="([^"]+)"/g)].map((m) => m[1]);
+const badFocusIds = focusIds.filter((id) => !FD.nodes[id]);
+check(
+  `C19d landing 的 data-node 都對得到節點（${focusIds.length} 張卡）`,
+  focusIds.length > 0 && badFocusIds.length === 0,
+  `期望 >0 張且 0 個壞 id，實際 ${focusIds.length} 張、壞 [${badFocusIds.join(', ')}]` +
+    `（後果：點那張卡只會滑進流程圖但不選取任何節點，而且不報錯）`
+);
+
 check(
   'C19c landing 引用的節點 id 都在圖上',
   badLandingIds.length === 0,

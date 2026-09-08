@@ -544,7 +544,7 @@ class Component extends DCLogic {
         this.fit(false);
       }
       // 佈局好了才補跑排隊中的 focus：冷開啟時父層的訊息會早於 build 抵達
-      if (this._pendingFocus) this.focusDoc(this._pendingFocus);
+      if (this._pendingFocus) this.focusFrom(this._pendingFocus);
     });
 
     const el = this.svg;
@@ -622,21 +622,29 @@ class Component extends DCLogic {
   }
 
   /**
-   * 依文件名把對應的節點選起來並置中。首頁索引的彈窗點「流程圖 →」時，父層 postMessage 過來。
-   * 用 resolveDoc() 反查而不是自己再寫一套比對規則——這樣 DOC_OVERRIDES 的修正也自動生效。
+   * 把某個節點選起來並置中。首頁 postMessage 過來時用，兩種指定方式：
+   *   {doc:'<名字>'}  索引彈窗用：拿文件名反查（走 resolveDoc()，所以 DOC_OVERRIDES 的修正也生效）
+   *   {node:'<id>'}   「它管什麼」那幾張卡片用：它們指的是概念（「不會直接改 main」），
+   *                   沒有文件名可以撞，只能由呼叫端在 markup 上指定節點 id
    * 圖還沒佈局完就先排隊（冷開啟時 iframe 剛掛上，訊息會早於 build 抵達），build 收尾再補跑。
-   * @param {string} name docIndex 的名字：skill / agent 的目錄名，或 'rules.md'
+   * @param {{doc?:string,node?:string}} payload
    */
-  focusDoc(name) {
+  focusFrom(payload) {
+    if (!payload) return;
     const L = this.state.layout;
-    if (!L) { this._pendingFocus = name; return; }
+    if (!L) { this._pendingFocus = payload; return; }
     this._pendingFocus = null;
-    const bare = String(name).replace(/\.md$/, '');
-    const target = L.nodes.find(n => {
-      const d = this.resolveDoc(n);
-      return d && (d.name === name || d.name === bare || d.name.replace(/\.md$/, '') === bare);
-    });
-    if (!target) return;   // 那份文件沒有對應節點（例如只在側欄索引出現的），靜靜不動作
+    let target = null;
+    if (payload.node) {
+      target = L.nodes.find(n => n.id === payload.node);
+    } else if (payload.doc) {
+      const bare = String(payload.doc).replace(/\.md$/, '');
+      target = L.nodes.find(n => {
+        const d = this.resolveDoc(n);
+        return d && (d.name === payload.doc || d.name === bare || d.name.replace(/\.md$/, '') === bare);
+      });
+    }
+    if (!target) return;   // 對不到節點（文件只在側欄索引出現，或 id 打錯）就靜靜不動作
     this.setState({ sel: target.id, typeFilter: null });
     this.closeDrawer();
     this.centerOn(target, true);
@@ -734,7 +742,7 @@ class Component extends DCLogic {
         this.applyTheme(d.resolved || d.mode);
         document.documentElement.setAttribute('data-theme-mode', d.mode);
       }
-      if (d.bstack === 'focus' && d.doc) this.focusDoc(d.doc);
+      if (d.bstack === 'focus') this.focusFrom({ doc: d.doc, node: d.node });
     });
 
     document.addEventListener('click', e => {
