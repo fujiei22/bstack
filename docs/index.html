@@ -471,8 +471,8 @@
           <span style="width:8px;height:8px;flex:none;background:var(--accent)"></span>
           <span style="font-family:'JetBrains Mono',monospace;font-size:13.5px;color:var(--ink)">{{ openName }}</span>
           <span style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ openPath }}</span>
-          <a href="./flow.html" style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10.5px">流程圖 →</a>
-          <button type="button" onClick="{{ onClose }}" style="flex:none;height:30px;display:inline-flex;align-items:center;padding:0 12px;border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);transition:color var(--t),border-color var(--t)" style-hover="color:var(--ink);border-color:var(--line-2)" title="點卡片外或按 ESC 也可以關">ESC 關閉</button>
+          <a href="./flow.html" onClick="{{ onFocusFlow }}" title="到流程圖，並選取這份文件對應的節點" style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10.5px">流程圖 →</a>
+          <button type="button" onClick="{{ onClose }}" aria-label="關閉" style="flex:none;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1;color:var(--ink-3);transition:color var(--t),border-color var(--t)" style-hover="color:var(--ink);border-color:var(--line-2)" title="點卡片外或按 ESC 也可以關">✕</button>
         </div>
         <div style="flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:28px clamp(20px,3vw,40px) 64px;font-size:14px;line-height:1.9;color:var(--ink-2)">
           <div style="max-width:76ch">{{ docEl }}</div>
@@ -521,6 +521,15 @@ const AGENTS = [
   ['lang-reviewer', '點名才派的語言專家：idiom 與 pitfall'],
   ['pr-explainer', '重讀 diff，寫成詳盡的 PR 解說'],
   ['security-auditor', '獨立 context 跑 OWASP / STRIDE / PII']
+];
+
+/**
+ * 既不是 skill 也不是 agent 的文件。流程圖頁的側欄索引有 35 份
+ *（28 skill + 6 agent + rules.md），首頁索引原本只鋪前兩類、少了規則書這一份。
+ * 排在最後與流程圖頁的 docSection 同序（Skill → Agent → Doc）。
+ */
+const DOCS = [
+  ['rules.md', '強制守則本身：Task 追蹤、決策點只能點選項、branch 與檔案類型硬規則、PII 底線、DB 唯讀', '規則書']
 ];
 
 const THEMES = ['dark', 'light', 'auto'];
@@ -844,6 +853,29 @@ class Component extends DCLogic {
     this.setState({ open: name, closing: false, armed: false });
   }
 
+  /**
+   * 從索引彈窗跳進流程圖，並讓流程圖把這份文件的節點選起來置中。
+   * 收彈窗 → 滑入流程圖 → 送 focus，整段自己做（原因見 renderVals 的 onFocusFlow 註解）。
+   * slideFlow() 內含 mountFlow()，但 iframe 可能還沒 load 完，所以 focus 記在 _pendingFocus，
+   * load 事件會再補送一次；流程圖那邊若圖還沒佈局完也會自己排隊。
+   */
+  focusInFlow(name) {
+    this._pendingFocus = name;
+    this.closeDoc();
+    this.slideFlow(true);
+    this.postFocus();
+  }
+
+  /** 把排隊中的 focus 送進 iframe；送不出去就留著，等 load 或下一次呼叫。 */
+  postFocus() {
+    if (!this._pendingFocus) return;
+    try {
+      if (!this.flowFrame || !this.flowFrame.contentWindow) return;
+      this.flowFrame.contentWindow.postMessage({ bstack: 'focus', doc: this._pendingFocus }, '*');
+      this._pendingFocus = null;
+    } catch (_) {}
+  }
+
   closeDoc() {
     if (!this.state.open) return;
     cancelAnimationFrame(this._armRaf);
@@ -854,6 +886,7 @@ class Component extends DCLogic {
   }
 
   docPathFor(name, group) {
+    if (group === '規則書') return 'references/' + name;   // rules.md 直接住在 references/ 底下
     return group === 'agent'
       ? 'references/agents/' + name + '.md'
       : 'references/skills/' + name + '/SKILL.md';
@@ -1167,7 +1200,7 @@ class Component extends DCLogic {
     f.src = './flow.html?embed=1';
     f.title = 'bstack 流程圖';
     f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
-    f.addEventListener('load', () => this.postTheme());
+    f.addEventListener('load', () => { this.postTheme(); this.postFocus(); });
     this.flowHost.appendChild(f);
     this.flowFrame = f;
   }
@@ -1245,6 +1278,12 @@ class Component extends DCLogic {
         name, desc, group: 'agent',
         bg: 'rgba(79,168,255,0.1)', bd: '#4FA8FF',
         href: './flow.html'
+      })),
+      ...DOCS.map(([name, desc, group]) => ({
+        name, desc, group,
+        // 與流程圖頁 docSection 的 KIND_COLOR.Doc 同色
+        bg: 'rgba(179,136,255,0.1)', bd: '#B388FF',
+        href: './flow.html'
       }))
     ];
     const filtered = q ? all.filter(i => (i.name + ' ' + i.desc + ' ' + i.group).toLowerCase().includes(q)) : all;
@@ -1299,6 +1338,15 @@ class Component extends DCLogic {
       barRef: el => { this.bar = el; },
       stop: this.stop,
       onClose: () => this.closeDoc(),
+      // **這裡必須自己 preventDefault**：dc-runtime 把模板的 onClick 綁成原生 onclick 並擋掉冒泡，
+      // 事件傳不到 document，hookNav 的全域連結攔截對這個 a 完全不生效（實測：document 的
+      // listener 一次都沒觸發，於是瀏覽器直接導頁到 flow.html，內嵌滑入的效果整個沒了）。
+      // 修飾鍵與中鍵照放行，維持「另開分頁」的預設行為。
+      onFocusFlow: (e) => {
+        if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return;
+        if (e && e.preventDefault) e.preventDefault();
+        if (openItem) this.focusInFlow(openItem.name);
+      },
       empty: items.length === 0,
       resultLabel: q ? items.length + ' / ' + all.length : all.length + ' 項',
       isDark: this.state.themeMode === 'dark',

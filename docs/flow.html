@@ -228,7 +228,7 @@
     <sc-if value="{{ openType }}" hint-placeholder-val="{{ true }}">
     <sc-for list="{{ legend }}" as="l" hint-placeholder-count="8">
       <button onClick="{{ l.onClick }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:7px 18px;text-align:left;background:{{ l.bg }};transition:background var(--t-micro);{{ l.anim }}" style-hover="background:var(--sunk)">
-        <span style="width:9px;height:9px;flex:none;border-radius:3px;border:1.5px solid {{ l.color }};background:{{ l.fill }}"></span>
+        <span style="width:9px;height:9px;flex:none;background:{{ l.color }}"></span>
         <span style="flex:1;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12.5px;color:{{ l.ink }}">{{ l.label }}</span>
         <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ l.count }}</span>
       </button>
@@ -283,7 +283,7 @@
       </div>
       <sc-for list="{{ docList }}" as="d" hint-placeholder-count="10">
         <button onClick="{{ d.onClick }}" style="width:100%;display:flex;align-items:center;gap:9px;padding:6px 18px;text-align:left;transition:background var(--t-micro);{{ d.anim }}" style-hover="background:var(--sunk)">
-          <span style="width:7px;height:7px;flex:none;border:1.5px solid {{ d.color }}"></span>
+          <span style="width:7px;height:7px;flex:none;background:{{ d.color }}"></span>
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink)">{{ d.name }}</span>
           <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)">{{ d.kind }}</span>
         </button>
@@ -363,14 +363,14 @@
         <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">{{ detail.upLabel }}</div>
         <sc-for list="{{ detail.up }}" as="u" hint-placeholder-count="2">
           <button onClick="{{ u.onClick }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:2px;text-align:left;transition:background var(--t-micro),padding-left var(--t-micro)" style-hover="background:var(--sunk);padding-left:11px">
-            <span style="width:6px;height:6px;flex:none;border-radius:2px;background:{{ u.color }}"></span>
+            <span style="width:6px;height:6px;flex:none;background:{{ u.color }}"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;color:var(--ink)">{{ u.label }}</span>
           </button>
         </sc-for>
         <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">{{ detail.downLabel }}</div>
         <sc-for list="{{ detail.down }}" as="d" hint-placeholder-count="2">
           <button onClick="{{ d.onClick }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:2px;text-align:left;transition:background var(--t-micro),padding-left var(--t-micro)" style-hover="background:var(--sunk);padding-left:11px">
-            <span style="width:6px;height:6px;flex:none;border-radius:2px;background:{{ d.color }}"></span>
+            <span style="width:6px;height:6px;flex:none;background:{{ d.color }}"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;color:var(--ink)">{{ d.label }}</span>
             <span style="flex:none;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:10.5px;color:var(--ink-3)">{{ d.via }}</span>
           </button>
@@ -519,6 +519,8 @@ class Component extends DCLogic {
       } else {
         this.fit(false);
       }
+      // 佈局好了才補跑排隊中的 focus：冷開啟時父層的訊息會早於 build 抵達
+      if (this._pendingFocus) this.focusDoc(this._pendingFocus);
     });
 
     const el = this.svg;
@@ -583,6 +585,26 @@ class Component extends DCLogic {
     const r = this.svg.getBoundingClientRect();
     const k = Math.max(this.state.k, 0.35);
     this.setState({ k, animate: !!animate, tx: r.width / 2 - node.x * k, ty: r.height / 2 - node.y * k });
+  }
+
+  /**
+   * 依文件名把對應的節點選起來並置中。首頁索引的彈窗點「流程圖 →」時，父層 postMessage 過來。
+   * 用 resolveDoc() 反查而不是自己再寫一套比對規則——這樣 DOC_OVERRIDES 的修正也自動生效。
+   * 圖還沒佈局完就先排隊（冷開啟時 iframe 剛掛上，訊息會早於 build 抵達），build 收尾再補跑。
+   * @param {string} name docIndex 的名字：skill / agent 的目錄名，或 'rules.md'
+   */
+  focusDoc(name) {
+    const L = this.state.layout;
+    if (!L) { this._pendingFocus = name; return; }
+    this._pendingFocus = null;
+    const bare = String(name).replace(/\.md$/, '');
+    const target = L.nodes.find(n => {
+      const d = this.resolveDoc(n);
+      return d && (d.name === name || d.name === bare || d.name.replace(/\.md$/, '') === bare);
+    });
+    if (!target) return;   // 那份文件沒有對應節點（例如只在側欄索引出現的），靜靜不動作
+    this.setState({ sel: target.id, typeFilter: null, drawer: null });
+    this.centerOn(target, true);
   }
 
   // 節點對文件是**啟發式**：拿 label + id 去撞 docIndex 的名字，長的先撞。
@@ -661,6 +683,7 @@ class Component extends DCLogic {
         this.applyTheme(d.resolved || d.mode);
         document.documentElement.setAttribute('data-theme-mode', d.mode);
       }
+      if (d.bstack === 'focus' && d.doc) this.focusDoc(d.doc);
     });
 
     document.addEventListener('click', e => {
@@ -827,8 +850,9 @@ class Component extends DCLogic {
     base.legend = F.legend.map((l, i) => ({
       anim: rowAnim(i),
       label: l.label, count: counts[l.type] || 0,
+      // 側欄色塊一律實心（與首頁 #inv 那排同一種畫法），所以這裡不再供 fill。
+      // TYPE_FILL 仍用在圖上的節點底色，別跟著刪。
       color: typeFilter === l.type ? 'var(--accent)' : TYPE_COLOR[l.type],
-      fill: TYPE_FILL[l.type],
       ink: typeFilter === l.type ? 'var(--ink)' : 'var(--ink-2)',
       bg: typeFilter === l.type ? 'var(--accent-wash)' : 'transparent',
       onClick: () => this.setState({ typeFilter: typeFilter === l.type ? null : l.type, sel: null })
