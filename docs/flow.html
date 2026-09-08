@@ -178,6 +178,10 @@
   @keyframes rowIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
   @keyframes slideIn { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes veil { from { opacity: 0; } to { opacity: 1; } }
+  /* 退場。進場用減速曲線（東西進來要穩下來），退場用加速曲線（要果斷離開），
+     所以不是把 slideIn 反過來播。退場也比進場短一點——關閉不該讓人等。 */
+  @keyframes slideOut { from { transform: none; opacity: 1; } to { transform: translateX(28px); opacity: 0; } }
+  @keyframes veilOut { from { opacity: 1; } to { opacity: 0; } }
   .md-body { font-size: 13.5px; line-height: 1.85; color: var(--ink-2); }
   .md-body h1, .md-body h2, .md-body h3, .md-body h4 { font-weight: 500; color: var(--ink); line-height: 1.4; margin: 22px 0 8px; }
   .md-body h2 { font-size: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
@@ -385,8 +389,8 @@
 
   <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
     <div>
-      <div onClick="{{ onCloseDrawer }}" style="position:absolute;inset:0;z-index:40;background:rgba(0,0,0,0.46);backdrop-filter:blur(3px);animation:veil 240ms ease both"></div>
-      <aside style="position:absolute;top:0;right:0;bottom:0;z-index:41;width:min(660px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);animation:slideIn 320ms cubic-bezier(.16,.84,.44,1) both;box-shadow:0 0 60px rgba(32,38,42,0.18)">
+      <div onClick="{{ onCloseDrawer }}" style="position:absolute;inset:0;z-index:40;background:rgba(0,0,0,0.46);backdrop-filter:blur(3px);animation:{{ veilAnim }}"></div>
+      <aside style="position:absolute;top:0;right:0;bottom:0;z-index:41;width:min(660px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);animation:{{ drawerAnim }};box-shadow:0 0 60px rgba(32,38,42,0.18)">
         <div style="padding:20px 22px 16px;border-bottom:1px solid var(--line)">
           <div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--ink-3)">
             <span>{{ drawer.crumb }}</span>
@@ -430,6 +434,8 @@ const TYPE_FILL = {
 const rowAnim = i => 'animation:rowIn 340ms cubic-bezier(.16,.84,.44,1) both;animation-delay:' + Math.min(i, 14) * 22 + 'ms';
 const THEMES = ['dark', 'light', 'auto'];
 const STORE = 'bstack-void-theme';
+/** 抽屜退場時長（ms）。改這裡要同步下面 slideOut / veilOut 的 animation 時長。 */
+const DRAWER_EXIT = 260;
 
 /**
  * resolveDoc() 撞不到、但改版前有顯式對映的節點。key = 節點 id，value = docIndex 的名字。
@@ -443,7 +449,7 @@ const DOC_OVERRIDES = {
 class Component extends DCLogic {
   state = {
     ready: false, layout: null, k: 1, tx: 0, ty: 0, animate: false,
-    sel: null, typeFilter: null, drawer: null, themeMode: 'dark', vw: 900, vh: 600,
+    sel: null, typeFilter: null, drawer: null, drawerClosing: false, themeMode: 'dark', vw: 900, vh: 600,
     openType: true, openPhase: false, openAmb: false, openDocs: false, docQ: ''
   };
 
@@ -462,7 +468,7 @@ class Component extends DCLogic {
 
     this.keyHandler = e => {
       if (e.key !== 'Escape') return;
-      if (this.state.drawer) this.setState({ drawer: null });
+      if (this.state.drawer) this.closeDrawer();
       else this.setState({ sel: null, typeFilter: null });
     };
     document.addEventListener('keydown', this.keyHandler);
@@ -474,6 +480,7 @@ class Component extends DCLogic {
 
   componentWillUnmount() {
     clearInterval(this.tick);
+    clearTimeout(this._drawerExit);
     document.removeEventListener('keydown', this.keyHandler);
     if (this.mq) this.mq.removeEventListener('change', this.mqHandler);
     if (this.svg) {
@@ -627,7 +634,8 @@ class Component extends DCLogic {
       return d && (d.name === name || d.name === bare || d.name.replace(/\.md$/, '') === bare);
     });
     if (!target) return;   // 那份文件沒有對應節點（例如只在側欄索引出現的），靜靜不動作
-    this.setState({ sel: target.id, typeFilter: null, drawer: null });
+    this.setState({ sel: target.id, typeFilter: null });
+    this.closeDrawer();
     this.centerOn(target, true);
   }
 
@@ -647,8 +655,24 @@ class Component extends DCLogic {
     return null;
   }
 
+  /**
+   * 收起文件抽屜。**先播退場再卸載**：直接把 drawer 設成 null 的話元素當場消失，
+   * 沒有東西可以動畫（進場的 slideIn 只在掛載時播，關閉時完全用不到）。
+   * 這裡沿用 index.html 那顆索引彈窗的做法：closing 旗標讓它多活 DRAWER_EXIT 毫秒。
+   */
+  closeDrawer() {
+    if (!this.state.drawer || this.state.drawerClosing) return;
+    this.setState({ drawerClosing: true });
+    clearTimeout(this._drawerExit);
+    this._drawerExit = setTimeout(
+      () => this.setState({ drawer: null, drawerClosing: false }), DRAWER_EXIT);
+  }
+
   openDoc(entry) {
     if (!entry) return;
+    // 退場播到一半又開新的一份：取消卸載，不然那顆 timer 會把剛開的抽屜關掉
+    clearTimeout(this._drawerExit);
+    if (this.state.drawerClosing) this.setState({ drawerClosing: false });
     const raw = (window.REFERENCE_DOCS || {})[entry.key] || '';
     const fm = raw.match(/^---\n([\s\S]*?)\n---\n/);
     let desc = '', pills = [], body = raw;
@@ -801,7 +825,14 @@ class Component extends DCLogic {
       phaseCount: F ? F.phases.length : 15,
       ambCount: F ? F.ambient.reduce((n, a) => n + a.items.length, 0) : 20,
       onCloseDetail: () => this.setState({ sel: null }),
-      onCloseDrawer: () => this.setState({ drawer: null }),
+      onCloseDrawer: () => this.closeDrawer(),
+      // 退場與進場各自的曲線；drawerOpen 在退場期間仍為 true，元素才活得到動畫結束
+      drawerAnim: this.state.drawerClosing
+        ? 'slideOut ' + DRAWER_EXIT + 'ms cubic-bezier(.4,0,1,1) both'
+        : 'slideIn 320ms cubic-bezier(.16,.84,.44,1) both',
+      veilAnim: this.state.drawerClosing
+        ? 'veilOut ' + DRAWER_EXIT + 'ms cubic-bezier(.4,0,1,1) both'
+        : 'veil 240ms cubic-bezier(.16,.84,.44,1) both',
       drawerOpen: !!this.state.drawer,
       drawer: this.state.drawer || { crumb: '', title: '', desc: '', pills: [] },
       drawerBody: this.state.drawer
