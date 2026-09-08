@@ -214,10 +214,38 @@ const colorKeys = typeKeys('TYPE_COLOR');
 const fillKeys = typeKeys('TYPE_FILL');
 const missingType = TYPES.filter((t) => !colorKeys.has(t) || !fillKeys.has(t));
 check(
-  'C4 八型別在 TYPE_COLOR 與 TYPE_FILL 都成對',
+  'C4a 八型別在 TYPE_COLOR 與 TYPE_FILL 都成對',
   missingType.length === 0 && colorKeys.size === 8 && fillKeys.size === 8,
   `期望 8 型別各有描邊與填色，實際 color=${colorKeys.size} fill=${fillKeys.size} 缺 [${missingType.join(', ')}]` +
     `（後果：該型別的節點在圖上沒有顏色，或填色與描邊對不起來）`
+);
+
+// C4b：landing 的小色塊是**寫死的 hex**，與 flow.html 的 TYPE_COLOR 是兩份。
+// 2026-09-08 調整 hook 配色時就踩到：改了 flow 忘了改 landing，同一個 hook 在兩頁不同色。
+/** 取 flow.html TYPE_COLOR 某個 key 的值。 */
+const typeColorOf = (key) => {
+  const i = flowJs.indexOf('const TYPE_COLOR = {');
+  const blk = flowJs.slice(i, flowJs.indexOf('};', i));
+  const m = blk.match(new RegExp(key + `:\\s*'(#[0-9A-Fa-f]{6})'`));
+  return m ? m[1].toUpperCase() : null;
+};
+// landing 的色塊固定長成 `background:#XXXXXX"></span><span …>標籤</span>`
+const LABEL_TO_TYPE = {
+  skills: 'skill', agents: 'agent', agent: 'agent', hook: 'hook',
+  'rules.md': 'policy', gate: 'gate', trace: 'default'
+};
+const swatchDrift = [];
+for (const m of landing.matchAll(/background:(#[0-9A-Fa-f]{6})"><\/span><span[^>]*>([^<]{1,12})<\/span>/g)) {
+  const type = LABEL_TO_TYPE[m[2].trim()];
+  if (!type) continue;
+  const want = typeColorOf(type);
+  if (want && m[1].toUpperCase() !== want) swatchDrift.push(`${m[2].trim()}: landing=${m[1]} flow.TYPE_COLOR.${type}=${want}`);
+}
+check(
+  'C4b landing 的節點型別色塊與 flow.html 的 TYPE_COLOR 同色',
+  swatchDrift.length === 0,
+  `期望兩頁同色，實際漂了 ${swatchDrift.length} 個：${swatchDrift.slice(0, 4).join(' / ')}` +
+    `（後果：同一個型別在首頁與流程圖是兩個顏色，讀者以為是兩種東西）`
 );
 
 // ── C5：prefers-reduced-motion 必須維持 0 ────────────────────────────────────

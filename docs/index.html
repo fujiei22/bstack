@@ -243,7 +243,7 @@
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(272px,31%)),1fr));align-content:start;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain">
     <a href="./flow.html" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
-      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#FF6B4A"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#FF8A3D"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">不會直接改 main</div>
       <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">人在 <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:2px">main / master / production</code> 上時，它寫不進檔案 —— 不是提醒你，是動作直接失敗，並告訴你怎麼開 branch。密鑰檔一樣寫不進去，沒有例外通道。</p>
       <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">guard.mjs · 兩段檢查 →</div>
@@ -391,7 +391,7 @@
   <div style="border-top:1px solid var(--line)">
     <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、九條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">28</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#4FA8FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">agents</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">DB review、安全稽核、e2e、假設驗證、PR 解說、語言專家，各跑獨立 context</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">6</span></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#FF6B4A"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">hook</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">guard.mjs 一支 PreToolUse：branch-safety 與 file-type 兩段檢查，跑在 node</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#FF8A3D"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">hook</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">guard.mjs 一支 PreToolUse：branch-safety 與 file-type 兩段檢查，跑在 node</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#B388FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">rules.md</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">強制守則：Task 追蹤、決策點只能點選項、branch 與檔案類型硬規則、PII 底線、DB 唯讀</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
   </div>
 </section>
@@ -1269,23 +1269,31 @@ class Component extends DCLogic {
     const q = this.state.q.trim().toLowerCase();
     const all = [
       ...SKILLS.map(([name, desc, group]) => ({
-        name, desc, group,
+        name, desc, group, kind: 'skill',
         bg: group === '設計' ? 'rgba(179,136,255,0.1)' : 'rgba(124,245,166,0.1)',
         bd: group === '設計' ? '#B388FF' : '#7CF5A6',
         href: './flow.html'
       })),
       ...AGENTS.map(([name, desc]) => ({
-        name, desc, group: 'agent',
+        name, desc, group: 'agent', kind: 'agent',
         bg: 'rgba(79,168,255,0.1)', bd: '#4FA8FF',
         href: './flow.html'
       })),
       ...DOCS.map(([name, desc, group]) => ({
-        name, desc, group,
+        name, desc, group, kind: 'doc',
         // 與流程圖頁 docSection 的 KIND_COLOR.Doc 同色
         bg: 'rgba(179,136,255,0.1)', bd: '#B388FF',
         href: './flow.html'
       }))
     ];
+    // 排序與流程圖側欄的 docSection() 一致：先分 skill / agent / doc，組內字母序。
+    // 兩邊都是「想查的時候查得到」的索引，同一份文件在兩頁的位置就該一樣。
+    // 原本這裡是 SKILLS 陣列的手寫流程順序（入口 → 主流程 → 跨流程 → 設計 → meta）；
+    // 那個資訊沒有消失，改由每一列右邊的 group 標籤表達。
+    // **流程圖那邊沒辦法改成流程順序**：它的清單是從 REFERENCE_DOCS 的 key 推出來的，
+    // 要有流程順序就得再維護一份手寫陣列，兩份一定會漂。所以統一到字母序這一邊。
+    const KIND_ORDER = { skill: 0, agent: 1, doc: 2 };
+    all.sort((a, b) => (KIND_ORDER[a.kind] - KIND_ORDER[b.kind]) || a.name.localeCompare(b.name));
     const filtered = q ? all.filter(i => (i.name + ' ' + i.desc + ' ' + i.group).toLowerCase().includes(q)) : all;
     const openName = this.state.open;
     this._open = this._open || {};

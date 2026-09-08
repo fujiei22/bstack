@@ -225,7 +225,8 @@
       <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ typeCount }}</span>
       <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ typeChevron }}</span>
     </button>
-    <sc-if value="{{ openType }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-rows:{{ typeRows }};visibility:{{ typeVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
     <sc-for list="{{ legend }}" as="l" hint-placeholder-count="8">
       <button onClick="{{ l.onClick }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:7px 18px;text-align:left;background:{{ l.bg }};transition:background var(--t-micro);{{ l.anim }}" style-hover="background:var(--sunk)">
         <span style="width:9px;height:9px;flex:none;background:{{ l.color }}"></span>
@@ -233,7 +234,7 @@
         <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ l.count }}</span>
       </button>
     </sc-for>
-    </sc-if>
+    </div></div>
 
     <div style="height:1px;background:var(--line);margin:12px 18px"></div>
     <button onClick="{{ togglePhase }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 18px 10px;text-align:left;transition:color var(--t-micro)" style-hover="color:var(--ink)">
@@ -241,7 +242,8 @@
       <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ phaseCount }}</span>
       <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ phaseChevron }}</span>
     </button>
-    <sc-if value="{{ openPhase }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-rows:{{ phaseRows }};visibility:{{ phaseVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
     <sc-for list="{{ phases }}" as="p" hint-placeholder-count="15">
       <button onClick="{{ p.onClick }}" style="width:100%;display:flex;align-items:baseline;gap:9px;padding:6px 18px;text-align:left;transition:background var(--t-micro);{{ p.anim }}" style-hover="background:var(--sunk)">
         <span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ p.ord }}</span>
@@ -249,7 +251,7 @@
         <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ p.count }}</span>
       </button>
     </sc-for>
-    </sc-if>
+    </div></div>
 
     <div style="height:1px;background:var(--line);margin:12px 18px"></div>
     <button onClick="{{ toggleAmb }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 18px 10px;text-align:left;transition:color var(--t-micro)" style-hover="color:var(--ink)">
@@ -257,7 +259,8 @@
       <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ ambCount }}</span>
       <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ ambChevron }}</span>
     </button>
-    <sc-if value="{{ openAmb }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-rows:{{ ambRows }};visibility:{{ ambVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
     <sc-for list="{{ ambient }}" as="a" hint-placeholder-count="3">
       <div>
         <div style="padding:8px 18px 2px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:500;font-size:12px;color:var(--ink)">{{ a.title }}</div>
@@ -269,7 +272,7 @@
         </sc-for>
       </div>
     </sc-for>
-    </sc-if>
+    </div></div>
 
     <div style="height:1px;background:var(--line);margin:12px 18px"></div>
     <button onClick="{{ toggleDocs }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 18px 10px;text-align:left;transition:color var(--t-micro)" style-hover="color:var(--ink)">
@@ -277,7 +280,8 @@
       <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ docsCount }}</span>
       <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ docsChevron }}</span>
     </button>
-    <sc-if value="{{ openDocs }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-rows:{{ docsRows }};visibility:{{ docsVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
       <div style="padding:0 14px 8px">
         <input type="search" value="{{ docQuery }}" onInput="{{ onDocQuery }}" placeholder="搜 skill / agent" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:2px;background:var(--bg);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink);outline:none;transition:border-color var(--t-micro)" style-focus="border-color:var(--accent)" />
       </div>
@@ -291,7 +295,7 @@
       <sc-if value="{{ docEmpty }}" hint-placeholder-val="{{ false }}">
         <div style="padding:8px 18px 4px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">查無此文件</div>
       </sc-if>
-    </sc-if>
+    </div></div>
   </aside>
 
   <main style="position:absolute;left:258px;right:0;top:54px;bottom:0;overflow:hidden;background:var(--bg)">
@@ -404,14 +408,24 @@
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{}">
+/**
+ * 八個節點型別的顏色。**改這裡要同步 index.html 的 #inv 那排與 what 頁的小色塊**
+ *（那邊是寫死的 hex，契約 C4b 會比對兩邊不一致就紅）。
+ *
+ * 2026-09-08 調整過兩組：改版初期 impl(#C77DFF)/policy(#B388FF) 與
+ * hook(#FF6B4A)/stop(#FF5C5C) 兩組的 OKLab 距離只有 0.038 / 0.039，
+ * 而這套配色其餘任兩色的最小距離是 0.134 —— 差了三倍多，側欄小色塊根本分不出來。
+ * 現在 impl 讓出紫色改粉、stop 加深，最小距離回到 0.134（agent/policy），
+ * 沒有任何一組比原本就能接受的更近。語意維持：暖橘=hook、紅=stop。
+ */
 const TYPE_COLOR = {
   default: '#9AA0AA', skill: '#7CF5A6', agent: '#4FA8FF', gate: '#FFC531',
-  impl: '#C77DFF', policy: '#B388FF', hook: '#FF6B4A', stop: '#FF5C5C'
+  impl: '#FF7AC8', policy: '#B388FF', hook: '#FF8A3D', stop: '#E0294A'
 };
 const TYPE_FILL = {
   default: 'rgba(154,160,170,0.12)', skill: 'rgba(124,245,166,0.1)', agent: 'rgba(79,168,255,0.1)',
-  gate: 'rgba(255,197,49,0.1)', impl: 'rgba(199,125,255,0.1)', policy: 'rgba(179,136,255,0.1)',
-  hook: 'rgba(255,107,74,0.1)', stop: 'rgba(255,92,92,0.1)'
+  gate: 'rgba(255,197,49,0.1)', impl: 'rgba(255,122,200,0.1)', policy: 'rgba(179,136,255,0.1)',
+  hook: 'rgba(255,138,61,0.1)', stop: 'rgba(224,41,74,0.1)'
 };
 const rowAnim = i => 'animation:rowIn 340ms cubic-bezier(.16,.84,.44,1) both;animation-delay:' + Math.min(i, 14) * 22 + 'ms';
 const THEMES = ['dark', 'light', 'auto'];
@@ -578,6 +592,16 @@ class Component extends DCLogic {
       tx: (r.width - L.gw * k) / 2, ty: (r.height - L.gh * k) / 2,
       vw: r.width, vh: r.height
     });
+  }
+
+  /**
+   * 側欄摺疊區段的兩個綁定值。
+   * @param {string} key 前綴，對應模板的 {{ <key>Rows }} 與 {{ <key>Vis }}
+   * @param {boolean} open 展開與否
+   * @returns {object} 可直接展開進 renderVals 的兩個鍵
+   */
+  fold(key, open) {
+    return { [key + 'Rows']: open ? '1fr' : '0fr', [key + 'Vis']: open ? 'visible' : 'hidden' };
   }
 
   centerOn(node, animate) {
@@ -758,6 +782,14 @@ class Component extends DCLogic {
       typeChevron: this.state.openType ? '−' : '+',
       phaseChevron: this.state.openPhase ? '−' : '+',
       ambChevron: this.state.openAmb ? '−' : '+',
+      // 摺疊過場：外層 grid 的 0fr ↔ 1fr 補間，內層 overflow:hidden 把內容裁掉。
+      // 用 grid 而不是 max-height 是因為不必猜一個「夠大」的高度——猜大了收合會先卡一段空白。
+      // 內容改成一直掛在 DOM 上（原本用 sc-if 條件渲染，關閉時直接被拔掉、沒有東西可以補間），
+      // visibility 一起過場是為了收合後不要還能 Tab 進去：它到動畫結束才切 hidden，展開時則立刻可見。
+      ...this.fold('type', this.state.openType),
+      ...this.fold('phase', this.state.openPhase),
+      ...this.fold('amb', this.state.openAmb),
+      ...this.fold('docs', this.state.openDocs),
       toggleType: () => this.setState({ openType: !this.state.openType }),
       togglePhase: () => this.setState({ openPhase: !this.state.openPhase }),
       toggleAmb: () => this.setState({ openAmb: !this.state.openAmb }),
@@ -852,7 +884,9 @@ class Component extends DCLogic {
       label: l.label, count: counts[l.type] || 0,
       // 側欄色塊一律實心（與首頁 #inv 那排同一種畫法），所以這裡不再供 fill。
       // TYPE_FILL 仍用在圖上的節點底色，別跟著刪。
-      color: typeFilter === l.type ? 'var(--accent)' : TYPE_COLOR[l.type],
+      // **選取時色塊維持自己的型別色**，不換成 accent 綠：色塊是型別的圖例，
+      // 換色等於把「這是哪一型」的資訊蓋掉。選取狀態由底色（accent-wash）與文字轉白表達。
+      color: TYPE_COLOR[l.type],
       ink: typeFilter === l.type ? 'var(--ink)' : 'var(--ink-2)',
       bg: typeFilter === l.type ? 'var(--accent-wash)' : 'transparent',
       onClick: () => this.setState({ typeFilter: typeFilter === l.type ? null : l.type, sel: null })
