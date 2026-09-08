@@ -475,7 +475,10 @@
           <button type="button" onClick="{{ onClose }}" aria-label="關閉" style="flex:none;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1;color:var(--ink-3);transition:color var(--t),border-color var(--t)" style-hover="color:var(--ink);border-color:var(--line-2)" title="點卡片外或按 ESC 也可以關">✕</button>
         </div>
         <div style="flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:28px clamp(20px,3vw,40px) 64px;font-size:14px;line-height:1.9;color:var(--ink-2)">
-          <div style="max-width:76ch">{{ docEl }}</div>
+          <!-- 不設行長上限：彈窗本身已經有寬度上限，內容就把它用滿。
+               原本 max-width:76ch（709px）在 886px 的可用寬度裡會空掉右邊 177px，
+               看起來像彈窗沒對齊。與 flow.html 的 .md-body 同一個決定。 -->
+          <div>{{ docEl }}</div>
         </div>
       </div>
     </div>
