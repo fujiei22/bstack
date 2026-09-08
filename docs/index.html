@@ -326,7 +326,7 @@
 
 <section id="tier" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Four Tiers · 03 / 量體</div>
-  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">改一行 Typo 不必大費周章<br />會動到 Schema 不能便宜行事</h2>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">改一行 Typo 不必大費周章<br />動到 Schema 不能便宜行事</h2>
   <div style="overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:2px;min-height:0;overscroll-behavior:contain">
     <table style="width:100%;min-width:780px;border-collapse:collapse;font-size:13px;line-height:1.7">
       <thead><tr>
@@ -387,7 +387,7 @@
 
 <section id="inv" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 04 / 內涵</div>
-  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">不用多<br />但符合需求</h2>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">你說內涵喔<br />這樣應該夠用了</h2>
   <div style="border-top:1px solid var(--line)">
     <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、九條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">28</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#4FA8FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">agents</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">DB review、安全稽核、e2e、假設驗證、PR 解說、語言專家，各跑獨立 context</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">6</span></div>
@@ -786,9 +786,32 @@ class Component extends DCLogic {
   }
 
   onHome = e => { e.preventDefault(); this.goTo(0); };
+  /**
+   * 開關 bar / knob 的位置補間。
+   * @param {boolean} instant true = 拖曳中，1:1 跟手；false = 還原成預設的 120ms linear
+   */
+  setRailEase(instant) {
+    if (this.bar) this.bar.style.transition = instant ? 'none' : 'height 120ms linear';
+    if (this.knob) this.knob.style.transition = instant ? 'none' : 'top 120ms linear';
+  }
+
   onRailDown = e => {
     if (!this.rail) return;
     this.dragging = true;
+    // **拖曳期間必須關掉補間**：bar / knob 的 inline style 帶著 120ms linear，
+    // 每次 pointermove 設值都會再補一次 120ms，位置永遠落在游標後面；
+    // 而 knob 的數字是直接換 textContent、沒有補間，於是數字先到、線後到，看起來就是兩者不同步。
+    this.setRailEase(true);
+    // 讓拖曳接管任何進行中的動畫——使用者的手應該壓過補間：
+    // sweep 會鎖住 railLock 讓 progress() 直接 return（指示器完全不動），
+    // goTo() 的補間則會逐格覆寫 scrollLeft，把 railSeek() 設好的位置蓋回去。
+    clearTimeout(this._sweepMid);
+    clearTimeout(this._sweepEnd);
+    this.railLock = 0;
+    cancelAnimationFrame(this._raf);
+    clearInterval(this._glideTimer);
+    clearTimeout(this._glide);
+    this.gliding = false;
     try { this.rail.setPointerCapture(e.pointerId); } catch (_) {}
     this.railSeek(e);
   };
@@ -796,6 +819,7 @@ class Component extends DCLogic {
   onRailUp = e => {
     if (!this.dragging) return;
     this.dragging = false;
+    this.setRailEase(false);   // 放開之後要吸到最近一頁，那一段要補間才不會硬跳
     try { this.rail.releasePointerCapture(e.pointerId); } catch (_) {}
     this.goTo(this.current());
   };
