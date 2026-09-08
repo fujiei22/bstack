@@ -192,7 +192,7 @@
   <div ref="{{ railRef }}" onPointerDown="{{ onRailDown }}" onPointerMove="{{ onRailMove }}" onPointerUp="{{ onRailUp }}" onPointerCancel="{{ onRailUp }}" title="拖曳可快速換頁" style="flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:26px 12px;cursor:ns-resize;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none">
     <div style="position:relative;width:1px;height:100%;background:var(--line)">
       <div ref="{{ barRef }}" style="position:absolute;left:0;top:0;width:1px;height:0%;background:var(--accent);transition:height 120ms linear"></div>
-      <div ref="{{ knobRef }}" style="position:absolute;left:7px;top:0;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;transition:top 120ms linear">01</div>
+      <div ref="{{ knobRef }}" style="position:absolute;left:7px;top:0;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;transition:top 120ms linear">00</div>
     </div>
   </div>
   <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:18px;pointer-events:auto">
@@ -643,9 +643,23 @@ class Component extends DCLogic {
     if (this.loop) this.loop.style.contentVisibility = 'visible';
   }
 
+  /**
+   * 面板編號一律**從 00 起算**：封面是 00，之後每一頁的 kicker
+   *（「Behaviour · 01 / 它管什麼」「Install · 06 / 三步」）就是這個數字。
+   * 改版初期這裡是 1 起算，於是第二頁 kicker 寫 01、左側進度條卻顯示 02，
+   * 從那一頁之後整份差一格。改編號要兩邊一起改。
+   * @param {number} idx 0 起算的面板索引
+   * @returns {string} 補零後的兩位數編號
+   */
+  panelLabel(idx) { return String(idx).padStart(2, '0'); }
+
+  /** 面板編號的 title：與畫面上的編號同一套，不要一個 0 起算一個 1 起算。 */
+  panelTitle(idx) { return '面板 ' + this.panelLabel(idx) + ' / ' + this.panelLabel(this.pages - 1); }
+
   // 接環時進度條自己走完全程：內容瞬移是看不見的（前後兩頁長得一樣），
   // 但進度條會一路補間到新位置，所以不會有跳格，也不必淡出遮掩。
-  sweepRail(pct, ms, page) {
+  // idx 是 0 起算的面板索引（見 panelLabel）。
+  sweepRail(pct, ms, idx) {
     this.railLock = ++this._sweepId || (this._sweepId = 1);
     this._sweepUntil = performance.now() + ms + 160;
     const curve = ' ' + ms + 'ms cubic-bezier(.16,.84,.44,1)';
@@ -654,8 +668,8 @@ class Component extends DCLogic {
     clearTimeout(this._sweepMid);
     clearTimeout(this._sweepEnd);
     this._sweepMid = setTimeout(() => {
-      if (this.knob) { this.knob.textContent = String(page).padStart(2, '0'); this.knob.title = '第 ' + page + ' / ' + this.pages + ' 面板'; }
-      this._num = page - 1;
+      if (this.knob) { this.knob.textContent = this.panelLabel(idx); this.knob.title = this.panelTitle(idx); }
+      this._num = idx;
     }, ms * 0.45);
     const token = this.railLock;
     this._sweepEnd = setTimeout(() => {
@@ -699,12 +713,12 @@ class Component extends DCLogic {
     const base = this.target != null ? this.target : this.current();
     const last = this.pages - 1;
     if (dir > 0 && base >= last) {                                          // 滑進複本再接回第一頁
-      this.sweepRail(0, 760, 1);
+      this.sweepRail(0, 760, 0);
       this.goTo(this.pages, true);
       return;
     }
     if (dir < 0 && base <= 0) {                                             // 第一頁往回 → 瞬移到視覺相同的複本，再往左滑到最後一頁
-      this.sweepRail(100, 760, this.pages);
+      this.sweepRail(100, 760, last);
       this.jumpTo(this.pages, () => this.goTo(last));
       return;
     }
@@ -801,8 +815,8 @@ class Component extends DCLogic {
       this.knob.style.top = (p * 100) + '%';
       if (this._num !== i) {
         this._num = i;
-        this.knob.textContent = String(i + 1).padStart(2, '0');
-        this.knob.title = '第 ' + (i + 1) + ' / ' + this.pages + ' 面板';
+        this.knob.textContent = this.panelLabel(i);
+        this.knob.title = this.panelTitle(i);
       }
     }
   }
