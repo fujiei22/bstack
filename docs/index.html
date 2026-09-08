@@ -786,9 +786,32 @@ class Component extends DCLogic {
   }
 
   onHome = e => { e.preventDefault(); this.goTo(0); };
+  /**
+   * 開關 bar / knob 的位置補間。
+   * @param {boolean} instant true = 拖曳中，1:1 跟手；false = 還原成預設的 120ms linear
+   */
+  setRailEase(instant) {
+    if (this.bar) this.bar.style.transition = instant ? 'none' : 'height 120ms linear';
+    if (this.knob) this.knob.style.transition = instant ? 'none' : 'top 120ms linear';
+  }
+
   onRailDown = e => {
     if (!this.rail) return;
     this.dragging = true;
+    // **拖曳期間必須關掉補間**：bar / knob 的 inline style 帶著 120ms linear，
+    // 每次 pointermove 設值都會再補一次 120ms，位置永遠落在游標後面；
+    // 而 knob 的數字是直接換 textContent、沒有補間，於是數字先到、線後到，看起來就是兩者不同步。
+    this.setRailEase(true);
+    // 讓拖曳接管任何進行中的動畫——使用者的手應該壓過補間：
+    // sweep 會鎖住 railLock 讓 progress() 直接 return（指示器完全不動），
+    // goTo() 的補間則會逐格覆寫 scrollLeft，把 railSeek() 設好的位置蓋回去。
+    clearTimeout(this._sweepMid);
+    clearTimeout(this._sweepEnd);
+    this.railLock = 0;
+    cancelAnimationFrame(this._raf);
+    clearInterval(this._glideTimer);
+    clearTimeout(this._glide);
+    this.gliding = false;
     try { this.rail.setPointerCapture(e.pointerId); } catch (_) {}
     this.railSeek(e);
   };
@@ -796,6 +819,7 @@ class Component extends DCLogic {
   onRailUp = e => {
     if (!this.dragging) return;
     this.dragging = false;
+    this.setRailEase(false);   // 放開之後要吸到最近一頁，那一段要補間才不會硬跳
     try { this.rail.releasePointerCapture(e.pointerId); } catch (_) {}
     this.goTo(this.current());
   };
