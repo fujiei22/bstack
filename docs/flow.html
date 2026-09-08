@@ -390,7 +390,7 @@
   <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
     <div>
       <div onClick="{{ onCloseDrawer }}" style="position:absolute;inset:0;z-index:40;background:rgba(0,0,0,0.46);backdrop-filter:blur(3px);animation:{{ veilAnim }}"></div>
-      <aside style="position:absolute;top:0;right:0;bottom:0;z-index:41;width:min(660px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);animation:{{ drawerAnim }};box-shadow:0 0 60px rgba(32,38,42,0.18)">
+      <aside style="position:absolute;top:0;right:0;bottom:0;z-index:41;width:min(780px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);animation:{{ drawerAnim }};box-shadow:0 0 60px rgba(32,38,42,0.18)">
         <div style="padding:20px 22px 16px;border-bottom:1px solid var(--line)">
           <div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--ink-3)">
             <span>{{ drawer.crumb }}</span>
