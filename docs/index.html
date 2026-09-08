@@ -1,155 +1,1390 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <title>bstack：Claude Code 開發流程包</title>
-  <meta name="description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
-
-  <!-- social meta：貼到 LINE / Slack / FB / X 的預覽卡。og:image 必須是絕對網址，
-       圖由 tools/og-card.html 截出；換圖要改檔名或加 ?v=，平台會按網址快取。契約 C20 守，
-       且 og / twitter 的 title、description 必須與上面的 <title> / description 同文。 -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="bstack" />
-  <meta property="og:locale" content="zh_TW" />
-  <meta property="og:url" content="https://fujiei22.github.io/bstack/" />
-  <meta property="og:title" content="bstack：Claude Code 開發流程包" />
-  <meta property="og:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
-  <meta property="og:image" content="https://fujiei22.github.io/bstack/og.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="bstack 標記與「Claude Code 開發流程包」字樣" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="bstack：Claude Code 開發流程包" />
-  <meta name="twitter:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
-  <meta name="twitter:image" content="https://fujiei22.github.io/bstack/og.png" />
-
-  <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC。
-       屬性名與 localStorage key 都跟 flow.html 一致，兩頁之間切換主題不會跳。 -->
-  <script>
-    (function () {
-      try {
-        var saved = localStorage.getItem('dev-workflow-theme'); // 'auto' | 'light' | 'dark' | null
-        var mode = saved === 'light' || saved === 'dark' ? saved : 'auto';
-        var resolved = mode === 'auto'
-          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : mode;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-mode', mode);
-      } catch (_) {
-        document.documentElement.setAttribute('data-theme', 'light');
-        document.documentElement.setAttribute('data-theme-mode', 'auto');
-      }
-    })();
-  </script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600&display=swap">
-  <!-- 順序不可對調：landing.css 沿用 styles.css 的 token 與 reset，只加版面 -->
-  <link rel="stylesheet" href="./css/styles.css" />
-  <link rel="stylesheet" href="./css/landing.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bstack — 把 Claude Code 的開發流程固定下來</title>
+<meta name="description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
+<!-- social meta 一律留在靜態 <head>，不要搬進 <helmet>：
+     <helmet> 的內容是 dc-runtime 在執行期才掛進 <head> 的，而 LINE / Slack / FB / X
+     的預覽爬蟲不執行 JS —— 搬進去等於整組 og 全部讀不到，連 <title> 都沒有。
+     下面的 <title> 與 <helmet> 裡那份刻意同文（執行期覆寫成同一字串），改一邊要改兩邊，
+     契約 C20h 會擋住漂移。og:image 必須是絕對網址，相對路徑爬蟲不解析。 -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="bstack" />
+<meta property="og:locale" content="zh_TW" />
+<meta property="og:url" content="https://fujiei22.github.io/bstack/" />
+<meta property="og:title" content="bstack — 把 Claude Code 的開發流程固定下來" />
+<meta property="og:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
+<meta property="og:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="bstack 標記與「Claude Code 開發流程包」字樣" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="bstack — 把 Claude Code 的開發流程固定下來" />
+<meta name="twitter:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
+<meta name="twitter:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
+<link rel="icon" href="./brand/favicon.svg" type="image/svg+xml" />
+<script>
+  // React / ReactDOM 自帶，不打 unpkg.com。
+  // dc-runtime 的 cdnScriptFor() 先查 window.__resources[原始 URL]，命中就改用這裡給的本地路徑，
+  // 沿用 js/vendor/ 已經自帶 dagre / marked 的慣例；unpkg 掛掉或離線時站台照樣渲染得出來。
+  window.__resources = {
+    'https://unpkg.com/react@18.3.1/umd/react.production.min.js': './js/vendor/react.production.min.js',
+    'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js': './js/vendor/react-dom.production.min.js'
+  };
+</script>
+<script>
+  // 防 FOUC：在解析階段就把主題屬性掛上。
+  // 為什麼必要：CSS 的 :root 預設是 light，而 app 的預設 themeMode 是 'dark'，
+  // 而套用主題的 applyTheme() 在 componentDidMount 才跑 —— 要等 React 載完並 mount。
+  // 沒有這段的話，暗色使用者每次進站都會先閃一下白底再變黑。
+  // 解析邏輯與 flow.html / index.html 的 applyTheme() 必須一模一樣（含 auto 的判定與
+  // 'dark' 這個 fallback），對不上就會先掛一個主題、mount 後又跳成另一個，比 FOUC 更糟。
+  // 契約 C2 守：這段在 support.js 之前、且 key 與兩個屬性名與 app 同一組。
+  (function () {
+    var el = document.documentElement;
+    try {
+      var saved = localStorage.getItem('bstack-void-theme');
+      var mode = saved === 'light' || saved === 'auto' ? saved : 'dark';
+      var resolved = mode === 'auto'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : mode;
+      el.setAttribute('data-theme', resolved);
+      el.setAttribute('data-theme-mode', mode);
+    } catch (_) {
+      // localStorage 被鎖（無痕 / 擋 site data）時照樣要有底色，跟 app 的 catch 走同一條 fallback
+      el.setAttribute('data-theme', 'dark');
+      el.setAttribute('data-theme-mode', 'dark');
+    }
+  })();
+</script>
+<script src="./support.js"></script>
 </head>
 <body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+  // 早於任何模組註冊：跨文件 View Transitions 在預覽 iframe 內會被 skip，
+  // 瀏覽器丟出的 rejection 沒人接就會變成 console error。
+  window.addEventListener('unhandledrejection', function (ev) {
+    var msg = String((ev.reason && ev.reason.message) || ev.reason || '');
+    if (/transition was skipped/i.test(msg)) ev.preventDefault();
+  });
 
-<!-- rail 由 landing.js 依段落生成：一個段落一顆字，加主題鍵與流程圖入口 -->
-<nav class="lrail" id="lrail" aria-label="主導覽"></nav>
+  // 換頁進場：在解析階段就跑，不等 app 掛載 —— 等 React／dagre 開機才動就會看到中間卡一拍。
+  // 只動 transform，動畫在合成執行緒上跑，主執行緒忙著開機也不影響。
+  (function () {
+    try {
+      var raw = sessionStorage.getItem('bstack:nav');
+      if (!raw) return;
+      sessionStorage.removeItem('bstack:nav');
+      var d = JSON.parse(raw);
+      if (!d || Date.now() - d.t > 4000) return;
+      var vh = window.innerHeight;
+      var mid = -(vh * 0.55);
+      var down = d.dir > 0;
+      var band = document.createElement('div');
+      band.style.cssText = 'position:fixed;left:0;right:0;top:100%;height:56px;z-index:99999;display:flex;align-items:center;gap:14px;' +
+        'padding:0 clamp(16px,3.5vw,56px);background:var(--bg);box-shadow:inset 0 1px 0 var(--accent),inset 0 -1px 0 var(--accent);' +
+        "pointer-events:none;will-change:transform;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase";
+      band.innerHTML = '<span style="color:var(--ink-3)">' + (down ? '首頁' : '流程圖') + '</span>' +
+        '<span style="flex:1;height:1px;background:var(--line)"></span>' +
+        '<span style="color:var(--accent)">' + (down ? '流程圖' : '首頁') + '</span>';
+      band.style.transform = 'translateY(' + mid + 'px)';
+      document.documentElement.appendChild(band);
+      var body = document.body;
+      body.style.transform = 'translateY(' + (down ? 42 : -42) + '%)';
+      body.style.willChange = 'transform';
+      // 等頁面真的畫出東西才開始滑入 —— 在解析階段就跑會滑進一片空白，那才是看起來卡住的原因。
+      // 以「#dc-root 有內容」或 420ms 逾時，兩者先到者為準。
+      var started = false;
+      var begin = function () {
+        if (started) return;
+        started = true;
+        if (obs) obs.disconnect();
+        clearTimeout(deadline);
+        var E = 'cubic-bezier(.16,.84,.44,1)';
+        body.style.transition = 'transform 520ms ' + E;
+        body.style.transform = 'translateY(0)';
+        band.style.transition = 'transform 520ms ' + E;
+        band.style.transform = 'translateY(' + (down ? -(vh + 56) : 0) + 'px)';
+        setTimeout(function () {
+          band.remove();
+          body.style.transition = '';
+          body.style.transform = '';
+          body.style.willChange = '';
+        }, 560);
+      };
+      var deadline = setTimeout(begin, 420);
+      var obs = new MutationObserver(function () {
+        var r = document.getElementById('dc-root');
+        if (r && r.getBoundingClientRect().height > 120) begin();
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
+  })();
+</script>
 
-<div class="ldoc">
-  <div class="lcol">
-  <section class="hero" id="top">
-    <div class="kicker rise">Claude Code 開發流程包 · 裝成 plugin、一個指令啟動</div>
-    <h1 class="rise">讓它每一次<br>都用同一種方式聰明</h1>
-    <p class="sub rise">它本來就很會寫 code。麻煩的是同一句「改一下這裡」，它今天直接動手，明天卻先問你三個問題。bstack 是一份把這件事釘住的 Claude Code plugin：28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook，加上一份規則書。打 <code>/devwork</code> 才啟動，不打就是普通的 Claude Code。</p>
-    <div class="stat rise">
-      <div><b>28</b><span>skills</span></div><div><b>6</b><span>agents</span></div>
-      <div><b>1</b><span>hook</span></div><div><b>9</b><span>phases</span></div>
-      <div><b>96</b><span>節點</span></div>
+<title>bstack — 把 Claude Code 的開發流程固定下來</title>
+<link rel="prefetch" href="./flow.html" />
+<link rel="prefetch" href="./js/vendor/dagre.min.js" />
+<link rel="prefetch" href="./js/vendor/marked.min.js" />
+<link rel="prefetch" href="./js/data.js" />
+<link rel="prefetch" href="./js/layout.js" />
+<link rel="prefetch" href="./js/references-data.js" />
+<link rel="icon" type="image/svg+xml" href="./brand/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+TC:wght@300;400;500&amp;display=swap" />
+<style>
+  :root {
+    --bg: #FFFFFF; --surface: #FAFAFA; --sunk: #F2F2F3;
+    --line: #E4E4E7; --line-2: #C9C9CF;
+    --ink: #0A0A0B; --ink-2: #52525B; --ink-3: #6B6B72;
+    --accent: #12855A; --accent-ink: #FFFFFF; --accent-wash: rgba(18,133,90,0.10); --accent-line: rgba(18,133,90,0.42);
+    --t: 160ms;
+    --rail: clamp(46px,4vw,64px);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --surface: #0B0B0C; --sunk: #131315;
+    --line: #232326; --line-2: #35353B;
+    --ink: #FAFAFA; --ink-2: #A3A3A8; --ink-3: #8B8B92;
+    --accent: #7CF5A6; --accent-ink: #04140B; --accent-wash: rgba(124,245,166,0.10); --accent-line: rgba(124,245,166,0.40);
+    color-scheme: dark;
+  }
+  /* 主題切換過場：掛一瞬間的全域色彩轉場，動畫完就拿掉（留著會蓋掉元件自己的節奏） */
+  /* 只過渡三個便宜的屬性、且不碰 SVG 的 fill / stroke：
+     圖上有兩千多個 shape，加 fill / stroke / box-shadow 會讓整棵樹在同一幀重繪，切主題就卡。
+     色片瞬間換、背景與文字漸變，實際看起來仍是一次平順的換色。 */
+  :root.theme-xfade body, :root.theme-xfade header, :root.theme-xfade aside, :root.theme-xfade main,
+  :root.theme-xfade section, :root.theme-xfade footer, :root.theme-xfade nav, :root.theme-xfade div,
+  :root.theme-xfade a, :root.theme-xfade button, :root.theme-xfade span, :root.theme-xfade p,
+  :root.theme-xfade h1, :root.theme-xfade h2, :root.theme-xfade b, :root.theme-xfade code,
+  :root.theme-xfade pre, :root.theme-xfade input, :root.theme-xfade table, :root.theme-xfade th, :root.theme-xfade td {
+    transition: background-color 300ms ease-out, color 300ms ease-out, border-color 300ms ease-out !important;
+  }
+  /* 換頁過場：舊頁淡出上移、新頁由下推上，兩段都由 JS 掛 class 播（不用 @view-transition —— 它在 iframe 內會被 skip，只留下一個沒人接的 rejection） */
+  html { background: var(--bg); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; overflow: hidden; background: var(--bg); color: var(--ink); font-family: "Instrument Sans", "Noto Sans TC", system-ui, sans-serif; font-weight: 400; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--ink); }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  @keyframes caret { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+  /* 文件抽屜：換一份文件時整份內文重播一次，內文的每個區塊再依序浮起 */
+  @keyframes docIn { from { opacity: 0; transform: translateY(12px); } }
+  #dc-root ::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes docBlock { from { opacity: 0; transform: translateY(9px); } }
+</style>
+</helmet>
+
+<div style="position:relative;height:100dvh;overflow:hidden;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.65">
+
+<div style="position:absolute;left:0;top:0;bottom:0;width:var(--rail);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 0 26px;pointer-events:none">
+  <a href="#top" onClick="{{ onHome }}" style="flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:auto">
+    <span style="display:inline-flex;color:var(--ink-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex:none;display:block"><rect x="3" y="3" width="7.5" height="18" fill="currentColor"></rect><rect x="13.5" y="3" width="7.5" height="7.5" fill="var(--accent)"></rect><rect x="13.5" y="13.5" width="7.5" height="7.5" fill="currentColor"></rect></svg></span>
+    <span style="flex:none;writing-mode:vertical-rl;white-space:nowrap;overflow:visible;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2)">bstack</span>
+  </a>
+  <div ref="{{ railRef }}" onPointerDown="{{ onRailDown }}" onPointerMove="{{ onRailMove }}" onPointerUp="{{ onRailUp }}" onPointerCancel="{{ onRailUp }}" title="拖曳可快速換頁" style="flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:26px 12px;cursor:ns-resize;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none">
+    <div style="position:relative;width:1px;height:100%;background:var(--line)">
+      <div ref="{{ barRef }}" style="position:absolute;left:0;top:0;width:1px;height:0%;background:var(--accent);transition:height 120ms linear"></div>
+      <div ref="{{ knobRef }}" style="position:absolute;left:7px;top:0;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;transition:top 120ms linear">00</div>
     </div>
-    <a class="cta rise" href="./flow.html">開啟流程圖<span class="ar">→</span></a>
-    <p class="sub rise" style="margin-top:18px;font-size:14.5px;color:var(--ink-3)">往下捲，右邊那條鏈會一節一節接著長出來。</p>
-  </section>
-
-  <section class="beat" id="b1" data-upto="7" data-nodes="HBranch,HFile,StopBranch,StopFile">
-    <div class="tag rise"><i style="background:var(--c-hook);border-color:var(--c-hook-bd)"></i>攔截</div><h2 class="rise">有些事，它不是被勸阻，<br>是被擋下來</h2><p class="rise lead">一支 PreToolUse hook 直接長在工具呼叫的前面，不是寫在 prompt 裡等它自己記得。</p><p class="rise"><code>guard.mjs</code> 的 branch-safety 段在 project repo 內、當前 branch 命中 <code>main / master / production / prod / release</code> 時擋掉寫入。<code>guard.mjs</code> 的 file-type 段按副檔名與路徑分兩級：密鑰類（<code>.env</code>、<code>*.key</code>、<code>*.pem</code>、<code>credentials.*</code>）直接擋、沒有放行管道；敏感類（migration、lockfile、CI、infra）也擋，但你確認過之後可以建一張一次性 token 放行。至於「migration 要載 db-access」「CI 檔要升到 T2」那些，是攔下來之後規則書要求它做的處置。hook 只負責讓那個動作沒有發生過。hook 在啟用 plugin 的專案一律生效，不需要 <code>/devwork</code>；不想要就 <code>/plugin disable bstack@bstack</code>。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>靠它自律</div><p>規則寫在 prompt 裡。多數時候它會遵守，偶爾在一長串工具呼叫之後忘記，然後你在 <code>git log</code> 裡看到一個直接打在 main 上的 commit。</p></div><div class="now"><div class="lbl"><b>現在</b>擋在工具前面</div><p>hook 先跑。命中就 <strong>exit 2</strong>，工具呼叫直接失敗、那個動作沒有發生過，stderr 同時告訴它「去開一支 branch 再回來」。</p></div></div>
-  </section>
-
-  <section class="beat" id="b2" data-upto="22" data-nodes="P0b,P0c,P0d">
-    <div class="tag rise"><i style="background:var(--c-gate);border-color:var(--c-gate-bd)"></i>判定</div><h2 class="rise">先估這件事有多大，<br>再決定要多認真</h2><p class="rise lead">一行 typo 跟改動資料庫結構，不該用同一套程序處理。</p><p class="rise">每個 <code>/devwork</code> 請求進來先跑 Phase 0：讀 memory、看 codebase、估影響檔、判是修 bug 還是做功能、判量體落在 T0 到 T3 哪一級。判完把三件事併成一張選單問你，只能點<strong>選項</strong>，沒有自由填答欄。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>每次不一樣</div><p>同一句「改一下這裡」，它今天直接動手，明天先寫一份規格再問你三個問題。你沒辦法預期這次會拿到什麼。</p></div><div class="now"><div class="lbl"><b>現在</b>先估量體再分流</div><p>T0 一行改動直接做完，T3 跨模組或動到 DB schema 要走完九個階段。<strong>「好」「OK」這種字一律不算通過</strong>，gate 只認選項。</p></div></div>
-  </section>
-
-  <section class="beat" id="b6" data-upto="30" data-nodes="DesignQ,DesignMap,LoadDD,ThreeWay">
-    <div class="tag rise"><i style="background:var(--c-policy);border-color:var(--c-policy-bd)"></i>設計</div><h2 class="rise">動前端檔之前，<br>先讀這一區原本長什麼樣</h2><p class="rise lead">改樣式很少壞在寫錯字。壞的是憑印象重畫，然後把前台的顏色套到後台。</p><p class="rise">碰到前端檔會先查這塊屬於哪一套設計語言、把實際的色碼與字級抄出來，抽不到就說抽不到。沿用既有 token 的小改直接做完再對四項檢查；新頁或改版屬於大改，會先出三個差異化方向、附真實視覺讓你挑，選定才落 code。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>憑印象重畫</div><p>「顏色我記得是那個藍」。做出來的東西單看沒問題，跟旁邊的畫面擺在一起就是不對，但說不出哪裡不對。</p></div><div class="now"><div class="lbl"><b>現在</b>從實際檔案抄值</div><p>色碼、字級、圓角、斷點全部照抄並記下來源檔與行號。<strong>抽不到就說抽不到，不拿別區的值頂替</strong>。</p></div></div>
-  </section>
-
-  <section class="beat" id="b3" data-upto="36" data-nodes="LoadWP,WritePlan,RPT3,UG1">
-    <div class="tag rise"><i style="background:var(--c-skill);border-color:var(--c-skill-bd)"></i>規劃</div><h2 class="rise">大改動要先把計畫<br>拆給別人看</h2><p class="rise lead">判到 T3 時，它不會直接開始寫，會先把需求寫成規格、再拆成一條條可執行的 task。</p><p class="rise">計畫寫完看改動碰到什麼就派誰看：有機械可驗的東西派工程視角，有人要讀的派接手者視角，跨模組的契約派介面視角。該不該做、做多大，在計畫之前就問過你了。意見整合完、你點頭了才進實作。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>邊寫邊想</div><p>直接開始改，改到一半發現方向錯了，前面兩小時的產出跟著作廢——而且通常是在快寫完的時候才發現。</p></div><div class="now"><div class="lbl"><b>現在</b>計畫先被打槍</div><p>task 拆得夠細，每條都標好要動哪些檔、能不能跟別條平行跑。<strong>計畫被打槍的成本，遠低於實作被打槍</strong>。</p></div></div>
-  </section>
-
-  <section class="beat" id="b4" data-upto="53" data-nodes="LoadExec,LoadTDD,TDDLoop,MidPivotQ">
-    <div class="tag rise"><i style="background:var(--c-impl);border-color:var(--c-impl-bd)"></i>施工</div><h2 class="rise">先寫會失敗的測試，<br>再寫讓它過的 code</h2><p class="rise lead">每個 task 都走同一組五步，中間不許跳。</p><p class="rise">寫測試 → 跑到它紅 → 寫最小實作 → 跑到它綠 → commit。途中如果冒出計畫裡沒寫到的前端檔，它會停下來重新判定該區塊的設計語言，不會順手改一改當作沒發生過。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>一次改一大包</div><p>一輪對話改了七個檔、湊成一個 commit，訊息寫「fix issues」。三個月後有人想知道其中一行為什麼那樣寫，沒有人答得出來。</p></div><div class="now"><div class="lbl"><b>現在</b>一個 commit 一件事</div><p>訊息用繁中寫清楚<strong>改了什麼、為什麼改</strong>，不寫怎麼做。怎麼做看 diff 就有。</p></div></div>
-  </section>
-
-  <section class="beat" id="b5" data-upto="72" data-nodes="LoadReq,RevT2,RevT3,AutoFixQ">
-    <div class="tag rise"><i style="background:var(--c-agent);border-color:var(--c-agent-bd)"></i>審查</div><h2 class="rise">審查的人<br>不知道你為什麼那樣寫</h2><p class="rise lead">review、安全稽核、e2e、假設驗證全部派給獨立 context 的 subagent。</p><p class="rise">六個 agent 各有專責：<code>lang-reviewer</code> 你點名才派、按語言抓對應的 idiom 與 pitfall（T2 的 review 交給 Claude Code 內建的 code-review；T3 的對齊 reviewer 才有自寫 prompt、語言提示寫在那裡）；<code>security-auditor</code> 跑 OWASP 與 STRIDE；<code>db-reviewer</code> 看 schema 與 migration；<code>frontend-e2e-runner</code> 把 browser 那一大堆 log 隔在自己的 context 裡。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>自己審自己</div><p>同一段對話裡請它檢查剛才寫的 code。它知道每一行當初為什麼那樣寫，於是每一行看起來都很合理。</p></div><div class="now"><div class="lbl"><b>現在</b>換一個沒有記憶的人看</div><p>agent 在獨立 context 裡只拿得到成品，<strong>看不到實作過程</strong>。寫的人記得為什麼，讀的人不記得。過得了這一關，才算真的寫清楚了。</p></div></div>
-  </section>
-
-  <section class="beat" id="b7" data-upto="93" data-nodes="LoadPrEx,PrExAgent,DocsReviews,PostComment">
-    <div class="tag rise"><i style="background:var(--c-default);border-color:var(--c-default-bd)"></i>留痕</div><h2 class="rise">每一輪結尾<br>都告訴你它站在哪</h2><p class="rise lead">回覆的最後一行永遠是一條 Trace：現在在哪個階段、判定是哪一級、走的是修 bug 還是做功能。</p><p class="rise">T3 的 PR 開完之後還有一個 agent 重讀一次 diff，寫成「為什麼改、怎麼做、跟哪裡有關」三層說明，落成獨立檔案再貼回 PR。它刻意不知道實作過程。</p><div class="vs"><div class="was"><div class="lbl"><b>原本</b>往回翻對話</div><p>想知道它為什麼做了某個決定，只能往上捲，在幾十輪對話裡找那句話。</p></div><div class="now"><div class="lbl"><b>現在</b>每輪都留一行</div><p><code>[Trace] Phase=execute-plan | Tier=T2 | Track=Dev | Skill=execute-plan</code>：<strong>phase 透明，想查哪一輪都翻得到</strong>。</p></div></div>
-  </section>
-
-  <section class="data" id="inv">
-    <h2 class="rise">plugin 裡有什麼</h2>
-    <ul class="inv rise">
-      <li><span class="sw" style="background:var(--c-skill);border-color:var(--c-skill-bd)"></span><span class="kk">skills</span><span class="vv">入口 1 條、主流程 12 條、跨流程 9 條、meta 4 條、設計 lane 2 條</span><span class="nn">28</span></li>
-      <li><span class="sw" style="background:var(--c-agent);border-color:var(--c-agent-bd)"></span><span class="kk">agents</span><span class="vv">review / 安全稽核 / e2e / 假設驗證，各自跑獨立 context</span><span class="nn">6</span></li>
-      <li><span class="sw" style="background:var(--c-hook);border-color:var(--c-hook-bd)"></span><span class="kk">hooks</span><span class="vv">guard.mjs 一支 PreToolUse，branch-safety 與 file-type 兩段檢查，跑在 node</span><span class="nn">1</span></li>
-      <li><span class="sw" style="background:var(--c-policy);border-color:var(--c-policy-bd)"></span><span class="kk">rules.md</span><span class="vv">九條強制守則、Tier 機制、commit 與 branch 規範；/devwork 載入、優先於任何 skill</span><span class="nn">1</span></li>
-      <li><span class="sw" style="background:var(--c-impl);border-color:var(--c-impl-bd)"></span><span class="kk">其他</span><span class="vv">extras.ps1（statusLine / permissions / env / MCP 逐項選層級、可逆）、statusline.sh、project-settings 範本</span><span class="nn">3</span></li>
-    </ul>
-    <h2 class="rise" style="margin-top:38px">Dev track 的九個階段</h2>
-    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">Bug track 走 <code>debug-systematic</code> 取代第 2、3 階段，其餘相同。Tier 決定哪幾階段被跳過。</p>
-    <ul class="chips rise">
-      <li><i>01</i>brainstorm</li>
-      <li><i>02</i>write-plan</li>
-      <li><i>03</i>execute-plan</li>
-      <li><i>04</i>verify-done</li>
-      <li><i>05</i>request-review</li>
-      <li><i>06</i>security-audit</li>
-      <li><i>07</i>finish-branch</li>
-      <li><i>08</i>pr-explain</li>
-      <li><i>09</i>retro</li>
-    </ul>
-  </section>
-
-  <section class="data" id="install">
-    <h2 class="rise">裝起來要三步</h2>
-    <p class="rise" style="font-size:14.5px;color:var(--ink-2)">hook 與 MCP 都跑在 Node.js 上，node 要在啟動 Claude Code 的 PATH 內（Claude Code 自己不帶 node；缺了 hook 起不來、Windows 非互動模式實測不會報錯、保護直接不存在）。pwsh 7+ 只有 install.ps1 / extras.ps1 這兩支可選腳本需要；statusLine 另需 bash 與 jq。懶得逐步做：clone 後跑 <code>pwsh -File scripts/install.ps1</code>，它會把下面三步一步一步問完。</p>
-    <ol class="steps rise">
-      <li><div class="h">啟用 plugin（推薦專案層級）</div><p>把 <code>templates/project-settings.json</code> 複製成你專案的 <code>.claude/settings.json</code>，開 session 後若沒自動裝再手動裝一次；前面是 plugin 名、後面是 marketplace 名。只想試試就用 <code>--plugin-dir</code> 指向 clone 下來的目錄，只在那個 session 生效。裝在使用者層級的話，hook 會在你所有專案生效。</p><pre class="cmd">/plugin marketplace add fujiei22/bstack
-/plugin install bstack@bstack</pre></li>
-      <li><div class="h">個人偏好（可跳過）</div><p>statusLine、唯讀權限白名單、Agent Teams 開關、playwright MCP 四項各選裝到使用者層級、目前專案或跳過。不選就什麼都不寫；反悔用 <code>-Uninstall</code>。以前用 setup.ps1 裝過的機器先跑 <code>-Migrate</code> 清舊副本。</p><pre class="cmd">pwsh -File scripts/extras.ps1</pre></li>
-      <li><div class="h">開新 session，下指令</div><p>沒下指令就是普通的 Claude Code。裸 <code>/devwork</code> 目前也可以，打了沒反應再改用帶前綴的寫法。</p><pre class="cmd">/bstack:devwork 要做的事</pre></li>
-    </ol>
-    <a class="cta rise" href="./flow.html">開啟流程圖<span class="ar">→</span></a>
-    <div class="foot rise">MIT LICENSE © 2026 TOMMY SIAN · <a href="https://github.com/fujiei22/bstack">GITHUB.COM/FUJIEI22/BSTACK</a></div>
-  </section>
   </div>
-
-  <!-- 節點鏈：landing.js 依每個段落的 data-nodes 建一次，之後只平移不重建。
-       1180px 以下整欄收起，正文吃滿寬度。 -->
-  <aside class="ldeck" id="ldeck" aria-hidden="true">
-    <div class="hd">
-      <span id="deck-title">一句話進來之後</span><span class="sp"></span>
-      <span class="cnt"><span class="n" id="deck-n">0</span><span>/ 96 個節點</span></span>
-    </div>
-    <div class="bar"><i id="deck-bar"></i></div>
-    <div class="vp"><div class="chain" id="chain"><div class="axis"><i id="chain-fill"></i></div></div></div>
-  </aside>
+  <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:18px;pointer-events:auto">
+    <button onClick="{{ onTheme }}" title="{{ themeTitle }}" aria-label="{{ themeTitle }}" style="flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-3);transition:border-color var(--t),color var(--t)" style-hover="color:var(--ink)">
+      <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg></sc-if>
+      <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.6v2.2M12 19.2v2.2M4.4 12H2.2M21.8 12h-2.2M6.3 6.3 4.7 4.7M19.3 19.3l-1.6-1.6M17.7 6.3l1.6-1.6M4.7 19.3l1.6-1.6"></path></svg></sc-if>
+      <sc-if value="{{ isAuto }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8.4"></circle><path d="M12 3.6a8.4 8.4 0 0 1 0 16.8Z" fill="currentColor" stroke="none"></path></svg></sc-if>
+    </button>
+    <a href="./flow.html" style="flex:none;writing-mode:vertical-rl;white-space:nowrap;overflow:visible;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase">流程圖 →</a>
+  </div>
 </div>
 
-<script src="./js/data.js"></script>
-<script src="./js/landing.js"></script>
+<div ref="{{ trackRef }}" onScroll="{{ onTrack }}" style="height:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;display:flex;align-items:stretch;scroll-snap-type:none;scroll-padding-left:var(--rail);padding-left:var(--rail)">
+
+<section id="top" style="position:relative;flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+  <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin-bottom:clamp(22px,4vh,40px)">
+    <span style="display:inline-flex;align-items:center;gap:10px;flex:none">
+      <span style="display:inline-flex;color:var(--ink)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex:none;display:block"><rect x="3" y="3" width="7.5" height="18" fill="currentColor"></rect><rect x="13.5" y="3" width="7.5" height="7.5" fill="var(--accent)"></rect><rect x="13.5" y="13.5" width="7.5" height="7.5" fill="currentColor"></rect></svg></span>
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:clamp(20px,2.4vw,30px);letter-spacing:-.03em;color:var(--ink)">bstack</span>
+    </span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)">claude code plugin · 繁中 · mit</span>
+  </div>
+  <h1 style="margin:0;max-width:22ch;font-weight:500;font-size:clamp(34px,5.6vw,64px);line-height:1.28;letter-spacing:-.04em;color:var(--ink)">讓那個沒規沒矩的 AI<br />長點管理的腦子</h1>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:clamp(20px,3vw,44px);margin-top:clamp(26px,4vh,44px)">
+    <p style="margin:0;font-size:15.5px;line-height:1.75;color:var(--ink-2);max-width:52ch">AI 很會寫 code，但這從來不是問題。問題是流程與管理。</p>
+  </div>
+  <div style="margin-top:clamp(24px,4vh,38px);font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;color:var(--accent)">拒絕即興 · 追求穩定</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:clamp(18px,3vh,26px)">
+    <a href="./flow.html" style="padding:12px 20px;border-radius:2px;border:1px solid var(--line-2);color:var(--ink);font-weight:500;font-size:14px;transition:border-color var(--t)" style-hover="border-color:var(--accent)">打開流程圖</a>
+    <span style="padding:12px 0;color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:12.5px">/plugin install bstack@bstack</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:clamp(26px,5vh,52px);padding-top:clamp(18px,3vh,30px);border-top:1px solid var(--line)">
+    <div style="padding:2px 0;border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">28</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">skills</span></div>
+    <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">6</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">agents</span></div>
+    <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">1</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
+    <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">9</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">phases</span></div>
+    <div style="padding:2px 0 2px clamp(14px,2vw,24px)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">96</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">nodes</span></div>
+  </div>
+</section>
+
+<section id="what" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+  <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:baseline;justify-content:space-between;margin-bottom:clamp(22px,4vh,38px)">
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Behaviour · 01 / 管理</div>
+      <h2 style="margin:0;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">跟 AI 耳提面命<br />不如提早訂好規矩</h2>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(272px,31%)),1fr));align-content:start;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain">
+    <a href="./flow.html" data-node="HBranch" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#FF8A3D"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
+      <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">不會直接改 main</div>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">人在 <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:2px">main / master / production</code> 上時，它寫不進檔案 —— 不是提醒你，是動作直接失敗，並告訴你怎麼開 branch。密鑰檔一樣寫不進去，沒有例外通道。</p>
+      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">guard.mjs · 兩段檢查 →</div>
+    </a>
+    <a href="./flow.html" data-node="BS" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#FFC531"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">gate</span></div>
+      <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">動手前先問清楚</div>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">每個請求它會先讀相關檔案，判斷這是修 bug 還是做新功能、以及改動有多大，然後用一張選單跟你確認。要點選項才算數，回「好」不算。</p>
+      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">brainstorm · 0a–0d →</div>
+    </a>
+    <a href="./flow.html" data-node="LoadDLang" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#B388FF"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">design</span></div>
+      <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">改樣式先看現有的</div>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">改樣式前，它會先去讀這一區現在用的顏色與字級，照抄既有的值，不憑印象自己配一組新的。做新頁或改版時會先給三個方向讓你挑。</p>
+      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">design-language · design-direction →</div>
+    </a>
+    <a href="./flow.html" data-node="LoadReq" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#4FA8FF"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">agent</span></div>
+      <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">寫的跟審的分開</div>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">自己寫的 code 自己看都合理，因為記得每一行的來由。所以 review、安全檢查、e2e 一律交給另外開的 agent —— 它們只看得到成品，看不到寫的過程。</p>
+      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">6 個 agent →</div>
+    </a>
+    <a href="./flow.html" data-node="LoadPrEx" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#9AA0AA"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">trace</span></div>
+      <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">每次改動都留下紀錄</div>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">每輪回覆最後都標明現在走到哪一步、這次改動算多大。比較大的改動開完 PR 後，會另外寫一份「為什麼改、改了什麼」貼回 PR。</p>
+      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">trace · pr-explain →</div>
+    </a>
+    <div style="background:var(--surface);padding:22px 22px 20px">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:var(--accent)"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">flow</span></div>
+      <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">整條路徑，一張圖上看完</div>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">96 個節點、135 條邊，每個檢查點與 agent 的位置都在上面。點節點就展開對應的文件，離線也讀得到。</p>
+      <div style="margin-top:14px"><a href="./flow.html" style="font-family:'JetBrains Mono',monospace;font-size:10.5px">打開流程圖 →</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="phases" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Nine Phases · 02 / 階段</div>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">階段有點多<br />但都很實用</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:clamp(18px,3vw,40px);align-items:start;min-height:0;overflow-y:auto;overscroll-behavior:contain">
+    <div style="border-top:1px solid var(--line)">
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">01</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">brainstorm</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">問清楚要做什麼、判 Track 與 Tier；T1 以上先切 branch 再落 spec</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">全部</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">02</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">write-plan → review-plan</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">拆成一條條 task 落成 plan.md，再依改動面向派 1–3 個視角 review 這份計畫</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">T3</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">03</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">execute-plan ＋ tdd-cycle</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">每條 task 走同一組五步：寫測試 → 跑到紅 → 最小實作 → 跑到綠 → commit</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">T1+</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">04</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">verify-done</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">跑 test / lint / build；T3 的 UI 改動另外派 Playwright e2e</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">全部</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">05</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">request-review → receive-review</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">依副檔名與 tier 派 review；回饋不危險的自動修、危險的問你</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">T1+</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">06</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">security-audit</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">OWASP 與 STRIDE 稽核；動到 DB 再加 db-reviewer 看 schema 與 migration</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">T2 條件 / T3</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">07</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">finish-branch</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">rebase、commit、push、開 PR；merge 由你授權，預設不自動</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">全部</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">08</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">pr-explain</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">另一個 agent 重讀 diff，寫成解說文件落檔並貼回 PR</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">T3</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">09</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">retro</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">回顧一段期間做了什麼，把歸納出的偏好寫回 memory</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">手動</span></div>
+    </div>
+
+    <div style="border:1px solid var(--line);border-radius:2px;background:var(--surface);overflow:hidden;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--ink-3)">devwork 的開場</span>
+        <span style="margin-left:auto;padding:2px 8px;border:1px solid var(--accent-line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;color:var(--accent)">示意</span>
+      </div>
+      <div style="padding:16px;overflow-x:auto;font-family:'JetBrains Mono','Noto Sans TC',monospace;font-size:12px;line-height:1.95;color:var(--ink-2)">
+        <div style="white-space:pre-wrap;color:var(--ink)"><span style="color:var(--accent)">$</span> /bstack:devwork 登入逾時後 session 沒清乾淨</div>
+        <div style="height:.9em"></div>
+        <div style="white-space:pre-wrap;color:var(--ink-3)">[bstack devwork · plugin] 已載入守則。</div>
+        <div style="white-space:pre-wrap">0a　讀 memory、paraphrase 需求</div>
+        <div style="white-space:pre-wrap">0b　Grep 影響檔 → auth/session.ts</div>
+        <div style="white-space:pre-wrap">0c　Track ······ <span style="color:var(--ink)">Bug</span></div>
+        <div style="white-space:pre-wrap">0d　Tier ······· <span style="color:var(--ink)">T2</span></div>
+        <div style="height:.9em"></div>
+        <div style="white-space:pre-wrap;color:var(--ink)">? 這三項對嗎？（只能點選項）</div>
+        <div style="white-space:pre-wrap">　<span style="color:var(--accent)">▸</span> Bug / T2 / 不涉前端　（推薦）</div>
+        <div style="white-space:pre-wrap;color:var(--ink-3)">　　改判 T3 —— 會動到 session schema</div>
+        <div style="white-space:pre-wrap;color:var(--ink-3)">　　改判 Dev —— 這是新行為不是壞掉</div>
+        <div style="height:.9em"></div>
+        <div style="white-space:pre-wrap;color:var(--ink-3)">[Trace] Phase=brainstorm | Tier=T2 | Track=Bug</div>
+        <div style="white-space:pre-wrap"><span style="color:var(--accent)">$</span> <span style="animation:caret 1.1s step-end infinite">▍</span></div>
+      </div>
+      <div style="padding:14px 16px;border-top:1px solid var(--line);font-size:12px;line-height:1.75;color:var(--ink-3)">依 rules.md 的 Trace 格式與 Phase 0 子步驟重建，內容為範例、不是實跑存檔。</div>
+    </div>
+  </div>
+</section>
+
+<section id="tier" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Four Tiers · 03 / 量體</div>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">改一行 Typo 不必大費周章<br />會動到 Schema 不能便宜行事</h2>
+  <div style="overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:2px;min-height:0;overscroll-behavior:contain">
+    <table style="width:100%;min-width:780px;border-collapse:collapse;font-size:13px;line-height:1.7">
+      <thead><tr>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">tier</th>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">量體</th>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">brainstorm</th>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">plan</th>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">tdd</th>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">review</th>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">security</th>
+        <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">pr-explain</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line)"><span style="display:inline-block;padding:2px 9px;border:1px solid #9AA0AA;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2)">T0</span></td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink);font-weight:500">1 行 / typo / 設定</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+        </tr>
+        <tr>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line)"><span style="display:inline-block;padding:2px 9px;border:1px solid #7CF5A6;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2)">T1</span></td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink);font-weight:500">≤2 檔 / 單模組小改</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">對話釐清</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">1-2 關鍵測試</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">self</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+        </tr>
+        <tr>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line)"><span style="display:inline-block;padding:2px 9px;border:1px solid #FFC531;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2)">T2</span></td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink);font-weight:500">3-10 檔 / 單模組 feature</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">完整</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">施工清單寫在 spec 內，≤8 列</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">紅綠循環</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">內建 code-review medium ＋ 對 spec 自檢</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">涉認證 / 資料層才 audit</td>
+          <td style="padding:13px 14px;vertical-align:top;border-bottom:1px solid var(--line);color:var(--ink-2)">跳</td>
+        </tr>
+        <tr>
+          <td style="padding:13px 14px;vertical-align:top"><span style="display:inline-block;padding:2px 9px;border:1px solid #FF7A7A;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2)">T3</span></td>
+          <td style="padding:13px 14px;vertical-align:top;color:var(--ink);font-weight:500">&gt;10 檔 / 跨模組 / 架構 / DB schema</td>
+          <td style="padding:13px 14px;vertical-align:top;color:var(--ink-2)">完整</td>
+          <td style="padding:13px 14px;vertical-align:top;color:var(--ink-2)">plan.md ＋ review-plan（1-3 視角）</td>
+          <td style="padding:13px 14px;vertical-align:top;color:var(--ink-2)">紅綠、80% 目標</td>
+          <td style="padding:13px 14px;vertical-align:top;color:var(--ink-2)">code-review high ＋ 對齊 subagent</td>
+          <td style="padding:13px 14px;vertical-align:top;color:var(--ink-2)">audit ＋ checklist ＋ db-reviewer</td>
+          <td style="padding:13px 14px;vertical-align:top;color:var(--ink-2)">用</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="inv" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 04 / 內涵</div>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">不用多<br />但符合需求</h2>
+  <div style="border-top:1px solid var(--line)">
+    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、九條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">28</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#4FA8FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">agents</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">DB review、安全稽核、e2e、假設驗證、PR 解說、語言專家，各跑獨立 context</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">6</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#FF8A3D"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">hook</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">guard.mjs 一支 PreToolUse：branch-safety 與 file-type 兩段檢查，跑在 node</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#B388FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">rules.md</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">強制守則：Task 追蹤、決策點只能點選項、branch 與檔案類型硬規則、PII 底線、DB 唯讀</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
+  </div>
+</section>
+
+<section id="index" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Index · 05 / 功能索引</div>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">35 個功能<br />查，都可以查</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px">
+    <input type="search" value="{{ query }}" onInput="{{ onQuery }}" placeholder="例：review、design、db、context" style="flex:1 1 260px;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:2px;background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink);outline:none;transition:border-color var(--t)" style-focus="border-color:var(--accent)" />
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);font-variant-numeric:tabular-nums">{{ resultLabel }}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,max(300px,32%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain;pointer-events:{{ listPE }}">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="12">
+      <button type="button" onClick="{{ it.onOpen }}" style="display:flex;text-align:left;align-items:baseline;gap:10px;padding:11px 14px;border:0;background:var(--bg);color:inherit;min-width:0;cursor:pointer;font:inherit;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line);transform-origin:left center;backface-visibility:hidden;transition:transform 200ms cubic-bezier(.16,.84,.44,1),background var(--t)" style-hover="transform:scale(.995);background:var(--sunk)">
+        <span style="width:8px;height:8px;flex:none;align-self:center;background:{{ it.bd }}"></span>
+        <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink)">{{ it.name }}</span>
+        <span style="flex:1;min-width:0;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.desc }}</span>
+        <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)">{{ it.group }}</span>
+        <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);width:9px;text-align:center">{{ it.mark }}</span>
+      </button>
+    </sc-for>
+  </div>
+  <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:26px 0;font-size:13.5px;color:var(--ink-3)">沒有符合的 skill 或 agent。</div>
+  </sc-if>
+</section>
+
+<section id="install" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Install · 06 / 三步</div>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">三個步驟，想裝自己裝<br />不會裝就叫 AI 幫你裝</h2>
+  <p style="margin:0 0 clamp(18px,3vh,28px);font-size:14.5px;line-height:1.8;color:var(--ink-2);max-width:64ch">前置兩件：node 要在啟動 Claude Code 的 PATH 內（hook 需要），以及 git。</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(240px,31%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;flex:none;min-height:0;overflow:auto;overscroll-behavior:contain">
+    <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">01</div>
+      <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">啟用 plugin</div>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">推薦專案層級：把 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">templates/project-settings.json</code> 複製成你專案的 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">.claude/settings.json</code>；沒自動裝就手動跑這兩行。</p>
+      <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">/plugin marketplace add fujiei22/bstack
+/plugin install bstack@bstack</pre>
+    </div>
+    <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">02</div>
+      <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">個人偏好（可跳過）</div>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">statusLine、唯讀權限白名單、Agent Teams 開關、playwright MCP，四項各選裝到使用者層級、目前專案或跳過。不選就什麼都不寫。</p>
+      <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">pwsh -File scripts/extras.ps1</pre>
+    </div>
+    <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">03</div>
+      <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">開新 session，下指令</div>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">既有 session 不會載入新 plugin。載入成功的第一行是「已載入守則」；裸 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">/devwork</code> 目前也可以，沒反應再改用帶前綴的寫法。</p>
+      <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">/bstack:devwork 要做的事</pre>
+    </div>
+  </div></section>
+
+<footer style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3)">
+  <span>MIT LICENSE © 2026 TOMMY SIAN</span>
+  <a href="https://github.com/fujiei22/bstack" style="color:var(--ink-2)">GITHUB.COM/FUJIEI22/BSTACK</a>
+</footer>
+
+</div>
+  <div ref="{{ flowHostRef }}" style="position:fixed;inset:0;z-index:70;background:var(--bg);transform:translateY(100%);pointer-events:none;will-change:transform;transition:transform 620ms cubic-bezier(.16,.84,.44,1)"></div>
+  <div ref="{{ scrimRef }}" onClick="{{ onScrim }}" style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:clamp(16px,4vh,52px) clamp(16px,4vw,60px);background:rgba(0,0,0,.66);opacity:{{ scrimO }};pointer-events:{{ scrimPE }}">
+    <div onClick="{{ stop }}" style="display:flex;width:min(1120px,100%);height:min(760px,100%);background:var(--bg);border:1px solid var(--line-2);border-radius:2px;box-shadow:0 40px 120px rgba(0,0,0,.5);overflow:hidden;transition:opacity 300ms ease,transform 440ms cubic-bezier(.16,.84,.44,1);opacity:{{ cardO }};transform:{{ cardT }}">
+      <div style="flex:none;width:232px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface)">
+        <div style="flex:none;padding:14px 16px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">Index · 直接跳</div>
+        <div style="flex:1;min-height:0;overflow:auto;overscroll-behavior:contain">
+          <sc-for list="{{ items }}" as="it" hint-placeholder-count="10">
+            <button type="button" onClick="{{ it.onOpen }}" style="display:flex;width:100%;text-align:left;align-items:center;gap:8px;padding:9px 14px;background:none;color:inherit;min-width:0;box-shadow:inset 0 -1px 0 var(--line);transition:background var(--t),box-shadow 220ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--sunk);box-shadow:inset 0 -1px 0 var(--line),inset 2px 0 0 var(--accent)">
+              <span style="width:7px;height:7px;flex:none;background:{{ it.bd }}"></span>
+              <span style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</span>
+              <span style="flex:none;width:9px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent)">{{ it.mark }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div style="flex:none;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:15px clamp(20px,3vw,40px);border-bottom:1px solid var(--line)">
+          <span style="width:8px;height:8px;flex:none;background:var(--accent)"></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13.5px;color:var(--ink)">{{ openName }}</span>
+          <span style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ openPath }}</span>
+          <a href="./flow.html" onClick="{{ onFocusFlow }}" title="到流程圖，並選取這份文件對應的節點" style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10.5px">流程圖 →</a>
+          <button type="button" onClick="{{ onClose }}" aria-label="關閉" style="flex:none;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1;color:var(--ink-3);transition:color var(--t),border-color var(--t)" style-hover="color:var(--ink);border-color:var(--line-2)" title="點卡片外或按 ESC 也可以關">✕</button>
+        </div>
+        <div style="flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:28px clamp(20px,3vw,40px) 64px;font-size:14px;line-height:1.9;color:var(--ink-2)">
+          <!-- 不設行長上限：彈窗本身已經有寬度上限，內容就把它用滿。
+               原本 max-width:76ch（709px）在 886px 的可用寬度裡會空掉右邊 177px，
+               看起來像彈窗沒對齊。與 flow.html 的 .md-body 同一個決定。 -->
+          <div>{{ docEl }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const SKILLS = [
+  ['devwork', '唯一入口，/devwork 啟動九階段', '入口'],
+  ['dev-workflow', '整套流程主入口、決定走哪些 phase', 'meta'],
+  ['brainstorm', '問清楚需求、判 Track 與 Tier', '主流程'],
+  ['write-plan', 'T3 才寫：拆 task、落計畫文件', '主流程'],
+  ['review-plan', 'T3 才跑：依改動面向派視角 review', '主流程'],
+  ['execute-plan', '照計畫一條條做下去', '主流程'],
+  ['tdd-cycle', '先寫測試、看到失敗再寫 code', '主流程'],
+  ['verify-done', '收尾前跑 test / lint / build', '主流程'],
+  ['request-review', '改完派 reviewer 看一遍', '主流程'],
+  ['receive-review', '處理回饋，敏感改動會問你', '主流程'],
+  ['security-audit', '涉認證 / 資料層時跑安全稽核', '主流程'],
+  ['security-checklist', '寫敏感 code 對著清單逐條檢查', '主流程'],
+  ['finish-branch', 'branch 收尾、push、開 PR', '主流程'],
+  ['pr-explain', 'T3 自動：另寫一份為什麼這樣改', '主流程'],
+  ['debug-systematic', '修 bug 的固定步驟，重現到防回歸', '跨流程'],
+  ['incident-investigate', '線上事故找根因、平行驗假設', '跨流程'],
+  ['design-language', '動前端檔前抄出實際色碼字級', '設計'],
+  ['design-direction', '新頁或改版產三個差異化方向', '設計'],
+  ['frontend-test', '改前端時用 Playwright 跑 e2e', '跨流程'],
+  ['db-access', '動 DB 的規範：唯讀、量限、PII mask', '跨流程'],
+  ['cmd-guard', '危險指令跳出來二次確認', '跨流程'],
+  ['safety-guard', '輸出前掃 PII 與密鑰殘留', '跨流程'],
+  ['lock-files', '標某些檔禁改', '跨流程'],
+  ['context-snapshot', '把進度存下來換 session', '跨流程'],
+  ['context-resume', '把上次的進度讀回來繼續', '跨流程'],
+  ['dispatch-parallel', '多 task 可同時做時派平行 subagent', 'meta'],
+  ['retro', '回顧一段期間、歸納偏好寫回 memory', 'meta'],
+  ['write-skill', '自己加新 skill 的範本與規格', 'meta']
+];
+
+const AGENTS = [
+  ['db-reviewer', '看 DB schema / migration / SQL'],
+  ['frontend-e2e-runner', '跑 Playwright e2e，隔開 browser log'],
+  ['hypothesis-tester', '事故調查時一個 agent 驗一個假設'],
+  ['lang-reviewer', '點名才派的語言專家：idiom 與 pitfall'],
+  ['pr-explainer', '重讀 diff，寫成詳盡的 PR 解說'],
+  ['security-auditor', '獨立 context 跑 OWASP / STRIDE / PII']
+];
+
+/**
+ * 既不是 skill 也不是 agent 的文件。流程圖頁的側欄索引有 35 份
+ *（28 skill + 6 agent + rules.md），首頁索引原本只鋪前兩類、少了規則書這一份。
+ * 排在最後與流程圖頁的 docSection 同序（Skill → Agent → Doc）。
+ */
+const DOCS = [
+  ['rules.md', '強制守則本身：Task 追蹤、決策點只能點選項、branch 與檔案類型硬規則、PII 底線、DB 唯讀', '規則書']
+];
+
+const THEMES = ['dark', 'light', 'auto'];
+const STORE = 'bstack-void-theme';
+
+class Component extends DCLogic {
+  state = { q: '', themeMode: 'dark', open: null, docsFailed: false, armed: false };
+
+  componentDidMount() {
+    this.hookNav();
+    this.enhance();
+    try {
+      const saved = localStorage.getItem(STORE);
+      const mode = saved === 'light' || saved === 'auto' ? saved : 'dark';
+      this.setState({ themeMode: mode });
+      this.apply(mode);
+    } catch (_) { this.apply('dark'); }
+    this.mq = window.matchMedia('(prefers-color-scheme: dark)');
+    this.h = () => { if (this.state.themeMode === 'auto') this.apply('auto'); };
+    this.mq.addEventListener('change', this.h);
+    this.loadDocs();
+    // 第一次量到的可能是排版前的位置，畫完再校一次
+    setTimeout(() => { this.measure(); this.progress(); }, 300);
+    setTimeout(() => { this.measure(); this.progress(); }, 1200);
+    this.onKey = e => {
+      if (this.flowOpen) { if (e.key === 'Escape') this.slideFlow(false); return; }
+      if (e.key === 'Escape') { this.closeDoc(); return; }
+      if (this.state.open) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); this.step(1); }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); this.step(-1); }
+      if (e.key === 'Home') { e.preventDefault(); this.goTo(0); }
+      if (e.key === 'End') { e.preventDefault(); if (!this.offsets) this.measure(); this.goTo(this.pages - 1); }
+    };
+    window.addEventListener('keydown', this.onKey);
+
+    // 直向滾輪換成一次一頁；面板內自己有捲軸的區塊先讓給它捲完
+    this.onWheel = e => {
+      const t = this.track;
+      if (!t || this.state.open || this.flowOpen) return;
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (!d) return;
+      let n = e.target;
+      while (n && n !== t) {
+        if (n.scrollHeight > n.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(n).overflowY)) {
+          const atTop = n.scrollTop <= 0, atEnd = n.scrollTop + n.clientHeight >= n.scrollHeight - 1;
+          if (!(d < 0 ? atTop : atEnd)) return;
+        }
+        n = n.parentElement;
+      }
+      e.preventDefault();
+      this.acc = (this.acc || 0) + d;
+      clearTimeout(this._accReset);
+      this._accReset = setTimeout(() => { this.acc = 0; }, 220);
+      if (Math.abs(this.acc) > 26) { const dir = this.acc > 0 ? 1 : -1; this.acc = 0; this.step(dir); }
+    };
+    window.addEventListener('wheel', this.onWheel, { passive: false });
+
+    // 觸控橫滑
+    this.onResize = () => {
+      const t = this.track;
+      if (t && !this.gliding) { this.measure(); const i = this.current(); t.scrollLeft = t.children[i].offsetLeft - t.children[0].offsetLeft; this.progress(); }
+    };
+    window.addEventListener('resize', this.onResize, { passive: true });
+    this.onTouchStart = e => { this.tx = e.touches[0].clientX; this.ty = e.touches[0].clientY; };
+    this.onTouchEnd = e => {
+      if (this.tx == null || this.state.open) return;
+      const dx = this.tx - (e.changedTouches[0].clientX);
+      const dy = this.ty - (e.changedTouches[0].clientY);
+      this.tx = null;
+      if (Math.abs(dx) > 46 && Math.abs(dx) > Math.abs(dy)) this.step(dx > 0 ? 1 : -1);
+    };
+    window.addEventListener('touchstart', this.onTouchStart, { passive: true });
+    window.addEventListener('touchend', this.onTouchEnd, { passive: true });
+  }
+
+  // 全部 skill / agent 的 markdown 已內嵌在 references-data.js，載進來就地展開，不必連線
+  loadDocs() {
+    if (window.REFERENCE_DOCS) { this.forceUpdate(); return; }
+    if (document.getElementById('ref-docs')) return;
+    const s = document.createElement('script');
+    s.id = 'ref-docs';
+    s.src = './js/references-data.js';
+    s.onload = () => this.forceUpdate();
+    s.onerror = () => this.setState({ docsFailed: true });
+    document.head.appendChild(s);
+  }
+
+  onScrim = () => this.closeDoc();
+  onTrack = () => {
+    if (this._tick) return;
+    this._tick = requestAnimationFrame(() => { this._tick = 0; this.progress(); if (this.reveal) this.reveal(); });
+  };
+
+  measure() {
+    const t = this.track;
+    if (!t) return;
+    if (!this.loop) {
+      const first = t.children[0];
+      if (first) {
+        const c = first.cloneNode(true);
+        c.removeAttribute('id');
+        c.dataset.loop = '1';
+        c.dataset.rv = '1';
+        c.dataset.shown = '1';   // 複本不參與進場，接回去時必須是已經畫好的樣子
+        c.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+        // 複本不能帶走留言錨點，否則同一個 anchor 會在文件裡出現兩次
+        c.removeAttribute('data-comment-anchor');
+        c.querySelectorAll('[data-comment-anchor]').forEach(n => n.removeAttribute('data-comment-anchor'));
+        [...c.children].forEach(k => { k.style.opacity = '1'; k.style.transform = 'none'; k.style.transition = 'none'; });
+        t.appendChild(c);
+        this.loop = c;
+      }
+    }
+    const kids = [...t.children];
+    const base = kids.length ? kids[0].offsetLeft : 0;
+    this.offsets = kids.map(k => k.offsetLeft - base);
+    this.pages = kids.filter(k => !k.dataset.loop).length;
+    // 接環的兩個端點不做延遲繪製，否則瞬移那一幀會閃一下空白
+    if (kids[0]) kids[0].style.contentVisibility = 'visible';
+    if (this.loop) this.loop.style.contentVisibility = 'visible';
+  }
+
+  /**
+   * 面板編號一律**從 00 起算**：封面是 00，之後每一頁的 kicker
+   *（「Behaviour · 01 / 它管什麼」「Install · 06 / 三步」）就是這個數字。
+   * 改版初期這裡是 1 起算，於是第二頁 kicker 寫 01、左側進度條卻顯示 02，
+   * 從那一頁之後整份差一格。改編號要兩邊一起改。
+   * @param {number} idx 0 起算的面板索引
+   * @returns {string} 補零後的兩位數編號
+   */
+  panelLabel(idx) { return String(idx).padStart(2, '0'); }
+
+  /** 面板編號的 title：與畫面上的編號同一套，不要一個 0 起算一個 1 起算。 */
+  panelTitle(idx) { return '面板 ' + this.panelLabel(idx) + ' / ' + this.panelLabel(this.pages - 1); }
+
+  // 接環時進度條自己走完全程：內容瞬移是看不見的（前後兩頁長得一樣），
+  // 但進度條會一路補間到新位置，所以不會有跳格，也不必淡出遮掩。
+  // idx 是 0 起算的面板索引（見 panelLabel）。
+  sweepRail(pct, ms, idx) {
+    this.railLock = ++this._sweepId || (this._sweepId = 1);
+    this._sweepUntil = performance.now() + ms + 160;
+    const curve = ' ' + ms + 'ms cubic-bezier(.16,.84,.44,1)';
+    if (this.bar) { this.bar.style.opacity = '1'; this.bar.style.transition = 'height' + curve; this.bar.style.height = pct + '%'; }
+    if (this.knob) { this.knob.style.opacity = '1'; this.knob.style.transition = 'top' + curve; this.knob.style.top = pct + '%'; }
+    clearTimeout(this._sweepMid);
+    clearTimeout(this._sweepEnd);
+    this._sweepMid = setTimeout(() => {
+      if (this.knob) { this.knob.textContent = this.panelLabel(idx); this.knob.title = this.panelTitle(idx); }
+      this._num = idx;
+    }, ms * 0.45);
+    const token = this.railLock;
+    this._sweepEnd = setTimeout(() => {
+      if (this.railLock === token) this.railLock = 0;
+      if (this.bar) this.bar.style.transition = 'height 120ms linear';
+      if (this.knob) this.knob.style.transition = 'top 120ms linear';
+      this._num = -1;
+      this.progress();
+    }, ms + 60);
+  }
+
+  // 無聲瞬移內容（前後兩頁畫面相同，看不出來）；進度條交給 sweepRail
+  jumpTo(n, after) {
+    const t = this.track;
+    if (!t) return;
+    if (!this.offsets) this.measure();
+    t.scrollLeft = this.offsets[Math.max(0, Math.min(this.offsets.length - 1, n))];
+    this.target = n;
+    this.progress();
+    if (typeof after === 'function') after();
+  }
+
+  // 捲到最後一頁再往前 → 滑進複本，落定後瞬移回第一頁，進度條一路補間回頂端
+  wrapHome() { this.jumpTo(0); }
+
+  current() {
+    const t = this.track;
+    if (!t) return 0;
+    if (!this.offsets) this.measure();
+    let i = 0, best = Infinity;
+    (this.offsets || []).forEach((x, n) => { const d = Math.abs(x - t.scrollLeft); if (d < best) { best = d; i = n; } });
+    return i;
+  }
+
+  step(dir) {
+    // 只擋「同一次揮動」的連發，不擋「動畫還在跑」——想連翻兩頁不必等
+    const now = performance.now();
+    if (now - (this._lastStep || 0) < 150) return;
+    this._lastStep = now;
+    if (!this.offsets) this.measure();
+    const base = this.target != null ? this.target : this.current();
+    const last = this.pages - 1;
+    if (dir > 0 && base >= last) {                                          // 滑進複本再接回第一頁
+      this.sweepRail(0, 760, 0);
+      this.goTo(this.pages, true);
+      return;
+    }
+    if (dir < 0 && base <= 0) {                                             // 第一頁往回 → 瞬移到視覺相同的複本，再往左滑到最後一頁
+      this.sweepRail(100, 760, last);
+      this.jumpTo(this.pages, () => this.goTo(last));
+      return;
+    }
+    this.goTo(base + dir);
+  }
+
+  // 自己補間 scrollLeft：原生 smooth 在影格被節流的環境可能整段不動，
+  // 這裡用 rAF ＋ timer 雙軌推進，最後一定用 instant 收在整頁位置。
+  goTo(i, wrap) {
+    const t = this.track;
+    if (!t) return;
+    if (!this.offsets) this.measure();
+    const n = Math.max(0, Math.min(this.offsets.length - 1, i));
+    const to = Math.min(this.offsets[n], t.scrollWidth - t.clientWidth);
+    const from = t.scrollLeft;
+    this.target = n;
+    cancelAnimationFrame(this._raf);
+    clearInterval(this._glideTimer);
+    clearTimeout(this._glide);
+    if (Math.abs(to - from) < 1) {
+      this.gliding = false;
+      this.progress();
+      if (wrap) this.wrapHome();
+      return;
+    }
+    this.gliding = true;
+    const dur = 620;
+    const t0 = performance.now();
+    const ease = p => 1 - Math.pow(1 - p, 4);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(this._raf);
+      clearInterval(this._glideTimer);
+      clearTimeout(this._glide);
+      t.scrollLeft = to;
+      this.gliding = false;
+      this.progress();
+      if (wrap) this.wrapHome();
+    };
+    const step = () => {
+      if (done) return;
+      const p = Math.min(1, (performance.now() - t0) / dur);
+      t.scrollLeft = from + (to - from) * ease(p);
+      this.progress();
+      if (p >= 1) finish();
+    };
+    const loop = () => { if (done) return; step(); if (!done) this._raf = requestAnimationFrame(loop); };
+    this._raf = requestAnimationFrame(loop);
+    this._glideTimer = setInterval(step, 32);
+    this._glide = setTimeout(finish, dur + 120);
+  }
+
+  onHome = e => { e.preventDefault(); this.goTo(0); };
+  onRailDown = e => {
+    if (!this.rail) return;
+    this.dragging = true;
+    try { this.rail.setPointerCapture(e.pointerId); } catch (_) {}
+    this.railSeek(e);
+  };
+  onRailMove = e => { if (this.dragging) this.railSeek(e); };
+  onRailUp = e => {
+    if (!this.dragging) return;
+    this.dragging = false;
+    try { this.rail.releasePointerCapture(e.pointerId); } catch (_) {}
+    this.goTo(this.current());
+  };
+
+  // 拖曳時 1:1 跟手，不套動畫；放開才吸到最近的一頁
+  railSeek(e) {
+    const t = this.track, r = this.rail;
+    if (!t || !r) return;
+    if (!this.offsets) this.measure();
+    const box = r.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, (e.clientY - box.top - 26) / Math.max(1, box.height - 52)));
+    t.scrollLeft = p * (this.offsets[this.pages - 1] || 0);
+    this.target = null;
+    this.progress();
+  }
+
+  // 左邊界那條線＝橫向進度；底下的數字是第幾面板
+  progress() {
+    const t = this.track;
+    if (!t) return;
+    if (!this.offsets) this.measure();
+    const max = this.offsets[this.pages - 1] || 1;
+    const p = Math.min(1, Math.max(0, t.scrollLeft / max));
+    if (this.railLock && performance.now() > (this._sweepUntil || 0)) this.railLock = 0;   // 逾時解鎖：不讓指示器卡在假位置
+    if (this.railLock) return;
+    if (this.bar) this.bar.style.height = (p * 100) + '%';
+    const i = Math.min(this.current(), this.pages - 1);
+    if (this.knob) {
+      this.knob.style.top = (p * 100) + '%';
+      if (this._num !== i) {
+        this._num = i;
+        this.knob.textContent = this.panelLabel(i);
+        this.knob.title = this.panelTitle(i);
+      }
+    }
+  }
+  stop = e => e.stopPropagation();
+
+
+  // 進場：先用全畫面的粒子揭示 bstack，聚合完再縮放對位到首屏的名字，同時把頁面帶進來。
+
+
+
+  // 轉譯結果快取：同一份文件只轉一次，之後的 re-render 不再重跑
+  htmlFor(path) {
+    if (!path) return null;
+    this._html = this._html || {};
+    if (!(path in this._html)) {
+      const md = window.REFERENCE_DOCS ? window.REFERENCE_DOCS[path] : null;
+      this._html[path] = md ? this.mdToHtml(md) : null;
+    }
+    return this._html[path];
+  }
+
+  openDoc(name, group) {
+    if (name === this.state.open) return;   // 已經開著這一份就不動作（關閉走 ✕ / ESC / 點卡片外）
+    this.htmlFor(this.docPathFor(name, group));   // 先轉好再開，fade 那一幀就沒有重活
+    this.setState({ open: name, closing: false, armed: false });
+  }
+
+  /**
+   * 從索引彈窗跳進流程圖，並讓流程圖把這份文件的節點選起來置中。
+   * 收彈窗 → 滑入流程圖 → 送 focus，整段自己做（原因見 renderVals 的 onFocusFlow 註解）。
+   * slideFlow() 內含 mountFlow()，但 iframe 可能還沒 load 完，所以 focus 記在 _pendingFocus，
+   * load 事件會再補送一次；流程圖那邊若圖還沒佈局完也會自己排隊。
+   */
+  focusInFlow(name) {
+    this._pendingFocus = { doc: name };
+    this.closeDoc();
+    this.slideFlow(true);
+    this.postFocus();
+  }
+
+  /**
+   * 把排隊中的 focus 送進 iframe；送不出去就留著，等 load 或下一次呼叫。
+   * _pendingFocus 是 {doc:'<名字>'}（索引彈窗）或 {node:'<id>'}（「它管什麼」卡片），
+   * 兩種都由 flow.html 的 focusFrom() 處理。
+   */
+  postFocus() {
+    if (!this._pendingFocus) return;
+    try {
+      if (!this.flowFrame || !this.flowFrame.contentWindow) return;
+      this.flowFrame.contentWindow.postMessage(
+        Object.assign({ bstack: 'focus' }, this._pendingFocus), '*');
+      this._pendingFocus = null;
+    } catch (_) {}
+  }
+
+  closeDoc() {
+    if (!this.state.open) return;
+    cancelAnimationFrame(this._armRaf);
+    this.setState({ closing: true, armed: false });
+    clearTimeout(this._close);
+    cancelAnimationFrame(this._armRaf);
+    this._close = setTimeout(() => this.setState({ open: null, closing: false }), 420);
+  }
+
+  docPathFor(name, group) {
+    if (group === '規則書') return 'references/' + name;   // rules.md 直接住在 references/ 底下
+    return group === 'agent'
+      ? 'references/agents/' + name + '.md'
+      : 'references/skills/' + name + '/SKILL.md';
+  }
+
+  // 夠用的 markdown：frontmatter、標題、清單、引用、表格、圍欄 code、行內強調
+  mdToHtml(md) {
+    const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const MONO = "font-family:'JetBrains Mono',monospace";
+    const CODE = MONO + ';font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:2px;color:var(--ink)';
+    const PRE = 'margin:14px 0;padding:13px 15px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;' + MONO + ';font-size:11.5px;line-height:1.75;color:var(--ink);white-space:pre';
+    let src = md.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+    const fences = [];
+    src = src.replace(/```[^\n]*\n([\s\S]*?)```/g, (m, code) => {
+      fences.push('<pre style="' + PRE + '">' + esc(code.replace(/\s+$/, '')) + '</pre>');
+      return '\u0001' + (fences.length - 1) + '\u0001';
+    });
+    const inline = t => esc(t)
+      .replace(/`([^`]+)`/g, '<code style="' + CODE + '">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong style="font-weight:600;color:var(--ink)">$1</strong>')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    const H = [22, 19, 16.5, 15, 14, 13.5];
+    const out = [];
+    const lines = src.split(/\r?\n/);
+    const stack = [];            // 巢狀清單：依縮排堆疊，縮排的續行併回上一個 li
+    let para = [];
+    const renderList = l => {
+      const st = l.tag === 'ol' && l.start !== 1 ? ' start="' + l.start + '"' : '';
+      return '<' + l.tag + st + ' style="margin:10px 0;padding-left:22px">' +
+        l.items.map(it => '<li style="margin:5px 0">' + it.html + it.extra.join('') + '</li>').join('') +
+        '</' + l.tag + '>';
+    };
+    const emit = html => {
+      const top = stack[stack.length - 1];
+      if (top && top.items.length) top.items[top.items.length - 1].extra.push(html);
+      else out.push(html);
+    };
+    const closeTo = indent => {
+      while (stack.length && stack[stack.length - 1].indent > indent) {
+        const l = stack.pop();
+        emit(renderList(l));
+      }
+    };
+    const closeAll = () => closeTo(-1);
+    const flushPara = () => {
+      if (!para.length) return;
+      emit('<p style="margin:9px 0">' + inline(para.join(' ')) + '</p>');
+      para = [];
+    };
+    const breakOut = () => { flushPara(); closeAll(); };
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i].replace(/\t/g, '  ');
+      const line = raw.trim();
+      const ind = raw.length - raw.replace(/^ +/, '').length;
+      const nested = stack.length > 0 && ind >= 2;
+      const fence = line.match(/^\u0001(\d+)\u0001$/);
+      if (fence) { flushPara(); if (!nested) closeAll(); emit(fences[+fence[1]]); continue; }
+      if (!line) { flushPara(); continue; }
+      const h = line.match(/^(#{1,6})\s+(.*)$/);
+      if (h) {
+        breakOut();
+        const lv = h[1].length;
+        emit('<div style="margin:' + (lv <= 2 ? 26 : 18) + 'px 0 8px;font-weight:500;font-size:' + H[lv - 1] + 'px;line-height:1.4;letter-spacing:-.02em;color:var(--ink)' +
+          (lv <= 2 ? ';padding-bottom:7px;border-bottom:1px solid var(--line)' : '') + '">' + inline(h[2]) + '</div>');
+        continue;
+      }
+      if (/^([-*_])\1{2,}$/.test(line)) { breakOut(); emit('<div style="height:1px;background:var(--line);margin:20px 0"></div>'); continue; }
+      if (line.startsWith('|') && /\|/.test(lines[i + 1] || '') && /^[\s|:-]+$/.test((lines[i + 1] || '').trim())) {
+        flushPara();
+        if (!nested) closeAll();
+        const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+        const head = cells(line);
+        i += 2;
+        const rows = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) { rows.push(cells(lines[i])); i++; }
+        i--;
+        const td = 'padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top';
+        emit('<div style="overflow-x:auto;margin:14px 0"><table style="width:100%;border-collapse:collapse;font-size:12.5px;line-height:1.7"><thead><tr>' +
+          head.map(c => '<th style="' + td + ';text-align:left;font-weight:500;' + MONO + ';font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">' + inline(c) + '</th>').join('') +
+          '</tr></thead><tbody>' +
+          rows.map(r => '<tr>' + r.map(c => '<td style="' + td + ';color:var(--ink-2)">' + inline(c) + '</td>').join('') + '</tr>').join('') +
+          '</tbody></table></div>');
+        continue;
+      }
+      if (line.startsWith('>')) {
+        flushPara();
+        if (!nested) closeAll();
+        emit('<div style="margin:12px 0;padding:10px 14px;background:var(--sunk);border-left:2px solid var(--accent);font-size:13px;color:var(--ink-2)">' + inline(line.replace(/^>\s?/, '')) + '</div>');
+        continue;
+      }
+      const li = line.match(/^([-*+]|\d+[.)])\s+(.*)$/);
+      if (li) {
+        flushPara();
+        const tag = /^\d/.test(li[1]) ? 'ol' : 'ul';
+        closeTo(ind);
+        let top = stack[stack.length - 1];
+        if (top && top.indent === ind && top.tag !== tag) { closeTo(ind - 1); top = stack[stack.length - 1]; }
+        if (!top || top.indent < ind) {
+          stack.push({ tag, indent: ind, start: tag === 'ol' ? (parseInt(li[1], 10) || 1) : 1, items: [] });
+        }
+        stack[stack.length - 1].items.push({ html: inline(li[2]), extra: [] });
+        continue;
+      }
+      if (!nested) closeAll();       // 縮排的續行留在目前的 li 裡，不打斷編號
+      para.push(line);
+    }
+    flushPara();
+    closeAll();
+    // 只有進場時看得到的前幾塊排隊浮起；其餘不掛 animation —— 一次啟動幾十個會把第一幀吃光
+    return out.map((html, n) => n < 6
+      ? '<div style="animation:docBlock 460ms cubic-bezier(.16,.84,.44,1) both;animation-delay:' + n * 30 + 'ms">' + html + '</div>'
+      : html).join('');
+  }
+
+  componentWillUnmount() {
+    if (this.mq) this.mq.removeEventListener('change', this.h);
+    if (this.io) this.io.disconnect();
+    if (this.navIo) this.navIo.disconnect();
+    window.removeEventListener('scroll', this.onScroll);
+    window.removeEventListener('keydown', this.onKey);
+    window.removeEventListener('wheel', this.onWheel);
+    window.removeEventListener('resize', this.onResize);
+    cancelAnimationFrame(this._raf);
+    clearInterval(this._glideTimer);
+    clearTimeout(this._glide);
+    window.removeEventListener('touchstart', this.onTouchStart);
+    window.removeEventListener('touchend', this.onTouchEnd);
+    clearTimeout(this._close);
+    cancelAnimationFrame(this._armRaf);
+  }
+
+  // 捲動進場、數字計數、指標跟隨光暈、導覽高亮、指令一鍵複製。
+  // 全部在掛載後用 JS 加，模板不動 —— 版面與 token 維持原樣。
+  enhance() {
+    const root = document.getElementById('dc-root') || document;
+    const EASE = 'cubic-bezier(.16,.84,.44,1)';
+    setTimeout(() => {
+      // 1. 進場：整個面板捲進視野時，裡面的元素依序浮起（橫向捲動，所以看的是面板的水平位置）
+      const track = this.track;
+      const panels = track ? [...track.children] : [];
+      panels.forEach(p => {
+        if (p.dataset.rv) return;
+        p.dataset.rv = '1';
+        [...p.children].forEach(k => {
+          k.style.opacity = '0';
+          k.style.transform = 'translateY(14px)';
+        });
+      });
+      this.reveal = () => {
+        if (!track) return;
+        panels.forEach(p => {
+          if (p.dataset.shown) return;
+          if ((this.offsets ? this.offsets[panels.indexOf(p)] : p.offsetLeft) - track.scrollLeft > track.clientWidth * 1.1) return;
+          p.dataset.shown = '1';
+          [...p.children].forEach((k, n) => {
+            const d = Math.min(n, 6) * 55;
+            k.style.willChange = 'opacity, transform';
+            k.style.transition = 'opacity 620ms ' + EASE + ' ' + d + 'ms, transform 620ms ' + EASE + ' ' + d + 'ms';
+            k.style.opacity = '1';
+            k.style.transform = 'none';
+            setTimeout(() => { k.style.willChange = 'auto'; }, 900 + d);
+          });
+        });
+      };
+      this.reveal();
+
+      // 2. 數字計數：捲到才從 0 跑上去
+      const nums = [...root.querySelectorAll('b')].filter(b => /tabular-nums/.test(b.getAttribute('style') || ''));
+      const numIo = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+          if (!en.isIntersecting) return;
+          const el = en.target;
+          const target = parseInt(el.textContent, 10);
+          if (!isFinite(target)) return;
+          numIo.unobserve(el);
+          const dur = 900, t0 = performance.now();
+          const step = now => {
+            const p = Math.min(1, (now - t0) / dur);
+            const eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = String(Math.round(target * eased));
+            if (p < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        });
+      }, { threshold: 0.6 });
+      nums.forEach(el => numIo.observe(el));
+
+      // 3. 首屏光暈跟著指標走
+      const hero = root.querySelector('#top');
+      if (hero && !hero.dataset.glow) {
+        hero.dataset.glow = '1';
+        hero.style.position = 'relative';
+        hero.style.overflow = 'hidden';
+        const glow = document.createElement('div');
+        glow.style.cssText = 'position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 500ms ease;background:radial-gradient(340px circle at 50% 40%, var(--accent-wash), transparent 70%)';
+        hero.insertBefore(glow, hero.firstChild);
+        hero.addEventListener('pointermove', e => {
+          const r = hero.getBoundingClientRect();
+          glow.style.background = 'radial-gradient(340px circle at ' + (e.clientX - r.left) + 'px ' + (e.clientY - r.top) + 'px, var(--accent-wash), transparent 70%)';
+          glow.style.opacity = '1';
+        });
+        hero.addEventListener('pointerleave', () => { glow.style.opacity = '0'; });
+      }
+
+      // 4. header：捲動後壓一條分隔線陰影；導覽連結跟著章節高亮
+      const header = root.querySelector('header');
+      this.onScroll = () => {
+        if (!header) return;
+        const y = window.scrollY;
+        // 無邊際：不用底線，捲動後只靠一層極淡的陰影把它從內容上抬起來
+        header.style.boxShadow = y > 8 ? '0 1px 0 rgba(128,128,140,.16), 0 10px 24px -18px rgba(0,0,0,.5)' : 'none';
+      };
+      window.addEventListener('scroll', this.onScroll, { passive: true });
+      this.onScroll();
+
+      const links = [...root.querySelectorAll('header nav a')];
+      this.navIo = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+          if (!en.isIntersecting) return;
+          const id = en.target.id;
+          links.forEach(a => {
+            const on = a.getAttribute('href') === '#' + id;
+            a.style.color = on ? 'var(--accent)' : 'var(--ink-2)';
+          });
+        });
+      }, { rootMargin: '-45% 0px -50% 0px' });
+      root.querySelectorAll('section[id]').forEach(sec => this.navIo.observe(sec));
+
+      // 5. 指令區塊點一下複製 —— 用事件委派掛在 root，re-render 不會掉
+      if (!this.copyBound) {
+        this.copyBound = true;
+        root.addEventListener('click', e => {
+          const pre = e.target.closest && e.target.closest('pre');
+          if (!pre || !root.contains(pre)) return;
+          this.copyText(pre.textContent.trim(), pre);
+        });
+      }
+
+      // 6. hover 效果一律寫在模板的 hover 狀態裡（JS 寫 inline style 會被 re-render 清掉）
+    }, 60);
+  }
+
+  copyText(text, pre) {
+    const flash = ok => {
+      pre.style.borderColor = ok ? 'var(--accent)' : 'var(--ink-3)';
+      pre.style.background = ok ? 'var(--accent-wash)' : 'var(--sunk)';
+      const tip = document.createElement('span');
+      tip.textContent = ok ? '已複製' : '複製失敗，請手動選取';
+      tip.style.cssText = "position:absolute;top:8px;right:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:" + (ok ? 'var(--accent)' : 'var(--ink-3)') + ';pointer-events:none;opacity:0;transition:opacity 160ms ease';
+      if (getComputedStyle(pre).position === 'static') pre.style.position = 'relative';
+      pre.appendChild(tip);
+      requestAnimationFrame(() => { tip.style.opacity = '1'; });
+      clearTimeout(this.copyTimer);
+      this.copyTimer = setTimeout(() => {
+        pre.style.borderColor = 'var(--line)';
+        pre.style.background = 'var(--sunk)';
+        tip.style.opacity = '0';
+        setTimeout(() => tip.remove(), 200);
+      }, 1100);
+    };
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand('copy');
+        ta.remove();
+        flash(ok);
+      } catch (err) { flash(false); }
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => flash(true), fallback);
+    } else fallback();
+  }
+
+  apply(mode) {
+    const resolved = mode === 'auto'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : mode;
+    const el = document.documentElement;
+    el.classList.add('theme-xfade');
+    clearTimeout(this._xf);
+    this._xf = setTimeout(() => el.classList.remove('theme-xfade'), 340);
+    document.documentElement.setAttribute('data-theme', resolved);
+    document.documentElement.setAttribute('data-theme-mode', mode);
+  }
+
+  // flow 不再是另一份文件：閒置時先把它掛進隱藏容器跑起來，
+  // 點下去只是把容器滑進畫面 —— 純 transform，沒有文件切換，也就沒有空窗。
+  makeBand(dir, startPx) {
+    const el = document.createElement('div');
+    const down = dir > 0;
+    el.style.cssText = 'position:fixed;left:0;right:0;top:100%;height:56px;z-index:99999;display:flex;align-items:center;gap:14px;' +
+      'padding:0 clamp(16px,3.5vw,56px);background:var(--bg);box-shadow:inset 0 1px 0 var(--accent),inset 0 -1px 0 var(--accent);' +
+      "pointer-events:none;will-change:transform;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase";
+    el.innerHTML = '<span style="color:var(--ink-3)">' + (down ? '首頁' : '流程圖') + '</span>' +
+      '<span style="flex:1;height:1px;background:var(--line)"></span>' +
+      '<span style="color:var(--accent)">' + (down ? '流程圖' : '首頁') + '</span>';
+    el.style.transform = 'translateY(' + startPx + 'px)';
+    document.documentElement.appendChild(el);
+    return el;
+  }
+
+  mountFlow() {
+    if (this.flowFrame || !this.flowHost) return;
+    const f = document.createElement('iframe');
+    f.src = './flow.html?embed=1';
+    f.title = 'bstack 流程圖';
+    f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
+    f.addEventListener('load', () => { this.postTheme(); this.postFocus(); });
+    this.flowHost.appendChild(f);
+    this.flowFrame = f;
+  }
+
+  postTheme() {
+    try {
+      if (!this.flowFrame || !this.flowFrame.contentWindow) return;
+      const mode = this.state.themeMode;
+      const resolved = mode === 'auto'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : mode;
+      this.flowFrame.contentWindow.postMessage({ bstack: 'theme', mode, resolved }, '*');
+    } catch (_) {}
+  }
+
+  slideFlow(open) {
+    const host = this.flowHost;
+    const r = document.getElementById('dc-root');
+    if (!host || !r || this.flowOpen === open) return;
+    this.flowOpen = open;
+    if (open) this.mountFlow();
+    const vh = window.innerHeight;
+    const band = this.makeBand(open ? 1 : -1, open ? 0 : -(vh + 56));
+    if (open) host.style.pointerEvents = 'auto';
+    setTimeout(() => {
+      const E = 'cubic-bezier(.16,.84,.44,1)';
+      r.style.willChange = 'transform';
+      r.style.transition = 'transform 620ms ' + E;
+      r.style.transform = open ? 'translateY(-42%)' : 'translateY(0)';
+      host.style.transform = open ? 'translateY(0)' : 'translateY(100%)';
+      band.style.transition = 'transform 620ms ' + E;
+      band.style.transform = 'translateY(' + (open ? -(vh + 56) : 0) + 'px)';
+      setTimeout(() => {
+        band.remove();
+        r.style.willChange = '';
+        if (!open) { host.style.pointerEvents = 'none'; r.style.transition = ''; r.style.transform = ''; }
+        if (open && this.flowFrame && this.flowFrame.contentWindow) this.flowFrame.contentWindow.focus();
+      }, 660);
+    }, 20);
+  }
+
+  hookNav() {
+    document.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('a[href$=".html"]:not([href*="index"]), a[href*="flow"]');
+      if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.defaultPrevented) return;
+      e.preventDefault();
+      // 連結上掛了 data-node 就順便讓流程圖選取該節點（「它管什麼」那幾張卡片）。
+      // 刻意用屬性而不是 onClick：dc-runtime 綁的 onClick 會擋掉冒泡，這個全域攔截就吃不到，
+      // 連 slideFlow 都不會跑（索引彈窗那個連結就是這樣，只好自己 preventDefault）。
+      const node = a.getAttribute('data-node');
+      if (node) this._pendingFocus = { node };
+      this.slideFlow(true);
+      if (node) this.postFocus();
+    });
+    window.addEventListener('message', e => {
+      const d = e.data;
+      if (!d || typeof d.bstack !== 'string') return;
+      if (d.bstack === 'close') this.slideFlow(false);
+      if (d.bstack === 'theme' && d.mode) {
+        this.setState({ themeMode: d.mode });
+        this.apply(d.mode);
+        try { localStorage.setItem(STORE, d.mode); } catch (_) {}
+        this.postTheme();
+      }
+    });
+    // 閒置時先把 flow 跑起來，真正點下去時它已經是畫好的
+    const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
+    idle(() => this.mountFlow());
+  }
+
+  renderVals() {
+    const q = this.state.q.trim().toLowerCase();
+    const all = [
+      ...SKILLS.map(([name, desc, group]) => ({
+        name, desc, group, kind: 'skill',
+        bg: group === '設計' ? 'rgba(179,136,255,0.1)' : 'rgba(124,245,166,0.1)',
+        bd: group === '設計' ? '#B388FF' : '#7CF5A6',
+        href: './flow.html'
+      })),
+      ...AGENTS.map(([name, desc]) => ({
+        name, desc, group: 'agent', kind: 'agent',
+        bg: 'rgba(79,168,255,0.1)', bd: '#4FA8FF',
+        href: './flow.html'
+      })),
+      ...DOCS.map(([name, desc, group]) => ({
+        name, desc, group, kind: 'doc',
+        // 與流程圖頁 docSection 的 KIND_COLOR.Doc 同色
+        bg: 'rgba(179,136,255,0.1)', bd: '#B388FF',
+        href: './flow.html'
+      }))
+    ];
+    // 排序與流程圖側欄的 docSection() 一致：先分 skill / agent / doc，組內字母序。
+    // 兩邊都是「想查的時候查得到」的索引，同一份文件在兩頁的位置就該一樣。
+    // 原本這裡是 SKILLS 陣列的手寫流程順序（入口 → 主流程 → 跨流程 → 設計 → meta）；
+    // 那個資訊沒有消失，改由每一列右邊的 group 標籤表達。
+    // **流程圖那邊沒辦法改成流程順序**：它的清單是從 REFERENCE_DOCS 的 key 推出來的，
+    // 要有流程順序就得再維護一份手寫陣列，兩份一定會漂。所以統一到字母序這一邊。
+    const KIND_ORDER = { skill: 0, agent: 1, doc: 2 };
+    all.sort((a, b) => (KIND_ORDER[a.kind] - KIND_ORDER[b.kind]) || a.name.localeCompare(b.name));
+    const filtered = q ? all.filter(i => (i.name + ' ' + i.desc + ' ' + i.group).toLowerCase().includes(q)) : all;
+    const openName = this.state.open;
+    this._open = this._open || {};
+    const items = filtered.map(i => {
+      if (!this._open[i.name]) this._open[i.name] = () => this.openDoc(i.name, i.group);
+      return Object.assign({}, i, { mark: i.name === openName ? '●' : '', onOpen: this._open[i.name] });
+    });
+    const shown = !!openName && !this.state.closing;
+    const armed = shown && this.state.armed;
+    const openItem = openName ? all.find(i => i.name === openName) : null;
+    const docPath = openItem ? this.docPathFor(openItem.name, openItem.group) : '';
+    const html = openName ? this.htmlFor(docPath) : null;
+    // key 綁在文件路徑上：換一份就重新掛載，docIn / docBlock 兩層動畫重播一次
+    const docEl = !openItem ? null : html
+      ? React.createElement('div', {
+          key: docPath,
+          style: { animation: 'docIn 420ms cubic-bezier(.16,.84,.44,1) both' },
+          dangerouslySetInnerHTML: { __html: html }
+        })
+      : React.createElement('div', { key: 'pending', style: { padding: '10px 0', color: 'var(--ink-3)', fontSize: '13px' } },
+          this.state.docsFailed ? '讀不到這份文件，改到流程圖上看。' : '載入中…');
+    return {
+      query: this.state.q,
+      onQuery: e => this.setState({ q: e.target.value }),
+      items,
+      openName: openName || '',
+      openPath: docPath,
+      docEl,
+      scrimO: shown ? '1' : '0',
+      listPE: shown ? 'none' : 'auto',   // 卡片開著時清單不可命中：否則游標沒移動，剛點那一列會卡在 hover 綠框
+      scrimPE: shown ? 'auto' : 'none',
+      cardO: shown ? '1' : '0',
+      cardT: shown ? 'scale(1) translateY(0)' : 'scale(.975) translateY(12px)',
+      onScrim: this.onScrim,
+      onRailDown: this.onRailDown,
+      onRailMove: this.onRailMove,
+      onRailUp: this.onRailUp,
+      railRef: el => { this.rail = el; },
+      knobRef: el => { this.knob = el; },
+      scrimRef: el => { this.scrim = el; },
+      flowHostRef: el => {
+        if (!el || this.flowHost === el) return;
+        this.flowHost = el;
+        // 搬出 #dc-root：父層有 transform 時，position:fixed 會以它為基準跟著位移
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+      },
+      onTrack: this.onTrack,
+      onHome: this.onHome,
+      trackRef: el => { this.track = el; if (el) { el.style.scrollBehavior = 'auto'; this.measure(); this.progress(); if (this.reveal) this.reveal(); } },
+      barRef: el => { this.bar = el; },
+      stop: this.stop,
+      onClose: () => this.closeDoc(),
+      // **這裡必須自己 preventDefault**：dc-runtime 把模板的 onClick 綁成原生 onclick 並擋掉冒泡，
+      // 事件傳不到 document，hookNav 的全域連結攔截對這個 a 完全不生效（實測：document 的
+      // listener 一次都沒觸發，於是瀏覽器直接導頁到 flow.html，內嵌滑入的效果整個沒了）。
+      // 修飾鍵與中鍵照放行，維持「另開分頁」的預設行為。
+      onFocusFlow: (e) => {
+        if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return;
+        if (e && e.preventDefault) e.preventDefault();
+        if (openItem) this.focusInFlow(openItem.name);
+      },
+      empty: items.length === 0,
+      resultLabel: q ? items.length + ' / ' + all.length : all.length + ' 項',
+      isDark: this.state.themeMode === 'dark',
+      isLight: this.state.themeMode === 'light',
+      isAuto: this.state.themeMode === 'auto',
+      themeTitle: { dark: '主題：深色（點一下切淺色）', light: '主題：淺色（點一下跟隨系統）', auto: '主題：跟隨系統（點一下切深色）' }[this.state.themeMode],
+      onTheme: () => {
+        const next = THEMES[(THEMES.indexOf(this.state.themeMode) + 1) % 3];
+        this.setState({ themeMode: next });
+        this.apply(next);
+        try { localStorage.setItem(STORE, next); } catch (_) {}
+        this.postTheme();
+      }
+    };
+  }
+}
+</script>
 </body>
 </html>

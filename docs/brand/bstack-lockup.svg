@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="24" viewBox="0 0 132 24" fill="none">
+  <rect x="3" y="3" width="7.5" height="18" fill="#FAFAFA"></rect>
+  <rect x="13.5" y="3" width="7.5" height="7.5" fill="#7CF5A6"></rect>
+  <rect x="13.5" y="13.5" width="7.5" height="7.5" fill="#FAFAFA"></rect>
+  <text x="31" y="17.4" font-family="JetBrains Mono, ui-monospace, monospace" font-size="16" font-weight="500" letter-spacing="-0.5" fill="#FAFAFA">bstack</text>
+</svg>

@@ -278,15 +278,28 @@ check('P6 rules.md 存在且 CLAUDE.md 以 @ 引用',
   `期望 rules.md 有 §事實核實 且 CLAUDE.md 含獨立一行 @skills/devwork/rules.md（後果：兩份守則漂移）`);
 
 // ── P8 計數 ─────────────────────────────────────────────────────────────────
+// 2026-09-08 void 改版後 landing 的三處計數換了 markup：hero 從 `<b>N</b><span>skills</span>`
+// 變成帶 inline style 的 <b>/<span>，legend 那條整個沒了，改成 inventory 列。錨點跟著換。
 const n = skillDirs.length;
 const readmeN = Number((rd('README.md').match(/^## Skills（(\d+)）/m) || [])[1]);
 const html = exists('docs/index.html') ? rd('docs/index.html') : '';
-const heroN = Number((html.match(/<b>(\d+)<\/b><span>skills<\/span>/) || [])[1]);
-const legendN = Number((html.match(/<span class="nn">(\d+)<\/span><\/li>/) || [])[1]);
+// hero stat 列：<b …>28</b><span …>skills</span>
+const heroN = Number((html.match(/<b[^>]*>(\d+)<\/b><span[^>]*>skills<\/span>/i) || [])[1]);
+// inventory 列：…>skills</span>…（中間一段說明）…>28</span>
+const invN = Number((html.match(/>skills<\/span>[\s\S]{0,400}?>(\d+)<\/span>/i) || [])[1]);
 const metaN = Number((html.match(/content="(\d+) 個 skill/) || [])[1]);
-check(`P8 README / index.html 的 skill 計數 == 磁碟 ${n}`,
-  readmeN === n && heroN === n && legendN === n && metaN === n,
-  `README=${readmeN} hero=${heroN} legend=${legendN} meta=${metaN}（後果：公開站報錯數字；改處：README.md「## Skills（N）」、index.html :8 :48 :87）`);
+// 最強的一條：landing 的 skill 索引卡是一份手寫清單，數字對了但清單漏一個照樣不會有人發現。
+const listed = [...(html.match(/const SKILLS = \[[\s\S]*?\n\];/) || [''])[0].matchAll(/\['([^']+)'/g)].map((m) => m[1]);
+const listMissing = skillDirs.filter((s) => !listed.includes(s));
+const listExtra = listed.filter((s) => !skillDirs.includes(s));
+check(`P8 README / index.html 的 skill 計數與清單 == 磁碟 ${n}`,
+  readmeN === n && heroN === n && invN === n && metaN === n &&
+    listed.length === n && listMissing.length === 0 && listExtra.length === 0,
+  `README=${readmeN} hero=${heroN} inventory=${invN} meta=${metaN} 索引卡=${listed.length}` +
+  `${listMissing.length ? ' 缺[' + listMissing.join(',') + ']' : ''}` +
+  `${listExtra.length ? ' 多[' + listExtra.join(',') + ']' : ''}` +
+  `（後果：公開站報錯數字，或新 skill 上了站但索引卡查不到；` +
+  `改處：README.md「## Skills（N）」、index.html 的 hero stat 列 / inventory 列 / meta description / const SKILLS）`);
 
 // ── P9 T2 lane 一致性（2026-09-04 精簡）────────────────────────────────────
 // lane 定義散在 rules / 9 個 skill / 1 個 agent / README / landing，任一處留舊敘述，

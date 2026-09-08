@@ -1,121 +1,1027 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <title>bstack：dev-workflow flowchart explorer</title>
-  <meta name="description" content="bstack 九階段開發流程的互動流程圖：skill、agent、hook 與決策點的節點與連線，點節點就能讀該份文件。" />
-
-  <!-- social meta：同 index.html，圖共用、title / description / url 換成本頁的。契約 C20 守。 -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="bstack" />
-  <meta property="og:locale" content="zh_TW" />
-  <meta property="og:url" content="https://fujiei22.github.io/bstack/flow.html" />
-  <meta property="og:title" content="bstack：dev-workflow flowchart explorer" />
-  <meta property="og:description" content="bstack 九階段開發流程的互動流程圖：skill、agent、hook 與決策點的節點與連線，點節點就能讀該份文件。" />
-  <meta property="og:image" content="https://fujiei22.github.io/bstack/og.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="bstack 標記與「Claude Code 開發流程包」字樣" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="bstack：dev-workflow flowchart explorer" />
-  <meta name="twitter:description" content="bstack 九階段開發流程的互動流程圖：skill、agent、hook 與決策點的節點與連線，點節點就能讀該份文件。" />
-  <meta name="twitter:image" content="https://fujiei22.github.io/bstack/og.png" />
-
-  <!-- 主題初始化：在 CSS 載入前設好 data-theme 防 FOUC -->
-  <script>
-    (function () {
-      try {
-        var saved = localStorage.getItem('dev-workflow-theme'); // 'auto' | 'light' | 'dark' | null
-        var mode = saved === 'light' || saved === 'dark' ? saved : 'auto';
-        var resolved = mode === 'auto'
-          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : mode;
-        document.documentElement.setAttribute('data-theme', resolved);
-        document.documentElement.setAttribute('data-theme-mode', mode);
-      } catch (_) {
-        document.documentElement.setAttribute('data-theme', 'light');
-        document.documentElement.setAttribute('data-theme-mode', 'auto');
-      }
-    })();
-  </script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600&display=swap">
-  <link rel="stylesheet" href="./css/styles.css" />
-
-  <!-- vendor libs：本地 classic script，file:// 與離線均可用 -->
-  <script src="./js/vendor/d3.min.js"></script>
-  <script src="./js/vendor/dagre.min.js"></script>
-  <script src="./js/vendor/marked.min.js"></script>
-
-  <!-- layout helpers + FLOW_DATA + references bundle：classic script，file:// 相容 -->
-  <script src="./js/layout.js"></script>
-  <script src="./js/data.js"></script>
-  <script src="./js/references-data.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bstack / flow — dev-workflow</title>
+<meta name="description" content="bstack 九階段開發流程的互動流程圖：skill、agent、hook 與決策點的節點與連線，點節點就能讀該份文件。" />
+<!-- social meta 一律留在靜態 <head>，不要搬進 <helmet>：
+     <helmet> 的內容是 dc-runtime 在執行期才掛進 <head> 的，而 LINE / Slack / FB / X
+     的預覽爬蟲不執行 JS —— 搬進去等於整組 og 全部讀不到，連 <title> 都沒有。
+     下面的 <title> 與 <helmet> 裡那份刻意同文（執行期覆寫成同一字串），改一邊要改兩邊，
+     契約 C20h 會擋住漂移。og:image 必須是絕對網址，相對路徑爬蟲不解析。 -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="bstack" />
+<meta property="og:locale" content="zh_TW" />
+<meta property="og:url" content="https://fujiei22.github.io/bstack/flow.html" />
+<meta property="og:title" content="bstack / flow — dev-workflow" />
+<meta property="og:description" content="bstack 九階段開發流程的互動流程圖：skill、agent、hook 與決策點的節點與連線，點節點就能讀該份文件。" />
+<meta property="og:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="bstack 標記與「Claude Code 開發流程包」字樣" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="bstack / flow — dev-workflow" />
+<meta name="twitter:description" content="bstack 九階段開發流程的互動流程圖：skill、agent、hook 與決策點的節點與連線，點節點就能讀該份文件。" />
+<meta name="twitter:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
+<link rel="icon" href="./brand/favicon.svg" type="image/svg+xml" />
+<script>
+  // React / ReactDOM 自帶，不打 unpkg.com。
+  // dc-runtime 的 cdnScriptFor() 先查 window.__resources[原始 URL]，命中就改用這裡給的本地路徑，
+  // 沿用 js/vendor/ 已經自帶 dagre / marked 的慣例；unpkg 掛掉或離線時站台照樣渲染得出來。
+  window.__resources = {
+    'https://unpkg.com/react@18.3.1/umd/react.production.min.js': './js/vendor/react.production.min.js',
+    'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js': './js/vendor/react-dom.production.min.js'
+  };
+</script>
+<script>
+  // 防 FOUC：在解析階段就把主題屬性掛上。
+  // 為什麼必要：CSS 的 :root 預設是 light，而 app 的預設 themeMode 是 'dark'，
+  // 而套用主題的 applyTheme() 在 componentDidMount 才跑 —— 要等 React 載完並 mount。
+  // 沒有這段的話，暗色使用者每次進站都會先閃一下白底再變黑。
+  // 解析邏輯與 flow.html / index.html 的 applyTheme() 必須一模一樣（含 auto 的判定與
+  // 'dark' 這個 fallback），對不上就會先掛一個主題、mount 後又跳成另一個，比 FOUC 更糟。
+  // 契約 C2 守：這段在 support.js 之前、且 key 與兩個屬性名與 app 同一組。
+  (function () {
+    var el = document.documentElement;
+    try {
+      var saved = localStorage.getItem('bstack-void-theme');
+      var mode = saved === 'light' || saved === 'auto' ? saved : 'dark';
+      var resolved = mode === 'auto'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : mode;
+      el.setAttribute('data-theme', resolved);
+      el.setAttribute('data-theme-mode', mode);
+    } catch (_) {
+      // localStorage 被鎖（無痕 / 擋 site data）時照樣要有底色，跟 app 的 catch 走同一條 fallback
+      el.setAttribute('data-theme', 'dark');
+      el.setAttribute('data-theme-mode', 'dark');
+    }
+  })();
+</script>
+<script src="./support.js"></script>
 </head>
 <body>
-<div class="shell">
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+  // 早於任何模組註冊：跨文件 View Transitions 在預覽 iframe 內會被 skip，
+  // 瀏覽器丟出的 rejection 沒人接就會變成 console error。
+  window.addEventListener('unhandledrejection', function (ev) {
+    var msg = String((ev.reason && ev.reason.message) || ev.reason || '');
+    if (/transition was skipped/i.test(msg)) ev.preventDefault();
+  });
 
-  <!-- ══ RAIL ══ -->
-  <nav class="rail" aria-label="主導覽">
-    <a class="rail-mark" href="./index.html" data-label="回首頁" aria-label="回 bstack 首頁">bs</a>
-    <div class="rail-group" id="rail-group">
-      <button class="rail-btn" data-sec="type" aria-label="節點型別"   data-label="節點型別（8）"      aria-expanded="false">型</button>
-      <button class="rail-btn" data-sec="phase" aria-label="區段傳送"  data-label="區段傳送（15）"     aria-expanded="false">段</button>
-      <button class="rail-btn" data-sec="amb" aria-label="環境規則與跨流程 skill"    data-label="環境規則 / 跨流程"  aria-expanded="false">環</button>
-      <button class="rail-btn" data-sec="docs" aria-label="文件索引"   data-label="文件索引（34）"     aria-expanded="false">檔</button>
-    </div>
-    <div class="rail-spacer"></div>
-    <div class="rail-group">
-      <button class="rail-btn" id="btn-fit" aria-label="回到流程起點"   data-label="回到起點">置</button>
-      <button class="rail-btn" id="btn-theme" aria-label="切換主題" data-label="主題：自動">自</button>
-    </div>
-    <div class="rail-indicator" id="rail-ind"></div>
-  </nav>
+  // 換頁進場：在解析階段就跑，不等 app 掛載 —— 等 React／dagre 開機才動就會看到中間卡一拍。
+  // 只動 transform，動畫在合成執行緒上跑，主執行緒忙著開機也不影響。
+  (function () {
+    try {
+      var raw = sessionStorage.getItem('bstack:nav');
+      if (!raw) return;
+      sessionStorage.removeItem('bstack:nav');
+      var d = JSON.parse(raw);
+      if (!d || Date.now() - d.t > 4000) return;
+      var vh = window.innerHeight;
+      var mid = -(vh * 0.55);
+      var down = d.dir > 0;
+      var band = document.createElement('div');
+      band.style.cssText = 'position:fixed;left:0;right:0;top:100%;height:56px;z-index:99999;display:flex;align-items:center;gap:14px;' +
+        'padding:0 clamp(16px,3.5vw,56px);background:var(--bg);box-shadow:inset 0 1px 0 var(--accent),inset 0 -1px 0 var(--accent);' +
+        "pointer-events:none;will-change:transform;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase";
+      band.innerHTML = '<span style="color:var(--ink-3)">' + (down ? '首頁' : '流程圖') + '</span>' +
+        '<span style="flex:1;height:1px;background:var(--line)"></span>' +
+        '<span style="color:var(--accent)">' + (down ? '流程圖' : '首頁') + '</span>';
+      band.style.transform = 'translateY(' + mid + 'px)';
+      document.documentElement.appendChild(band);
+      var body = document.body;
+      body.style.transform = 'translateY(' + (down ? 42 : -42) + '%)';
+      body.style.willChange = 'transform';
+      // 等頁面真的畫出東西才開始滑入 —— 在解析階段就跑會滑進一片空白，那才是看起來卡住的原因。
+      // 以「#dc-root 有內容」或 420ms 逾時，兩者先到者為準。
+      var started = false;
+      var begin = function () {
+        if (started) return;
+        started = true;
+        if (obs) obs.disconnect();
+        clearTimeout(deadline);
+        var E = 'cubic-bezier(.16,.84,.44,1)';
+        body.style.transition = 'transform 520ms ' + E;
+        body.style.transform = 'translateY(0)';
+        band.style.transition = 'transform 520ms ' + E;
+        band.style.transform = 'translateY(' + (down ? -(vh + 56) : 0) + 'px)';
+        setTimeout(function () {
+          band.remove();
+          body.style.transition = '';
+          body.style.transform = '';
+          body.style.willChange = '';
+        }, 560);
+      };
+      var deadline = setTimeout(begin, 420);
+      var obs = new MutationObserver(function () {
+        var r = document.getElementById('dc-root');
+        if (r && r.getBoundingClientRect().height > 120) begin();
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
+  })();
+</script>
 
-  <!-- ══ STAGE ══ -->
-  <main class="stage">
-    <svg id="flow" aria-label="dev-workflow 流程圖"></svg>
+<title>bstack / flow — dev-workflow</title>
+<link rel="prefetch" href="./index.html" />
+<link rel="icon" type="image/svg+xml" href="./brand/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+TC:wght@300;400;500&amp;display=swap" />
+<style>
+  :root {
+    --bg: #FFFFFF; --surface: #FAFAFA; --sunk: #F2F2F3;
+    --line: #E4E4E7; --line-2: #C9C9CF;
+    --ink: #0A0A0B; --ink-2: #52525B; --ink-3: #6B6B72;
+    --accent: #12855A; --accent-ink: #FFFFFF; --accent-wash: rgba(18,133,90,0.10); --accent-line: rgba(18,133,90,0.42);
+    --edge: #C9C9CF; --edge-dim: #EDEDEF;
+    --t-micro: 140ms; --t-panel: 240ms; --t-large: 380ms;
+    --e-enter: cubic-bezier(.16,.84,.44,1); --e-exit: cubic-bezier(.55,.02,.86,.30);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --surface: #0B0B0C; --sunk: #131315;
+    --line: #232326; --line-2: #35353B;
+    --ink: #FAFAFA; --ink-2: #A3A3A8; --ink-3: #8B8B92;
+    --accent: #7CF5A6; --accent-ink: #04140B; --accent-wash: rgba(124,245,166,0.10); --accent-line: rgba(124,245,166,0.40);
+    --edge: #3A3A40; --edge-dim: #1C1C1F;
+    color-scheme: dark;
+  }
+  /* 主題切換過場：掛一瞬間的全域色彩轉場，動畫完就拿掉（留著會蓋掉元件自己的節奏） */
+  /* 只過渡三個便宜的屬性、且不碰 SVG 的 fill / stroke：
+     圖上有兩千多個 shape，加 fill / stroke / box-shadow 會讓整棵樹在同一幀重繪，切主題就卡。
+     色片瞬間換、背景與文字漸變，實際看起來仍是一次平順的換色。 */
+  :root.theme-xfade body, :root.theme-xfade header, :root.theme-xfade aside, :root.theme-xfade main,
+  :root.theme-xfade section, :root.theme-xfade footer, :root.theme-xfade nav, :root.theme-xfade div,
+  :root.theme-xfade a, :root.theme-xfade button, :root.theme-xfade span, :root.theme-xfade p,
+  :root.theme-xfade h1, :root.theme-xfade h2, :root.theme-xfade b, :root.theme-xfade code,
+  :root.theme-xfade pre, :root.theme-xfade input, :root.theme-xfade table, :root.theme-xfade th, :root.theme-xfade td {
+    transition: background-color 300ms ease-out, color 300ms ease-out, border-color 300ms ease-out !important;
+  }
+  /* 換頁過場：舊頁淡出上移、新頁由下推上，兩段都由 JS 掛 class 播（不用 @view-transition —— 它在 iframe 內會被 skip，只留下一個沒人接的 rejection） */
+  html { background: var(--bg); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Instrument Sans", "Noto Sans TC", system-ui, sans-serif; font-weight: 400; letter-spacing: -0.01em; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--ink); }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  * { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  @keyframes breathe { 0%, 100% { opacity: .16; } 50% { opacity: .5; } }
+  @keyframes dash { to { stroke-dashoffset: -10; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes rowIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+  @keyframes slideIn { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes veil { from { opacity: 0; } to { opacity: 1; } }
+  /* 退場。進場用減速曲線（東西進來要穩下來），退場用加速曲線（要果斷離開），
+     所以不是把 slideIn 反過來播。退場也比進場短一點——關閉不該讓人等。 */
+  @keyframes slideOut { from { transform: none; opacity: 1; } to { transform: translateX(28px); opacity: 0; } }
+  @keyframes veilOut { from { opacity: 1; } to { opacity: 0; } }
+  .md-body { font-size: 13.5px; line-height: 1.85; color: var(--ink-2); }
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4 { font-weight: 500; color: var(--ink); line-height: 1.4; margin: 22px 0 8px; }
+  .md-body h2 { font-size: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .md-body h3 { font-size: 14.5px; }
+  .md-body h4 { font-size: 13.5px; color: var(--ink-2); }
+  /* 內文不另外設行長上限：抽屜本身已經封頂 min(780px,100vw)，內容區約 725px，
+     換算約 54 個中文字 / 82 個西文字一行，對這種中英混排的技術文件還在可讀範圍。
+     原本這裡是 max-width:64ch（約 575px），結果抽屜加寬之後表格吃到了空間、
+     段落卻還停在原地，右邊空 166px，看起來就像「加寬沒有生效」。 */
+  .md-body code { font-family: "JetBrains Mono", monospace; font-size: 12px; background: var(--sunk); padding: 1px 5px; border-radius: 2px; overflow-wrap: anywhere; }
+  .md-body pre { background: var(--sunk); border: 1px solid var(--line); border-radius: 2px; padding: 12px 14px; overflow-x: auto; }
+  .md-body pre code { background: none; padding: 0; font-size: 11.5px; white-space: pre; color: var(--ink); }
+  .md-body blockquote { margin: 0 0 14px; padding: 2px 0 2px 14px; border-left: 2px solid var(--accent-line); }
+  .md-body table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .md-body th, .md-body td { padding: 7px 10px 7px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  .md-body th { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-weight: 400; white-space: nowrap; }
+  .md-body td:first-child { color: var(--ink); font-weight: 500; }
+  .md-body hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+  .md-body a { text-decoration: underline dotted var(--accent-line); text-underline-offset: 3px; }
+</style>
+<script src="./js/vendor/dagre.min.js"></script>
+<script src="./js/vendor/marked.min.js"></script>
+<script src="./js/data.js"></script>
+<script src="./js/layout.js"></script>
+<script src="./js/references-data.js"></script>
+</helmet>
 
-    <div class="masthead">
-      <h1>dev-workflow</h1>
-      <div class="sub" id="mast-sub">—</div>
-    </div>
+<div style="position:relative;width:100vw;height:100vh;overflow:hidden;background:var(--bg);user-select:none;-webkit-user-select:none">
 
-    <div class="minimap-card" id="minimap-card"></div>
+  <header style="position:absolute;left:0;right:0;top:0;height:54px;z-index:30;display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--line)">
+    <a href="./index.html" title="回到首頁" style="display:flex;align-items:center;gap:10px;flex:none;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;transition:color var(--t-micro)" style-hover="color:var(--ink)">
+      <span style="display:inline-flex;color:var(--ink-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex:none;display:block"><rect x="3" y="3" width="7.5" height="18" fill="currentColor"></rect><rect x="13.5" y="3" width="7.5" height="7.5" fill="var(--accent)"></rect><rect x="13.5" y="13.5" width="7.5" height="7.5" fill="currentColor"></rect></svg></span>
+      <span>↑ 首頁</span>
+    </a>
+    <span style="flex:1"></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--ink-3);flex:none">{{ counts }}</span>
+    <button onClick="{{ onFit }}" style="flex:none;height:32px;display:inline-flex;align-items:center;padding:0 13px;border-radius:2px;border:1px solid var(--line-2);font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;color:var(--ink-2);transition:border-color var(--t-micro),color var(--t-micro)" style-hover="border-color:var(--accent);color:var(--ink)">全圖置中</button>
+    <button onClick="{{ onTheme }}" title="{{ themeTitle }}" aria-label="{{ themeTitle }}" style="flex:none;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:2px;border:1px solid var(--line-2);color:var(--ink-2);transition:border-color var(--t-micro),color var(--t-micro)" style-hover="border-color:var(--accent);color:var(--ink)">
+      <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg></sc-if>
+      <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.6v2.2M12 19.2v2.2M4.4 12H2.2M21.8 12h-2.2M6.3 6.3 4.7 4.7M19.3 19.3l-1.6-1.6M17.7 6.3l1.6-1.6M4.7 19.3l1.6-1.6"></path></svg></sc-if>
+      <sc-if value="{{ isAuto }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8.4"></circle><path d="M12 3.6a8.4 8.4 0 0 1 0 16.8Z" fill="currentColor" stroke="none"></path></svg></sc-if>
+    </button>
+  </header>
 
-    <div class="hud-bottom">
-      <div class="statusline" id="statusline">—</div>
+  <aside style="position:absolute;left:0;top:54px;bottom:0;width:258px;z-index:20;background:var(--surface);border-right:1px solid var(--line);overflow-y:auto;scrollbar-gutter:stable;padding:18px 0 26px">
+    <button onClick="{{ toggleType }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 18px 10px;text-align:left;transition:color var(--t-micro)" style-hover="color:var(--ink)">
+      <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">節點型別</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ typeCount }}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ typeChevron }}</span>
+    </button>
+    <div style="display:grid;grid-template-rows:{{ typeRows }};visibility:{{ typeVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
+    <sc-for list="{{ legend }}" as="l" hint-placeholder-count="8">
+      <button onClick="{{ l.onClick }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:7px 18px;text-align:left;background:{{ l.bg }};transition:background var(--t-micro);{{ l.anim }}" style-hover="background:var(--sunk)">
+        <span style="width:9px;height:9px;flex:none;background:{{ l.color }}"></span>
+        <span style="flex:1;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12.5px;color:{{ l.ink }}">{{ l.label }}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ l.count }}</span>
+      </button>
+    </sc-for>
+    </div></div>
+
+    <div style="height:1px;background:var(--line);margin:12px 18px"></div>
+    <button onClick="{{ togglePhase }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 18px 10px;text-align:left;transition:color var(--t-micro)" style-hover="color:var(--ink)">
+      <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">區段傳送</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ phaseCount }}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ phaseChevron }}</span>
+    </button>
+    <div style="display:grid;grid-template-rows:{{ phaseRows }};visibility:{{ phaseVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
+    <sc-for list="{{ phases }}" as="p" hint-placeholder-count="15">
+      <button onClick="{{ p.onClick }}" style="width:100%;display:flex;align-items:baseline;gap:9px;padding:6px 18px;text-align:left;transition:background var(--t-micro);{{ p.anim }}" style-hover="background:var(--sunk)">
+        <span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ p.ord }}</span>
+        <span style="flex:1;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;line-height:1.5;color:var(--ink-2)">{{ p.label }}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ p.count }}</span>
+      </button>
+    </sc-for>
+    </div></div>
+
+    <div style="height:1px;background:var(--line);margin:12px 18px"></div>
+    <button onClick="{{ toggleAmb }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 18px 10px;text-align:left;transition:color var(--t-micro)" style-hover="color:var(--ink)">
+      <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">環境規則 / 跨流程</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ ambCount }}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ ambChevron }}</span>
+    </button>
+    <div style="display:grid;grid-template-rows:{{ ambRows }};visibility:{{ ambVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
+    <sc-for list="{{ ambient }}" as="a" hint-placeholder-count="3">
+      <div>
+        <div style="padding:8px 18px 2px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:500;font-size:12px;color:var(--ink)">{{ a.title }}</div>
+        <sc-for list="{{ a.items }}" as="it" hint-placeholder-count="4">
+          <button onClick="{{ it.onClick }}" style="width:100%;display:flex;flex-direction:column;gap:1px;padding:5px 18px;text-align:left;transition:background var(--t-micro)" style-hover="background:var(--sunk)">
+            <span style="font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;color:{{ it.ink }}">{{ it.name }}</span>
+            <span style="font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:10.5px;line-height:1.5;color:var(--ink-3)">{{ it.desc }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-for>
+    </div></div>
+
+    <div style="height:1px;background:var(--line);margin:12px 18px"></div>
+    <button onClick="{{ toggleDocs }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 18px 10px;text-align:left;transition:color var(--t-micro)" style-hover="color:var(--ink)">
+      <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">文件索引</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3)">{{ docsCount }}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3)">{{ docsChevron }}</span>
+    </button>
+    <div style="display:grid;grid-template-rows:{{ docsRows }};visibility:{{ docsVis }};transition:grid-template-rows 280ms cubic-bezier(.16,.84,.44,1),visibility 280ms">
+    <div style="overflow:hidden;min-height:0">
+      <div style="padding:0 14px 8px">
+        <input type="search" value="{{ docQuery }}" onInput="{{ onDocQuery }}" placeholder="搜 skill / agent" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:2px;background:var(--bg);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink);outline:none;transition:border-color var(--t-micro)" style-focus="border-color:var(--accent)" />
+      </div>
+      <sc-for list="{{ docList }}" as="d" hint-placeholder-count="10">
+        <button onClick="{{ d.onClick }}" style="width:100%;display:flex;align-items:center;gap:9px;padding:6px 18px;text-align:left;transition:background var(--t-micro);{{ d.anim }}" style-hover="background:var(--sunk)">
+          <span style="width:7px;height:7px;flex:none;background:{{ d.color }}"></span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink)">{{ d.name }}</span>
+          <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)">{{ d.kind }}</span>
+        </button>
+      </sc-for>
+      <sc-if value="{{ docEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 18px 4px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)">查無此文件</div>
+      </sc-if>
+    </div></div>
+  </aside>
+
+  <main style="position:absolute;left:258px;right:0;top:54px;bottom:0;overflow:hidden;background:var(--bg)">
+    <svg ref="{{ svgRef }}" onClick="{{ onBackdropClick }}" style="display:block;width:100%;height:100%;cursor:grab;touch-action:none">
+      <defs>
+        <marker id="mist-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--edge)"></path></marker>
+        <marker id="mist-arw-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--edge-dim)"></path></marker>
+        <marker id="mist-arw-hl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"></path></marker>
+      </defs>
+      <g transform="{{ viewTransform }}" style="transition:{{ viewTransition }}">
+        <sc-for list="{{ edges }}" as="e" hint-placeholder-count="0">
+          <g style="opacity:{{ e.opacity }};transition:opacity var(--t-panel)">
+            <path d="{{ e.d }}" marker-end="{{ e.marker }}" style="{{ e.style }}"></path>
+            <foreignObject x="{{ e.lbx }}" y="{{ e.lby }}" width="{{ e.lbw }}" height="{{ e.lbh }}" style="overflow:visible;pointer-events:none;opacity:{{ e.lbo }}">
+              <div style="display:flex;align-items:center;justify-content:center;height:100%;background:var(--bg);border-radius:4px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:11px;line-height:1.2;color:var(--ink-3);white-space:nowrap">{{ e.label }}</div>
+            </foreignObject>
+          </g>
+        </sc-for>
+        <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="0">
+          <g onClick="{{ n.onClick }}" style="cursor:pointer;opacity:{{ n.opacity }};transition:opacity var(--t-panel)">
+            <rect x="{{ n.hx }}" y="{{ n.hy }}" width="{{ n.hw }}" height="{{ n.hh }}" rx="{{ n.hr }}" style="fill:none;stroke:var(--accent);stroke-width:1px;opacity:{{ n.halo }};{{ n.haloAnim }}"></rect>
+            <rect x="{{ n.x }}" y="{{ n.y }}" width="{{ n.w }}" height="{{ n.h }}" rx="{{ n.rx }}" style="fill:var(--bg);stroke:none"></rect>
+            <rect x="{{ n.x }}" y="{{ n.y }}" width="{{ n.w }}" height="{{ n.h }}" rx="{{ n.rx }}" style="{{ n.style }}" style-hover="stroke-width:2.2px"></rect>
+            <foreignObject x="{{ n.x }}" y="{{ n.y }}" width="{{ n.w }}" height="{{ n.h }}" style="overflow:visible;pointer-events:none">
+              <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 10px;text-align:center">
+                <sc-for list="{{ n.lines }}" as="l" hint-placeholder-count="2">
+                  <div style="{{ l.style }}">{{ l.t }}</div>
+                </sc-for>
+              </div>
+            </foreignObject>
+          </g>
+        </sc-for>
+      </g>
+    </svg>
+
+    <div style="position:absolute;left:16px;bottom:16px;padding:7px 11px;background:var(--bg);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3);pointer-events:none;max-width:46ch;line-height:1.7">{{ statusline }}</div>
+
+    <div style="position:absolute;right:18px;bottom:18px;width:96px;background:var(--surface);border:1px solid var(--line);border-radius:3px;overflow:hidden;box-shadow:0 1px 2px rgba(32,38,42,0.04),0 10px 24px rgba(32,38,42,0.06)">
+      <svg onClick="{{ onMinimap }}" onPointerDown="{{ onMinimapDown }}" viewBox="{{ mmViewBox }}" style="display:block;width:96px;height:{{ mmH }}px;cursor:crosshair">
+        <sc-for list="{{ mmNodes }}" as="m" hint-placeholder-count="0">
+          <rect x="{{ m.x }}" y="{{ m.y }}" width="{{ m.w }}" height="{{ m.h }}" style="{{ m.style }}"></rect>
+        </sc-for>
+        <rect x="{{ mmVp.x }}" y="{{ mmVp.y }}" width="{{ mmVp.w }}" height="{{ mmVp.h }}" style="{{ mmVp.style }}"></rect>
+      </svg>
     </div>
   </main>
 
-  <!-- ══ 召喚式面板 ══ -->
-  <aside class="panel" id="panel" aria-live="polite">
-    <div class="panel-head">
-      <div>
-        <div class="panel-title" id="panel-title">—</div>
-        <div class="panel-sub" id="panel-sub"></div>
+  <sc-if value="{{ detailOpen }}" hint-placeholder-val="{{ false }}">
+    <aside style="position:absolute;right:18px;top:72px;width:296px;max-height:calc(100vh - 128px);z-index:26;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:4px;box-shadow:0 1px 2px rgba(32,38,42,0.04),0 16px 40px rgba(32,38,42,0.10);animation:fadeUp var(--t-panel) var(--e-enter)">
+      <div style="padding:16px 16px 13px;border-bottom:1px solid var(--line)">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="padding:3px 9px;border-radius:2px;border:1px solid {{ detail.typeColor }};background:{{ detail.typeFill }};font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)">{{ detail.type }}</span>
+          <span style="flex:1;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:11px;color:var(--ink-3)">{{ detail.phase }}</span>
+          <button onClick="{{ onCloseDetail }}" style="width:24px;height:24px;display:grid;place-items:center;border-radius:2px;color:var(--ink-3);transition:background var(--t-micro)" style-hover="background:var(--sunk);color:var(--ink)">✕</button>
+        </div>
+        <div style="margin-top:11px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:500;font-size:16px;line-height:1.4;color:var(--ink)">{{ detail.title }}</div>
+        <div style="margin-top:5px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;line-height:1.7;color:var(--ink-2)">{{ detail.sub }}</div>
+        <div style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:var(--ink-3)">{{ detail.id }}</div>
       </div>
-      <div style="flex:1"></div>
-      <button class="icon-btn" id="panel-pin" title="釘住：選節點時不自動收起">釘</button>
-      <button class="icon-btn" id="panel-close" title="關閉（Esc）">✕</button>
+      <div style="overflow-y:auto;padding:12px 14px 16px">
+        <sc-if value="{{ detail.hasDoc }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:11px 13px;border-radius:3px;background:var(--sunk)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">文件</div>
+            <div style="margin-top:4px;font-family:'Instrument Sans',sans-serif;font-weight:500;font-size:13px;color:var(--ink)">{{ detail.docName }}</div>
+            <div style="margin-top:4px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:11.5px;line-height:1.65;color:var(--ink-2)">{{ detail.docDesc }}</div>
+            <button onClick="{{ onOpenDoc }}" style="margin-top:10px;width:100%;padding:9px 0;border-radius:2px;background:var(--ink);color:var(--bg);font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:500;font-size:12px;transition:background var(--t-micro)" style-hover="background:var(--accent);color:var(--accent-ink)">讀完整文件</button>
+          </div>
+        </sc-if>
+        <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">{{ detail.upLabel }}</div>
+        <sc-for list="{{ detail.up }}" as="u" hint-placeholder-count="2">
+          <button onClick="{{ u.onClick }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:2px;text-align:left;transition:background var(--t-micro),padding-left var(--t-micro)" style-hover="background:var(--sunk);padding-left:11px">
+            <span style="width:6px;height:6px;flex:none;background:{{ u.color }}"></span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;color:var(--ink)">{{ u.label }}</span>
+          </button>
+        </sc-for>
+        <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">{{ detail.downLabel }}</div>
+        <sc-for list="{{ detail.down }}" as="d" hint-placeholder-count="2">
+          <button onClick="{{ d.onClick }}" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:2px;text-align:left;transition:background var(--t-micro),padding-left var(--t-micro)" style-hover="background:var(--sunk);padding-left:11px">
+            <span style="width:6px;height:6px;flex:none;background:{{ d.color }}"></span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:12px;color:var(--ink)">{{ d.label }}</span>
+            <span style="flex:none;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:10.5px;color:var(--ink-3)">{{ d.via }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </aside>
+  </sc-if>
+
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div onClick="{{ onCloseDrawer }}" style="position:absolute;inset:0;z-index:40;background:rgba(0,0,0,0.46);backdrop-filter:blur(3px);animation:{{ veilAnim }}"></div>
+      <aside style="position:absolute;top:0;right:0;bottom:0;z-index:41;width:min(780px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);animation:{{ drawerAnim }};box-shadow:0 0 60px rgba(32,38,42,0.18)">
+        <div style="padding:20px 22px 16px;border-bottom:1px solid var(--line)">
+          <div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--ink-3)">
+            <span>{{ drawer.crumb }}</span>
+            <button onClick="{{ onCloseDrawer }}" style="margin-left:auto;width:26px;height:26px;display:grid;place-items:center;border-radius:2px;color:var(--ink-3);transition:background var(--t-micro)" style-hover="background:var(--sunk);color:var(--ink)">✕</button>
+          </div>
+          <div style="margin-top:14px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:500;font-size:24px;line-height:1.25;color:var(--ink)">{{ drawer.title }}</div>
+          <div style="margin-top:8px;font-family:'Instrument Sans','Noto Sans TC',sans-serif;font-weight:400;font-size:13px;line-height:1.75;color:var(--ink-2)">{{ drawer.desc }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+            <sc-for list="{{ drawer.pills }}" as="p" hint-placeholder-count="2">
+              <span style="padding:3px 10px;border-radius:2px;border:1px solid var(--line-2);font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2)">{{ p }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <div style="overflow-y:auto;padding:22px 22px 46px;user-select:text;-webkit-user-select:text">{{ drawerBody }}</div>
+      </aside>
     </div>
-    <div class="panel-body" id="panel-body"></div>
-  </aside>
-
-  <!-- ══ DETAIL ══ -->
-  <aside class="detail" id="detail"></aside>
-
-  <!-- ══ 文件抽屜 ══ -->
-  <div class="backdrop" id="backdrop"></div>
-  <aside class="drawer" id="drawer" aria-label="文件"></aside>
+  </sc-if>
 
 </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+/**
+ * 八個節點型別的顏色。**改這裡要同步 index.html 的 #inv 那排與 what 頁的小色塊**
+ *（那邊是寫死的 hex，契約 C4b 會比對兩邊不一致就紅）。
+ *
+ * 2026-09-08 調整過兩組：改版初期 impl(#C77DFF)/policy(#B388FF) 與
+ * hook(#FF6B4A)/stop(#FF5C5C) 兩組的 OKLab 距離只有 0.038 / 0.039，
+ * 而這套配色其餘任兩色的最小距離是 0.134 —— 差了三倍多，側欄小色塊根本分不出來。
+ * 現在 impl 讓出紫色改粉、stop 加深，最小距離回到 0.134（agent/policy），
+ * 沒有任何一組比原本就能接受的更近。語意維持：暖橘=hook、紅=stop。
+ */
+const TYPE_COLOR = {
+  default: '#9AA0AA', skill: '#7CF5A6', agent: '#4FA8FF', gate: '#FFC531',
+  impl: '#FF7AC8', policy: '#B388FF', hook: '#FF8A3D', stop: '#E0294A'
+};
+const TYPE_FILL = {
+  default: 'rgba(154,160,170,0.12)', skill: 'rgba(124,245,166,0.1)', agent: 'rgba(79,168,255,0.1)',
+  gate: 'rgba(255,197,49,0.1)', impl: 'rgba(255,122,200,0.1)', policy: 'rgba(179,136,255,0.1)',
+  hook: 'rgba(255,138,61,0.1)', stop: 'rgba(224,41,74,0.1)'
+};
+const rowAnim = i => 'animation:rowIn 340ms cubic-bezier(.16,.84,.44,1) both;animation-delay:' + Math.min(i, 14) * 22 + 'ms';
+const THEMES = ['dark', 'light', 'auto'];
+const STORE = 'bstack-void-theme';
+/** 抽屜退場時長（ms）。改這裡要同步下面 slideOut / veilOut 的 animation 時長。 */
+const DRAWER_EXIT = 260;
 
-<!-- 主程式：d3 + dagre，無框架；classic script，file:// 相容 -->
-<script src="./js/app.js"></script>
+/**
+ * resolveDoc() 撞不到、但改版前有顯式對映的節點。key = 節點 id，value = docIndex 的名字。
+ * 只放「label 與 id 都沒帶到文件名」的節點，能自動撞到的一律不列（列了也只是重複）。
+ * RPT3 的 label 是「T3：依改動面向 1-3 視角」，整串沒有 review-plan 四個字。
+ */
+const DOC_OVERRIDES = {
+  RPT3: 'review-plan'
+};
+
+class Component extends DCLogic {
+  state = {
+    ready: false, layout: null, k: 1, tx: 0, ty: 0, animate: false,
+    sel: null, typeFilter: null, drawer: null, drawerClosing: false, themeMode: 'dark', vw: 900, vh: 600,
+    openType: true, openPhase: false, openAmb: false, openDocs: false, docQ: ''
+  };
+
+  componentDidMount() {
+    this.hookNav();
+    this.docIndex = {};
+    try {
+      const saved = localStorage.getItem(STORE);
+      const mode = saved === 'light' || saved === 'auto' ? saved : 'dark';
+      this.setState({ themeMode: mode });
+      this.applyTheme(mode);
+    } catch (_) { this.applyTheme('dark'); }   // 與 index.html 及 head 的防 FOUC fallback 同值
+    this.mq = window.matchMedia('(prefers-color-scheme: dark)');
+    this.mqHandler = () => { if (this.state.themeMode === 'auto') this.applyTheme('auto'); };
+    this.mq.addEventListener('change', this.mqHandler);
+
+    this.keyHandler = e => {
+      if (e.key !== 'Escape') return;
+      if (this.state.drawer) this.closeDrawer();
+      else this.setState({ sel: null, typeFilter: null });
+    };
+    document.addEventListener('keydown', this.keyHandler);
+
+    const ready = () => window.FLOW_DATA && window.dagre && typeof buildLayout === 'function';
+    if (ready()) this.build();
+    else this.tick = setInterval(() => { if (ready()) { clearInterval(this.tick); this.build(); } }, 16);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.tick);
+    clearTimeout(this._drawerExit);
+    document.removeEventListener('keydown', this.keyHandler);
+    if (this.mq) this.mq.removeEventListener('change', this.mqHandler);
+    if (this.svg) {
+      this.svg.removeEventListener('wheel', this.wheel);
+      this.svg.removeEventListener('pointerdown', this.down);
+    }
+  }
+
+  applyTheme(mode) {
+    const resolved = mode === 'auto'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : mode;
+    const el = document.documentElement;
+    el.classList.add('theme-xfade');
+    clearTimeout(this._xf);
+    this._xf = setTimeout(() => el.classList.remove('theme-xfade'), 340);
+    document.documentElement.setAttribute('data-theme', resolved);
+    document.documentElement.setAttribute('data-theme-mode', mode);
+  }
+
+  build() {
+    const F = window.FLOW_DATA;
+    const docs = window.REFERENCE_DOCS || {};
+    Object.keys(docs).forEach(k => {
+      let m = k.match(/^references\/skills\/([^/]+)\/SKILL\.md$/);
+      if (m) { this.docIndex[m[1]] = { key: k, kind: 'Skill', name: m[1] }; return; }
+      m = k.match(/^references\/agents\/([^/]+)\.md$/);
+      if (m) { this.docIndex[m[1]] = { key: k, kind: 'Agent', name: m[1] }; return; }
+      m = k.match(/^references\/([^/]+)\.md$/);
+      if (m) this.docIndex[m[1].toLowerCase()] = { key: k, kind: 'Doc', name: m[1] + '.md' };
+    });
+    this.docNames = Object.keys(this.docIndex).sort((a, b) => b.length - a.length);
+
+    const nodeList = Object.entries(F.nodes).map(([id, n]) => {
+      const lines = String(n.label).split('\n');
+      let maxw = 0;
+      lines.forEach(l => {
+        let w = 0;
+        for (const c of l) w += c.charCodeAt(0) > 127 ? 13 : 7.1;
+        maxw = Math.max(maxw, w);
+      });
+      return {
+        id, ...n, lines,
+        width: Math.max(190, Math.min(360, Math.ceil(maxw) + 40)),
+        height: 26 + lines.length * 19
+      };
+    });
+    const edgeList = F.edges.map((e, i) => ({ id: 'e' + i, source: e[0], target: e[1], label: e[2] || '', kind: e[3] }));
+    const layout = buildLayout(nodeList, edgeList, { rankSep: 108, nodeSep: 54 });
+    this.setState({ ready: true, layout }, () => {
+      // 開場不用整張圖（實測 fit 只有 0.05×，字全部看不見）：對齊第一個節點、0.55×
+      const first = layout.nodes[0];
+      if (first && this.svg) {
+        const r = this.svg.getBoundingClientRect();
+        const k = 0.55;
+        this.setState({ k, animate: false, vw: r.width, vh: r.height, tx: r.width / 2 - first.x * k, ty: 120 - first.y * k });
+      } else {
+        this.fit(false);
+      }
+      // 佈局好了才補跑排隊中的 focus：冷開啟時父層的訊息會早於 build 抵達
+      if (this._pendingFocus) this.focusFrom(this._pendingFocus);
+    });
+
+    const el = this.svg;
+    if (el) {
+      this.wheel = ev => {
+        ev.preventDefault();
+        const r = el.getBoundingClientRect();
+        const px = ev.clientX - r.left, py = ev.clientY - r.top;
+        const { k, tx, ty } = this.state;
+        const nk = Math.min(2.5, Math.max(0.04, k * (1 - ev.deltaY * 0.0016)));
+        this.setState({ k: nk, tx: px - (px - tx) * (nk / k), ty: py - (py - ty) * (nk / k), animate: 'wheel' });
+      };
+      el.addEventListener('wheel', this.wheel, { passive: false });
+      this.down = ev => {
+        if (ev.button !== 0) return;
+        const start = { x: ev.clientX, y: ev.clientY, tx: this.state.tx, ty: this.state.ty };
+        let moved = false;
+        el.style.cursor = 'grabbing';
+        const move = m => {
+          const dx = m.clientX - start.x, dy = m.clientY - start.y;
+          if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+          if (moved) this.setState({ tx: start.tx + dx, ty: start.ty + dy, animate: false });
+        };
+        const up = () => {
+          el.style.cursor = 'grab';
+          this.dragged = moved;
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      };
+      el.addEventListener('pointerdown', this.down);
+    }
+    this.measure();
+    this.ro = new ResizeObserver(() => this.measure());
+    if (el) this.ro.observe(el);
+  }
+
+  measure() {
+    if (!this.svg) return;
+    const r = this.svg.getBoundingClientRect();
+    if (r.width && (r.width !== this.state.vw || r.height !== this.state.vh)) {
+      this.setState({ vw: r.width, vh: r.height });
+    }
+  }
+
+  fit(animate) {
+    const L = this.state.layout;
+    if (!L || !this.svg) return;
+    const r = this.svg.getBoundingClientRect();
+    const k = Math.min(2.5, Math.max(0.04, Math.min(r.width / L.gw, r.height / L.gh) * 0.92));
+    this.setState({
+      k, animate: !!animate,
+      tx: (r.width - L.gw * k) / 2, ty: (r.height - L.gh * k) / 2,
+      vw: r.width, vh: r.height
+    });
+  }
+
+  /**
+   * 側欄摺疊區段的兩個綁定值。
+   * @param {string} key 前綴，對應模板的 {{ <key>Rows }} 與 {{ <key>Vis }}
+   * @param {boolean} open 展開與否
+   * @returns {object} 可直接展開進 renderVals 的兩個鍵
+   */
+  fold(key, open) {
+    return { [key + 'Rows']: open ? '1fr' : '0fr', [key + 'Vis']: open ? 'visible' : 'hidden' };
+  }
+
+  centerOn(node, animate) {
+    if (!this.svg) return;
+    const r = this.svg.getBoundingClientRect();
+    const k = Math.max(this.state.k, 0.35);
+    this.setState({ k, animate: !!animate, tx: r.width / 2 - node.x * k, ty: r.height / 2 - node.y * k });
+  }
+
+  /**
+   * 把某個節點選起來並置中。首頁 postMessage 過來時用，兩種指定方式：
+   *   {doc:'<名字>'}  索引彈窗用：拿文件名反查（走 resolveDoc()，所以 DOC_OVERRIDES 的修正也生效）
+   *   {node:'<id>'}   「它管什麼」那幾張卡片用：它們指的是概念（「不會直接改 main」），
+   *                   沒有文件名可以撞，只能由呼叫端在 markup 上指定節點 id
+   * 圖還沒佈局完就先排隊（冷開啟時 iframe 剛掛上，訊息會早於 build 抵達），build 收尾再補跑。
+   * @param {{doc?:string,node?:string}} payload
+   */
+  focusFrom(payload) {
+    if (!payload) return;
+    const L = this.state.layout;
+    if (!L) { this._pendingFocus = payload; return; }
+    this._pendingFocus = null;
+    let target = null;
+    if (payload.node) {
+      target = L.nodes.find(n => n.id === payload.node);
+    } else if (payload.doc) {
+      const bare = String(payload.doc).replace(/\.md$/, '');
+      target = L.nodes.find(n => {
+        const d = this.resolveDoc(n);
+        return d && (d.name === payload.doc || d.name === bare || d.name.replace(/\.md$/, '') === bare);
+      });
+    }
+    if (!target) return;   // 對不到節點（文件只在側欄索引出現，或 id 打錯）就靜靜不動作
+    this.setState({ sel: target.id, typeFilter: null });
+    this.closeDrawer();
+    this.centerOn(target, true);
+  }
+
+  // 節點對文件是**啟發式**：拿 label + id 去撞 docIndex 的名字，長的先撞。
+  // 改版前是 app.js 裡一份手寫的 NODE_DOCS 顯式對映，改成撞名字省掉了那份表，
+  // 代價是 label 沒帶到文件名的節點會撞不到 —— 下面這張表就是補那些漏的。
+  // 契約 C6 拿改版前的 NODE_DOCS 當基準線比對，漏一個就紅，別靠人工記得補。
+  resolveDoc(node) {
+    if (!this.docNames) return null;
+    const forced = DOC_OVERRIDES[node.id];
+    if (forced) return this.docIndex[forced] || null;
+    const hay = node.label + ' ' + node.id;
+    for (const name of this.docNames) {
+      if (name.length < 4) continue;
+      if (hay.includes(name)) return this.docIndex[name];
+    }
+    return null;
+  }
+
+  /**
+   * 收起文件抽屜。**先播退場再卸載**：直接把 drawer 設成 null 的話元素當場消失，
+   * 沒有東西可以動畫（進場的 slideIn 只在掛載時播，關閉時完全用不到）。
+   * 這裡沿用 index.html 那顆索引彈窗的做法：closing 旗標讓它多活 DRAWER_EXIT 毫秒。
+   */
+  closeDrawer() {
+    if (!this.state.drawer || this.state.drawerClosing) return;
+    this.setState({ drawerClosing: true });
+    clearTimeout(this._drawerExit);
+    this._drawerExit = setTimeout(
+      () => this.setState({ drawer: null, drawerClosing: false }), DRAWER_EXIT);
+  }
+
+  openDoc(entry) {
+    if (!entry) return;
+    // 退場播到一半又開新的一份：取消卸載，不然那顆 timer 會把剛開的抽屜關掉
+    clearTimeout(this._drawerExit);
+    if (this.state.drawerClosing) this.setState({ drawerClosing: false });
+    const raw = (window.REFERENCE_DOCS || {})[entry.key] || '';
+    const fm = raw.match(/^---\n([\s\S]*?)\n---\n/);
+    let desc = '', pills = [], body = raw;
+    if (fm) {
+      body = raw.slice(fm[0].length);
+      const d = fm[1].match(/description:\s*\|?\s*\n?\s*(.+)/);
+      if (d) desc = d[1].trim();
+      const mo = fm[1].match(/model:\s*(.+)/);
+      if (mo) pills.push('model ' + mo[1].trim());
+      const to = fm[1].match(/tools:\s*(.+)/);
+      if (to) pills.push('tools ' + to[1].trim());
+    }
+    body = body.replace(/^#\s+.*\n/, '');
+    const html = window.marked ? window.marked.parse(body) : body;
+    this.setState({
+      drawer: {
+        crumb: 'References / ' + entry.kind + ' / ' + entry.name,
+        title: entry.name, desc: desc || '（無描述）', pills, html
+      }
+    });
+  }
+
+  // 左欄「文件索引」：直接從 REFERENCE_DOCS 的 key 推出 skill / agent / 規則書清單，點了直接開抽屜
+  docSection() {
+    const idx = this.docIndex || {};
+    const KIND_COLOR = { Skill: '#7CF5A6', Agent: '#4FA8FF', Doc: '#B388FF' };
+    const q = this.state.docQ.trim().toLowerCase();
+    const order = { Skill: 0, Agent: 1, Doc: 2 };
+    let list = Object.keys(idx).map(k => idx[k]);
+    list.sort((a, b) => (order[a.kind] - order[b.kind]) || a.name.localeCompare(b.name));
+    const shown = q ? list.filter(e => e.name.toLowerCase().includes(q) || e.kind.toLowerCase().includes(q)) : list;
+    return {
+      openDocs: this.state.openDocs,
+      docsChevron: this.state.openDocs ? '−' : '+',
+      docsCount: q ? shown.length + '/' + list.length : String(list.length),
+      docEmpty: shown.length === 0,
+      docList: shown.map((e, i) => ({
+        anim: rowAnim(i),
+        name: e.name, kind: e.kind, color: KIND_COLOR[e.kind] || KIND_COLOR.Doc,
+        onClick: () => this.openDoc(e)
+      }))
+    };
+  }
+
+  // 被 index 內嵌時不換文件：回上一層只是通知父層把容器滑走。
+  // 單獨開啟這一頁時退回一般連結行為（帶分隔帶的換頁過場）。
+  hookNav() {
+    const embedded = /[?&]embed=1\b/.test(location.search);
+
+    window.addEventListener('message', e => {
+      const d = e.data;
+      if (!d || typeof d.bstack !== 'string') return;
+      if (d.bstack === 'theme' && d.mode) {
+        this.setState({ themeMode: d.mode });
+        // 父層已經算好 'auto' 該落在哪一邊；照它的結果套，兩份文件才不會各自解析
+        this.applyTheme(d.resolved || d.mode);
+        document.documentElement.setAttribute('data-theme-mode', d.mode);
+      }
+      if (d.bstack === 'focus') this.focusFrom({ doc: d.doc, node: d.node });
+    });
+
+    document.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('a[href$=".html"]');
+      if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.defaultPrevented) return;
+      e.preventDefault();
+      if (embedded) { try { window.parent.postMessage({ bstack: 'close' }, '*'); } catch (_) {} return; }
+      const href = a.getAttribute('href');
+      const vh = window.innerHeight;
+      const band = document.createElement('div');
+      band.style.cssText = 'position:fixed;left:0;right:0;top:100%;height:56px;z-index:99999;display:flex;align-items:center;gap:14px;' +
+        'padding:0 clamp(16px,3.5vw,56px);background:var(--bg);box-shadow:inset 0 1px 0 var(--accent),inset 0 -1px 0 var(--accent);' +
+        "pointer-events:none;will-change:transform;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase";
+      band.innerHTML = '<span style="color:var(--ink-3)">流程圖</span><span style="flex:1;height:1px;background:var(--line)"></span><span style="color:var(--accent)">首頁</span>';
+      band.style.transform = 'translateY(' + (-(vh + 56)) + 'px)';
+      document.documentElement.appendChild(band);
+      const r = document.getElementById('dc-root') || document.body;
+      r.style.willChange = 'transform';
+      setTimeout(() => {
+        const E = 'cubic-bezier(.55,.02,.3,1)';
+        r.style.transition = 'transform 460ms ' + E;
+        r.style.transform = 'translateY(42%)';
+        band.style.transition = 'transform 460ms ' + E;
+        band.style.transform = 'translateY(' + (-(vh * 0.55)) + 'px)';
+      }, 20);
+      try { sessionStorage.setItem('bstack:nav', JSON.stringify({ dir: -1, t: Date.now() })); } catch (_) {}
+      setTimeout(() => { window.location.href = href; }, 330);
+    });
+
+    window.addEventListener('unhandledrejection', ev => {
+      const msg = String((ev.reason && ev.reason.message) || ev.reason || '');
+      if (/transition was skipped/i.test(msg)) ev.preventDefault();
+    });
+  }
+
+  renderVals() {
+    const F = window.FLOW_DATA;
+    const L = this.state.layout;
+    const { sel, typeFilter, k, tx, ty } = this.state;
+    const base = {
+      svgRef: el => { if (el) this.svg = el; },
+      viewTransform: 'translate(' + tx + ',' + ty + ') scale(' + k + ')',
+      viewTransition: this.state.animate === 'wheel'
+        ? 'transform 120ms cubic-bezier(.22,.61,.36,1)'
+        : (this.state.animate ? 'transform 420ms cubic-bezier(.16,.84,.44,1)' : 'none'),
+      isDark: this.state.themeMode === 'dark',
+      isLight: this.state.themeMode === 'light',
+      isAuto: this.state.themeMode === 'auto',
+      themeTitle: { dark: '主題：深色（點一下切淺色）', light: '主題：淺色（點一下跟隨系統）', auto: '主題：跟隨系統（點一下切深色）' }[this.state.themeMode],
+      onTheme: () => {
+        const next = THEMES[(THEMES.indexOf(this.state.themeMode) + 1) % 3];
+        this.setState({ themeMode: next });
+        this.applyTheme(next);
+        try { localStorage.setItem(STORE, next); } catch (_) {}
+        try {
+          if (/[?&]embed=1\b/.test(location.search)) {
+            const resolved = next === 'auto'
+              ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+              : next;
+            window.parent.postMessage({ bstack: 'theme', mode: next, resolved }, '*');
+          }
+        } catch (_) {}
+      },
+      onFit: () => this.fit(true),
+      onBackdropClick: e => {
+        if (this.dragged) { this.dragged = false; return; }
+        if (e.target.tagName === 'svg') this.setState({ sel: null, typeFilter: null });
+      },
+      openType: this.state.openType,
+      openPhase: this.state.openPhase,
+      openAmb: this.state.openAmb,
+      typeChevron: this.state.openType ? '−' : '+',
+      phaseChevron: this.state.openPhase ? '−' : '+',
+      ambChevron: this.state.openAmb ? '−' : '+',
+      // 摺疊過場：外層 grid 的 0fr ↔ 1fr 補間，內層 overflow:hidden 把內容裁掉。
+      // 用 grid 而不是 max-height 是因為不必猜一個「夠大」的高度——猜大了收合會先卡一段空白。
+      // 內容改成一直掛在 DOM 上（原本用 sc-if 條件渲染，關閉時直接被拔掉、沒有東西可以補間），
+      // visibility 一起過場是為了收合後不要還能 Tab 進去：它到動畫結束才切 hidden，展開時則立刻可見。
+      ...this.fold('type', this.state.openType),
+      ...this.fold('phase', this.state.openPhase),
+      ...this.fold('amb', this.state.openAmb),
+      ...this.fold('docs', this.state.openDocs),
+      toggleType: () => this.setState({ openType: !this.state.openType }),
+      togglePhase: () => this.setState({ openPhase: !this.state.openPhase }),
+      toggleAmb: () => this.setState({ openAmb: !this.state.openAmb }),
+      toggleDocs: () => this.setState({ openDocs: !this.state.openDocs }),
+      docQuery: this.state.docQ,
+      onDocQuery: e => this.setState({ docQ: e.target.value }),
+      ...this.docSection(),
+      typeCount: F ? F.legend.length : 8,
+      phaseCount: F ? F.phases.length : 15,
+      ambCount: F ? F.ambient.reduce((n, a) => n + a.items.length, 0) : 20,
+      onCloseDetail: () => this.setState({ sel: null }),
+      onCloseDrawer: () => this.closeDrawer(),
+      // 退場與進場各自的曲線；drawerOpen 在退場期間仍為 true，元素才活得到動畫結束
+      drawerAnim: this.state.drawerClosing
+        ? 'slideOut ' + DRAWER_EXIT + 'ms cubic-bezier(.4,0,1,1) both'
+        : 'slideIn 320ms cubic-bezier(.16,.84,.44,1) both',
+      veilAnim: this.state.drawerClosing
+        ? 'veilOut ' + DRAWER_EXIT + 'ms cubic-bezier(.4,0,1,1) both'
+        : 'veil 240ms cubic-bezier(.16,.84,.44,1) both',
+      drawerOpen: !!this.state.drawer,
+      drawer: this.state.drawer || { crumb: '', title: '', desc: '', pills: [] },
+      drawerBody: this.state.drawer
+        ? React.createElement('div', { className: 'md-body', dangerouslySetInnerHTML: { __html: this.state.drawer.html } })
+        : null,
+      detailOpen: false,
+      detail: { up: [], down: [] },
+      nodes: [], edges: [], mmNodes: [], legend: [], phases: [], ambient: [],
+      mmViewBox: '0 0 100 100', mmH: 120, mmVp: { x: 0, y: 0, w: 0, h: 0, sw: 1 },
+      counts: F ? Object.keys(F.nodes).length + ' 節點 / ' + F.edges.length + ' 邊' : '載入中',
+      statusline: '滾輪縮放 · 拖曳平移 · 點節點看細節',
+      onMinimap: () => {}
+    };
+    if (!L || !F) return base;
+
+    const nodeById = {};
+    L.nodes.forEach(n => { nodeById[n.id] = n; });
+    const up = sel ? window.getUpstream(sel) : [];
+    const down = sel ? window.getDownstream(sel) : [];
+    const near = new Set([...up, ...down]);
+
+    base.nodes = L.nodes.map(n => {
+      const isSel = sel === n.id;
+      const isNear = near.has(n.id);
+      const typeHit = typeFilter && n.type === typeFilter;
+      let opacity = 1;
+      if (sel) opacity = isSel || isNear ? 1 : 0.22;
+      else if (typeFilter) opacity = typeHit ? 1 : 0.22;
+      const x = n.x - n.width / 2, y = n.y - n.height / 2;
+      const rx = n.shape === 'stadium' ? n.height / 2 : (n.shape === 'diamond' ? 4 : 10);
+      const fill = isSel ? 'var(--surface)' : (TYPE_FILL[n.type] || TYPE_FILL.default);
+      const stroke = isSel || typeHit ? 'var(--accent)' : (TYPE_COLOR[n.type] || TYPE_COLOR.default);
+      const sw = isSel ? 1.6 : (isNear || typeHit ? 1.3 : 1);
+      return {
+        id: n.id, x, y, w: n.width, h: n.height, rx, cx: n.x,
+        style: 'fill:' + fill + ';stroke:' + stroke + ';stroke-width:' + sw + 'px',
+        opacity,
+        halo: isSel ? 0.4 : 0,
+        haloAnim: isSel ? 'animation:breathe 3.4s ease-in-out infinite' : '',
+        hx: x - 7, hy: y - 7, hw: n.width + 14, hh: n.height + 14, hr: rx + 5,
+        lines: n.lines.map((t, i) => ({
+          t,
+          style: "font-family:'Instrument Sans','Noto Sans TC',sans-serif;line-height:1.45;font-size:" + (i === 0 ? '12.5px' : '11px')
+            + ';font-weight:' + (i === 0 ? (isSel ? 500 : 300) : 300)
+            + ';color:' + (i === 0 ? 'var(--ink)' : 'var(--ink-3)')
+        })),
+        onClick: ev => {
+          ev.stopPropagation();
+          if (this.dragged) { this.dragged = false; return; }
+          this.setState({ sel: sel === n.id ? null : n.id, typeFilter: null });
+        }
+      };
+    });
+
+    base.edges = L.edges.map(e => {
+      const pts = e.points || [];
+      const d = pts.length ? pts.map((p, i) => (i ? 'L' : 'M') + p.x + ' ' + p.y).join(' ') : '';
+      const hl = sel && (e.source === sel || e.target === sel);
+      const dimmed = (sel && !hl) || (typeFilter && !(nodeById[e.source]?.type === typeFilter || nodeById[e.target]?.type === typeFilter));
+      let lw = 0;
+      for (const c of e.label) lw += c.charCodeAt(0) > 127 ? 11 : 6;
+      const estroke = hl ? 'var(--accent)' : (dimmed ? 'var(--edge-dim)' : 'var(--edge)');
+      return {
+        d,
+        style: 'fill:none;stroke:' + estroke + ';stroke-width:' + (hl ? 1.8 : 1.1) + 'px'
+          + (hl ? ';stroke-dasharray:5 5;animation:dash 1500ms linear infinite' : ''),
+        marker: hl ? 'url(#mist-arw-hl)' : (dimmed ? 'url(#mist-arw-dim)' : 'url(#mist-arw)'),
+        opacity: dimmed ? 0.35 : 1,
+        label: e.label.replace(/\n/g, ' '),
+        lx: e.labelX || 0, ly: (e.labelY || 0) + 4,
+        lbx: (e.labelX || 0) - lw / 2 - 5, lby: (e.labelY || 0) - 9,
+        lbw: lw + 10, lbh: 18, lbo: e.label ? 0.9 : 0
+      };
+    });
+
+    const counts = {};
+    L.nodes.forEach(n => { counts[n.type] = (counts[n.type] || 0) + 1; });
+    base.legend = F.legend.map((l, i) => ({
+      anim: rowAnim(i),
+      label: l.label, count: counts[l.type] || 0,
+      // 側欄色塊一律實心（與首頁 #inv 那排同一種畫法），所以這裡不再供 fill。
+      // TYPE_FILL 仍用在圖上的節點底色，別跟著刪。
+      // **選取時色塊維持自己的型別色**，不換成 accent 綠：色塊是型別的圖例，
+      // 換色等於把「這是哪一型」的資訊蓋掉。選取狀態由底色（accent-wash）與文字轉白表達。
+      color: TYPE_COLOR[l.type],
+      ink: typeFilter === l.type ? 'var(--ink)' : 'var(--ink-2)',
+      bg: typeFilter === l.type ? 'var(--accent-wash)' : 'transparent',
+      onClick: () => this.setState({ typeFilter: typeFilter === l.type ? null : l.type, sel: null })
+    }));
+
+    const pcount = {};
+    L.nodes.forEach(n => { pcount[n.phase] = (pcount[n.phase] || 0) + 1; });
+    base.phases = F.phases.map((p, i) => ({
+      anim: rowAnim(i),
+      label: p.label, count: pcount[p.id] || 0,
+      ord: String(i + 1).padStart(2, '0'),
+      onClick: () => {
+        const first = L.nodes.find(n => n.phase === p.id);
+        if (first) { this.setState({ sel: first.id, typeFilter: null }); this.centerOn(first, true); }
+      }
+    }));
+
+    base.ambient = F.ambient.map(a => ({
+      title: a.title,
+      items: a.items.map(it => ({
+        name: it.name, desc: it.desc,
+        ink: it.docKey ? 'var(--accent)' : 'var(--ink-2)',
+        onClick: () => {
+          const plain = it.name.replace(/^§/, '');
+          const entry = this.docIndex[it.name] || this.docIndex[plain] || this.docIndex['rules'];
+          if (it.docKey || !this.docIndex[plain]) this.openDoc(this.docIndex[plain] || this.docIndex['rules']);
+          else this.openDoc(entry);
+        }
+      }))
+    }));
+
+    if (sel && nodeById[sel]) {
+      const n = nodeById[sel];
+      const phase = F.phases.find(p => p.id === n.phase);
+      const doc = this.resolveDoc(n);
+      const mk = id => {
+        const t = nodeById[id];
+        return {
+          label: t ? t.lines[0] : id,
+          color: TYPE_COLOR[t ? t.type : 'default'],
+          via: t ? t.type : '',
+          onClick: () => { this.setState({ sel: id }); if (t) this.centerOn(t, true); }
+        };
+      };
+      base.detailOpen = true;
+      base.detail = {
+        type: n.type, phase: phase ? phase.label : '',
+        typeColor: TYPE_COLOR[n.type], typeFill: TYPE_FILL[n.type],
+        title: n.lines[0], sub: n.lines.slice(1).join(' · '), id: n.id,
+        hasDoc: !!doc, docName: doc ? doc.name : '', docDesc: doc ? doc.kind + ' · 內嵌全文，可離線讀' : '',
+        upLabel: '上游 ' + up.length, downLabel: '下游 ' + down.length,
+        up: up.map(mk), down: down.map(mk)
+      };
+      base.onOpenDoc = () => this.openDoc(doc);
+      base.statusline = '選取 ' + n.id + ' · 上下游 ' + up.length + ' / ' + down.length + ' — 再點同節點取消 · ESC 清除';
+    } else if (typeFilter) {
+      base.statusline = '型別篩選 ' + typeFilter + ' · ' + (counts[typeFilter] || 0) + ' 個節點 — 再點同項清除';
+    } else {
+      base.statusline = '縮放 ' + k.toFixed(2) + '× · 滾輪縮放 / 拖曳平移 · 點節點看細節，點型別或區段快速導覽';
+    }
+
+    const mmW = 96, ratio = L.gh / L.gw, mmH = Math.max(90, Math.min(220, Math.round(mmW * ratio)));
+    base.mmH = mmH;
+    base.mmViewBox = '0 0 ' + L.gw + ' ' + L.gh;
+    base.mmNodes = L.nodes.map(n => ({
+      x: n.x - n.width / 2, y: n.y - n.height / 2, w: n.width, h: n.height,
+      style: 'fill:' + (sel === n.id ? 'var(--accent)' : 'var(--line-2)')
+    }));
+    base.mmVp = {
+      x: -tx / k, y: -ty / k, w: this.state.vw / k, h: this.state.vh / k,
+      style: 'fill:var(--accent-wash);stroke:var(--accent);stroke-width:' + Math.max(6, L.gw / 220) + 'px'
+    };
+    const mmGoTo = (r, cx, cy, animate) => {
+      const gx = ((cx - r.left) / r.width) * L.gw;
+      const gy = ((cy - r.top) / r.height) * L.gh;
+      this.setState({ animate, tx: this.state.vw / 2 - gx * this.state.k, ty: this.state.vh / 2 - gy * this.state.k });
+    };
+    base.onMinimap = ev => { if (this.mmDragged) { this.mmDragged = false; return; } mmGoTo(ev.currentTarget.getBoundingClientRect(), ev.clientX, ev.clientY, true); };
+    // 按住不放就能在縮圖上直接拖著走：拖曳期間不套過場，跟手才不會有延遲感
+    base.onMinimapDown = ev => {
+      const r = ev.currentTarget.getBoundingClientRect();
+      this.mmDragged = false;
+      const move = m => { this.mmDragged = true; mmGoTo(r, m.clientX, m.clientY, false); };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    };
+    return base;
+  }
+}
+</script>
 </body>
 </html>

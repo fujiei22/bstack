@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!--
+    跟著瀏覽器主題換色的 favicon。
+    左長方形與右下正方形＝主體，淺色模式黑、深色模式白；右上正方形固定 #12855A。
+
+    跟的是 prefers-color-scheme（作業系統／瀏覽器的外觀設定），**不是站台的 data-theme**——
+    favicon 由瀏覽器在頁面 CSS 之外獨立渲染，讀不到 <html> 上的屬性。
+    所以使用者在站上手動切成淺色、但系統是深色時，分頁圖示會是白色版，這是預期行為。
+
+    C2PA：brand/ 三個檔原本各帶一份 Anthropic Files 的簽章中繼資料（各約 7.7KB，佔全檔 96%），
+    已於 2026-09-08 全部移除。原檔在 git 歷史裡。
+  -->
+  <style>
+    /* 預設走淺色：不支援 prefers-color-scheme 的環境也會拿到可讀的深色標記 */
+    .ink { fill: #000000; }
+    @media (prefers-color-scheme: dark) {
+      .ink { fill: #FFFFFF; }
+    }
+  </style>
+  <rect class="ink" x="3" y="3" width="7.5" height="18"></rect>
+  <rect x="13.5" y="3" width="7.5" height="7.5" fill="#12855A"></rect>
+  <rect class="ink" x="13.5" y="13.5" width="7.5" height="7.5"></rect>
+</svg>
