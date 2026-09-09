@@ -97,3 +97,17 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 | 7 | feature branch 放行 | 同上待登入 |
 
 **Task 0 判定**：檔案部分（兩份 manifest、hooks.json 拆組、t0.mjs、契約 P1 / P2 綠）完成；第 6 / 7 項是「hook 會不會被 Codex 呼叫」的唯一實證，**等 user 重新 `codex login` 後補跑**。
+
+### Group 1-3 施工紀錄（2026-09-09）
+
+- 跑法：group 1 七個 task 檔案兩兩不重疊、彼此不需對話 → 依 dispatch-parallel §協作模式判定不出選單、直接 subagent 平行（各自 git worktree；Task 3 / 4 / 8 派 Opus）；主 agent 做 Task 1。worktree 建出來時 HEAD 在 `main`，subagent 各自 `--ff-only` 到 branch 頂端再做，主 agent 以 cherry-pick 收、每個 task 重跑一次它的 `t<N>.mjs` 與契約才進 branch。
+- 偏離 plan：(1) 加 `.gitattributes`（`*.toml text eol=lf`）——`core.autocrlf=true` 機器 checkout 後 TOML 變 CRLF，t4 / P15 的 `!/\r/` 斷言會假紅；(2) plan 預期 Task 5 讓 P11 暫紅，實測**仍綠**（P11 只比對副檔名 token，`.agents/skills/` 不含副檔名）；(3) P14 改成 context-aware：`/bstack:` 同行並列 `$bstack:` 放行（devwork 是全 repo 唯一列前綴清單的地方）、`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 同行標「Claude Code 限定」放行；(4) hosts.md §任務追蹤 補一列 `TaskOutput`（request-review 用它收內建 code-review 結果，P14 反向白名單抓出來的）；(5) docs 站契約 C8b / C18b 一併認 `references/hosts.md`（內嵌 36 份）。
+- Task 6 掃描實得 14 處 + plan 明列 5 處，共 19 行；Task 5 的 pr-explain 沒有既有 spawn 段，新增 `## 0. 派發方式` 一節。
+
+### Task 10（2026-09-09，部分）
+
+| # | 項目 | 結果 |
+|---|---|---|
+| 1 | `install-codex.ps1 -Yes -Source local -SkipMigrate` 真跑 | 五步全綠、manifest 寫出（agents 六檔、`config_patched: true`）。第 3 步 `plugin add` **前兩次 os error 5、第三次成功**——重試機制實測有用。`-SkipMigrate` 是主 agent 決定：搬 `~/.agents/skills/` 的 `dev-workflow` / `db-access` 會改變 user 既有 Codex 行為（`~/.codex/AGENTS.md` 七行引用 dev-workflow），留給 user 決定 |
+| 7 | `-Uninstall -Yes` | agents 六檔刪、`dev-workflow-gate-runner.toml`（user 自己的）不動、config 定界段拔掉（有備份）、manifest 刪、`codex plugin list` 無 bstack；與安裝前 config 唯一差異是 `[marketplaces.bstack]`（刻意不拆，訊息有給指令）。之後重裝一次（第一次就成功）留給第 2-6 項 |
+| 2-6 | 新 session `/hooks`、main 擋 / feature 放、多檔 token、`$bstack:devwork` Phase 0、`spawn_agent security-auditor` | **卡登入**：`codex exec` 回 `401 refresh_token_reused`（`codex login status` 卻顯示 Logged in——它只讀 auth.json 不驗 token）。要 user 在自己終端跑 `codex login` 後補跑 |
