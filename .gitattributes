@@ -1,0 +1,2 @@
+# codex/agents/*.toml 由 gen-codex-agents.mjs 產生、契約 P15 逐位元組比對；Windows autocrlf 機器 checkout 也維持 LF
+*.toml text eol=lf
