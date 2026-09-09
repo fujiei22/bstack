@@ -28,7 +28,7 @@ description: |
 
 **目的**：把 user 模糊敘述 → 可被你 reasoning 的明確需求。
 
-1. **讀 memory**（必）：載入 `~/.claude/projects/.../memory/MEMORY.md`，吸收 user 偏好 / 領域背景 / 過去關鍵決策。**沒讀過不能進 0b**。
+1. **讀 memory**（必）：路徑依 hosts.md §Memory 路徑，吸收 user 偏好 / 領域背景 / 過去關鍵決策；讀不到 → hand-off state 寫 `memory_loaded: false`、原因寫進 spec §待釐清，**不能因此卡住**。讀到了才算過 0a 這步。
 2. **Paraphrase**：用自己的話複述 user 想做的事（一兩句話）。
 3. **如複述不準 / 有歧義** → 反問**一次一題**，preferring 多選（`AskUserQuestion`），open-ended 也可。
 4. **抓 success criteria**：「做完什麼樣算對？」沒這條 0d 判 tier 會偏。
@@ -47,7 +47,7 @@ description: |
 
 **目的**：判斷本次改動有沒有碰前端、屬於哪一套設計語言、是小改還是大改。**必跑**——包含看起來純後端的 task；比對是零成本，不命中就不載 `design-language`（17 KB），這是它延遲載入的唯一入口。
 
-1. **自己做副檔名比對**（不載 design-language）：對 0b 的 `codebase_impact.files` **先剔除路徑含 `skills/<name>/SKILL.md` 的 skill 定義目錄底下的檔**（plugin 快取、專案 `.claude/skills/`、repo `skills/` 都算；**不得用裸 `skills/` 比對**——某些專案有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除；與 design-language §使用契約 第 1 步同一條規則），再比對前端副檔名 `.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`（唯一真相在 design-language §前端副檔名，契約 P11 守本處 / 該節 / rules.md §設計語言對齊 三處一致）。
+1. **自己做副檔名比對**（不載 design-language）：對 0b 的 `codebase_impact.files` **先剔除路徑含 `skills/<name>/SKILL.md` 的 skill 定義目錄底下的檔**（plugin 快取、專案 `.claude/skills/` 或 `.agents/skills/`、repo `skills/` 都算；**不得用裸 `skills/` 比對**——某些專案有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除；與 design-language §使用契約 第 1 步同一條規則），再比對前端副檔名 `.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`（唯一真相在 design-language §前端副檔名，契約 P11 守本處 / 該節 / rules.md §設計語言對齊 三處一致）。
 2. **不命中** → hand-off state 寫 `design: {involved: false, scope: null, scope_evidence: null, size: null, precedent: false, map_status: unknown}`，**不載 design-language**，直接進 0c。
 3. **命中才載**：載入 `design-language`，**照它的使用契約從第 1 步跑**（第 1 步會重算 `involved`，結果必為 true，多一層自我校驗），取回六欄寫進 `design:` 區塊。
 4. **`involved=true`** → 判定結果進 §Phase 0c/0d 合併確認 的第 3 題一起問。

@@ -5,14 +5,14 @@ description: |
   載入：dev-workflow Phase 5，verify-done 之後。
 ---
 # request-review
-寫完 + verify 過 → 進 review。抓 bug / 可簡化處交給 Claude Code **內建的 `code-review` skill**（8 個 finder 視角 + 逐條驗證，自寫 prompt 做不到同樣覆蓋）；「符合 spec / 規則書」內建的不看，這題自己派。
+寫完 + verify 過 → 進 review。抓 bug / 可簡化處交給 Claude Code **內建的 `code-review` skill**（8 個 finder 視角 + 逐條驗證，自寫 prompt 做不到同樣覆蓋）；Codex 沒有可由模型呼叫的內建 code-review，改派一個唯讀 reviewer subagent 帶 §Codex reviewer prompt（對照表：hosts.md §程式碼審查）。「符合 spec / 規則書」兩個 host 都不內建，這題自己派。
 ## 使用契約（強制）
 1. **讀 hand-off state** 取 `tier`、`commits`、`codebase_impact.files`、`spec_path`、`plan_path`。
 2. **§副檔名分流**：對 `git diff <base>...HEAD --name-only` 的檔名比對下表，得 `code_review_applicable`。
 3. **依 tier × 分流結果 dispatch**（**T0 不進本 skill**：rules.md §Tier 表 T0 的 review 欄是「跳」）：
    - T1 → §T1 self review（不看副檔名，本來就不派 agent）
-   - T2 → 程式碼：`Skill("code-review", args="medium")` + §spec coverage 自檢；純文件：只做 §spec coverage 自檢
-   - T3 → 程式碼：`Skill("code-review", args="high")` + §T3 對齊 subagent；純文件：只派 §T3 對齊 subagent
+   - T2 → 程式碼：`Skill("code-review", args="medium")`（Codex：§Codex reviewer prompt 的 reviewer 一個）+ §spec coverage 自檢；純文件：只做 §spec coverage 自檢
+   - T3 → 程式碼：`Skill("code-review", args="high")`（Codex：同上 reviewer 一個）+ §T3 對齊 subagent；純文件：只派 §T3 對齊 subagent
 4. **收集 finding** → §結果整合 → 交棒 receive-review。
 
 **不帶的旗標（硬規則）**：
@@ -32,9 +32,11 @@ description: |
 ## §T1 self review
 主 agent 自己跑，不另開 subagent、不叫 code-review：看完整 `git diff <base>...HEAD`、對 spec 看 coverage、對 rules.md「§程式註解」看註解完整、列「值得 user 注意」清單。回報範本見 §結果整合 的 T1 段。
 ## §T2：內建 code-review + spec 自檢
-呼叫 `Skill("code-review", args="medium")`。不給 target 就是當前 branch 對 upstream / main 的 diff（含未 commit 的）。Skill 工具會立刻回「launched (forked execution, running in the background)」，**結果走 task-notification 的 `<result>`**——等通知，不要用 `TaskOutput block=true` 輪詢（fork 派出 finder 子 agent 等待期間它會立刻回 completed）。
+**Claude Code**：呼叫 `Skill("code-review", args="medium")`。**Codex**（hosts.md §程式碼審查）：`spawn_agent` 一個 `reviewer`（唯讀；沒裝 TOML 用 `explorer`）帶 §Codex reviewer prompt，`wait_agent` 收；輸出同 code-review 的 JSON 陣列 `{file, line, summary, failure_scenario}`，走 §結果整合 同一張表。
 
-**medium 做什麼**：多個 finder 各找 candidate、去重後逐條 verifier 驗證，輸出 JSON 陣列 `{file, line, summary, failure_scenario}`，沒東西就 `[]`。一次約 7 分鐘、fork 十萬 token 級（2026-09-04 實測；finder / verifier 另計）——這是判「要不要跑 medium」的依據。
+Claude Code 側的回收方式：不給 target 就是當前 branch 對 upstream / main 的 diff（含未 commit 的）。Skill 工具會立刻回「launched (forked execution, running in the background)」，**結果走 task-notification 的 `<result>`**——等通知，不要用 `TaskOutput block=true` 輪詢（fork 派出 finder 子 agent 等待期間它會立刻回 completed）。
+
+**medium 做什麼**：多個 finder 各找 candidate、去重後逐條 verifier 驗證，輸出 JSON 陣列 `{file, line, summary, failure_scenario}`，沒東西就 `[]`。一次約 7 分鐘、fork 十萬 token 級（2026-09-04 實測；finder / verifier 另計）——這是判「要不要跑 medium」的依據。Codex 的 reviewer 只有一個 agent、沒有 finder / verifier 兩層，覆蓋面比 medium 低（差異註在 rules.md §Tier 表），本 skill 不另外補償。
 ### §spec coverage 自檢（主 agent 自己做，不另開 subagent）
 code-review 只看 diff 本身會不會壞，**不知道 spec 要什麼**。等通知的同時主 agent 做：
 1. 讀 `spec_path` 的 `## 施工清單`，逐列對 diff：這列做了嗎？有沒有做了清單外的事？
@@ -54,9 +56,9 @@ PII / File-type：<無命中 / 命中什麼>
 ```
 自檢結果**算進 finding**（分級見 §結果整合），不是附錄。純文件 diff 時只有這一段，沒有 code-review 輸出。
 ## §T3：內建 code-review + 對齊 subagent
-呼叫 `Skill("code-review", args="high")`：覆蓋更廣、可能含不確定的 finding（PLAUSIBLE 也會進來）。回收方式同 T2。
+**Claude Code**：呼叫 `Skill("code-review", args="high")`：覆蓋更廣、可能含不確定的 finding（PLAUSIBLE 也會進來）。**Codex**：reviewer 一個（同 §T2 的派法與 §Codex reviewer prompt；Codex 沒有 `high` 檔位，一樣只回有 `failure_scenario` 的）+ 下面的對齊 subagent 一個。回收方式同 T2。
 ### 對齊 subagent（spec / 架構）
-與 code-review **並行** spawn 一個 `general-purpose` agent（純文件 diff 時只派這個）；prompt 附 §語言提示：
+與 code-review / Codex reviewer **並行** spawn 一個 `general-purpose` agent（依 hosts.md §派 subagent；純文件 diff 時只派這個）；prompt 附 §語言提示：
 ```
 你是架構 reviewer。讀以下 diff 與 context：
 <diff>
@@ -106,6 +108,21 @@ PII / File-type：<無命中 / 命中什麼>
 | 其他 | 不附語言段 |
 
 `lang-reviewer` agent 保留給 user 顯式要求，本 skill 不自動 spawn。SQL 涉 DB schema / migration 時，`security-audit` phase 另派 `db-reviewer`。
+## §Codex reviewer prompt
+Codex 沒有可由模型呼叫的內建 code-review（hosts.md §程式碼審查），T2 / T3 的「抓 bug」那一半改派**一個唯讀 reviewer subagent** 帶下面這段；T2 / T3 共用，差別只在 T3 另派對齊 subagent（prompt 不變）。純文件 diff（`code_review_applicable=false`）一樣跳過、不派。
+
+```
+你是 code reviewer，只找「會壞」的問題，不談風格。
+1. 跑 `git diff <base>...HEAD`（base = <main 或 stacked base>）；需要時讀改動檔全文與呼叫端，不只看 hunk。
+2. 只看六類：正確性、邊界（空 / 大 / 非預期輸入）、錯誤處理、併發、資源釋放、與既有介面不一致（呼叫端 / 契約 / 測試對不上）。
+3. **不談**命名、typo、可讀性、「建議重構」、慣例——那些不會壞。
+4. 每筆必附 `failure_scenario`：具體輸入 → 錯誤結果；寫不出觸發情境的不要列。
+5. 只回 JSON 陣列、無 preamble：
+   [{"file": "<path>", "line": <N>, "summary": "<一句>", "failure_scenario": "<輸入 → 結果>"}]
+   沒東西回 `[]`。
+```
+
+回來的陣列走 §結果整合 同一張表轉分級；hand-off state 的 `reviewers_used` 記 `codex-reviewer`，`code_review_level` 照 tier 填 `medium` / `high`（欄位語意是「這個 tier 該有的檔位」，Codex 側兩者跑法相同）。
 ## §結果整合
 code-review 的輸出**格式不歸我們管**（Claude Code 升版可能改），所以不 parse 欄位名，用意思轉：
 
@@ -121,7 +138,7 @@ code-review 的輸出**格式不歸我們管**（Claude Code 升版可能改）�
 # Review 整合結果
 > Tier: <T1-T3>
 > code-review: <medium | high | 跳（純文件：.md .json）>
-> Reviewers: <self | code-review + spec 自檢 | code-review + 對齊 subagent>
+> Reviewers: <self | code-review + spec 自檢 | code-review + 對齊 subagent；Codex 把 code-review 換成 codex-reviewer>
 ## Critical
 - <來源標 [code-review] / [對齊] / [自檢]>
 ## Major / Minor / Nit
@@ -140,7 +157,7 @@ Verify 全綠: <yes/no>
 ```yaml
 state:
   review_summary_path: docs/work/<branch-name>/_temp/<task-slug>.md  # 暫存
-  reviewers_used: [...]                 # 例 [code-review:medium, spec-self-check]
+  reviewers_used: [...]                 # 例 [code-review:medium, spec-self-check]；Codex 例 [codex-reviewer, spec-self-check]
   code_review_level: <medium|high|null> # null = 跳
   code_review_skipped_reason: <純文件 diff：.md .json | null>
   critical_count: <N>
@@ -159,3 +176,4 @@ state:
 | 「有 `.mjs` 但只是契約腳本，算純文件」 | 有程式碼副檔名就跑；判不出來當 `true` |
 | 「帶 `--fix` 省一步」 | 危險類 finding 會被直接套進 working tree；一律交 receive-review 分類 |
 | 「TaskOutput 回 completed 了，結果應該有了」 | fork 在等 finder 期間也回 completed；等 task-notification 的 `<result>` |
+| 「Codex 沒有 code-review，抓 bug 那段就跳過」 | 只有純文件 diff 才跳；程式碼 diff 在 Codex 派 §Codex reviewer prompt 的唯讀 reviewer，finding 一樣交 receive-review |

@@ -1,9 +1,8 @@
 ---
 name: pr-explain
 description: |
-  PR diff 詳盡解釋落檔（繁中）：fork pr-explainer 寫 docs/work/<branch-name>/pr-review.md 並貼 PR。
+  PR diff 詳盡解釋落檔（繁中）：spawn pr-explainer 寫 docs/work/<branch-name>/pr-review.md 並貼 PR。
   載入：dev-workflow Phase 8，T3 開好 PR 後；T0-T2 不自動跑。
-context: fork
 agent: pr-explainer
 argument-hint: "[pr-number]（可選；省略則自動取當前 branch 的 PR）"
 ---
@@ -11,6 +10,10 @@ argument-hint: "[pr-number]（可選；省略則自動取當前 branch 的 PR）
 # pr-explain task
 
 對指定 PR 寫詳盡 diff 解釋、落檔到 `docs/work/<branch-name>/pr-review.md`、commit、貼到 PR comment。全程套用 rules.md 強制守則（§PII / §Branch safety / §File-type 等）；輸出語言、不修 code、不問 user、PII 違規標 critical、不主動修，其餘處置依 agent 定義。
+
+## 0. 派發方式
+
+本 skill 不在主 context 自己做：主 agent 以 hosts.md §派 subagent 的方式 spawn `pr-explainer`（agent 定義在 `agents/pr-explainer.md`；Codex 側的 TOML 與沒裝時的退路都寫在該節），把下面 1-6 步連同 `$ARGUMENTS` 整段當 prompt 交給它，等它回 §6 的摘要再往下。主 agent 不自己讀 diff、不自己寫檔——獨立 context 重讀 diff 才是這個 phase 的價值。
 
 ## 1. 取 PR number
 
