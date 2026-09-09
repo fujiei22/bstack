@@ -2,15 +2,15 @@
 name: devwork
 description: |
   bstack 九階段開發流程的唯一入口（繁中）。
-  載入：使用者輸入 `/devwork <要做的事>`（Unknown command 時改打 `/bstack:devwork`）；不因「寫 / 改 / 修 / 加」等自然語言自動載入；沒下指令時 Claude Code 就是普通的 Claude Code。
+  載入：Claude Code 輸入 `/devwork <要做的事>`（Unknown command 時改打 `/bstack:devwork`）；Codex 輸入 `$bstack:devwork <要做的事>`。不因「寫 / 改 / 修 / 加」等自然語言自動載入；沒下指令時就是普通的 Claude Code / Codex。
 ---
 
 # devwork
 
 ## 使用契約（強制）
 
-1. **讀 `rules.md`**（同目錄）。它的位階等同 CLAUDE.md：與任何 skill 衝突時 rules.md 勝。
-   若本 session 的 CLAUDE.md 已經 `@import` 了它（在 bstack repo 內開發時會這樣），不重讀。
+1. **讀 `rules.md` 與 `hosts.md`**（同目錄）。rules.md 的位階等同 CLAUDE.md：與任何 skill 衝突時 rules.md 勝；hosts.md 定義所有 skill 裡 `AskUserQuestion` / `TaskCreate` / `Agent` / `mcp__<server>__<tool>` 等抽象動詞在 Claude Code 與 Codex 各對應哪個工具。
+   若本 session 的 CLAUDE.md / AGENTS.md 已引用 rules.md（在 bstack repo 內開發時會這樣），rules.md 不重讀、hosts.md 照讀。
 2. **判斷 `/devwork` 後面的文字**：
    - 純問答 / 教學（「這個函式在做什麼」「X 和 Y 差在哪」）→ 直接回答，不進 Phase 0，結尾提一句「`/devwork` 是給改動類任務用的」。
    - 改動類 → 進第 3 步。
@@ -31,4 +31,4 @@ description: |
 
 ## 顯式呼叫其他 skill
 
-流程內的 skill 都能單獨呼叫（`/bstack:finish-branch`、`/bstack:retro`、`/bstack:context-snapshot` …），缺的 hand-off state 欄位由該 skill 用 AskUserQuestion 補問。這是全 repo 唯一寫出 `/bstack:` 前綴清單的地方。
+流程內的 skill 都能單獨呼叫（Claude Code `/bstack:finish-branch`、`/bstack:retro`、`/bstack:context-snapshot` …；Codex `$bstack:finish-branch`、`$bstack:retro`、`$bstack:context-snapshot` …），缺的 hand-off state 欄位由該 skill 用 AskUserQuestion 補問。這是全 repo 唯一寫出 `/bstack:` 與 `$bstack:` 前綴清單的地方。
