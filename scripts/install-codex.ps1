@@ -10,7 +10,9 @@
     1.5 清舊副本   ~/.agents/skills/ 內與本 repo skills/ 同名、frontmatter name 也相同的舊 bstack 副本
                   → 搬到 ~/.agents/bstack-migrate-bak-<時間>/（不刪）；Codex 同名 skill 不合併、兩份並列，舊版會搶先觸發
                   ~/.codex/AGENTS.md 含「dev-workflow」/「一律進」只警告，那是使用者的全域指示檔、不動
-    2.  marketplace  codex plugin marketplace add fujiei22/bstack（-Source local → 本 clone 路徑）；已有就略過
+    2.  marketplace  codex plugin marketplace add fujiei22/bstack；-Source local（或 GitHub 撞防毒 rename 鎖時自動退）→ 先把本 clone
+                  精簡 clone 一份到 $CODEX_HOME/bstack-src（只有版控檔、約 27 MB）當 marketplace root——直接指 working tree 會連
+                  ignored 目錄一起抄（144 MB），複製完 rename 時被掃描器抓著、每次都「存取被拒」；已有就略過
     3.  plugin       codex plugin add bstack@bstack；Windows 對本機 marketplace 會間歇「存取被拒 (os error 5)」→ 自動重試最多 3 次
     4.  agents       codex/agents/*.toml 複製到 $CODEX_HOME/agents/（Codex plugin 帶不了 agents，只能靠複製）；已存在的問你覆蓋 / 跳過
     5.  config       $CODEX_HOME/config.toml 補 [tools.update_plan] enabled = true（Codex 0.152 起預設關，流程的任務追蹤靠它）
@@ -20,7 +22,7 @@
   本腳本無法代為信任 hook：Codex 的 plugin hook 預設不信任，裝完要在新 session 打 /hooks 手動信任，否則 branch-safety 不生效。
 
 .PARAMETER Yes          非互動：清舊副本直接搬、agents 衝突一律跳過
-.PARAMETER Source       github（預設）| local：marketplace 來源；local 用整個 working tree、樹大、Windows 較容易撞到 os error 5
+.PARAMETER Source       github（預設）| local：marketplace 來源；local 用 $CODEX_HOME/bstack-src 的精簡 clone（從本 clone 的目前 branch 複製）
 .PARAMETER SkipMigrate  跳過 1.5
 .PARAMETER SkipAgents   跳過 4
 .PARAMETER Migrate      只跑 1.5（列出舊副本；-Yes 才搬）
@@ -59,6 +61,7 @@ $ManifestPath = Join-Path $CodexHome 'bstack-codex.json'
 $ConfigPath = Join-Path $CodexHome 'config.toml'
 $AgentsDest = Join-Path $CodexHome 'agents'
 $AgentsSrc = Join-Path $RepoRoot 'codex/agents'
+$SlimClone = Join-Path $CodexHome 'bstack-src'   # -Source local 的 marketplace root：只含版控檔的精簡 clone（見 .DESCRIPTION 第 2 步）
 # 1.6.0 之前的版本用這兩行註解定界 config 段；-Uninstall 遇到就順手拔掉（只拔註解行本身）
 $LegacyMarkers = @('# bstack install-codex.ps1 加入（begin）', '# bstack install-codex.ps1 加入（end）')
 $script:CodexExe = 'codex'
@@ -136,6 +139,22 @@ function Backup-File([string]$path) {
 }
 function Write-Utf8NoBom([string]$path, [string]$text) {
     [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
+}
+function New-SlimClone {
+    <#
+    .SYNOPSIS 把本 clone 的目前 branch 精簡 clone 到 $SlimClone（先清掉舊的），回傳 $true / $false。
+    .DESCRIPTION 為什麼不直接拿 $RepoRoot 當 marketplace root：codex plugin add 會複製 root 底下**全部**檔案（含 .gitignore 掉的目錄），
+      本 repo 是 144 MB / 7,600 項，複製完立刻 rename 進 cache 時剛寫入的檔還被防毒掃描器抓著 → 「存取被拒 (os error 5)」
+      （2026-09-09 實測 Trellix：144 MB 連撞 4 次；27 MB 的精簡 clone 一次過）。git clone 只帶版控檔，樹小掃描快。
+    #>
+    $branch = (& git -C $RepoRoot rev-parse --abbrev-ref HEAD 2>$null)
+    if ([string]::IsNullOrWhiteSpace($branch) -or $branch -eq 'HEAD') { $branch = 'main' }
+    if ($DryRun) { Write-Host "  [whatif] git clone --branch $branch $RepoRoot → $SlimClone（先清掉舊的）"; return $true }
+    if (Test-Path -LiteralPath $SlimClone) { Remove-Item -LiteralPath $SlimClone -Recurse -Force }
+    & git clone -q --branch $branch $RepoRoot $SlimClone 2>&1 | Out-Host
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $SlimClone '.codex-plugin/plugin.json'))) { Write-Host "  精簡 clone 失敗" -ForegroundColor Red; return $false }
+    Write-Host "  已精簡 clone 到 $SlimClone（branch $branch）"
+    return $true
 }
 
 function Invoke-Migrate {
@@ -241,10 +260,22 @@ function Invoke-Uninstall {
         if ($hadMarker) { if ($DryRun) { Write-Host "  [whatif] 順手拔掉舊版的兩行定界註解" } else { Backup-File $ConfigPath; $removed = $true } }
         if ($removed -and -not $DryRun) { Write-Utf8NoBom $ConfigPath ($t -replace "(\r?\n){3,}", "`n`n"); Write-Host "  已從 $ConfigPath 拔掉 [tools.update_plan]$(if ($hadMarker) { ' 與舊版定界註解' })" }
     }
+    # 精簡 clone 是本腳本建的：連 marketplace 條目一起拆（條目指向的目錄要刪，留著就是懸空）；使用者自己加的 marketplace 不動
+    $slim = if ($m.PSObject.Properties['slim_clone']) { [string]$m.slim_clone } else { '' }
+    $slimRemoved = $false
+    if ($slim -and (Test-Path -LiteralPath $slim)) {
+        if ($DryRun) { Write-Host "  [whatif] codex plugin marketplace remove $MarketplaceName；刪精簡 clone $slim" }
+        else {
+            if (Find-Codex) { Run-Codex @('plugin', 'marketplace', 'remove', $MarketplaceName) | Out-Null }
+            Remove-Item -LiteralPath $slim -Recurse -Force; Write-Host "  已刪精簡 clone $slim 與 marketplace $MarketplaceName"
+        }
+        $slimRemoved = $true
+    }
     if ($DryRun) { Write-Host "  [whatif] 刪 manifest $ManifestPath" }
     else { Remove-Item -LiteralPath $ManifestPath -Force; Write-Host "  已刪 $ManifestPath" }
     Write-Host ""
-    Write-Host "已解除。marketplace 沒拆，需要的話：codex plugin marketplace remove $MarketplaceName" -ForegroundColor Green
+    if ($slimRemoved) { Write-Host "已解除。" -ForegroundColor Green }
+    else { Write-Host "已解除。marketplace 沒拆（不是本腳本建的），需要的話：codex plugin marketplace remove $MarketplaceName" -ForegroundColor Green }
 }
 
 # ── 分流：-Uninstall / -Migrate 各自跑完就結束 ──────────────────────────────
@@ -275,26 +306,41 @@ if ($SkipMigrate) { Write-Host '  跳過（-SkipMigrate）' } else { Invoke-Migr
 
 # ── 2. marketplace ───────────────────────────────────────────────────────────
 Step 2 'marketplace'
-$srcArg = if ($Source -eq 'local') { $RepoRoot } else { $GithubRepo }
+$srcArg = if ($Source -eq 'local') { $SlimClone } else { $GithubRepo }
+$usedSlim = $false
 $mk = Get-CodexJson @('plugin', 'marketplace', 'list', '--json')
 $have = $null
 if ($mk -and $mk.marketplaces) { $have = @($mk.marketplaces | Where-Object { $_.name -eq $MarketplaceName }) | Select-Object -First 1 }
+$sameDir = { param($a, $b) $a -and $b -and (Test-Path -LiteralPath $a) -and (Test-Path -LiteralPath $b) -and ((Resolve-Path -LiteralPath $a).Path.TrimEnd('\', '/') -eq (Resolve-Path -LiteralPath $b).Path.TrimEnd('\', '/')) }
 if ($have) {
-    Write-Host "  marketplace $MarketplaceName 已存在（root = $($have.root)），略過 codex plugin marketplace add $srcArg"
-    # 既有的來源跟這次 -Source 要的不一樣就講清楚：github 要的是 clone 進 ~/.codex 的 tracked 樹，root 若是本機 repo 就代表之前用 local 加的
     $haveRoot = [string]$have.root
-    $isLocalRoot = $haveRoot -and (Test-Path -LiteralPath $haveRoot) -and ((Resolve-Path -LiteralPath $haveRoot).Path.TrimEnd('\', '/') -eq $RepoRoot.TrimEnd('\', '/'))
-    if ($Source -eq 'github' -and $isLocalRoot) { Write-Host "  注意：既有 marketplace 指向本機 repo（$haveRoot），不是 -Source github 要的 GitHub 來源；接下來 plugin add 會複製整個 working tree。要改用 GitHub：codex plugin marketplace remove $MarketplaceName 後重跑本腳本" -ForegroundColor Yellow }
-    elseif ($Source -eq 'local' -and -not $isLocalRoot) { Write-Host "  注意：既有 marketplace 的 root（$haveRoot）不是這個 repo；-Source local 沒有生效。要換來源：codex plugin marketplace remove $MarketplaceName 後重跑本腳本" -ForegroundColor Yellow }
+    $isSlimRoot = & $sameDir $haveRoot $SlimClone
+    if ($isSlimRoot -and $Source -eq 'local') {
+        # 既有的就是我們的精簡 clone：重新 clone 讓它跟上本 repo 的目前 branch（plugin add 會拿它當來源）
+        Write-Host "  marketplace $MarketplaceName 已指向精簡 clone $haveRoot，重新同步"
+        if (-not (New-SlimClone)) { exit 1 }
+        $usedSlim = $true
+    } else {
+        Write-Host "  marketplace $MarketplaceName 已存在（root = $haveRoot），略過 codex plugin marketplace add $srcArg"
+        # 既有的來源跟這次 -Source 要的不一樣就講清楚
+        if ($Source -eq 'github' -and (Test-Path -LiteralPath $haveRoot)) { Write-Host "  注意：既有 marketplace 指向本機目錄（$haveRoot），不是 -Source github 要的 GitHub 來源。要改用 GitHub：codex plugin marketplace remove $MarketplaceName 後重跑本腳本" -ForegroundColor Yellow }
+        elseif ($Source -eq 'local') { Write-Host "  注意：既有 marketplace 的 root（$haveRoot）不是本腳本的精簡 clone；-Source local 沒有生效。要換來源：codex plugin marketplace remove $MarketplaceName 後重跑本腳本" -ForegroundColor Yellow }
+    }
 } else {
     Write-Host "  供應鏈提醒：marketplace 來源是 $srcArg，plugin 內含會在你每個專案執行的 PreToolUse hook（hooks/guard.mjs）；裝之前請自行看過原始碼。" -ForegroundColor Yellow
-    if ($Source -eq 'local') { Write-Host "  -Source local 會複製整個 working tree（含 ignored 目錄）進 plugin cache，Windows 實測較容易撞到「存取被拒 (os error 5)」；github 來源只有 tracked 檔、樹小得多。" }
-    $mkRc = Run-Codex @('plugin', 'marketplace', 'add', $srcArg)
-    # GitHub 來源在有防毒即時掃描的機器上會每次都撞「存取被拒 (os error 5)」：Codex clone 完立刻 rename，剛寫入的檔還被掃描器抓著
-    # （2026-09-09 實測 Trellix：clone 後 0 秒 rename 被拒、10 秒後才放行）。退到本機來源：這個 clone 就是 marketplace root，不用再 clone
-    if ($mkRc -ne 0 -and $Source -eq 'github' -and $script:LastCodexOutput -match 'os error 5|存取被拒|Access is denied') {
-        Write-Host "  GitHub 來源在這台機器撞到 clone 後 rename 被拒（多半是防毒即時掃描），改用本機來源 $RepoRoot" -ForegroundColor Yellow
-        $srcArg = $RepoRoot; $Source = 'local'
+    $mkRc = 1
+    if ($Source -eq 'github') {
+        $mkRc = Run-Codex @('plugin', 'marketplace', 'add', $srcArg)
+        # GitHub 來源在有防毒即時掃描的機器上會每次都撞「存取被拒 (os error 5)」：Codex clone 完立刻 rename，剛寫入的檔還被掃描器抓著
+        # （2026-09-09 實測 Trellix：clone 後 0 秒 rename 被拒、10 秒後才放行）。退到精簡 clone 當本機來源
+        if ($mkRc -ne 0 -and $script:LastCodexOutput -match 'os error 5|存取被拒|Access is denied') {
+            Write-Host "  GitHub 來源在這台機器撞到 clone 後 rename 被拒（多半是防毒即時掃描），改用本機精簡 clone 當來源" -ForegroundColor Yellow
+            $Source = 'local'; $srcArg = $SlimClone
+        }
+    }
+    if ($Source -eq 'local') {
+        if (-not (New-SlimClone)) { exit 1 }
+        $usedSlim = $true
         $mkRc = Run-Codex @('plugin', 'marketplace', 'add', $srcArg)
     }
     if ($mkRc -ne 0) { Write-Host "  marketplace add 失敗" -ForegroundColor Red; exit 1 }
@@ -329,7 +375,9 @@ foreach ($k in 'installed_at', 'marketplace', 'plugin', 'agents', 'config_patche
 }
 $manifest.installed_at = (Get-Date).ToString('o')
 $manifest.plugin = $PluginId
-$manifest.marketplace = [pscustomobject]@{ name = $MarketplaceName; source = $(if ($have) { "$($have.root)（既有）" } else { $srcArg }) }
+$manifest.marketplace = [pscustomobject]@{ name = $MarketplaceName; source = $(if ($have -and -not $usedSlim) { "$($have.root)（既有）" } else { $srcArg }) }
+# 精簡 clone 是本腳本建的目錄，記下來 -Uninstall 才知道要連 marketplace 條目一起拆（條目指向的目錄會被刪）
+if ($usedSlim) { if (-not $manifest.PSObject.Properties['slim_clone']) { $manifest | Add-Member -NotePropertyName slim_clone -NotePropertyValue $null }; $manifest.slim_clone = $SlimClone }
 
 # ── 4. agents ────────────────────────────────────────────────────────────────
 Step 4 'agents（codex/agents/*.toml → $CODEX_HOME/agents/）'

@@ -131,7 +131,7 @@ cd bstack
 pwsh -File scripts/install-codex.ps1
 ```
 
-它依序做：前置檢查（codex / node / git）→ 列出並搬走 `~/.agents/skills/` 的舊同名副本（搬進備份目錄、不刪）→ `codex plugin marketplace add` + `codex plugin add` → 複製 `codex/agents/*.toml` 到 `~/.codex/agents/` → 在 `~/.codex/config.toml` 開 `tools.update_plan`。非互動 `-Yes`；只印會做什麼 `-WhatIf`；改用本機 repo 當來源 `-Source local`。後兩步不做也能用，只是降級：subagent 退成內建 `explorer`、任務追蹤退成勾 checkbox。
+它依序做：前置檢查（codex / node / git）→ 列出並搬走 `~/.agents/skills/` 的舊同名副本（搬進備份目錄、不刪）→ `codex plugin marketplace add` + `codex plugin add` → 複製 `codex/agents/*.toml` 到 `~/.codex/agents/` → 在 `~/.codex/config.toml` 開 `tools.update_plan`。非互動 `-Yes`；只印會做什麼 `-WhatIf`；改用本機來源 `-Source local`（把這個 clone 的目前 branch 精簡 clone 到 `~/.codex/bstack-src` 當 marketplace root，見下一節為什麼）。後兩步不做也能用，只是降級：subagent 退成內建 `explorer`、任務追蹤退成勾 checkbox。
 
 手動只裝 plugin（等同上面第三步）：
 
@@ -142,22 +142,19 @@ codex plugin add bstack@bstack
 
 `bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。Codex 讀的是 `.agents/plugins/marketplace.json`（實測：`codex plugin list --json` 回的 `installPolicy` / `authPolicy` 只有這份 manifest 有，legacy 的 `.claude-plugin/marketplace.json` 沒有）。
 
-**為什麼預設走 GitHub 而不是本機路徑**（`-Source local` 兩個坑，都是實測）：
-
-- `codex plugin add` 會**複製整個 working tree**，連 `.gitignore` 掉的目錄都抄（本 repo 7,621 個項目、144 MB、約 60 秒）。GitHub 來源只有版控裡的檔，樹小得多。
-- 同一個本機 repo 會**間歇失敗** `failed to activate plugin cache entry: 存取被拒 (os error 5)`（連續 9 次有 6 次失敗）。失敗點在複製完成後的 rename。`install-codex.ps1` 遇到會自動重試 3 次；手動裝就再跑一次同一行。
+**本機來源為什麼是精簡 clone、不是 working tree 本身**（都是實測）：`codex plugin add` 會**複製 marketplace root 底下全部檔案**，連 `.gitignore` 掉的目錄都抄——直接指 working tree 就是 7,621 個項目、144 MB、約 60 秒，然後複製完立刻 rename 進 cache 時撞 `failed to activate plugin cache entry: 存取被拒 (os error 5)`（連續 4 次失敗）。只帶版控檔的 clone 是 27 MB，一次就過。`-Source local` 因此固定用 `~/.codex/bstack-src` 這份精簡 clone；`-Uninstall` 會連它和 marketplace 條目一起拆。
 
 ### 有防毒的機器：GitHub 來源會失敗
 
-有防毒即時掃描的機器，GitHub 來源反而每次都失敗（實測 Trellix Endpoint Security）：`codex plugin marketplace add fujiei22/bstack` 回 `failed to install marketplace at ~/.codex/.tmp/marketplaces/bstack: 存取被拒 (os error 5)`。根因實測：`git clone` 完的目錄在約 10 秒內 rename 都會被拒（掃描器還抓著剛寫入的檔），Codex 是 clone 完立刻 rename，所以連續 5 次都撞、重跑也沒用（上面 `plugin add` 的間歇失敗是同一個機制）。這種機器改用本機來源：
+有防毒即時掃描的機器，GitHub 來源每次都失敗（實測 Trellix Endpoint Security）：`codex plugin marketplace add fujiei22/bstack` 回 `failed to install marketplace at ~/.codex/.tmp/marketplaces/bstack: 存取被拒 (os error 5)`。根因實測：`git clone` 完的目錄在約 10 秒內 rename 都會被拒（掃描器還抓著剛寫入的檔），Codex 是 clone 完立刻 rename，所以連續 5 次都撞、重跑也沒用；`plugin add` 對大樹的失敗是同一個機制，樹小到掃描趕得上 rename 就過。這種機器手動裝法：
 
 ```
 git clone https://github.com/fujiei22/bstack.git
-codex plugin marketplace add <clone 的絕對路徑>
+codex plugin marketplace add <clone 的絕對路徑>      # 剛 clone 下來的乾淨樹、沒有 ignored 目錄
 codex plugin add bstack@bstack
 ```
 
-`install-codex.ps1` 偵測到這個錯誤會自動改用本機來源（它本來就從 clone 裡跑）。要根治只能請 IT 把 `~/.codex` 加進掃描排除。
+`install-codex.ps1` 偵測到這個錯誤會自動改走精簡 clone。要根治只能請 IT 把 `~/.codex` 加進掃描排除。
 
 ### 生效條件
 
