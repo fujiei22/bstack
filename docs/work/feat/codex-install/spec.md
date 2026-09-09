@@ -77,8 +77,10 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 - **舊版副本遮蔽（2026-09-09 實查本機）**：`~/.agents/skills/` 已有舊版 `dev-workflow`（關鍵詞自動攔截版）、`db-access` 等 bstack 副本；Codex 同名 skill 不合併、兩個都列，舊版會搶先自動觸發。`install-codex.ps1` 加 `-Migrate`（列出並搬進備份目錄、不刪）；`~/.codex/AGENTS.md` 只警告不動。同機 `codex` 不在 PATH，Task 0 前先問 user 是否安裝 CLI。
 
 ## 待釐清
-- Codex 安裝後 skill 命名空間實際顯示為 `$bstack:devwork` 還是 `$devwork`（文件以 `$codex-security:security-scan` 為例，推定前者）；verify-done 實測後回填 README。
-- `codex plugin marketplace add ./`（本機路徑）在 CLI 上的可用性（文件說本機測試建議 desktop app）；不可用時 README 改寫「本機試用走 desktop app 或 `~/.agents/plugins/marketplace.json`」。
+- ~~Codex 安裝後 skill 命名空間實際顯示為 `$bstack:devwork` 還是 `$devwork`~~ → **已定案 `$bstack:devwork`**（Task 0 第 4 項，`codex debug prompt-input` 實測）。
+- ~~`codex plugin marketplace add ./`（本機路徑）在 CLI 上的可用性~~ → **可用**，但 `plugin add` 對本機來源間歇 `os error 5`（Task 0 第 3 項；install-codex.ps1 重試三次）。
+- 新增（Task 10）：agent TOML `sandbox_mode = "read-only"` 在互動 session 無覆寫時是否生效——`codex exec` 下兩種給法都沿用父 sandbox（子 agent 真把檔改掉），文件說互動無覆寫才用檔內值，非互動驗不了。
+- 新增（Task 10）：互動 session 有沒有 `request_user_input` 工具——`codex exec` 下沒有，模型照 hosts.md 退路用編號提問。
 
 ## 施工紀錄
 <!-- execute-plan 施工中追加 -->
@@ -110,4 +112,10 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 |---|---|---|
 | 1 | `install-codex.ps1 -Yes -Source local -SkipMigrate` 真跑 | 五步全綠、manifest 寫出（agents 六檔、`config_patched: true`）。第 3 步 `plugin add` **前兩次 os error 5、第三次成功**——重試機制實測有用。`-SkipMigrate` 是主 agent 決定：搬 `~/.agents/skills/` 的 `dev-workflow` / `db-access` 會改變 user 既有 Codex 行為（`~/.codex/AGENTS.md` 七行引用 dev-workflow），留給 user 決定 |
 | 7 | `-Uninstall -Yes` | agents 六檔刪、`dev-workflow-gate-runner.toml`（user 自己的）不動、config 定界段拔掉（有備份）、manifest 刪、`codex plugin list` 無 bstack；與安裝前 config 唯一差異是 `[marketplaces.bstack]`（刻意不拆，訊息有給指令）。之後重裝一次（第一次就成功）留給第 2-6 項 |
-| 2-6 | 新 session `/hooks`、main 擋 / feature 放、多檔 token、`$bstack:devwork` Phase 0、`spawn_agent security-auditor` | **卡登入**：`codex exec` 回 `401 refresh_token_reused`（`codex login status` 卻顯示 Logged in——它只讀 auth.json 不驗 token）。要 user 在自己終端跑 `codex login` 後補跑 |
+| 2 | 新 session `/hooks` 信任 | **未做**（互動 TUI）。以下 3-6 全用 `codex exec --dangerously-bypass-hook-trust`（文件明列給自動化用）。一度卡 `401 refresh_token_reused`（`codex login status` 顯示 Logged in 是假的、只讀 auth.json），user 重新 `codex login` 後通 |
+| 3 | main 擋 / feature 放 | **第一輪沒擋**：hook 有被呼叫（探針記到 `tool_name: apply_patch`、`tool_input.command` 是 patch 文字、`CLAUDE_PLUGIN_ROOT` / `PLUGIN_ROOT` 都給、payload 多 `turn_id` / `permission_mode: bypassPermissions`），guard 也回 exit 2 + 訊息，**但 Codex 照寫檔**。用探針各試：stdout JSON deny + exit 0 → 擋（模型收到「Command blocked by PreToolUse hook: …」）；exit 2 + JSON → 不擋；exit 2 + stderr → 不擋。**結論：Codex（至少 Windows）不認 exit 2**。guard.mjs 改：payload 有 `turn_id` → JSON deny + exit 0；Claude Code 路徑不動（契約 P2e 加 e9 守）。改完真 guard 實測：main 擋（stderr 訊息完整送到模型）、`feat/x` 放。另一個插曲：第一次跑模型自己先 `git rev-parse` 看到 main 就停了（舊 `~/.codex/AGENTS.md` 的 branch 規則在起作用），要明令「第一個動作就是 apply_patch」才碰得到 hook |
+| 4 | `.env` BLOCK；兩敏感檔 token | `.env` → BLOCK、檔沒建。`Dockerfile` + `docker-compose.yml` 一個 patch → 兩行 `--token`、「處置（依序執行）」一次；照抄兩行建 token（`--token` 子命令在 pwsh 跑，state dir 判定跟 hook 端一致：`C:/Users/TOMMY_~1/AppData/Local/Temp/bstack-file-guard-<user>/`）→ retry 放行、兩檔建好、`consumed.log` 兩筆檔名各對、token 已刪 |
+| 5 | `$bstack:devwork 在 README.md 加一個「用途」段落` | 印 `[bstack devwork · plugin]` 橫幅 → 讀 `SKILL.md` / `rules.md` / `hosts.md`（用 pwsh `Get-Content`；先 `rg --files` 找不到再找對）→ 進 0a → 模型自述「Codex 目前沒有 `request_user_input` 工具，依 hosts fallback 用編號」→ 印「請回覆 1 或 2：1. Dev（推薦） 2. Bug」+ `[Trace] Phase=0a … Skill=bstack:devwork`。`update_plan` 未出現（0a 還沒到 TaskCreate 的點）。舊 `~/.agents/skills/dev-workflow` 沒有搶到（顯式 `$bstack:` 命名空間） |
+| 6 | `spawn_agent security-auditor` read-only | 子 thread 的 rollout 確認：`agent_role = security-auditor`、model `gpt-5.6-terra`、developer message 就是我們的 `developer_instructions`（含 OWASP / 安全特化字樣）→ **TOML 有載入**。但 `sandbox_policy` 是父的 `workspace-write`，子 agent 真把 `a.txt` 改成 `hacked`；`-s workspace-write` 與 `-c sandbox_mode="workspace-write"` 兩種給法都一樣。文件：父 turn 有 runtime 覆寫時子一律沿用父的；互動無覆寫才用檔內值——**非互動驗不了**，記進 README 已知限制與 §待釐清 |
+
+**Task 10 判定**：7 項中 1 / 3 / 4 / 5 / 7 綠、6 揭露一個文件層面的限制（已回填）、2 是互動步驟留給 user。實測環境：Windows 11、Codex CLI 0.153.4、`gpt-5.6-luna`。

@@ -91,7 +91,7 @@
 
 **hook 需要 `node` 在啟動 Claude Code 的環境 PATH 內**（`node --version` 驗；macOS 從 Dock 開的 app 不一定吃到 brew 的 PATH）。**Claude Code 自己不帶 node**——官方 setup 文件寫明 `claude` 是 native binary、npm 裝法也只是下載 binary，所以 native 安裝的機器要另裝 node。缺了會怎樣：官方 hooks 文件說 hook 起不來會印一行 non-blocking 通知、工具照跑；Windows 實測（2026-09-07，`claude -p` stream-json）連通知都沒有、檔案照寫——**保護一樣不存在**，跟舊版缺 pwsh 一樣。pwsh 7+ **只有 `scripts/install.ps1` / `scripts/extras.ps1` / `scripts/install-codex.ps1` 三支可選的輔助腳本需要**，不跑它們、照下面 `/plugin` 兩行也裝得起來；貢獻者另需 pwsh 跑 `scripts/build-references.ps1`。
 
-**Codex**：同一支 `guard.mjs` 也給 Codex 用（攔它的寫檔工具 `apply_patch`，一個 patch 內多個檔逐一判）。但 Codex 的 plugin hook **裝好後預設不信任**：開新 session 跑 `/hooks` 信任 bstack 的 PreToolUse，否則 hook 根本不跑、保護跟缺 node 一樣不存在。企業設定 `allow_managed_hooks_only` 會整批跳過 plugin hook。細節見 [Codex](#codex)。（`apply_patch` 解析與 manifest 是本 repo 實作並有契約 fixture 守；「Codex 端真的會呼叫這支 hook」的端到端實測待補回填。）
+**Codex**：同一支 `guard.mjs` 也給 Codex 用（攔它的寫檔工具 `apply_patch`，一個 patch 內多個檔逐一判）。但 Codex 的 plugin hook **裝好後預設不信任**：開新 session 跑 `/hooks` 信任 bstack 的 PreToolUse，否則 hook 根本不跑、保護跟缺 node 一樣不存在。企業設定 `allow_managed_hooks_only` 會整批跳過 plugin hook。細節見 [Codex](#codex)。實測（2026-09-09，`codex exec --dangerously-bypass-hook-trust`）：Codex 會帶 `CLAUDE_PLUGIN_ROOT` 呼叫這支 hook，main 上的 `apply_patch` 被擋、feature branch 放行、`.env` BLOCK、一個 patch 兩個敏感檔給兩行 token 指令。一個坑：**Codex 在 Windows 不把 exit 2 當 block**（exit 2 + stderr、或 exit 2 + stdout JSON 都照寫檔，只認 stdout JSON `permissionDecision: "deny"` + exit 0），所以 guard.mjs 看 payload 有沒有 Codex 專屬的 `turn_id` 分流：Codex 走 JSON deny、Claude Code 維持官方的 exit 2。
 
 ---
 
@@ -240,6 +240,8 @@ $bstack:devwork 要做的事
 - **沒有 Agent Teams**：多個 subagent 平行跑可以，但「隊友之間互相對話、你中途切進去改方向」那套只有 Claude Code 有。
 - **shell 寫檔兩個 host 都攔不到**：hook 只看寫檔工具（Claude Code 的 Write / Edit、Codex 的 `apply_patch`），繞道 shell 重導向寫檔一律放行。
 - **reviewer 覆蓋面比較低**：Claude Code 走內建 code-review 的 8 個 finder，Codex 這邊是一個 read-only reviewer subagent。
+- **agent TOML 的 `sandbox_mode = "read-only"` 不一定生效**：實測 `codex exec`（不論 `-s workspace-write` 或 `-c sandbox_mode=…`）spawn 出來的 `security-auditor` 拿到父 session 的 workspace-write、真的把檔改掉了；`model` 與 `developer_instructions` 有載入。官方文件說父 turn 有 runtime 覆寫（`/permissions`、`--yolo`、CLI 旗標）時子 agent 一律沿用父的；互動 session 沒覆寫時才用檔內值——這條沒法非互動驗，當作「唯讀 agent 的唯讀性在 Codex 上靠自律」。
+- **`request_user_input` 在 `codex exec` 沒有**：實測 `$bstack:devwork` 走到 Phase 0a 時模型自己判「工具不在清單」、改成編號選項讓你回數字（hosts.md §決策點 的退路），Trace 標籤照印。互動 session 是否有這個工具未實測。
 - **本機 marketplace 間歇 `os error 5`**（見上，重跑即可）。
 
 ### 從舊版遷移
