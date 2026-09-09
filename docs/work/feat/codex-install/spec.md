@@ -82,3 +82,18 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 
 ## 施工紀錄
 <!-- execute-plan 施工中追加 -->
+
+### Task 0（2026-09-09 實測，Codex CLI 0.153.4 / Windows 11）
+
+| # | 項目 | 結果 |
+|---|---|---|
+| 0 | 前置 | user 同意後以官方 `irm https://chatgpt.com/codex/install.ps1 \| iex` 安裝，落在 `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin`（PATH 只對新開的 shell 生效）。`~/.agents/skills/` 的舊副本 `dev-workflow` / `db-access` / `huashu-design` 確認**與 plugin 版並列**出現在模型看到的 skill 清單（見第 4 項），Task 7 `-Migrate` 要處理 |
+| 1 | `codex --version` | `codex-cli 0.153.4` |
+| 2 | marketplace | `codex plugin marketplace add D:\GitHub\bstack` 成功、`root = D:\GitHub\bstack`。讀的是 **`.agents/plugins/marketplace.json`**：`codex plugin list --json` 回 `installPolicy: AVAILABLE` / `authPolicy: ON_INSTALL`，這兩欄只有它有、legacy `.claude-plugin/marketplace.json` 沒有 |
+| 3 | `codex plugin add bstack@bstack` | 最終成功，`installedPath = ~/.codex/plugins/cache/bstack/bstack/1.5.0`，底下有 `hooks/hooks.json`（兩組 matcher）與 `skills/`（28）。**但間歇失敗**：`failed to activate plugin cache entry: 存取被拒 (os error 5)`。同一 repo 連續 9 次 add：前 5 次全失敗、之後 4 次 3 成功 1 失敗；內容完全相同的副本（含 `.git`、四個 ignored 目錄、`.git` 隱藏屬性、目錄名同為 `bstack`、放在 D:\GitHub 同層）10 次全成功。已排除：Claude Code sandbox、cwd 在 repo 內、檔案鎖（只有 `extras/statusline.sh` 被 statusline 的 bash 佔著，模擬同樣佔用時副本照樣成功）、ACL / owner、reparse point、ADS、路徑長度。FileSystemWatcher 看到流程是「複製整個 working tree 到 `cache/bstack/plugin-install-<rand>/bstack/1.5.0`（**7,621 個項目、144 MB，連 ignored 的四個 clone 目錄都抄**，約 60 秒）→ rename 到 `cache/bstack/bstack/1.5.0`」，失敗點在 rename，**推斷**是 Windows 上剛寫入的大量檔案還被掃描類程序持有 handle 導致 rename 被拒（未證實）。對 Task 7 的影響：`plugin add` 失敗要**自動重試 ≤3 次**、並建議 `-Source github`（clone 只有 tracked 檔，樹小得多） |
+| 4 | skill 呼叫名 | 不開 TUI，用 `codex debug prompt-input`（印模型實際看到的 prompt）：skill 根 `r3 = …/cache/bstack/bstack/1.5.0/skills`，28 個全列為 **`bstack:<name>`**（`bstack:brainstorm` …），所以呼叫是 **`$bstack:devwork`**（待釐清第 1 條定案）。同一份清單同時列出 `~/.agents/skills` 的 `dev-workflow` / `db-access` / `huashu-design`（舊副本並列證實） |
+| 5 | `/hooks` 信任 | **未做**：需互動 TUI；自動化改用 `codex exec --dangerously-bypass-hook-trust`（文件明列給自動化用） |
+| 6 | main 上 apply_patch 被擋 | **卡住**：`codex exec` 在本機回 `401 refresh_token_reused`（Codex 登入的 refresh token 已被別的裝置 / session 用掉，要重新 `codex login`）。另一個坑：`codex exec` 在非 TTY 下會等 stdin，要接 `< /dev/null`。cache 版 `guard.mjs` `main()` 第一行已加 `[cwd-probe]` 探針（印 cwd / `CLAUDE_PROJECT_DIR` / `CLAUDE_PLUGIN_ROOT`），看完要拔（重裝 plugin 即還原） |
+| 7 | feature branch 放行 | 同上待登入 |
+
+**Task 0 判定**：檔案部分（兩份 manifest、hooks.json 拆組、t0.mjs、契約 P1 / P2 綠）完成；第 6 / 7 項是「hook 會不會被 Codex 呼叫」的唯一實證，**等 user 重新 `codex login` 後補跑**。
