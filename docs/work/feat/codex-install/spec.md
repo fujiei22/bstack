@@ -119,3 +119,9 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 | 6 | `spawn_agent security-auditor` read-only | 子 thread 的 rollout 確認：`agent_role = security-auditor`、model `gpt-5.6-terra`、developer message 就是我們的 `developer_instructions`（含 OWASP / 安全特化字樣）→ **TOML 有載入**。但 `sandbox_policy` 是父的 `workspace-write`，子 agent 真把 `a.txt` 改成 `hacked`；`-s workspace-write` 與 `-c sandbox_mode="workspace-write"` 兩種給法都一樣。文件：父 turn 有 runtime 覆寫時子一律沿用父的；互動無覆寫才用檔內值——**非互動驗不了**，記進 README 已知限制與 §待釐清 |
 
 **Task 10 判定**：7 項中 1 / 3 / 4 / 5 / 7 綠、6 揭露一個文件層面的限制（已回填）、2 是互動步驟留給 user。實測環境：Windows 11、Codex CLI 0.153.4、`gpt-5.6-luna`。
+
+### request-review / receive-review（2026-09-09）
+
+- code-review high 的主控 fork 收不到 finder 回報（finder 把結果送到主 session），verifier 由主 agent 接手；能實測的都用 Codex CLI 實測。整合結果與處置在 `code-review.md`。
+- 兩個設計回退（實測定案）：hooks.json 退回單一 matcher `Write|Edit|NotebookEdit`（Codex 把 Write / Edit 當 apply_patch 別名，單一組照攔，spec 第 38 行的拆組假設不成立）；pr-explain 加回 `context: fork`（Codex 對它無反應）。兩者都是為了守「Claude Code 側零行為改變」。
+- 新事實：Codex 的 apply_patch 相對路徑基準是 session cwd（payload `cwd`），不是 git toplevel；Codex 內建 agent 只有 default / worker / explorer；Codex 重寫 config.toml 會把別的表排進註解之間（定界拔法不可靠）。

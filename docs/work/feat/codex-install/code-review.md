@@ -65,3 +65,10 @@
 - 必處理：Critical 4 條。
 - 建議處理：Major 全部、Minor 大部分（上面沒標「略過」的）。
 - 略過：見上節。
+
+## 處置結果（receive-review，commit 5fa1ecb）
+- 危險類四題走 AskUserQuestion：Uninstall 改只拆表（採）、guard 雙訊號 + payload.cwd（採）、hooks.json 與 pr-explain 退回原樣（採）、brainstorm memory 門檻（**user 決定兩個 host 都維持「讀得到就讀、讀不到也繼續」**，不改）。
+- 其餘不危險類一顆 commit 修完；三支收尾鏈綠、P2d 46 案、P17 新增。
+- 修法實測（Codex CLI 0.153.4）：假 CODEX_HOME 放「[tui] 夾在定界之間」的 config 跑真 `-Uninstall` → 只拔 update_plan 表、[tui] 留著、舊註解清掉；新 guard 在 main 擋、`feat/x` 子目錄 cwd=`.github` 的 `workflows/ci.yml` 命中 CI WARN（用 toplevel 解析會漏）。
+- 本機 `~/.codex/config.toml` 的兩行舊定界註解已清掉（備份 `.bak-20260909-receive-review`）。
+- 列入 follow-up（不在本 PR）：`docs/index.html` 首頁 DOCS 索引加 hosts.md；TOKEN14 改成機械抽取；P15 in-process 比對。
