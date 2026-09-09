@@ -18,6 +18,7 @@
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |
 |---|---|---|---|
 | `TaskCreate` / `TaskUpdate` / `TaskList` | 同名工具 | `update_plan`（步驟 pending / inProgress / completed；需 `tools.update_plan.enabled = true`，install-codex.ps1 已寫） | 在 spec §施工清單 或 plan.md 的 checkbox 勾；retro 的歷史用 git log + plan.md |
+| `TaskOutput`（收背景 task / 內建 code-review 的結果） | 同名工具；forked 的結果也會走 task-notification 送回 | `wait_agent` 收 `spawn_agent` 的結果（Codex 沒有內建 code-review，見 §程式碼審查） | 結果寫在最終回覆裡，主 agent 自己讀 |
 
 ## §派 subagent
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |

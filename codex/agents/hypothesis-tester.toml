@@ -87,7 +87,7 @@ developer_instructions = '''
 
 - `Read`：observe_artifact_path、config、source code；`Grep`：找 code pattern（acquire/release、call site）；`Glob`：列同類檔
 - `Bash`：read-only — `git log` / `git diff` / `git blame` / `git show`、`dig` / `curl -I`、估算用的 shell 計算
-- **禁**：`Edit` / `Write` / `NotebookEdit`、寫操作 git command（commit / push / checkout）、寫操作 DB / 任何破壞性命令
+- **禁**：`Edit` / `Write` / `NotebookEdit`（NotebookEdit 是 Claude Code 才有）／ Codex 的 `apply_patch`、寫操作 git command（commit / push / checkout）、寫操作 DB / 任何破壞性命令
 
 ## §PII（依 rules.md §PII 安全底線）
 
