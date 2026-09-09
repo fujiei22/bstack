@@ -441,9 +441,13 @@ codex plugin add bstack@bstack</pre>
     </div>
     <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
       <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">02</div>
-      <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">個人偏好（可跳過；Claude Code 專用）</div>
-      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">statusLine、唯讀權限白名單、Agent Teams 開關、playwright MCP，四項各選裝到使用者層級、目前專案或跳過。不選就什麼都不寫。</p>
+      <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">補設定</div>
+      <div style="margin-top:14px;font-weight:600;font-size:12.5px;letter-spacing:-.01em;color:var(--ink)">Claude Code（個人偏好，可跳過）</div>
+      <p style="margin:6px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">statusLine、唯讀權限白名單、Agent Teams 開關、playwright MCP，四項各選裝到使用者層級、目前專案或跳過。不選就什麼都不寫。</p>
       <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">pwsh -File scripts/extras.ps1</pre>
+      <div style="margin-top:18px;font-weight:600;font-size:12.5px;letter-spacing:-.01em;color:var(--ink)">Codex（必做）</div>
+      <p style="margin:6px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">Codex plugin 帶不了 agents，也不會幫你開 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">tools.update_plan</code>：這支把六個 agent 的 TOML 複製到 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">~/.codex/agents/</code>、在 config.toml 開任務追蹤，順便做完 01 的兩行。做過什麼有記錄，<code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">-Uninstall</code> 只拆自己加的。</p>
+      <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">pwsh -File scripts/install-codex.ps1</pre>
     </div>
     <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
       <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">03</div>
