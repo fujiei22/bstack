@@ -113,7 +113,7 @@ Resume 流程：
 
 ## §跟 memory 系統互動
 
-snapshot 是暫時進度、memory 是持久偏好 / 領域知識；snapshot 不主動寫 memory（避免雜訊）。值得長期記住的 decision，user 手動依 auto memory 規則寫到 `~/.claude/projects/.../memory/`。
+snapshot 是暫時進度、memory 是持久偏好 / 領域知識；snapshot 不主動寫 memory（避免雜訊）。值得長期記住的 decision，user 手動依 auto memory 規則寫進 memory（路徑依 `devwork/hosts.md` §Memory 路徑）。
 
 ## §hand-off state
 

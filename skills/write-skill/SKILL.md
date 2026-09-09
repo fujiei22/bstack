@@ -26,7 +26,7 @@ description: |
 ## §什麼時候該寫 skill / 不該寫
 
 - **該寫**：反覆出現（≥3 次）、多步驟需紀律、需 trigger 詞偵測、跟 rules.md 守則互動緊密、跨 task 重複用
-- **不該寫**：一次性工作（寫 task）、純資料表 / reference doc（放 `docs/`）、只對個別專案有用（放該專案 `.claude/skills/`）、跟既有 skill 大量重疊（改既有）
+- **不該寫**：一次性工作（寫 task）、純資料表 / reference doc（放 `docs/`）、只對個別專案有用（放該專案 `.claude/skills/`（Claude Code）或 `.agents/skills/`（Codex））、跟既有 skill 大量重疊（改既有）
 
 ## §SKILL.md 結構
 
@@ -107,8 +107,8 @@ state:
 | Skill 類型 | 路徑 |
 |---|---|
 | plugin（隨 bstack 發布） | repo `skills/<name>/SKILL.md` |
-| 專案特定 | 該專案 `.claude/skills/<name>/SKILL.md` |
-| 暫時 / experimental | 該專案 `.claude/skills/_experimental/<name>/SKILL.md`（user 自管）|
+| 專案特定 | 該專案 `.claude/skills/<name>/SKILL.md`（Claude Code）／`.agents/skills/<name>/SKILL.md`（Codex） |
+| 暫時 / experimental | 該專案 `.claude/skills/_experimental/<name>/SKILL.md`（Claude Code）／`.agents/skills/_experimental/<name>/SKILL.md`（Codex）（user 自管）|
 
 ### §新 skill 落地 checklist（漏一處契約就紅）
 

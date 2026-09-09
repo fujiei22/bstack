@@ -90,6 +90,13 @@ function Get-ReferenceSources {
     }
     $map['references/rules.md'] = $rulesMd
 
+    # hosts.md：抽象動詞 → Claude Code / Codex 實際工具的對照表，跟 rules.md 一樣是 devwork 載入的規則層、docs 站要看得到（契約 P16 守）
+    $hostsMd = Join-Path $RepoRoot 'skills/devwork/hosts.md'
+    if (-not (Test-Path -LiteralPath $hostsMd)) {
+        throw "找不到 $hostsMd —— 這是必收的檔，缺了代表 repo 結構有問題，不靜默略過"
+    }
+    $map['references/hosts.md'] = $hostsMd
+
     $skillsDir = Join-Path $RepoRoot 'skills'
     foreach ($d in Get-ChildItem -LiteralPath $skillsDir -Directory | Sort-Object Name -Culture 'en-US') {
         $f = Join-Path $d.FullName 'SKILL.md'
@@ -183,4 +190,4 @@ if ($Check) {
 
 Set-Content -LiteralPath $outPath -Value $content -Encoding UTF8 -NoNewline
 Write-Host "已產出 $outPath" -ForegroundColor Green
-Write-Host "  內嵌 $($sources.Count) 份文件（rules.md 1 + skills $((Get-ChildItem (Join-Path $repoRoot 'skills') -Directory).Count) + agents $((Get-ChildItem (Join-Path $repoRoot 'agents') -Filter '*.md').Count)）"
+Write-Host "  內嵌 $($sources.Count) 份文件（rules.md + hosts.md 2 + skills $((Get-ChildItem (Join-Path $repoRoot 'skills') -Directory).Count) + agents $((Get-ChildItem (Join-Path $repoRoot 'agents') -Filter '*.md').Count)）"

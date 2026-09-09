@@ -1,7 +1,7 @@
 ---
 name: retro
 description: |
-  期間回顧（繁中）：git log + PR + TaskList 找模式、產報告、memory proposal。
+  期間回顧（繁中）：git log + PR + TaskList（Claude Code）或 plan.md / 施工清單勾選狀態（Codex）找模式、產報告、memory proposal。
   載入：Phase 9，user 顯式呼叫；不綁 tier、不自動接在 pr-explain 後。
 ---
 
@@ -13,7 +13,7 @@ description: |
 
 1. 確認 user 想跑 retro（觸發詞明示、免 paraphrase）。
 2. **取得期間**（§期間選擇）：`AskUserQuestion` 問範圍。
-3. **資料來源蒐集**（§資料蒐集細節）：依期間抓 git log + PR + TaskList。
+3. **資料來源蒐集**（§資料蒐集細節）：依期間抓 git log + PR + TaskList（Claude Code）或 plan.md / 施工清單勾選狀態（Codex）。
 4. **分析模式**：什麼順、什麼不順、反覆出現的事情。
 5. **產 retro 報告**（§報告結構）。
 6. **Memory hook**（§Memory hook 流程）：分析中發現「值得長期記住」的東西 → 產 memory 更新 proposal → user review → 寫入。
@@ -104,7 +104,7 @@ description: |
   3. 不寫
 ```
 
-選 1 → Write 進 `~/.claude/projects/.../memory/<name>.md` + 更新 `MEMORY.md` index；選 2 → 等 user 改再寫；選 3 → 略過。
+選 1 → Write 進 memory 的 `<name>.md`（路徑依 `devwork/hosts.md` §Memory 路徑）+ 更新 `MEMORY.md` index；選 2 → 等 user 改再寫；選 3 → 略過。
 格式依 CLAUDE.md「auto memory」段（`name / description / metadata.type`）；**禁**未經 user 同意寫 memory。
 
 ## §禁止的 retro 行為
@@ -136,7 +136,7 @@ gh pr list --search "created:>=<start> created:<=<end>" \
   --json number,title,state,createdAt,mergedAt
 ```
 
-TaskList：工具直接讀；task 是 session-bound、只看當前 session。
+TaskList（Claude Code）：工具直接讀；task 是 session-bound、只看當前 session。工具不在清單時（Codex）改讀 plan.md / 施工清單的勾選狀態，見 `devwork/hosts.md` §任務追蹤。
 
 ## §結尾 Trace 標籤
 

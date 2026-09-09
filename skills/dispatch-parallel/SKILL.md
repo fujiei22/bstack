@@ -7,7 +7,7 @@ description: |
 
 # dispatch-parallel
 
-execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑。跑法三種：**Agent Teams**（隊友互相通訊、共用任務清單）、**subagent 平行**（各做各的、只回結果）、**單一 session 串行**；選哪種走 §協作模式判定，一律問 user。
+execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑。跑法三種：**Agent Teams（Claude Code 限定）**（隊友互相通訊、共用任務清單）、**subagent 平行**（各做各的、只回結果）、**單一 session 串行**；選哪種走 §協作模式判定，一律問 user。host 依 hosts.md §Host 判定；**Codex 無 Agent Teams**，只剩後兩種。
 
 ## 使用契約（強制）
 
@@ -15,7 +15,7 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑�
 2. **檢預設**：group 內 task **真的無依賴**（T3 由 write-plan 標、T2 由 brainstorm 施工清單標，這裡是 T2 唯一一次驗）；工作目錄 clean（無未 commit 改動）。
 3. **協作模式判定** → 走 §協作模式判定，`AskUserQuestion` 讓 user 選跑法。**禁自行決定**。
 4. **依 user 選擇分流**：
-   - Agent Teams → §隊友派工
+   - Agent Teams（Claude Code 限定）→ §隊友派工
    - subagent 平行 → §Spawn 細節
    - 單一 session 串行 → 退回 execute-plan 逐 task 跑，不用本 skill 後續流程
 5. **等所有完成**：收集每個工作者的結果（diff + commit sha + verify 狀態）。
@@ -24,9 +24,9 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑�
 
 ## §協作模式判定
 
-**分水嶺**：判準不是「能不能平行」，是**工作者之間要不要互相講話**。只有 Agent Teams 做得到：隊友互相反駁、user 中途切進單一工作者、工作者自己認領共用任務清單；都不需要 → subagent 就夠、便宜得多。
+**分水嶺**：判準不是「能不能平行」，是**工作者之間要不要互相講話**。只有 Agent Teams（Claude Code 限定）做得到：隊友互相反駁、user 中途切進單一工作者、工作者自己認領共用任務清單；都不需要 → subagent 就夠、便宜得多。
 
-| 面向 | 選 Agent Teams | 選 subagent | 選串行 |
+| 面向 | 選 Agent Teams（Claude Code 限定） | 選 subagent | 選串行 |
 |---|---|---|---|
 | 依賴 | ≥3 塊互不依賴 | 2+ 塊互不依賴 | 有先後順序 |
 | 檔案歸屬 | 每塊擁有不同檔 / 目錄 | 同上 | 會撞同一批檔 |
@@ -36,8 +36,9 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑�
 
 **規模**：3-5 個隊友起跳、每人 5-6 個 task；三個專注的勝過五個散的。
 
-**開關偵測（判定前先跑）**：Agent Teams 是實驗性功能、預設關閉，未開時**無法**開也無法提議開隊友。
-1. 查環境變數 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`（settings.json 的 env 區塊會注入；`scripts/extras.ps1` 的 env 項可一鍵設定）。
+**開關偵測（判定前先跑）**：Agent Teams 是 Claude Code 的實驗性功能、預設關閉，未開時**無法**開也無法提議開隊友。
+0. 依 hosts.md §Host 判定 認 host。**Codex 無 Agent Teams**：跳過 1-3，判準表只看 subagent / 串行兩欄，選單只列 subagent 平行 / 串行；同 group ≥2 task 就問（沒有「三條全中才問」這關，因為要問的不是隊友、是要不要平行）。
+1. （Claude Code 限定）查環境變數 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`（settings.json 的 env 區塊會注入；`scripts/extras.ps1` 的 env 項可一鍵設定）。
 2. 未設 → 選單第一個選項改「先開開關」，附設定片段與「**需重開 session 才生效**、本輪先停」。
 3. **禁**開關關著時假裝開隊友、或靜默退成 subagent 不告知。
 
@@ -47,32 +48,32 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑�
 AskUserQuestion:
   header: 跑法
   question: |
-    這個 group 判定「可以開 Agent Teams」，依據：
+    這個 group 可平行，依據：
     - 可切 <N> 塊互不依賴：<列每塊擁有的檔 / 目錄>
-    - 需要互相講話的理由：<具體寫哪兩塊要對話；寫不出來就不該問這題>
+    - 需要互相講話的理由：<Claude Code 且三條全中才寫，具體寫哪兩塊要對話；Codex 或沒全中 → 刪這行>
     - 量體：<Tier>
     要用哪種跑法？
-  options:
-    - label: <推薦的那個>（推薦）
-      description: <為何推薦——引上面判定實據>；代價：<token / 摩擦>
-    - label: <次選>
-      description: <好處>；缺點：<失去什麼>
-    - label: <再次選>
-      description: 同上
+  options:                              # 推薦的搬到第一個並標（推薦）；每個都寫代價
+    - label: Agent Teams（Claude Code 限定；Codex 不列）
+      description: <為何——引上面判定實據>；代價：token 隨隊友數線性疊加、權限確認全彈回主視窗
+    - label: subagent 平行
+      description: <好處：各做各的、便宜>；缺點：隊員之間不能對話，只回結果
+    - label: 單一 session 串行
+      description: <好處：零協調成本>；缺點：<等多久>
 ```
 
 **硬規則**：
 
 - 推薦哪個**依判定實據決定，不預設 Agent Teams**。第 2 條（要互相講話）只是勉強成立 → 推薦 subagent。
 - 每個選項都要寫**代價**，不能只寫好處。Agent Teams 至少要寫這兩項：token 隨隊友數線性疊加（每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill）、隊友的權限確認全部彈回主視窗。
-- 三條判準沒全中 → **不問這題**，直接照 §Spawn 細節走 subagent。多問一次選單也是成本。
+- Claude Code 三條判準沒全中 → **不問這題**，直接照 §Spawn 細節走 subagent。多問一次選單也是成本。Codex 的問法見開關偵測第 0 步（只問 subagent 平行 / 串行）。
 - **唯讀 fan-out 不套這張判準表**：review / 驗證 / 稽核類——`review-plan` 多視角、`request-review` T3 對齊 subagent 與內建 code-review 的 finder、`incident-investigate` 多假設、`security-audit` + `db-reviewer`——一律 subagent，**連選單都不出**。兩個理由：
   - 判準 1「每塊擁有不同檔 / 目錄」的實質是防兩個隊友互蓋（見 §隊友專屬注意）。唯讀工作沒人在動檔，這條套不上；硬要讓它「通過」等於為它開例外。
   - 這類 fan-out 的**產出價值就是驗證者彼此不知道對方在驗什麼**。`incident-investigate` 的派工模板第一句是「你只看到這一條、不知道別的」，目的正是避免假設間交叉污染；`request-review` 要的也是不會自我合理化的獨立視角。開隊友讓他們互相講話，是把這個唯一紅利親手拆掉。
 
-## §隊友派工
+## §隊友派工（Claude Code 限定）
 
-user 選 Agent Teams 後才走這節。派工 prompt 範本：
+user 選 Agent Teams 後才走這節；Codex 沒有這條路、不會進來。派工 prompt 範本：
 
 ```
 Context:
@@ -91,8 +92,8 @@ Context:
 - 有發現會影響別人負責範圍的事 → 直接訊息給該隊友，別默默改。
 
 完成後：
-- **用 `SendMessage` 把結論送回派工你的 agent**（主 session 通常是 `main`）。
-  **你寫在回覆裡的東西不會自動傳給派工者——不送就等於沒交。**
+- **把結論送回派工你的 agent**：Claude Code 用 `SendMessage`（主 session 通常是 `main`）；Codex 沒有這個工具、派工者靠 `wait_agent` 收，寫在最終回覆裡就算送到。
+  **Claude Code 上你寫在回覆裡的東西不會自動傳給派工者——不送就等於沒交。**
 - 送的內容要能單獨看懂：做了什麼、動了哪些檔、verify 結果、卡住的地方。
   派工者沒有你的對話歷史。
 
@@ -192,7 +193,7 @@ state:
 ## §跟 user 互動
 
 - 判定完先問跑法（§協作模式判定），user 沒選前不 spawn；spawn 前印「group <N> 派 M task 平行跑（跑法：<user 選的>）」
-- 走 Agent Teams 另告知：隊友列在輸入框下方面板，上下鍵選、Enter 進去對話
+- 走 Agent Teams（Claude Code）另告知：隊友列在輸入框下方面板，上下鍵選、Enter 進去對話
 - 等待中每 30s 印「子 task 進度：<N done / M total>」（不刷屏）；完成印「group <N> 完成：M task / M commit」；fail 印詳細 + 走 §Fail handling
 
 **禁**：靜默跑、user 不知道在幹嘛。
@@ -207,8 +208,8 @@ state:
 
 | 想法 | 真相 |
 |---|---|
-| 「能平行就開 Agent Teams」 | 判準是要不要互相講話；不用溝通 → subagent，便宜得多 |
+| 「能平行就開 Agent Teams」（Claude Code） | 判準是要不要互相講話；不用溝通 → subagent，便宜得多。Codex 無 Agent Teams，只問 subagent 平行 / 串行 |
 | 「多視角 review 天生會打架、正好開隊友互辯」 | 唯讀 fan-out 一律 subagent、連選單都不出；獨立性就是產出價值，互聽結論 = 污染 |
-| 「判定完直接開隊友」／「開關關著、悄悄退 subagent」／「選單只寫好處」 | 禁；一律 `AskUserQuestion` 讓 user 選、講明開關狀態、每個選項寫代價 |
+| 「判定完直接開隊友」／「開關關著、悄悄退 subagent」（Claude Code）／「選單只寫好處」 | 禁；一律 `AskUserQuestion` 讓 user 選、講明開關狀態、每個選項寫代價 |
 | 「看似獨立就直接平行、跑得快就跳 verify」 | pre-check（git status / 預設 verify）與整合測都必跑 |
 | 「subagent 自己 push / 開 PR、fail 自動重 spawn、conflict 自己 resolve、派工只給路徑、隊友再開隊友」 | 全禁：push 主 agent 統一；fail 走 §Fail handling；conflict 走 finish-branch §Conflict 流程；spec / plan 全文必貼；隊友只能開 subagent |

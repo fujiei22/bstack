@@ -35,10 +35,20 @@ How：brainstorm 0b 並聯抽樣；write-plan / review-plan 涉資料每點附�
 ### §決策點選單
 user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」；平台附 `Other`。**禁文字 token NLP**（`approve / LGTM / 通過 / ✅` 不當 gate 信號）。
 
-### §Branch safety
-plugin 的 `hooks/guard.mjs`（PreToolUse，branch-safety 段）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔 Write / Edit / NotebookEdit（見 `hooks/hooks.json` 的 matcher）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。
+本檔與各 skill 寫的工具名是**抽象動詞**，兩個 host 的實際工具如下（完整版與「工具不在清單時」的退路見 `skills/devwork/hosts.md`）：
 
-**豁免（刻意如此，契約 P2d 守；非設計缺陷）**：hook 只管 `$CLAUDE_PROJECT_DIR` **底下**的檔；目標檔在 project repo 之外（plugin 目錄、使用者的 Claude 設定目錄）一律放行，不論當前 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就 `/plugin disable bstack@bstack`。hook 是 node 腳本、Claude Code 自己不帶 node：node 不在 PATH 時官方 hooks 文件說會印 non-blocking 通知、工具照跑，Windows 實測連通知都沒有、檔案照寫——兩種說法下**保護都不存在**，只能靠 `node --version` 事前確認。
+| 抽象動詞 | Claude Code | Codex |
+|---|---|---|
+| `AskUserQuestion` | 同名工具 | `request_user_input`；工具不在時文字提問、選項編號、user 回編號（編號可窮舉，不算文字 token NLP） |
+| `TaskCreate` / `TaskUpdate` / `TaskList` | 同名工具 | `update_plan` |
+| `Agent` + `subagent_type` | 同名工具、`bstack:<name>` | `spawn_agent` + `wait_agent`，agent 名取自 `~/.codex/agents/<name>.toml` |
+| 內建 `code-review` | `Skill("code-review", args="medium\|high")` | 無內建；`spawn_agent` 一個唯讀 reviewer（見 hosts.md §程式碼審查） |
+| `mcp__<server>__<tool>` | `.mcp.json` / `claude mcp add` | `codex mcp add`，server 名須與 skill 寫的一致 |
+
+### §Branch safety
+plugin 的 `hooks/guard.mjs`（PreToolUse，branch-safety 段）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔寫檔工具——Claude Code 的 Write / Edit / NotebookEdit、Codex 的 `apply_patch`（見 `hooks/hooks.json` 的 matcher；Codex 把 Write / Edit 當 apply_patch 的別名）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。Codex 的 apply_patch 路徑相對 session cwd，hook 一律視為 repo 內（下面的「repo 外放行」豁免只對絕對路徑成立）。
+
+**豁免（刻意如此，契約 P2d 守；非設計缺陷）**：hook 只管 project repo（Claude Code 由 `$CLAUDE_PROJECT_DIR` 給、Codex 由 `git rev-parse --show-toplevel` 算）**底下**的檔；目標檔在 project repo 之外（plugin 目錄、使用者的 Claude 設定目錄）一律放行，不論當前 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就停用：Claude Code `/plugin disable bstack@bstack`；Codex `/plugins` 停用、且 hook 需 `/hooks` 信任才生效。hook 是 node 腳本、Claude Code 自己不帶 node：node 不在 PATH 時官方 hooks 文件說會印 non-blocking 通知、工具照跑，Windows 實測連通知都沒有、檔案照寫——兩種說法下**保護都不存在**，只能靠 `node --version` 事前確認。
 
 ### §File-type 硬規則
 plugin 的 `hooks/guard.mjs`（file-type 段，**不看 repo scope**，repo 外的 `~/.gitconfig` 也擋）偵測；Hook 報的**不能跳**。
@@ -104,8 +114,8 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 |---|---|---|---|---|---|---|---|
 | **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
 | **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |
-| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium` + 主 agent 對 spec 自檢；純文件 diff 跳 code-review、自檢照做 | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
-| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 內建 `/code-review high` + 1 個 spec / 架構對齊 subagent（附語言 idiom）；純文件 diff 跳 code-review、對齊 subagent 照派 | audit + checklist + db-reviewer；純文件 diff（request-review 判 `code_review_applicable=false`）且無 File-type 硬規則命中 → 跳 audit 與 checklist | 用 |
+| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium`（Codex：reviewer subagent，見 hosts.md §程式碼審查）+ 主 agent 對 spec 自檢；純文件 diff 跳 code-review、自檢照做 | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
+| **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 內建 `/code-review high`（Codex：reviewer subagent，見 hosts.md §程式碼審查）+ 1 個 spec / 架構對齊 subagent（附語言 idiom）；純文件 diff 跳 code-review、對齊 subagent 照派 | audit + checklist + db-reviewer；純文件 diff（request-review 判 `code_review_applicable=false`）且無 File-type 硬規則命中 → 跳 audit 與 checklist | 用 |
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
@@ -130,6 +140,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 - **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review T3 對齊 subagent 與內建 code-review 的 finder、incident-investigate 多假設、security-audit）**不開隊友、也不問**——沒人在動檔（判準 1 防互蓋的前提不成立），且**獨立性本身就是產出價值**，互相聽到彼此結論會污染判斷。
 - **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」、其餘照常。
 - **成本告知**：每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill，token 隨隊友數線性疊加。
+- **Codex 無 Agent Teams**：不做開關偵測；同 group ≥2 task 就 `AskUserQuestion` 問 subagent 平行 / 串行二選一。
 
 觸發點：**只有一個**——`execute-plan` 遇 `parallel-group` 同號多 task 而載入 `dispatch-parallel` 時。判準表 / 選單範本 → `dispatch-parallel` §協作模式判定；隊友派工範本 → 同檔 §隊友派工。
 
@@ -145,7 +156,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 Task / verify / review fail → **不靜默重試**；評起因；`AskUserQuestion` 提 retry / adjust+retry / rollback / 回上層 Phase / escalate。細則 → `dev-workflow`。
 
 ### §Settings.json
-專案 `.claude/settings.json` 的 `permissions.allow` **僅限 read-only / 查詢類**（範本：https://github.com/fujiei22/bstack/blob/main/templates/project-settings.json）；寫入類（Edit / Write / commit / push / checkout / rm / npm install）一律 prompt。個人偏好走 `scripts/extras.ps1`，本流程不主動寫使用者層級的 settings。範本裡的 `Bash(cat/head/tail:*)` 是任意檔讀取、不受 file-type 段（只管寫入）保護，專案內有密鑰檔就拿掉。
+專案 `.claude/settings.json`（Claude Code 專案設定；Codex 對應為 `.codex/config.toml` 與 `rules/*.rules`，見 docs/install.md 的 Codex 節）的 `permissions.allow` **僅限 read-only / 查詢類**（範本：https://github.com/fujiei22/bstack/blob/main/templates/project-settings.json）；寫入類（Edit / Write / commit / push / checkout / rm / npm install）一律 prompt。個人偏好走 `scripts/extras.ps1`，本流程不主動寫使用者層級的 settings。範本裡的 `Bash(cat/head/tail:*)` 是任意檔讀取、不受 file-type 段（只管寫入）保護，專案內有密鑰檔就拿掉。
 
 ## 程式碼規範
 

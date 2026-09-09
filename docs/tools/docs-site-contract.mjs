@@ -396,13 +396,15 @@ for (const f of ['docs/js/data.js', 'docs/js/layout.js']) {
   }
 }
 
-const expectedRefCount = 1 // rules.md
+// references 裡「不是 skill 也不是 agent」的規則層文件：C8b 的期望數與 C18b 的白名單都從這一份算，加一份只改這裡
+const EXTRA_REFS = ['references/rules.md', 'references/hosts.md'];
+const expectedRefCount = EXTRA_REFS.length
   + readdirSync(join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).length
   + readdirSync(join(REPO, 'agents')).filter((f) => f.endsWith('.md')).length;
 check(
   `C8b REFERENCE_DOCS 有 ${expectedRefCount} 個 key`,
   refKeys.size === expectedRefCount,
-  `期望 ${expectedRefCount}（rules.md + 磁碟上的 skill + agent），實際 ${refKeys.size}` +
+  `期望 ${expectedRefCount}（rules.md + hosts.md + 磁碟上的 skill + agent），實際 ${refKeys.size}` +
     `（後果：build-references.ps1 沒重跑，站上的文件是舊的）`
 );
 
@@ -647,7 +649,7 @@ check(
 const diskSet = new Set([...diskSkills, ...diskAgents]);
 const strayRefs = [...refKeys].filter((k) => {
   const m = k.match(/^references\/(skills\/([^/]+)\/SKILL\.md|agents\/([^/]+)\.md)$/);
-  if (!m) return k !== 'references/rules.md';   // rules.md（規則書）是唯一合法的例外
+  if (!m) return !EXTRA_REFS.includes(k);   // 規則層文件（rules.md / hosts.md）是僅有的合法例外，清單見 EXTRA_REFS
   return !diskSet.has(m[2] || m[3]);
 });
 check(

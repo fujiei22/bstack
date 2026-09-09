@@ -11,7 +11,7 @@ description: |
 
 ## 使用契約（強制）
 
-1. **先算 `involved`（零成本，必為第一步）**：拿呼叫端給的改動檔清單，**先剔除 skill 定義目錄底下的檔**（路徑含 `skills/<name>/SKILL.md` 的目錄——plugin 快取、專案 `.claude/skills/`、repo `skills/` 都算；那是**工具範本**，不是這個專案的介面），再比對 §前端副檔名。
+1. **先算 `involved`（零成本，必為第一步）**：拿呼叫端給的改動檔清單，**先剔除 skill 定義目錄底下的檔**（路徑含 `skills/<name>/SKILL.md` 的目錄——plugin 快取、專案 `.claude/skills/`（Claude Code）與 `.agents/skills/`（Codex）、repo `skills/` 都算；那是**工具範本**，不是這個專案的介面），再比對 §前端副檔名。
    **剩下的全部不命中 → 立即回傳且不讀地圖**：`{involved:false, scope:null, scope_evidence:null, size:null, precedent:false, map_status:unknown}`，結束。
    > 為什麼這步必須在最前面：本 skill 隨 plugin 在每個啟用它的專案生效；不做會讓每個專案的每個 task（含純後端）都付一次偵測成本。
    > 為什麼錨定「含 `*/SKILL.md`」而非裸 `skills/`：有些專案有叫 `skills/` 的產品目錄；不做會把真實介面靜默排除。

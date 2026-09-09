@@ -62,7 +62,7 @@ Track / Tier 預判表與「命中 File-type 硬規則自動升至少 T2」見 `
         review-plan（視角依 state.review_perspectives：Eng 下限 / DX / Design）
    ↓
 3. execute-plan + tdd-cycle
-   遇 parallel-group >1 task → 載 dispatch-parallel 判跑法（Agent Teams / subagent / 串行）後平行
+   遇 parallel-group >1 task → 載 dispatch-parallel 判跑法（Agent Teams（限 Claude Code）/ subagent / 串行）後平行
    └─ 計畫外的前端檔 → execute-plan §前端檔處理：暫停 → 補判 → 回寫 state.design ＋ design_rejudge → 接回
    ↓
 4. verify-done
@@ -72,8 +72,8 @@ Track / Tier 預判表與「命中 File-type 硬規則自動升至少 T2」見 `
    ↓
 5. request-review（先依副檔名分流：純文件 diff 跳 code-review；T2 只做 spec 自檢、T3 對齊 subagent 照派）
    ├─ T1 = self review
-   ├─ T2 = 內建 code-review medium（不帶 --fix）+ 主 agent 對 spec 自檢
-   └─ T3 = 內建 code-review high + 1 個 spec / 架構對齊 subagent（prompt 附語言提示）
+   ├─ T2 = 內建 code-review medium（不帶 --fix）+ 主 agent 對 spec 自檢（Codex 無內建 code-review：explorer reviewer subagent 代，見 hosts.md §程式碼審查）
+   └─ T3 = 內建 code-review high + 1 個 spec / 架構對齊 subagent（prompt 附語言提示；Codex 同上）
    ↓
    receive-review（含 §Auto-fix）
    ↓
@@ -142,7 +142,7 @@ state:
 每個 phase 結束時：
 - `current_phase` 推進、`trace_chain` append、自身產出寫進 state（欄名以各 phase skill §hand-off state 為準）
 - **下一 phase skill 載入時，宣告它讀進來的 state 欄位**
-- **下一 phase skill 載入時，若 context 內找不到 rules.md 的「§事實核實」標題 → 先重 Read `devwork/rules.md`**（規則書是普通 tool result、長 session 會被摘要洗掉；bstack repo 內 CLAUDE.md @import 常駐則不必）
+- **下一 phase skill 載入時，若 context 內找不到 rules.md 的「§事實核實」標題 → 先重 Read `devwork/rules.md`**（規則書是普通 tool result、長 session 會被摘要洗掉；bstack repo 內由 repo 的 CLAUDE.md / AGENTS.md 引用 rules.md、常駐則不必）
 
 ## §Trace 標籤
 

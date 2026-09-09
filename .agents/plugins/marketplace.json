@@ -1,0 +1,12 @@
+{
+  "name": "bstack",
+  "interface": { "displayName": "bstack" },
+  "plugins": [
+    {
+      "name": "bstack",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Developer Tools"
+    }
+  ]
+}

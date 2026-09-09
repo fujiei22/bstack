@@ -1,224 +1,152 @@
 # bstack
 
-繁中台灣用語的 Claude Code 開發流程 plugin。
+bstack 是一套給 coding agent 的開發流程：28 個 skill、6 個 agent、1 支 hook 與一份規則書，裝成 plugin，Claude Code 與 Codex 共用同一份。繁中台灣用語。
 
-輸入 `/devwork <要做的事>`，讓 Claude Code 走完整 9 階段開發流程（brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro），並支援 Track / Tier 分流、subagent 隔離、TDD 紅綠循環、T3 PR 自動解釋落檔。不下指令時，它就是普通的 Claude Code；安裝不會動你 `~/.claude/` 裡任何既有設定。
+## 目錄
 
----
+- [它怎麼運作](#它怎麼運作)
+- [安裝](#安裝)
+  - [Claude Code](#claude-code)
+  - [Codex CLI](#codex-cli)
+- [九階段流程](#九階段流程)
+- [Skills（28）](#skills28)
+- [Agents（6）](#agents6)
+- [Hook](#hook)
+- [Claude Code 與 Codex 的差異](#claude-code-與-codex-的差異)
+- [原則](#原則)
+- [開發本 repo](#開發本-repo)
+- [License](#license)
 
-## Features
+## 它怎麼運作
 
-- **9 階段 dev-workflow** — `/devwork` 顯式啟動，依 **Track**（Bug / Dev）+ **Tier**（T0–T3）決定嚴格度；不因自然語言自動攔截
-- **rules.md 強制守則** — 隨 `/devwork` 載入：Task 追蹤、決策點 `AskUserQuestion` 全面取代自由文字 gate、Branch safety、File-type 硬規則、PII 安全底線、DB 唯讀政策
-- **Subagent 隔離** — review / 安全稽核 / e2e / hypothesis 驗證跑獨立 context，避免重 tool 噪音與球員兼裁判
-- **Hooks** — `branch-safety`（protected branch 寫入 block）、`file-type-guard`（密鑰 / migration / lockfile / CI / infra 自動把關）
-- **Trace 標籤** — 每輪 AI 回覆結尾貼 `[Trace] Phase=… | Tier=… | Track=… | Skill=…`，phase 透明、隨時可審
-- **設計 lane** — 動前端檔前先讀該區既有的設計語言、從實際檔案抄值；新頁 / 改版先出三個方向讓你挑，選定才落 code
-- **繁中台灣用語** — 對話 / 註解 / commit / PR 全繁中，英文專有名詞（brainstorm / Tier / TDD / PR）保留原文
+你打 `/devwork 要做的事`（Codex 上是 `$bstack:devwork 要做的事`）。agent 不會直接開始寫 code，它先問清楚你要什麼、看一遍 codebase，判這件事是修 bug 還是做功能、量體多大（T0–T3），用選單跟你確認。
 
----
+確認後它切 branch、把 spec 寫成檔給你看。大的改動再拆成一條條 task 落成計畫、派不同視角 review 計畫。你點頭之後才動工，每條 task 走紅綠 TDD、可平行的派 subagent。
 
-## Skills（28）
+做完自己跑 verify，派內建 code review 與獨立 context 的 reviewer 看一遍，敏感的改動再跑一輪安全稽核，然後收 branch、開 PR、把「為什麼這樣改」寫成文件。每一步結尾都貼一行 Trace，你隨時看得出它在哪一個 phase。
 
-### Phase 主流程
-
-| Skill | 在幹嘛 |
-|---|---|
-| **devwork** | 唯一入口：`/devwork <要做的事>` 啟動九階段；讀 rules.md 守則後交給 dev-workflow。不下指令就不生效 |
-| **brainstorm** | 動工前先把需求問清楚、順便判斷這個 task 大不大、是新功能還是修 bug；T2 會順手列一張施工清單、不另寫計畫 |
-| **write-plan** | T3 才寫：把要做的事拆成一條條 task、落成計畫文件。T2 的施工清單直接寫在 spec 裡 |
-| **review-plan** | T3 才跑：計畫寫好後看改動碰到什麼面向，派對應的視角再 review 一遍 |
-| **execute-plan** | 照計畫一條條做下去 |
-| **tdd-cycle** | 寫實作前先寫測試、看到失敗再寫 code |
-| **verify-done** | 收尾前跑一遍 test / lint / build、確認沒弄壞東西 |
-| **request-review** | 改完 code 派 reviewer 看一遍 |
-| **receive-review** | 處理 reviewer 回饋，小問題自動修、敏感的改動會問你 |
-| **security-audit** | 改動涉認證 / 資料層 / 敏感邏輯時跑一輪安全稽核 |
-| **security-checklist** | 寫敏感 code（auth / 上傳 / payment）對著 checklist 一條條檢查 |
-| **finish-branch** | 把 branch 收尾、push、開 PR |
-| **pr-explain** | T3 才自動跑：PR 開完後另外寫一份「為什麼這樣改」的解說文件；其他 tier 你點名才跑 |
-
-### 跨流程 / 觸發式
-
-| Skill | 在幹嘛 |
-|---|---|
-| **debug-systematic** | 修 bug 用的固定步驟，從重現到防回歸 |
-| **incident-investigate** | 線上 incident 找根因用、可以平行驗多個假設 |
-| **design-language** | 動前端檔前先查這塊屬於哪套設計語言、把實際的色碼字級抄出來 |
-| **design-direction** | 新頁或改版時產三個差異化方向、附真實視覺讓你選 |
-| **frontend-test** | 改前端時用 Playwright 跑 e2e |
-| **db-access** | 動 DB / 寫 SQL 時的規範（唯讀、量限、PII 要 mask） |
-| **cmd-guard** | 跑危險指令前（rm -rf / drop / force push）跳出來叫你二次確認 |
-| **safety-guard** | 輸出前掃 PII / 密鑰，避免落到 log / commit |
-| **lock-files** | 標某些檔禁改，避免不小心動到 |
-| **context-snapshot** | 進度太長想換 session 時把狀態存下來 |
-| **context-resume** | 把上次存的進度讀回來繼續做 |
-
-### Meta
-
-| Skill | 在幹嘛 |
-|---|---|
-| **dev-workflow** | 整套流程的主入口、決定該走哪些 phase |
-| **dispatch-parallel** | 多個 task 可以同時做時，派 subagent 平行跑 |
-| **retro** | 回顧一段期間做了什麼，從中歸納 user 偏好寫回 memory |
-| **write-skill** | 想自己加新 skill 時的範本與規格 |
-
----
-
-## Agents（6）
-
-獨立 context 跑的 subagent、跟主對話隔開，避免重 tool 噪音或球員兼裁判：
-
-| Agent | 在幹嘛 |
-|---|---|
-| **db-reviewer** | 專門看 DB schema / migration / SQL 改得對不對 |
-| **frontend-e2e-runner** | 跑 Playwright e2e 的專人、把 browser 那一大堆 log 隔在自己 context 裡 |
-| **hypothesis-tester** | incident 調查時一個 agent 驗一個假設、互不知對方在驗什麼 |
-| **lang-reviewer** | 你點名才派的語言專家：按語言抓 idiom 跟 pitfall（python / TS / SQL / Go …）。T2 的 review 交給 Claude Code 內建的 code-review，T3 才有自寫的對齊 reviewer、語言重點寫在它的指示裡 |
-| **pr-explainer** | PR 開完重新讀一遍 diff、把為什麼這樣改寫成詳盡解說 |
-| **security-auditor** | 用獨立 context 跑 OWASP / STRIDE / PII 安全稽核 |
-
----
-
-## Hooks
-
-一支 PreToolUse hook（`hooks/guard.mjs`，兩段檢查）由 plugin 的 `hooks/hooks.json` 註冊，在**啟用 plugin 的專案一律生效、不需要 `/devwork`**。不想要就 `/plugin disable bstack@bstack`。每次 Write / Edit 會起一個 node 程序：實測（node 22、Windows 11）repo 內的檔約 0.45 秒（含一次 `git rev-parse`）、repo 外約 0.27 秒；2026-09-07 之前是兩支 pwsh 合計約 3 秒。
-
-| 段 | 用途 |
-|---|---|
-| **branch-safety 段** | 命中 `main / master / production / prod / release` 直接 block 寫入動作，訊息附開 branch 的做法；只管 project repo 底下的檔 |
-| **file-type 段** | 按副檔名 / 路徑分流：密鑰類硬擋；migration / lockfile / CI / infra / shell config 類先擋，二次確認後由 AI 用 `node hooks/guard.mjs --token <path>` 在系統 temp 建一次性 token 放行；**不看 repo 範圍**，`~/.gitconfig` 也擋 |
-
-**hook 需要 `node` 在啟動 Claude Code 的環境 PATH 內**（`node --version` 驗；macOS 從 Dock 開的 app 不一定吃到 brew 的 PATH）。**Claude Code 自己不帶 node**——官方 setup 文件寫明 `claude` 是 native binary、npm 裝法也只是下載 binary，所以 native 安裝的機器要另裝 node。缺了會怎樣：官方 hooks 文件說 hook 起不來會印一行 non-blocking 通知、工具照跑；Windows 實測（2026-09-07，`claude -p` stream-json）連通知都沒有、檔案照寫——**保護一樣不存在**，跟舊版缺 pwsh 一樣。pwsh 7+ **只有 `scripts/install.ps1` / `scripts/extras.ps1` 兩支可選的輔助腳本需要**，不跑它們、照下面 `/plugin` 兩行也裝得起來；貢獻者另需 pwsh 跑 `scripts/build-references.ps1`。
-
----
+不打指令時，它就是普通的 Claude Code / Codex；只有一支 hook 例外，它在啟用 plugin 的專案一律生效：在 main 上寫檔會被擋、碰到 `.env` / migration / lockfile / CI 這類檔會先問你。
 
 ## 安裝
 
-### Prerequisites
+兩個 host 裝的是同一份 plugin，指令不同而已。前置：node（hook 要用）、git。細節、坑、移除、舊版遷移全在 [docs/install.md](docs/install.md)。
 
-| 項目 | 用途 |
+### Claude Code
+
+- 專案層級（推薦）：把 `templates/project-settings.json` 複製成你專案的 `.claude/settings.json`，開新 session 就會自動裝。
+- 或手動：
+
+  ```
+  /plugin marketplace add fujiei22/bstack
+  /plugin install bstack@bstack
+  ```
+
+- 個人偏好（statusLine、唯讀權限白名單、Agent Teams 開關）可選裝；playwright MCP 隨 plugin 自帶，mysql MCP 含帳密、腳本會印指令範本讓你填：
+
+  ```pwsh
+  pwsh -File scripts/extras.ps1
+  ```
+
+- 開新 session，打 `/bstack:devwork 要做的事`。
+
+### Codex CLI
+
+- 一站式（裝 plugin、複製 agent TOML、開 `tools.update_plan`、印 mysql MCP 的指令範本；playwright MCP 隨 plugin 自帶）：
+
+  ```pwsh
+  git clone https://github.com/fujiei22/bstack.git
+  cd bstack
+  pwsh -File scripts/install-codex.ps1
+  ```
+
+- 或手動只裝 plugin：
+
+  ```
+  codex plugin marketplace add fujiei22/bstack
+  codex plugin add bstack@bstack
+  ```
+
+- 開新 session，先打 `/hooks` 信任 bstack 的 PreToolUse（Codex 對 plugin hook 預設不信任，不信任就沒有 branch 保護），再打 `$bstack:devwork 要做的事`。
+- 有防毒即時掃描的機器 GitHub 來源會一直「存取被拒」，改用本機 clone 當來源，見 [docs/install.md](docs/install.md#有防毒的機器github-來源會失敗)。
+
+## 九階段流程
+
+1. **brainstorm** — 問清楚要做什麼、判 Track / Tier，切 branch、落 spec。T2 順手列施工清單。
+2. **write-plan** — T3 才寫：拆成一條條 task、並行性分析。
+3. **review-plan** — T3 才跑：依改動面向派 1–3 個視角 review 計畫。
+4. **execute-plan + tdd-cycle** — 照計畫做，每條 task 紅 → 綠 → commit；可平行的派 subagent。
+5. **verify-done** — test / lint / build / e2e 全跑一遍，不綠不進 review。
+6. **request-review → receive-review** — 內建 code review + 獨立 reviewer；小問題自動修、敏感的問你。
+7. **security-audit** — 涉認證 / 資料層 / hook 這類改動跑 OWASP / STRIDE / PII 稽核。
+8. **finish-branch** — rebase、push、開 PR；merge 由你按。
+9. **pr-explain** — T3 PR 自動解釋：獨立 context 重讀 diff，寫成「為什麼這樣改」落檔並貼 PR。
+
+另有手動觸發的 **retro**：回顧一段期間的工作，把 user 偏好寫回 memory。
+
+## Skills（28）
+
+**主流程**
+- **devwork** — 唯一入口，讀規則書後交給 dev-workflow
+- **dev-workflow** — 九階段 routing 與 hand-off state
+- **brainstorm** / **write-plan** / **review-plan** / **execute-plan** / **tdd-cycle** / **verify-done** / **request-review** / **receive-review** / **security-audit** / **security-checklist** / **finish-branch** / **pr-explain** — 上面九階段各自的定義
+
+**跨流程 / 觸發式**
+- **debug-systematic** — 修 bug 的固定步驟：重現 → 最小重現 → 修 → 防回歸
+- **incident-investigate** — 線上 incident 找根因，多假設平行驗
+- **design-language** / **design-direction** — 動前端前先抄該區既有設計語言；新頁或改版先出三個方向讓你選
+- **frontend-test** — Playwright e2e
+- **db-access** — DB 唯讀、量限、PII 要 mask
+- **cmd-guard** / **safety-guard** / **lock-files** — 危險指令二次確認、輸出前掃 PII / 密鑰、標檔禁改
+- **context-snapshot** / **context-resume** — 換 session 時存 / 讀進度
+
+**Meta**
+- **dispatch-parallel** — 多 task 平行時派 subagent 或 Agent Teams
+- **retro** — 回顧並寫 memory
+- **write-skill** — 新 skill 的範本與落地 checklist
+
+## Agents（6）
+
+獨立 context 跑，跟主對話隔開：
+
+| Agent | 在幹嘛 |
 |---|---|
-| **Node.js**（含 npx） | **hook 必需**（缺了 hook 起不來、保護不存在，見上）；MCP 也用 |
-| **git** | repo 操作 |
-| **pwsh 7+** | 只有 `scripts/install.ps1` / `scripts/extras.ps1` 這兩支可選腳本、與開發本 repo（`build-references.ps1`）需要 |
-| **bash + jq** | 只有選了 statusLine 才需要（`winget install jqlang.jq` / `brew install jq`） |
+| **db-reviewer** | DB schema / migration / SQL 改得對不對 |
+| **frontend-e2e-runner** | 跑 Playwright e2e，把 browser log 隔在自己 context |
+| **hypothesis-tester** | incident 調查時一個 agent 驗一個假設 |
+| **lang-reviewer** | 你點名才派的語言專家：按語言抓 idiom 跟 pitfall。T2 的 review 交給內建 code-review，T3 才有自寫的對齊 reviewer |
+| **pr-explainer** | PR 開完重讀 diff，寫詳盡解說 |
+| **security-auditor** | OWASP / STRIDE / PII 安全稽核 |
 
-### 一站式（推薦第一次裝的人）
+## Hook
 
-```pwsh
-git clone https://github.com/fujiei22/bstack.git
-cd bstack
-pwsh -File scripts/install.ps1
-```
+`hooks/guard.mjs`，PreToolUse、兩段：**branch-safety** 在 `main / master / production / prod / release` 上擋寫檔；**file-type** 對密鑰硬擋，對 migration / lockfile / CI / infra / shell config 先擋、你確認後 AI 建一次性 token 放行。Claude Code 攔 Write / Edit / NotebookEdit，Codex 攔 `apply_patch`。需要 node 在 PATH；Codex 另需 `/hooks` 信任。細節見 [docs/install.md](docs/install.md#hook-的前置node)。
 
-五步逐一問你：前置檢查 → 清舊 setup.ps1 副本（搬進備份目錄不刪）→ 裝 plugin（問使用者層級 / 目前專案 / 只印試用指令）→ 個人偏好四項逐項選 → 驗證並提醒重開 Claude Code。每步都能跳過；它自己不寫任何檔，寫入都交給 extras.ps1（可 `-Uninstall`）與 claude CLI（可 `/plugin uninstall`）。非互動：`-Yes -Scope user`；只看會做什麼：`-WhatIf`。下面 A / B / C 是它每一步各自的手動版。
+## Claude Code 與 Codex 的差異
 
-### A. 啟用 plugin
+流程一樣，工具不同：決策選單（`AskUserQuestion` ↔ `request_user_input`）、任務追蹤（`TaskCreate` ↔ `update_plan`）、派 subagent（`Agent` ↔ `spawn_agent`）、code review（內建 `/code-review` ↔ 一個唯讀 reviewer subagent）。Codex 沒有 Agent Teams，唯讀 agent 的 sandbox 在非互動模式下靠自律。完整對照與退路在 `skills/devwork/hosts.md`，限制清單在 [docs/install.md](docs/install.md#已知限制)。
 
-三種方式，依推薦順序：
+## 原則
 
-**A1. 專案層級（推薦）**：把 `templates/project-settings.json` 複製成你專案的 `.claude/settings.json`（已有的話把 `extraKnownMarketplaces` 與 `enabledPlugins` 兩段合進去；`permissions` 段自行取捨，它會與你團隊既有的 allow 合併不是覆蓋）。它同時帶了唯讀權限白名單，**這份也是 extras.ps1 白名單的唯一來源**，往裡面加東西前想一下是否也適合使用者層級。
+- **先問再做** — 需求、Track、Tier 都用選單確認，不靠猜
+- **紅綠 TDD** — 先寫測試看到紅，再寫最小實作
+- **事實核實** — 資料模型的結論要同時看實際資料與 codebase 使用點
+- **獨立 context 審** — reviewer、稽核、e2e 不跟寫 code 的同一個 context
+- **證據優先** — 說「實測」就要有指令與輸出；推論就標推論
 
-兩件事複製前要知道：
-- 白名單裡的 `Bash(cat:*)` / `Bash(head:*)` / `Bash(tail:*)` 是任意檔**讀取**，不受 file-type-guard 保護（hook 只管 Write / Edit）。`cat .env` 不會被擋、內容會進對話 context。專案內有密鑰檔的話，把這三條拿掉或改成 `ask`。
-- `extraKnownMarketplaces` 指向 `fujiei22/bstack`，Claude Code 的 marketplace source 目前沒有版本 pin，隊友拿到的是該 repo 當下的內容，而 hook 是每次 Write / Edit 都會跑的程式碼。要更嚴格就 fork 一份自己管控的 repo、把 `repo` 改成你的。開新 session 後若 `/devwork` 沒反應，手動裝一次：
-
-```
-/plugin marketplace add fujiei22/bstack
-/plugin install bstack@bstack
-```
-
-`bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。clone 這個專案的隊友是否會被自動安裝 plugin，官方文件沒明說，所以範本與這兩行都留著。
-
-**A2. 使用者層級**：不放範本、直接跑上面兩行。Claude Code 會把 plugin 快取在 `~/.claude/plugins/`、在它自己的 settings 記一筆 `enabledPlugins`。這是 Claude Code 的登記機制，`/plugin uninstall bstack@bstack` 可反悔，**不會覆蓋你任何既有設定**。代價：hook 會在你所有專案生效。
-
-**A3. 試用**：不安裝，只在這個 session 載入：
-
-```bash
-git clone https://github.com/fujiei22/bstack.git
-claude --plugin-dir ./bstack
-```
-
-### B. 個人偏好（可跳過）
-
-plugin 規格帶不了的四項（statusLine、`permissions.allow` 唯讀白名單、`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`、playwright MCP），每項各問一次裝到哪一層：
-
-```pwsh
-pwsh -File scripts/extras.ps1
-```
-
-- `[u]` 使用者層級（你的 Claude 設定目錄裡的 settings.json）、`[p]` 目前專案 `.claude/settings.json`、`[s]` 跳過（預設）。不選就什麼都不寫。
-- MCP 的 `[p]` 寫的是專案根 `.mcp.json`，**會進 git、隊友共用**。mysql MCP 含帳密，腳本只印指令範本讓你自己填。
-- 寫入走 merge、先備份、只記真的新增的 key 到 `~/.claude/bstack-extras.json`（本腳本唯一**不經你選擇**就會寫的檔；選 `[u]` 寫的 settings.json 是你選的）。`-Uninstall` 只拆自己加的，你本來就有的不碰。備份檔 `settings.json.bak-<時間>` 是原檔明文快照，若你的 settings 裡放過帳密之類的 `env`，記得定期清。
-- 請從 clone 的 repo 跑：statusLine 會指到 `extras/statusline.sh` 的絕對路徑。clone 搬家後重跑、選 statusLine 的 `[r]` 重裝。
-- 非互動：`pwsh -File scripts/extras.ps1 -Yes -Items statusLine,env -Scope user`。
-
-### C. 開新 session，下指令
-
-既有 session 不會載入新 plugin，開新的才生效。然後：
-
-```
-/bstack:devwork 要做的事
-```
-
-裸 `/devwork` 目前也可以（實測 Claude Code 2.1.260 會直接解析），但那是實作行為不是文件保證；打了出現 Unknown command 或載到別的東西，就改打帶前綴的寫法。沒下指令時，Claude Code 就是普通的 Claude Code。
-
----
-
-## 確認 plugin 有載入
-
-1. 輸入 `/devwork`，應看到第一行 `[bstack devwork · plugin] 已載入守則。…`。
-2. 沒有 → 輸入 `/plugin`，看 bstack 是否列為 enabled；沒有就回 §A 裝。
-3. 仍沒有 → 用 `claude --plugin-dir <clone 路徑>` 開一個 session 對照：這樣能載就是登記問題，不能載就是 manifest 問題，開 issue 時請附這一步的結果。
-4. 看到**第二行** `[已載入 dev-workflow]` → 你機器上還有舊版 setup.ps1 留在 `~/.claude/skills/` 的副本，它遮蔽了 plugin 版。跑 `pwsh -File scripts/extras.ps1 -Migrate`，重開 session。
-
-## 什麼時候生效
-
-| 東西 | 生效範圍 |
-|---|---|
-| hook（`guard.mjs` 兩段） | 啟用 plugin 的專案，**所有 session**，不需要 `/devwork` |
-| rules.md 守則與九階段流程 | 只在 `/devwork` 之後、那個 session 內 |
-| extras 四項 | 你在選單選的層級 |
-
----
-
-## 從舊版（setup.ps1）遷移
-
-舊版把 skill / agent / hook / CLAUDE.md 複製進 `~/.claude/`。兩件事會讓新版失效：
-
-- **user 級同名 skill 會遮蔽 plugin skill**：舊版的 `~/.claude/skills/dev-workflow` 還在，`/devwork` 載到的就是舊版。
-- **舊版 setup.ps1 留下的 `~/.claude/CLAUDE.md`** 有一句「寫 / 改 / 修 / 加類 prompt 一律進 dev-workflow」，會讓自動攔截復活。
-
-```pwsh
-pwsh -File scripts/extras.ps1 -Migrate
-```
-
-它會列出舊副本（skills / agents / hooks / statusline / state、settings.json 內指向舊 hook 的條目），只認有 bstack 簽名的檔、同名但你自己寫的不動；確認後**搬進** `~/.claude/bstack-migrate-bak-<時間>/`（不直接刪，誤判可救回）；`~/.claude/CLAUDE.md` 若與 bstack 舊版一致就改名成 `CLAUDE.md.bstack-bak-<時間>`，被你改過的則不動、印出那一行的行號請你自行拿掉。之後重開 session。
-
-## 完全移除
-
-| 指令 | 拆什麼 | 不碰什麼 |
-|---|---|---|
-| `/plugin uninstall bstack@bstack` | plugin 核心：skills / agents / hooks / 守則 | 你的 settings、extras 寫的東西 |
-| `pwsh -File scripts/extras.ps1 -Uninstall` | extras 加過的 key 與 playwright MCP（依 manifest） | 你本來就有的同名設定 |
-| `pwsh -File scripts/extras.ps1 -Migrate` | 舊版 setup.ps1 留在 `~/.claude/` 的副本 | 你自己的 skill / hook / 被改過的 CLAUDE.md |
-
----
+規則書本體在 `skills/devwork/rules.md`。
 
 ## 開發本 repo
 
 ```bash
-claude --plugin-dir .          # 讓 /devwork 與 hooks 在這個 repo 內生效
-node scripts/plugin-contract.mjs            # plugin 結構契約（在 Git Bash 跑）
-node docs/tools/docs-site-contract.mjs      # docs 站契約
+claude --plugin-dir .                            # /devwork 與 hook 在本 repo 生效
+node scripts/plugin-contract.mjs                 # plugin 結構契約（Git Bash 跑）
+node docs/tools/docs-site-contract.mjs           # docs 站契約
 pwsh -File scripts/build-references.ps1 -Check   # 內嵌文件是否過期；改了 skill 就重跑不帶 -Check
-pwsh -File scripts/extras.ps1 -SelfTest     # extras 行為斷言
+pwsh -File scripts/extras.ps1 -SelfTest          # extras 行為斷言
+node scripts/gen-codex-agents.mjs --check        # 改了 agents/*.md 就不帶 --check 重跑
 ```
 
-新增 skill 要動的地方見 `skills/write-skill/SKILL.md` §新 skill 落地 checklist。repo 搬家要改 `templates/project-settings.json` 的 `repo`。
-
----
+新增 skill：見 `skills/write-skill/SKILL.md` §新 skill 落地 checklist。新增 agent：寫 `agents/<name>.md` → `node scripts/gen-codex-agents.mjs` → 把 `codex/agents/<name>.toml` 一起 commit → 上面 Agents 表 +1。
 
 ## License
 
