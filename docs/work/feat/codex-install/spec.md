@@ -126,6 +126,13 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 - design-language：`scope=文件站`（`docs/reference/design-map.md`，token 來源 `docs/index.html` `:root`）、`size=小改`。四項對齊：元件狀態 → 新 `<pre>` / `<code>` 原樣抄同卡片既有 inline style（含 `style-hover`）；斷點 → N/A（沿用 grid `auto-fit`，未加 media query）；表單 → N/A（無表單）；dark mode → 只用 `--sunk` / `--line` / `--ink-3` / `--accent`，`:root[data-theme="dark"]` 已有第二套值。
 - smoke（static-serve + Playwright）：標題與三處新文字都找得到；console 35 個 error 全來自內嵌 `flow.html?embed=1`（模板佔位字串在 JS 接手前被瀏覽器解析、`FLOW_DATA` 重複宣告），stash 回改動前同樣 35 個 → 既有問題，記 follow-up。
 
+### 追加：user 追問後的三件事（2026-09-09）
+
+- **GitHub 來源存取被拒的根因**：Trellix Endpoint Security 即時掃描，`git clone` 完的目錄約 10 秒內 rename 一律被拒（直接重現：clone 後 0 秒 mv 被拒、10 秒後成功）；Codex 是 clone 完立刻 rename。working tree 當本機來源（144 MB）同一機制連撞 4 次；**精簡 clone（27 MB）當 marketplace root 一次過** → `install-codex.ps1 -Source local` 改用 `~/.codex/bstack-src`，GitHub 失敗自動退到它，`-Uninstall` 一併拆。
+- **README 精簡版**（照 obra/superpowers 寫法）：細節搬進 `docs/install.md`；契約要的 `## Skills（28）` / `## Agents（6）` / lang-reviewer 列 / 「T3 PR 自動解釋」保留。
+- **plugin 自帶 playwright MCP**（user 選「打包」）：根目錄 `.mcp.json`（stdio、pin 0.0.68），實測乾淨 `CODEX_HOME` 裝 plugin 後 `codex mcp list` 直接有 `playwright enabled`；config 已有同名時 config 優先。mysql 含帳密不打包，`extras.ps1` / `install-codex.ps1` 第 6 步只印範本。契約 P13 守 `.mcp.json` 只帶 pin 版 playwright。
+- config 的 `hooks.state` 已有 bstack hook 的 `trusted_hash`（user 在互動 session 做過 `/hooks`）→ Task 10 第 2 項補上。
+
 ### request-review / receive-review（2026-09-09）
 
 - code-review high 的主控 fork 收不到 finder 回報（finder 把結果送到主 session），verifier 由主 agent 接手；能實測的都用 Codex CLI 實測。整合結果與處置在 `code-review.md`。
