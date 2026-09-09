@@ -17,7 +17,8 @@ bstack 目前只能以 Claude Code plugin 安裝。Codex（OpenAI）的 skill �
 1. `hooks/guard.mjs`：支援 `tool_name: "apply_patch"`（從 `tool_input.command` 解析 `*** Add File:` / `*** Update File:` / `*** Delete File:` / `*** Move to:` 取路徑，多檔逐一判）；`repoDir` 改 `CLAUDE_PROJECT_DIR` → `git rev-parse --show-toplevel` → cwd；stderr 訊息改 host 中性（決策工具、停用指令兩個 host 都寫）。
 2. `.codex-plugin/plugin.json`（Codex 原生 manifest）與 `.agents/plugins/marketplace.json`（原生 marketplace）；`.claude-plugin/*` 保留。
 3. `skills/devwork/hosts.md`：六個抽象動作在兩個 host 的具體工具對照（決策點 / 任務追蹤 / 派 subagent / code review / memory 路徑 / 停用 plugin），含 host 判定規則；devwork 使用契約第 1 步一併讀。
-4. skill 文字的雙 host 化：`request-review`（code-review 段）、`dispatch-parallel`（移除 Agent Teams 分支）、`brainstorm` 0a（memory 路徑依 host）、`rules.md` Tier 表 review 欄與 §決策點選單、`pr-explain` 移除 `context: fork`、`devwork` 讀 hosts.md。其餘 skill 保留 `AskUserQuestion` 等字樣當抽象動詞，由 hosts.md 定義。
+4. skill 文字的雙 host 化：`request-review`（code-review 段）、`dispatch-parallel`（移除 Agent Teams 分支）、`brainstorm` 0a（memory 路徑依 host）、`rules.md` Tier 表 review 欄與 §決策點選單、`pr-explain` 移除 `context: fork`、`devwork` 讀 hosts.md。其餘 skill 保留 `AskUserQuestion` / `TaskCreate` / `Agent` / `subagent_type` / `mcp__<server>__<tool>` 等字樣當**抽象動詞**，由 hosts.md 定義兩 host 的具體工具，不逐檔改。
+4b. **全 35 檔（28 skill + 6 agent + rules.md）Claude 專屬字面掃描**：2026-09-09 實測，4b 之外還有 12 檔各含 1 到 3 處字面（`~/.claude/…` 路徑：context-snapshot、retro；`.claude/`：design-language、execute-plan、retro、write-skill；`@import`：dev-workflow、design-language；`SendMessage`：review-plan；`NotebookEdit` 字樣：finish-branch、lock-files、hypothesis-tester、security-auditor；`${CLAUDE_PLUGIN_ROOT}`：design-direction（Codex 相容、可留）；`TaskList` 歷史：retro）。逐處改成 host 中性或雙 host 寫法。**契約 P12**：hosts.md 與 README 以外的 skill / agent 檔禁出現字面清單（`~/.claude`、`.claude/`、`@import`、`SendMessage`、`context: fork`、`claude --plugin-dir`、`/plugin `），紅就擋 merge。
 5. `codex/agents/*.toml` 產生器（從 `agents/*.md` 產 Codex custom agent TOML：`name` / `description` / `developer_instructions` = 本文、`model` 對照、reviewer 類 `sandbox_mode = "read-only"`、MCP 依賴）；產物入版控、契約守同步。
 6. `scripts/install-codex.ps1` 與 README「Codex」節。
 7. `scripts/plugin-contract.mjs`：新增 Codex manifest 檢查、雙 manifest 版本一致、apply_patch fixture、agents TOML 同步、hosts.md 存在且 devwork 有讀。
@@ -45,7 +46,10 @@ bstack 目前只能以 Claude Code plugin 安裝。Codex（OpenAI）的 skill �
 | `skills/dispatch-parallel/SKILL.md` | edit | 中：拿掉 Agent Teams 分支後 §協作模式判定 要同步（rules.md 也有一份） |
 | `skills/brainstorm/SKILL.md` | edit | 低：0a memory 路徑 |
 | `skills/pr-explain/SKILL.md` | edit | 低：移除 `context: fork` |
-| `agents/*.md`（6 個） | 不動 | — |
+| `skills/{context-snapshot,retro,design-language,execute-plan,write-skill,dev-workflow,review-plan,finish-branch,lock-files}/SKILL.md`（9 個） | edit（字樣，各 1 到 3 處） | 低：4b 掃描；契約 P12 守 |
+| `agents/{hypothesis-tester,security-auditor}.md` | edit（`NotebookEdit` 字樣） | 低 |
+| `agents/{db-reviewer,frontend-e2e-runner,lang-reviewer,pr-explainer}.md` | 不動（只有抽象動詞與 MCP 工具名） | — |
+| `skills/{security-checklist,tdd-cycle,write-plan,cmd-guard,db-access,debug-systematic,frontend-test,incident-investigate,receive-review,safety-guard,security-audit,verify-done,context-resume,design-direction}/SKILL.md`（14 個） | 不動（只有抽象動詞） | — |
 | `codex/agents/*.toml`（6 個） | new（產生器產出） | 中：model 名漂移（`gpt-5.6-terra` / `gpt-5.6-luna`） |
 | `scripts/gen-codex-agents.mjs` | new | 中 |
 | `scripts/install-codex.ps1` | new | 中：Codex CLI 指令 / 輸出格式需實測 |
