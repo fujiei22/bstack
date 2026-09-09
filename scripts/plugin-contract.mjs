@@ -233,12 +233,17 @@ const e7ok = e7.status === 2 && /目前在/.test(e7.stderr || '') && /request_us
 const e8 = spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify(AP2(['Dockerfile', 'docker-compose.yml'])), encoding: 'utf8', env: codexEnv, cwd: p2eRepo });
 const e8tok = ((e8.stderr || '').match(/--token "/g) || []).length;
 const e8ok = e8.status === 2 && e8tok === 2 && ((e8.stderr || '').match(/處置（依序執行）/g) || []).length === 1;
+// Codex 的 block 契約：payload 帶 turn_id → exit 0 + stdout JSON permissionDecision=deny（2026-09-09 實測 Codex 不認 exit 2）；沒 turn_id（Claude Code）→ e3 / e7 已守 exit 2
+const e9 = spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify({ ...AP2(['src/a.ts']), turn_id: 't1', hook_event_name: 'PreToolUse' }), encoding: 'utf8', env: codexEnv, cwd: p2eRepo });
+let e9json = null; try { e9json = JSON.parse(e9.stdout || ''); } catch { /* 不是 JSON */ }
+const e9ok = e9.status === 0 && e9json?.hookSpecificOutput?.permissionDecision === 'deny' && /目前在/.test(e9json?.hookSpecificOutput?.permissionDecisionReason || '') && /目前在/.test(e9.stderr || '');
+const e9dup = ((e9.stderr || '').match(/若你沒在用 bstack 流程/g) || []).length === 1;   // 停用提示只印一次
 rmSync(p2eDir, { recursive: true, force: true });
-check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → BLOCK；真 git main → 擋；WARN → --token 建檔 → 再跑放行且 token 已刪、consumed.log 有 valid=True；Codex apply_patch 無 CLAUDE_PROJECT_DIR 走 git toplevel 仍擋、訊息含兩 host 工具名、多檔 WARN 兩行 --token 共用步驟一次',
+check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → BLOCK；真 git main → 擋；WARN → --token 建檔 → 再跑放行且 token 已刪、consumed.log 有 valid=True；Codex apply_patch 無 CLAUDE_PROJECT_DIR 走 git toplevel 仍擋、訊息含兩 host 工具名、多檔 WARN 兩行 --token 共用步驟一次；帶 turn_id（Codex）→ exit 0 + stdout JSON deny、停用提示只印一次',
   gitOk && e1.status === 0 && e2.status === 2 && /BLOCK/.test(e2.stderr || '') && e3.status === 2 && /目前在/.test(e3.stderr || '') &&
-    e4.status === 2 && /WARN/.test(e4.stderr || '') && !!tokenPath && e5.status === 0 && tokenMade && e6.status === 0 && tokenGone && logOk && e7ok && e8ok,
-  `git=${gitOk} Read=${e1.status} .env=${e2.status} main擋=${e3.status}/${/目前在/.test(e3.stderr || '')} WARN=${e4.status} tokenPath=${!!tokenPath} --token=${e5.status}/${tokenMade} 放行=${e6.status} token刪=${tokenGone} log=${logOk} codex-toplevel=${e7.status}/${e7ok} 多檔WARN=${e8.status}/${e8tok}/${e8ok}` +
-    `（後果：CLI 沒接上判定、git spawn 寫壞會靜默放行、Codex 上 repoDir 退回 cwd 讓子目錄裡的相對路徑 fail-open、或 WARN 指示照抄卻建不出 token；改處：hooks/guard.mjs main() / gitToplevel / consumeToken / --token）`);
+    e4.status === 2 && /WARN/.test(e4.stderr || '') && !!tokenPath && e5.status === 0 && tokenMade && e6.status === 0 && tokenGone && logOk && e7ok && e8ok && e9ok && e9dup,
+  `git=${gitOk} Read=${e1.status} .env=${e2.status} main擋=${e3.status}/${/目前在/.test(e3.stderr || '')} WARN=${e4.status} tokenPath=${!!tokenPath} --token=${e5.status}/${tokenMade} 放行=${e6.status} token刪=${tokenGone} log=${logOk} codex-toplevel=${e7.status}/${e7ok} 多檔WARN=${e8.status}/${e8tok}/${e8ok} codex-deny=${e9.status}/${e9ok}/${e9dup}` +
+    `（後果：CLI 沒接上判定、git spawn 寫壞會靜默放行、Codex 上 repoDir 退回 cwd 讓子目錄裡的相對路徑 fail-open、Codex 只看到 exit 2 不看到 JSON deny 就整個不擋（2026-09-09 實測）、或 WARN 指示照抄卻建不出 token；改處：hooks/guard.mjs main() / isCodexPayload / gitToplevel / consumeToken / --token）`);
 
 // ── P3 skills ───────────────────────────────────────────────────────────────
 const skillDirs = readdirSync(join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();

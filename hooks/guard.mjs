@@ -170,13 +170,12 @@ export function decide(payload, ctx) {
     if (branch && PROTECTED.test(branch)) {
       lines.push(`[bstack] 目前在 '${branch}'，這是受保護的 branch，不直接寫入 / 編輯 project repo 內的檔。`);
       lines.push(`請先開 branch：跟 user 確認名稱（${ASK_HINT}）→ \`git checkout -b <type>/<short-desc>\`（type ∈ feat/fix/refactor/docs/chore/test/hotfix）→ retry。`);
-      lines.push(DISABLE_HINT);
       exit = 2;
     }
   }
 
   // ── file-type 段：不看 repo scope；沒路徑就沒得判 ──
-  if (resolved.length === 0) return { exit, lines };
+  if (resolved.length === 0) { if (exit === 2) lines.push(DISABLE_HINT); return { exit, lines }; }
   // 第一趟：只分類、只 peek，不消耗 token
   const blocks = [], warns = [];
   for (const { path: p } of resolved) {
@@ -295,7 +294,18 @@ function main() {
   };
   const { exit, lines } = decide(payload, ctx);
   if (lines.length) process.stderr.write(lines.join('\n') + '\n');
+  // Codex：exit 2 不算 block（2026-09-09 Windows 實測：exit 2 + stderr、或 exit 2 + stdout JSON 都照寫檔），只認 stdout JSON deny + exit 0；
+  // 而 Claude Code 官方就是 exit 2 + stderr。用 payload 的 turn_id（文件明列為 Codex 專屬欄位）分流，兩邊各走各的契約。
+  if (exit === 2 && isCodexPayload(payload)) {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: lines.join('\n') } }) + '\n');
+    return 0;
+  }
   return exit;
+}
+
+/** Codex 的 hook payload 多帶 turn_id（官方文件：Codex-specific extension）；Claude Code 沒有。 */
+export function isCodexPayload(payload) {
+  return !!(payload && typeof payload === 'object' && typeof payload.turn_id === 'string');
 }
 
 // 直接執行才跑 CLI；被 import（契約 P2d、或別支腳本）時只匯出函式。
