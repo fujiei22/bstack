@@ -32,7 +32,7 @@ description: |
 ## §T1 self review
 主 agent 自己跑，不另開 subagent、不叫 code-review：看完整 `git diff <base>...HEAD`、對 spec 看 coverage、對 rules.md「§程式註解」看註解完整、列「值得 user 注意」清單。回報範本見 §結果整合 的 T1 段。
 ## §T2：內建 code-review + spec 自檢
-**Claude Code**：呼叫 `Skill("code-review", args="medium")`。**Codex**（hosts.md §程式碼審查）：`spawn_agent` 一個 `reviewer`（唯讀；沒裝 TOML 用 `explorer`）帶 §Codex reviewer prompt，`wait_agent` 收；輸出同 code-review 的 JSON 陣列 `{file, line, summary, failure_scenario}`，走 §結果整合 同一張表。
+**Claude Code**：呼叫 `Skill("code-review", args="medium")`。**Codex**（hosts.md §程式碼審查）：`spawn_agent` 內建的 `explorer`（唯讀；Codex 沒有叫 `reviewer` 的內建 agent、本 repo 也不產它）帶 §Codex reviewer prompt，`wait_agent` 收；輸出同 code-review 的 JSON 陣列 `{file, line, summary, failure_scenario}`，走 §結果整合 同一張表。
 
 Claude Code 側的回收方式：不給 target 就是當前 branch 對 upstream / main 的 diff（含未 commit 的）。Skill 工具會立刻回「launched (forked execution, running in the background)」，**結果走 task-notification 的 `<result>`**——等通知，不要用 `TaskOutput block=true` 輪詢（fork 派出 finder 子 agent 等待期間它會立刻回 completed）。
 

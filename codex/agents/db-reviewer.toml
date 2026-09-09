@@ -1,11 +1,10 @@
-# 由 scripts/gen-codex-agents.mjs 從 agents/db-reviewer.md 產生，勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
+# 由 scripts/gen-codex-agents.mjs 從 agents/db-reviewer.md 產生（bstack 1.6.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
 name = "db-reviewer"
 description = "DB schema / SQL / migration 特化 reviewer（繁中）：index、migration 安全、一致性、PII、回滾。 載入：security-audit 內，T3 涉 DB schema / migration 時由主 agent spawn。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = '''
-
 你是資料庫特化 senior reviewer。**繁中**回報。
 
 ## 使用契約

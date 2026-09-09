@@ -1,2 +1,3 @@
-# codex/agents/*.toml 由 gen-codex-agents.mjs 產生、契約 P15 逐位元組比對；Windows autocrlf 機器 checkout 也維持 LF
-*.toml text eol=lf
+# codex/agents/*.toml 由 gen-codex-agents.mjs 產生；t4 散測與人眼比對要的是磁碟上就是 LF（--check 本身有 strip() 正規化，不靠這條）。
+# 只限產物目錄，別的 TOML 不管。
+codex/agents/*.toml text eol=lf

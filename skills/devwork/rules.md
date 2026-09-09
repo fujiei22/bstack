@@ -46,7 +46,7 @@ user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」
 | `mcp__<server>__<tool>` | `.mcp.json` / `claude mcp add` | `codex mcp add`，server 名須與 skill 寫的一致 |
 
 ### §Branch safety
-plugin 的 `hooks/guard.mjs`（PreToolUse，branch-safety 段）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔 Write / Edit / NotebookEdit（見 `hooks/hooks.json` 的 matcher）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。
+plugin 的 `hooks/guard.mjs`（PreToolUse，branch-safety 段）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔寫檔工具——Claude Code 的 Write / Edit / NotebookEdit、Codex 的 `apply_patch`（見 `hooks/hooks.json` 的 matcher；Codex 把 Write / Edit 當 apply_patch 的別名）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。Codex 的 apply_patch 路徑相對 session cwd，hook 一律視為 repo 內（下面的「repo 外放行」豁免只對絕對路徑成立）。
 
 **豁免（刻意如此，契約 P2d 守；非設計缺陷）**：hook 只管 project repo（Claude Code 由 `$CLAUDE_PROJECT_DIR` 給、Codex 由 `git rev-parse --show-toplevel` 算）**底下**的檔；目標檔在 project repo 之外（plugin 目錄、使用者的 Claude 設定目錄）一律放行，不論當前 branch。非 git repo、`git rev-parse` 失敗、stdin JSON 解析失敗也放行——hook 不因自身錯誤擋人。**意思是：改 repo 以外的設定沒有 branch 保護，那是靠自律的區域。** hook 隨 plugin 在啟用它的每個專案生效、不需要 `/devwork`；不想要就停用：Claude Code `/plugin disable bstack@bstack`；Codex `/plugins` 停用、且 hook 需 `/hooks` 信任才生效。hook 是 node 腳本、Claude Code 自己不帶 node：node 不在 PATH 時官方 hooks 文件說會印 non-blocking 通知、工具照跑，Windows 實測連通知都沒有、檔案照寫——兩種說法下**保護都不存在**，只能靠 `node --version` 事前確認。
 

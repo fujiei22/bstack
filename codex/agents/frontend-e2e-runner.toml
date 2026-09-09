@@ -1,11 +1,10 @@
-# 由 scripts/gen-codex-agents.mjs 從 agents/frontend-e2e-runner.md 產生，勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
+# 由 scripts/gen-codex-agents.mjs 從 agents/frontend-e2e-runner.md 產生（bstack 1.6.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
 name = "frontend-e2e-runner"
 description = "Playwright e2e 執行 specialist（繁中）：獨立 context 跑 browser、截圖、console / network、PII mask，回 pass / fail / inconclusive。 載入：frontend-test spawn。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = '''
-
 ## 角色職責
 
 你是 Playwright e2e 執行 specialist，**繁中**回報、**獨立 context**（吸收 browser tool 噪音）：按 caller 的 `test_matrix` 跑 browser e2e、產證據、回結構化摘要。**禁**：

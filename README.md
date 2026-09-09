@@ -232,7 +232,7 @@ $bstack:devwork 要做的事
 | code review | 內建 `/code-review` | read-only 的 reviewer subagent |
 | MCP 工具名 | `mcp__<server>__<tool>` | 同格式 |
 | memory 路徑 | 見 `skills/devwork/hosts.md` §Memory 路徑 | 同左，路徑依 host 不同 |
-| 停用 plugin | `/plugin disable bstack@bstack` | `/plugins` |
+| 停用 plugin | `/plugin disable bstack@bstack` | `/plugins` 選 bstack 按 Space（hook 另需 `/hooks` 信任才會跑） |
 
 ### 已知限制
 

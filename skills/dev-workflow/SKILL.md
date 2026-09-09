@@ -72,8 +72,8 @@ Track / Tier 預判表與「命中 File-type 硬規則自動升至少 T2」見 `
    ↓
 5. request-review（先依副檔名分流：純文件 diff 跳 code-review；T2 只做 spec 自檢、T3 對齊 subagent 照派）
    ├─ T1 = self review
-   ├─ T2 = 內建 code-review medium（不帶 --fix）+ 主 agent 對 spec 自檢
-   └─ T3 = 內建 code-review high + 1 個 spec / 架構對齊 subagent（prompt 附語言提示）
+   ├─ T2 = 內建 code-review medium（不帶 --fix）+ 主 agent 對 spec 自檢（Codex 無內建 code-review：explorer reviewer subagent 代，見 hosts.md §程式碼審查）
+   └─ T3 = 內建 code-review high + 1 個 spec / 架構對齊 subagent（prompt 附語言提示；Codex 同上）
    ↓
    receive-review（含 §Auto-fix）
    ↓

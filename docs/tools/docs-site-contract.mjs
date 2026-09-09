@@ -396,7 +396,9 @@ for (const f of ['docs/js/data.js', 'docs/js/layout.js']) {
   }
 }
 
-const expectedRefCount = 2 // rules.md + hosts.md（devwork 的規則層兩份；plugin-contract P16 守 hosts.md 必內嵌）
+// references 裡「不是 skill 也不是 agent」的規則層文件：C8b 的期望數與 C18b 的白名單都從這一份算，加一份只改這裡
+const EXTRA_REFS = ['references/rules.md', 'references/hosts.md'];
+const expectedRefCount = EXTRA_REFS.length
   + readdirSync(join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).length
   + readdirSync(join(REPO, 'agents')).filter((f) => f.endsWith('.md')).length;
 check(
@@ -647,7 +649,7 @@ check(
 const diskSet = new Set([...diskSkills, ...diskAgents]);
 const strayRefs = [...refKeys].filter((k) => {
   const m = k.match(/^references\/(skills\/([^/]+)\/SKILL\.md|agents\/([^/]+)\.md)$/);
-  if (!m) return k !== 'references/rules.md' && k !== 'references/hosts.md';   // rules.md（規則書）與 hosts.md（host 對照表）是僅有的兩個合法例外
+  if (!m) return !EXTRA_REFS.includes(k);   // 規則層文件（rules.md / hosts.md）是僅有的合法例外，清單見 EXTRA_REFS
   return !diskSet.has(m[2] || m[3]);
 });
 check(

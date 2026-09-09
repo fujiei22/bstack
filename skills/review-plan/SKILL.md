@@ -49,9 +49,9 @@ description: |
 ### 第 4 段：怎麼把結論送回來（必寫）
 
 ```
-分析完成後，**用 `devwork/hosts.md` §派 subagent 的回傳方式把完整結論送回派工你的 agent**（主 session 通常是 `main`，
-但你若是被另一個 subagent 派的，收件人就是它——**照派工訊息的來源填，不要寫死**）。
-你寫在回覆裡的東西不會自動傳給派工者——不送就等於沒交。
+分析完成後，**把完整結論送回派工你的 agent**：Claude Code 用 `SendMessage`；Codex 沒有這個工具、派工者靠 `wait_agent` 收，寫在最終回覆裡就算送到。
+收件人：主 session 通常是 `main`，但你若是被另一個 subagent 派的，收件人就是它——**照派工訊息的來源填，不要寫死**。
+Claude Code 上你寫在回覆裡的東西不會自動傳給派工者——不送就等於沒交。
 ```
 
 > 為什麼要寫「把結論送回」：實測四個 reviewer 全部只送 idle 訊號，主 session 逐一去要才拿到——「做完」跟「送到」在 subagent 眼裡是同一件事（實測 2026-09-03；Claude Code 實測，Codex 對應見 `devwork/hosts.md` §派 subagent）

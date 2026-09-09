@@ -12,8 +12,9 @@
  *   P11 design-language 延遲載入、副檔名清單七處一致   P12 security-audit 純文件 T3 跳的六處同步
  *   P13 Codex manifest / marketplace / hooks.json 兩組 / 版本三處   P14 skill / agent 無 Claude 專屬字面 + hosts.md 反向白名單
  *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 + devwork / rules.md 接線 + build-references 內嵌
+ *   P17 install-codex.ps1 -WhatIf 冒煙（假 CODEX_HOME、不寫檔）
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P13-P16：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P13-P17：P7 先算是因為 P4 要用 agentFiles 掃描；
  * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -120,7 +121,8 @@ const ctxOf = ({ branch = 'feat/x', token = 'none', stateDir = true } = {}) => (
   repoDir: REPO_FIX, env: { TMP: 'C:/t', USERNAME: 'u' }, selfPath: 'X:/p/hooks/guard.mjs',
   realpath: (p) => { throw new Error('nope'); },   // fixture 路徑不存在磁碟上；讓 canonical 退到 path.resolve
   getBranch: () => branch,
-  peekToken: () => ({ valid: token === 'valid' }),
+  cwd: REPO_FIX,   // apply_patch 相對路徑的基準（Codex session cwd）；預設就是 repo root
+  peekToken: () => ({ existed: token !== 'none', valid: token === 'valid' }),
   consumeToken: () => token === 'none' ? { existed: false, valid: false } : { existed: true, valid: token === 'valid' },
   ensureStateDir: () => stateDir,
 });
@@ -128,7 +130,7 @@ const W = (file_path, tool_name = 'Write') => ({ tool_name, tool_input: { file_p
 // Codex apply_patch：tool_input.command 是整段 patch 文字、路徑相對 repo root
 const AP = (files, op = 'Update File') => ({ tool_name: 'apply_patch', tool_input: { command: ['*** Begin Patch', ...files.map((f) => `*** ${op}: ${f}`), '*** End Patch'].join('\n') } });
 // 多 token ctx：tokens = { [tokenPath]: true } 為有效；consumeToken 記錄呼叫（守「擋下就不消耗」與「逐檔 target 各對」）
-const ctx2 = (o = {}) => { const c = ctxOf(o); c.consumed = []; c.peekToken = (p) => ({ valid: (o.tokens || {})[p] === true }); c.consumeToken = (p, t) => { c.consumed.push({ p, t }); return { existed: true, valid: true }; }; return c; };
+const ctx2 = (o = {}) => { const c = ctxOf(o); c.consumed = []; c.peekToken = (p) => ({ existed: p in (o.tokens || {}), valid: (o.tokens || {})[p] === true }); c.consumeToken = (p, t) => { c.consumed.push({ p, t }); return { existed: true, valid: (o.tokens || {})[p] === true }; }; return c; };
 const tokOf = (rel) => G.tokenPathFor(resolve(REPO_FIX, rel).replace(/\\/g, '/').toLowerCase(), ctxOf().env);   // 不寫死 hash
 const tags = (r) => ({ b: r.lines.some((l) => l.includes('目前在')), B: r.lines.some((l) => l.includes('BLOCK')), W: r.lines.some((l) => l.includes('WARN')), S: r.lines.some((l) => l.includes('state dir')) });
 const P2D = [
@@ -180,18 +182,22 @@ const P2D = [
   ['42 兩 WARN 只一個有效 token → exit 2', AP(['Dockerfile', 'docker-compose.yml']), ctx2({ tokens: { [tokOf('Dockerfile')]: true } }), 2, { W: true }],
   ['43 兩 WARN 兩 token 都有效 → 放行', AP(['Dockerfile', 'docker-compose.yml']), ctx2({ tokens: { [tokOf('Dockerfile')]: true, [tokOf('docker-compose.yml')]: true } }), 0, {}],
   ['44 同路徑重複（Update + Move to 同檔）→ 只判一次', { tool_name: 'apply_patch', tool_input: { command: '*** Begin Patch\n*** Update File: Dockerfile\n*** Move to: Dockerfile\n*** End Patch' } }, ctx2({ tokens: { [tokOf('Dockerfile')]: true } }), 0, {}],
+  // 45-46：相對路徑以 session cwd 解析（review C：用 toplevel 會讓子目錄 session 的 file-type 規則 fail-open）；../ 跳出去仍查 branch（fail-closed）
+  ['45 cwd=repo/.github、patch workflows/ci.yml → 解析成 .github/workflows/ci.yml → WARN', AP(['workflows/ci.yml']), { ...ctxOf(), cwd: resolve(REPO_FIX, '.github') }, 2, { W: true }],
+  ['46 cwd=repo/sub、patch ../x.txt（protected）→ 仍查 branch、擋', AP(['../x.txt']), { ...ctxOf({ branch: 'main' }), cwd: resolve(REPO_FIX, 'sub') }, 2, { b: true }],
 ];
-// 31 / 41-44 的副作用斷言（P2D 表只看 exit + 訊息 tag）：branch 訊息只印一次；擋下不消耗；全過才逐檔消耗、target 各對；去重後只消耗一次
-const apCase = (n) => P2D.find(([name]) => name.startsWith(`${n} `));
-const apRun = (n) => { const [, payload, ctx] = apCase(n); return { r: G.decide(payload, ctx), ctx }; };
-const ap31 = apRun(31).r.lines.filter((l) => l.includes('目前在')).length === 1;
-const ap41 = apRun(41).ctx.consumed.length === 0;
-const ap42 = apRun(42).ctx.consumed.length === 0;
-const ap43 = (() => { const { ctx } = apRun(43); return ctx.consumed.length === 2 && ctx.consumed.every((c) => /dockerfile|docker-compose\.yml/i.test(c.t)) && new Set(ctx.consumed.map((c) => c.p)).size === 2; })();
-const ap44 = apRun(44).ctx.consumed.length === 1;
-const ap42Lines = apRun(42).r.lines;   // 只列無效那個檔的 --token；「處置（依序執行）」一次
-const ap42Msg = ap42Lines.filter((l) => l.includes('--token')).length === 1 && ap42Lines.filter((l) => l.includes('處置（依序執行）')).length === 1;
-const apExtra = ap31 && ap41 && ap42 && ap43 && ap44 && ap42Msg;
+// 31 / 41-44 的副作用斷言（P2D 表只看 exit + 訊息 tag）：每案用自己新建的 ctx，不共用、不受執行順序影響
+const apSE = (payload, o) => { const c = ctx2(o); return { r: G.decide(payload, c), c }; };
+const ap31 = G.decide(AP(['src/a.ts', 'src/b.ts']), ctxOf({ branch: 'main' })).lines.filter((l) => l.includes('目前在')).length === 1;   // branch 訊息只印一次
+const ap41 = apSE(AP(['.env', 'Dockerfile']), { tokens: {} }).c.consumed.length === 0;                                                   // 擋下不消耗
+const ap42 = apSE(AP(['Dockerfile', 'docker-compose.yml']), { tokens: { [tokOf('Dockerfile')]: true } });
+const ap42ok = ap42.c.consumed.length === 0 && ap42.r.lines.filter((l) => l.includes('--token')).length === 1 && ap42.r.lines.filter((l) => l.includes('處置（依序執行）')).length === 1;   // 只列無效那個檔；共用步驟一次
+const ap43 = apSE(AP(['Dockerfile', 'docker-compose.yml']), { tokens: { [tokOf('Dockerfile')]: true, [tokOf('docker-compose.yml')]: true } }).c;
+const ap43ok = ap43.consumed.length === 2 && ap43.consumed.every((c) => /dockerfile|docker-compose\.yml/i.test(c.t)) && new Set(ap43.consumed.map((c) => c.p)).size === 2;   // 全過才逐檔消耗、target 各對
+const ap44 = apSE({ tool_name: 'apply_patch', tool_input: { command: '*** Begin Patch\n*** Update File: Dockerfile\n*** Move to: Dockerfile\n*** End Patch' } }, { tokens: { [tokOf('Dockerfile')]: true } }).c.consumed.length === 1;   // 去重後只消耗一次
+const ap47 = apSE(AP(['Dockerfile']), { tokens: { [tokOf('Dockerfile')]: false } });   // 過期 token（existed 但 !valid）：第一趟就消耗掉（刪 + log），仍 WARN
+const ap47ok = ap47.r.exit === 2 && ap47.c.consumed.length === 1 && ap47.r.lines.some((l) => l.includes('WARN'));
+const apExtra = ap31 && ap41 && ap42ok && ap43ok && ap44 && ap47ok;
 const p2dBad = P2D.filter(([, payload, ctx, exit, tg]) => { const r = G.decide(payload, ctx); const t = tags(r); return r.exit !== exit || Object.entries(tg).some(([k, v]) => t[k] !== v); }).map(([n]) => n);
 // 25 / 26：token 路徑純運算——期望值用舊 ps1 對同一字串算過（2026-09-07：sha256("d:/x/.env") 前 16 hex）
 const tp25 = G.tokenPathFor('d:/x/.env', { TMP: 'C:/t', USERNAME: 'u' }, 'win32', () => false).replace(/\\/g, '/');
@@ -201,7 +207,7 @@ const p2dScalar = G.decide('x', ctxOf({ branch: 'main' })).exit === 0 && G.decid
 const HASH25 = '5cda4cbfd584ef07';
 check(`P2d guard.mjs 純判定 ${P2D.length} 案全對（含 apply_patch 多檔兩趟）、scalar JSON 放行、token 路徑照 .NET 順序`,
   p2dBad.length === 0 && apExtra && p2dScalar && tp25 === `C:/t/bstack-file-guard-u/${HASH25}.token` && tp26 === `C:/t2/bstack-file-guard-v/${HASH25}.token`,
-  `錯的案=[${p2dBad.join(' | ')}] apply_patch 副作用 31=${ap31} 41=${ap41} 42=${ap42}/${ap42Msg} 43=${ap43} 44=${ap44} scalar 放行=${p2dScalar} tp25=${tp25} tp26=${tp26}（後果：該擋沒擋 / 不該擋擋了、Codex 相對路徑 fail-open、一包 patch 裡別的檔失敗把 user 確認過的 token 燒掉、或 token 目錄跟舊版對不上；改處：hooks/guard.mjs decide / targetsOf / applyPatchPaths / tokenPathFor）`);
+  `錯的案=[${p2dBad.join(' | ')}] apply_patch 副作用 31=${ap31} 41=${ap41} 42=${ap42ok} 43=${ap43ok} 44=${ap44} 過期消耗=${ap47ok} scalar 放行=${p2dScalar} tp25=${tp25} tp26=${tp26}（後果：該擋沒擋 / 不該擋擋了、Codex 相對路徑 fail-open、一包 patch 裡別的檔失敗把 user 確認過的 token 燒掉、或 token 目錄跟舊版對不上；改處：hooks/guard.mjs decide / targetsOf / applyPatchPaths / tokenPathFor）`);
 // P2e：真 spawn，守「CLI 有接上兩段 + 真的跑 git + --token 子命令 + consumeToken 的 IO」——P2d 全部 mock，這些只有這裡守
 const { spawnSync, execFileSync: xgit } = await import('node:child_process');   // 在 else 區塊內，不能用 import 宣告
 const { tmpdir } = await import('node:os');
@@ -227,22 +233,28 @@ const logOk = tokenPath ? /consumed .*valid=True/.test((() => { try { return rf(
 const p2eSub = join(p2eRepo, 'sub'); mkd(p2eSub, { recursive: true });
 const codexEnv = { ...p2eEnv }; delete codexEnv.CLAUDE_PROJECT_DIR;
 const AP2 = (files) => ({ tool_name: 'apply_patch', tool_input: { command: ['*** Begin Patch', ...files.map((f) => `*** Update File: ${f}`), '*** End Patch'].join('\n') } });
+// apply_patch 沒帶 turn_id 也算 Codex（tool_name 是第二個訊號）→ exit 0 + JSON deny；子目錄 cwd 下 src/a.ts 仍在 repo 內
+const denyOf = (r) => { try { return JSON.parse(r.stdout || '').hookSpecificOutput; } catch { return null; } };
 const e7 = spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify(AP2(['src/a.ts'])), encoding: 'utf8', env: codexEnv, cwd: p2eSub });
-const e7ok = e7.status === 2 && /目前在/.test(e7.stderr || '') && /request_user_input/.test(e7.stderr || '') && /AskUserQuestion/.test(e7.stderr || '');
+const e7ok = e7.status === 0 && denyOf(e7)?.permissionDecision === 'deny' && /目前在/.test(e7.stderr || '') && /request_user_input/.test(e7.stderr || '') && /AskUserQuestion/.test(e7.stderr || '');
 // 多檔 WARN：兩行 --token、共用步驟只印一次（main 上會同時印 branch 訊息，不影響計數）
 const e8 = spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify(AP2(['Dockerfile', 'docker-compose.yml'])), encoding: 'utf8', env: codexEnv, cwd: p2eRepo });
 const e8tok = ((e8.stderr || '').match(/--token "/g) || []).length;
-const e8ok = e8.status === 2 && e8tok === 2 && ((e8.stderr || '').match(/處置（依序執行）/g) || []).length === 1;
+const e8ok = e8.status === 0 && denyOf(e8)?.permissionDecision === 'deny' && e8tok === 2 && ((e8.stderr || '').match(/處置（依序執行）/g) || []).length === 1;
+// 相對路徑以 payload.cwd 解析：cwd 給 repo/.github、patch 寫 workflows/ci.yml → 命中 GitHub Actions CI（用 toplevel 解析會 fail-open）
+const p2eGh = join(p2eRepo, '.github'); mkd(p2eGh, { recursive: true });
+const e10 = spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify({ ...AP2(['workflows/ci.yml']), cwd: p2eGh }), encoding: 'utf8', env: codexEnv, cwd: p2eRepo });
+const e10ok = e10.status === 0 && /GitHub Actions CI/.test(denyOf(e10)?.permissionDecisionReason || '');
 // Codex 的 block 契約：payload 帶 turn_id → exit 0 + stdout JSON permissionDecision=deny（2026-09-09 實測 Codex 不認 exit 2）；沒 turn_id（Claude Code）→ e3 / e7 已守 exit 2
 const e9 = spawnSync(process.execPath, [join(REPO, 'hooks/guard.mjs')], { input: JSON.stringify({ ...AP2(['src/a.ts']), turn_id: 't1', hook_event_name: 'PreToolUse' }), encoding: 'utf8', env: codexEnv, cwd: p2eRepo });
 let e9json = null; try { e9json = JSON.parse(e9.stdout || ''); } catch { /* 不是 JSON */ }
 const e9ok = e9.status === 0 && e9json?.hookSpecificOutput?.permissionDecision === 'deny' && /目前在/.test(e9json?.hookSpecificOutput?.permissionDecisionReason || '') && /目前在/.test(e9.stderr || '');
 const e9dup = ((e9.stderr || '').match(/若你沒在用 bstack 流程/g) || []).length === 1;   // 停用提示只印一次
 rmSync(p2eDir, { recursive: true, force: true });
-check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → BLOCK；真 git main → 擋；WARN → --token 建檔 → 再跑放行且 token 已刪、consumed.log 有 valid=True；Codex apply_patch 無 CLAUDE_PROJECT_DIR 走 git toplevel 仍擋、訊息含兩 host 工具名、多檔 WARN 兩行 --token 共用步驟一次；帶 turn_id（Codex）→ exit 0 + stdout JSON deny、停用提示只印一次',
+check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → BLOCK；真 git main → 擋；WARN → --token 建檔 → 再跑放行且 token 已刪、consumed.log 有 valid=True；Codex apply_patch（無 CLAUDE_PROJECT_DIR、子目錄 cwd）走 git toplevel 仍擋且回 JSON deny、訊息含兩 host 工具名、多檔 WARN 兩行 --token 共用步驟一次、payload.cwd 解析相對路徑；帶 turn_id → JSON deny、停用提示只印一次',
   gitOk && e1.status === 0 && e2.status === 2 && /BLOCK/.test(e2.stderr || '') && e3.status === 2 && /目前在/.test(e3.stderr || '') &&
-    e4.status === 2 && /WARN/.test(e4.stderr || '') && !!tokenPath && e5.status === 0 && tokenMade && e6.status === 0 && tokenGone && logOk && e7ok && e8ok && e9ok && e9dup,
-  `git=${gitOk} Read=${e1.status} .env=${e2.status} main擋=${e3.status}/${/目前在/.test(e3.stderr || '')} WARN=${e4.status} tokenPath=${!!tokenPath} --token=${e5.status}/${tokenMade} 放行=${e6.status} token刪=${tokenGone} log=${logOk} codex-toplevel=${e7.status}/${e7ok} 多檔WARN=${e8.status}/${e8tok}/${e8ok} codex-deny=${e9.status}/${e9ok}/${e9dup}` +
+    e4.status === 2 && /WARN/.test(e4.stderr || '') && !!tokenPath && e5.status === 0 && tokenMade && e6.status === 0 && tokenGone && logOk && e7ok && e8ok && e9ok && e9dup && e10ok,
+  `git=${gitOk} Read=${e1.status} .env=${e2.status} main擋=${e3.status}/${/目前在/.test(e3.stderr || '')} WARN=${e4.status} tokenPath=${!!tokenPath} --token=${e5.status}/${tokenMade} 放行=${e6.status} token刪=${tokenGone} log=${logOk} codex-toplevel=${e7.status}/${e7ok} 多檔WARN=${e8.status}/${e8tok}/${e8ok} codex-deny=${e9.status}/${e9ok}/${e9dup} cwd解析=${e10.status}/${e10ok}` +
     `（後果：CLI 沒接上判定、git spawn 寫壞會靜默放行、Codex 上 repoDir 退回 cwd 讓子目錄裡的相對路徑 fail-open、Codex 只看到 exit 2 不看到 JSON deny 就整個不擋（2026-09-09 實測）、或 WARN 指示照抄卻建不出 token；改處：hooks/guard.mjs main() / isCodexPayload / gitToplevel / consumeToken / --token）`);
 
 // ── P3 skills ───────────────────────────────────────────────────────────────
@@ -535,39 +547,44 @@ check('P12 security-audit 純文件 T3 跳：rules.md T3 security 欄、security
 
 // ── P13-P16 Codex 支援（2026-09-09，feat/codex-install）──────────────────────
 // 同一個 repo 同時是 Claude Code plugin 與 Codex plugin：兩份 manifest、一份 skills/、hosts.md 對照表、agents → TOML 產生器。
-const J = (p) => { try { return JSON.parse(rd(p)); } catch (e) { return { __err: e.message }; } };
 const lf = (s) => s.replace(/\r\n/g, '\n');   // autocrlf 機器工作樹是 CRLF，行尾錨定 regex 一律先正規化
-// P13：Codex manifest / marketplace / hooks.json 兩組 / 版本三處 / 交叉（兩份 marketplace 的 plugin 名相同、source.path 下有 .codex-plugin、description host 中性）
-const cpj = J('.codex-plugin/plugin.json'), cmk = J('.agents/plugins/marketplace.json'), apj = J('.claude-plugin/plugin.json'), amk = J('.claude-plugin/marketplace.json'), hj = J('hooks/hooks.json');
+// P13：Codex manifest / marketplace / hooks.json matcher 涵蓋三個寫入工具 / 版本三處 / 交叉（兩份 marketplace 的 plugin 名相同、source.path 下有 .codex-plugin、description host 中性）
+const cpj = parseJson('.codex-plugin/plugin.json'), cmk = parseJson('.agents/plugins/marketplace.json'), apj = parseJson('.claude-plugin/plugin.json'), amk = parseJson('.claude-plugin/marketplace.json'), hj = parseJson('hooks/hooks.json');
 const cme = cmk.plugins?.[0] || {}, ame = amk.plugins?.[0] || {};
 const hookGroups = hj.hooks?.PreToolUse || [];
+// Codex 把 Write / Edit 當 apply_patch 的別名比對 matcher（2026-09-09 實測：單一組 Write|Edit|NotebookEdit 在 Codex 照攔），不需要拆組；
+// 只守「三個工具名都被某一組 matcher 整字匹配」，組數不管
+const matched = (tool) => hookGroups.some((g) => { try { return new RegExp(`^(?:${g.matcher})$`).test(tool); } catch { return false; } });
 const p13 = {
   codexManifest: !cpj.__err && cpj.name === 'bstack' && cpj.skills === './skills/' && exists('skills'),
   codexHooksField: !('hooks' in cpj) || (typeof cpj.hooks === 'string' && cpj.hooks.startsWith('./') && exists(cpj.hooks)),   // 沒填走預設 hooks/hooks.json；填了就必須存在
   codexMarketplace: !cmk.__err && cmk.name === 'bstack' && cme.name === 'bstack' && cme.source?.source === 'local' && cme.source?.path === './'
     && ['AVAILABLE', 'INSTALLED_BY_DEFAULT'].includes(cme.policy?.installation) && !!cme.policy?.authentication && !!cme.category,
-  hooksTwoGroups: hookGroups.length === 2 && hookGroups.some((g) => g.matcher === 'Write|Edit') && hookGroups.some((g) => g.matcher === 'NotebookEdit') && new Set(hookGroups.map((g) => g.hooks?.[0]?.command)).size === 1,
+  hooksMatchers: hookGroups.length >= 1 && ['Write', 'Edit', 'NotebookEdit'].every(matched),
   versionThreePlaces: !apj.__err && !amk.__err && typeof cpj.version === 'string' && apj.version === cpj.version && ame.version === cpj.version,
   cross: ame.name === cme.name && exists(join(cme.source?.path || '.', '.codex-plugin/plugin.json')),
   descHostNeutral: [apj.description, amk.metadata?.description, ame.description, cpj.description].every((d) => typeof d === 'string' && !/Claude Code 九階段|Claude Code 開發流程/.test(d) && /Codex/.test(d)),
 };
-check('P13 Codex manifest（.codex-plugin/plugin.json skills=./skills/）、.agents/plugins/marketplace.json（local ./、policy、category）、hooks.json 兩組 matcher 同 command、版本三處一致、兩份 marketplace plugin 名相同、description host 中性',
+check('P13 Codex manifest（.codex-plugin/plugin.json skills=./skills/）、.agents/plugins/marketplace.json（local ./、policy、category）、hooks.json matcher 整字涵蓋 Write / Edit / NotebookEdit、版本三處一致、兩份 marketplace plugin 名相同、description host 中性',
   Object.values(p13).every(Boolean),
   `${Object.entries(p13).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；版本 [${apj.version}, ${ame.version}, ${cpj.version}]（後果：Codex 裝不起來或裝到沒 hook 的半套、Claude Code 與 Codex 版本漂移、Codex 的 Write|Edit 別名對不上 matcher；改處：.codex-plugin/plugin.json、.agents/plugins/marketplace.json、hooks/hooks.json、.claude-plugin/*）`);
 
 // P14：skill / agent 內文禁 Claude 專屬字面（context-aware：同行有「Claude Code」的 NotebookEdit 放行）+ 正向雙寫（.claude/skills ↔ .agents/skills）
 //      + 反向白名單：工具名 token 只能是 hosts.md 各節第一欄列過的抽象動詞，沒列的（TaskOutput / ExitPlanMode / WebFetch …）就紅——要嘛加進 hosts.md 對照、要嘛改寫。
 //      刻意不含 rules.md / hosts.md：規則書與對照表本體就是要寫 host 專屬字面（兩邊的工具名並列），由 P16 明列守。
-// 第三欄 = 同行有這個字樣就放行（雙 host 並列寫法、或明標 Claude Code 限定的段落）；null = 一律禁
-const BAN14 = [[/@skills\/devwork\/rules\.md/, 'CLAUDE.md @import 字樣', null], [/~\/\.claude\/projects/, 'Claude 專屬 memory 路徑', null], [/\bSendMessage\b/, 'SendMessage 工具名', null],
-  [/^context: fork$/, 'context: fork', null], [/\/bstack:/, '/bstack: 前綴沒並列 $bstack:', /\$bstack:/], [/CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS/, 'Agent Teams 開關沒標 Claude Code 限定', /Claude Code 限定/]];
+// 第三欄 = 同行有這個字樣就放行（雙 host 並列寫法、或明標 Claude Code 限定的段落）；null = 一律禁。
+// `context: fork` 不禁：那是 Claude Code 的 fork 執行 harness，Codex 對它無反應（2026-09-09 實測），拔掉反而是 Claude Code 側的行為改變。
+const BAN14 = [[/@skills\/devwork\/rules\.md/, 'CLAUDE.md @import 字樣', null], [/~\/\.claude\/projects/, 'Claude 專屬 memory 路徑', null],
+  [/\bSendMessage\b/, 'SendMessage 沒並列 Codex 的 wait_agent', /wait_agent/],
+  [/\/bstack:/, '/bstack: 前綴沒並列 $bstack:', /\$bstack:/], [/CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS/, 'Agent Teams 開關沒標 Claude Code 限定', /Claude Code 限定/]];
 const p14Files = [...skillDirs.map((n) => `skills/${n}/SKILL.md`), ...agentFiles.map((f) => `agents/${f}`)].filter(exists);
 const hostsMd = exists('skills/devwork/hosts.md') ? lf(rd('skills/devwork/hosts.md')) : '';
 // 白名單：hosts.md 每個表列第一欄裡的反引號詞（欄位用未跳脫的 | 切，`\|` 是表格內的字面）；
 // `subagent_type: <name>` 取冒號前、`mcp__<server>__<tool>` 取 mcp__、`Skill("code-review", …)` 取 code-review
 const whitelist = new Set(hostsMd.split('\n').filter((l) => /^\| /.test(l)).flatMap((l) => [...l.split(/(?<!\\)\|/)[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]))
   .map((s) => s.replace(/^Skill\("([^"]+)".*$/, '$1').replace(/^(mcp__).*$/, '$1').replace(/[:(（].*$/, '').trim()).filter(Boolean));
-const TOKEN14 = /\b(AskUserQuestion|TaskCreate|TaskUpdate|TaskList|TaskOutput|Agent|subagent_type|NotebookEdit|SendMessage|ExitPlanMode|WebFetch)\b|Skill\("code-review"/g;
+// 手維護的候選清單：新的 Claude 專屬工具名要出現在 skill 裡，先加進這裡才會被檢查（review 已知限制；沒列的不設防）
+const TOKEN14 = /\b(AskUserQuestion|TaskCreate|TaskUpdate|TaskList|TaskOutput|TaskGet|TaskStop|Agent|subagent_type|NotebookEdit|SendMessage|ExitPlanMode|EnterWorktree|WebFetch|WebSearch)\b|Skill\("code-review"/g;
 const p14Hits = [];
 for (const f of p14Files) lf(rd(f)).split('\n').forEach((line, i) => {
   for (const [re, why, unless] of BAN14) if (re.test(line) && !(unless && unless.test(line))) p14Hits.push(`${f}:${i + 1} ${why}`);
@@ -597,8 +614,15 @@ const HEADS16 = ['Host 判定', '決策點', '任務追蹤', '派 subagent', '�
 const missHead = HEADS16.filter((n) => !new RegExp(`^##[ \\t]+§${n}[ \\t]*$`, 'm').test(hostsMd));
 const t2Row16 = (rules16.match(/^\| \*\*T2\*\*.*$/m) || [''])[0], t3Row16 = (rules16.match(/^\| \*\*T3\*\*.*$/m) || [''])[0];
 const bsSec = (rules16.match(/^### §Branch safety[\s\S]*?(?=^### )/m) || [''])[0];
+// 四欄節的表頭固定（P14 白名單吃第一欄、hosts.md 自述第一欄是契約鍵）；§Host 判定 / §停用 plugin 兩節各有自己的表頭
+const HEADER16 = '| 抽象動作 | Claude Code | Codex | 工具不在清單時 |';
+const fourCol = HEADS16.filter((n) => !['Host 判定', '停用 plugin'].includes(n));
+const missHeader = fourCol.filter((n) => { const sec = (hostsMd.match(new RegExp(`^##[ \\t]+§${n}[ \\t]*$\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm')) || [])[1] || ''; return !sec.split('\n').some((l) => l.trim() === HEADER16); });
+const rr16 = exists('skills/request-review/SKILL.md') ? lf(rd('skills/request-review/SKILL.md')) : '';
 const p16 = {
   heads: missHead.length === 0,
+  headers: missHeader.length === 0,
+  reviewerPrompt: /^## §Codex reviewer prompt$/m.test(rr16) && /§Codex reviewer prompt/.test(hostsMd),   // hosts.md 指向它，改名就斷鏈
   guardLine: /^> .*抽象動詞.*不是工具名/m.test(hostsMd.split('\n').slice(0, 3).join('\n')),
   hostsTools: /request_user_input/.test(hostsMd) && /update_plan/.test(hostsMd) && /spawn_agent/.test(hostsMd) && /mcp__/.test(hostsMd),
   devwork: /hosts\.md/.test(dw16) && /\$bstack:devwork/.test(dw16) && !/@import/.test(dw16),
@@ -610,7 +634,32 @@ const p16 = {
 };
 check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具名；devwork 讀 hosts.md、$bstack:devwork、無 @import；rules.md 濃縮表、Tier 表 T2 / T3 保留字面並加 Codex、§Branch safety 兩 host 停用句、Codex 無 Agent Teams；build-references 內嵌 hosts.md',
   Object.values(p16).every(Boolean),
-  `${Object.entries(p16).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead.join(', ')}]（後果：P14 白名單抽不到第一欄、Codex 上 devwork 不知道 AskUserQuestion 對應什麼、docs 站沒有對照表；改處：skills/devwork/hosts.md / SKILL.md / rules.md、scripts/build-references.ps1 $map）`);
+  `${Object.entries(p16).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead.join(', ')}] 缺表頭=[${missHeader.join(', ')}]（後果：P14 白名單抽不到第一欄、Codex 上 devwork 不知道 AskUserQuestion 對應什麼、hosts.md 指向的 reviewer prompt 斷鏈、docs 站沒有對照表；改處：skills/devwork/hosts.md / SKILL.md / rules.md、skills/request-review/SKILL.md、scripts/build-references.ps1 $map）`);
+
+// P17：install-codex.ps1 的 -WhatIf 冒煙（review M4：這支是唯一沒契約覆蓋的可執行檔）。真跑安裝留給人；這裡只驗「-WhatIf 什麼都不動、且六步訊息都在」。
+// pwsh 不在時：win32 視為缺前置紅掉（Windows 使用者就是靠它裝）；其他平台只標 skipped
+{
+  const pwshBin = process.platform === 'win32' ? 'pwsh.exe' : 'pwsh';
+  const probe = spawnSync(pwshBin, ['-NoProfile', '-c', '$PSVersionTable.PSVersion.Major'], { encoding: 'utf8' });
+  if (probe.error || probe.status !== 0) {
+    check('P17 install-codex.ps1 -WhatIf 冒煙', process.platform !== 'win32', `pwsh 不在 PATH（${probe.error?.message || probe.status}）：${process.platform === 'win32' ? 'Windows 上這是缺前置' : '非 Windows 跳過'}`);
+  } else {
+    const fakeHome = join(tmpdir(), `bstack-p17-${process.pid}`); rmSync(fakeHome, { recursive: true, force: true }); mkd(fakeHome, { recursive: true });
+    const env17 = { ...process.env, CODEX_HOME: fakeHome };
+    const w = spawnSync(pwshBin, ['-NoProfile', '-File', join(REPO, 'scripts/install-codex.ps1'), '-WhatIf', '-Yes', '-SkipMigrate'], { encoding: 'utf8', env: env17, cwd: REPO });
+    const u = spawnSync(pwshBin, ['-NoProfile', '-File', join(REPO, 'scripts/install-codex.ps1'), '-Uninstall', '-WhatIf'], { encoding: 'utf8', env: env17, cwd: REPO });
+    const wo = (w.stdout || '') + (w.stderr || ''), uo = (u.stdout || '') + (u.stderr || '');
+    const touched = existsSync(join(fakeHome, 'bstack-codex.json')) || existsSync(join(fakeHome, 'config.toml')) || existsSync(join(fakeHome, 'agents'));
+    rmSync(fakeHome, { recursive: true, force: true });
+    const must = ['codex plugin add bstack@bstack', 'update_plan', '/hooks', 'bstack-codex.json', '步驟 4', '步驟 5'];
+    const missing = must.filter((s) => !wo.includes(s));
+    // 前置缺 codex 時腳本 exit 1（合理），只在有 codex 的機器要求 rc 0
+    const hasCodex = /✔ codex CLI/.test(wo);
+    check('P17 install-codex.ps1 -WhatIf -Yes 印出六步且不寫任何檔（假 CODEX_HOME）、-Uninstall -WhatIf 提到 manifest',
+      missing.length === 0 && !touched && (!hasCodex || w.status === 0) && /bstack-codex\.json/.test(uo),
+      `缺訊息=[${missing.join(', ')}] 動到假 CODEX_HOME=${touched} rc=${w.status}（有 codex=${hasCodex}） uninstall 提 manifest=${/bstack-codex\.json/.test(uo)}（後果：安裝腳本改壞沒人知道、-WhatIf 偷寫檔；改處：scripts/install-codex.ps1）`);
+  }
+}
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
 // 用 exitCode 而非 process.exit()：stdout 接 pipe 時 exit() 可能截掉最後幾行（含 ALL PASS 那行）
