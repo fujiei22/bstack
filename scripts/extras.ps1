@@ -283,20 +283,16 @@ function Test-ClaudeCli {
 }
 
 function Add-Mcp {
-    <# 只代跑 playwright；mysql 含帳密，印範本讓使用者自填。 #>
+    <# playwright 自 1.6.0 起隨 plugin 自帶（repo 根 .mcp.json，Claude Code 與 Codex 都吃）、這裡不再代裝，只印說明；
+       舊版由本腳本裝的 user / project 層 playwright 留著會跟 plugin 那份同名並存，提示用 -Uninstall 拆。mysql 含帳密，印範本讓使用者自填。 #>
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$scope)
-    $args_ = @('mcp', 'add', 'playwright', '--scope', $scope, '--', 'npx', '-y', '@playwright/mcp@latest')
-    $file = if ($scope -eq 'project') { Join-Path (Get-ProjectRoot) '.mcp.json' } else { 'claude mcp (user)' }
-    if ($PSCmdlet.ShouldProcess("claude $($args_ -join ' ')", 'run')) {
-        if (-not (Test-ClaudeCli)) { return }
-        # 已經裝過（使用者自己裝的）→ 跟其他項目一樣印 [keep]、不記 manifest；claude mcp add 對重複安裝回 exit 1，不能當失敗
-        $existing = (& claude mcp list 2>&1 | Out-String)
-        if ($existing -match '(?m)^\s*playwright\s*:') { Write-Host "  [keep] mcp：playwright 已在 $scope 設定裡，未覆蓋" -ForegroundColor Yellow; return }
-        & claude @args_ 2>&1 | Out-Host
-        if ($LASTEXITCODE -ne 0) { Write-Host "  [fail] claude mcp add playwright 回傳 $LASTEXITCODE" -ForegroundColor Red; return }
-        Save-Manifest 'mcp' $scope $file @('mcp:playwright')
-        $script:Written += @{ item = 'mcp'; scope = $scope; file = $file }
+    if ($PSCmdlet.ShouldProcess('mcp playwright', 'check')) {
+        Write-Host "  [skip] mcp：playwright 隨 plugin 自帶（.mcp.json），不另裝"
+        if (Test-ClaudeCli) {
+            $existing = (& claude mcp list 2>&1 | Out-String)
+            if ($existing -match '(?m)^\s*playwright\s*:') { Write-Host "  提醒：你的 $scope 設定裡另有一份 playwright（舊版本腳本裝的或你自己加的），會跟 plugin 自帶的同名並存；舊版裝的可用 -Uninstall 拆" -ForegroundColor Yellow }
+        }
     }
     Write-Host @"
   mysql MCP 含帳密，請自己填、自己跑（本腳本不寫進任何檔）：

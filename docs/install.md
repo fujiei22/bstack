@@ -75,7 +75,7 @@ claude --plugin-dir ./bstack
 
 ### B. 個人偏好（可跳過）
 
-plugin 規格帶不了的四項（statusLine、`permissions.allow` 唯讀白名單、`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`、playwright MCP），每項各問一次裝到哪一層：
+plugin 規格帶不了的三項（statusLine、`permissions.allow` 唯讀白名單、`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`）每項各問一次裝到哪一層；第四項 mcp 現在只印 mysql 的指令範本（playwright 自 1.6.0 起隨 plugin 自帶，見 [MCP](#mcpmysql--playwright)）：
 
 ```pwsh
 pwsh -File scripts/extras.ps1
@@ -178,16 +178,17 @@ $bstack:devwork 要做的事
 
 流程裡兩個 skill 靠 MCP：`db-access` 用 `mcp__mysql__mysql_query`（rules.md §DB 操作 的唯讀查詢），`frontend-test` 用 `mcp__playwright__browser_*`（e2e）。工具名的格式兩個 host 一樣：`mcp__<server 名>__<工具>`，所以 **server 名必須恰為 `mysql` 與 `playwright`**，取別的名字 skill 就找不到工具。
 
-Claude Code 這邊由 `extras.ps1` 幫你加 playwright、印 mysql 的指令範本；Codex 這邊沒有對應腳本（含帳密、不該由腳本寫），自己跑：
+**playwright 隨 plugin 自帶**：repo 根目錄的 `.mcp.json` 宣告了 `playwright`（stdio、`@playwright/mcp` 版本 pin），Claude Code 與 Codex 裝 plugin 就一起帶進來（Codex 實測 `codex mcp list` 會列出、來源是 plugin，config.toml 不用寫）。不想要就在 `/plugins`（Codex）或 `/plugin`（Claude Code）裡關掉那個 server；Codex 也可寫 `[plugins."bstack@bstack".mcp_servers.playwright] enabled = false`。舊版由 `extras.ps1` 裝在使用者 / 專案層的 playwright 會跟 plugin 那份同名並存，用 `extras.ps1 -Uninstall` 拆掉舊的。
+
+**mysql 要自己加**（含帳密，不進 repo）：Claude Code 的 `extras.ps1`、Codex 的 `install-codex.ps1` 第 6 步都只印這段範本，你填好自己跑：
 
 ```
-# playwright（版本 pin 到 2026-09-09 實測的 0.0.68；@latest 也行）
-codex mcp add playwright -- npx -y @playwright/mcp@0.0.68
-
-# mysql：用唯讀帳號，三個 ALLOW_* 預設就是 false、明寫只是為了看得見
+# Codex；用唯讀帳號，三個 ALLOW_* 預設就是 false、明寫只是為了看得見
 codex mcp add mysql --env MYSQL_HOST=127.0.0.1 --env MYSQL_PORT=3306 --env MYSQL_USER=<唯讀帳號> --env MYSQL_PASS=<密碼> --env MYSQL_DB=<庫名> --env ALLOW_INSERT_OPERATION=false --env ALLOW_UPDATE_OPERATION=false --env ALLOW_DELETE_OPERATION=false -- npx -y @benborla29/mcp-server-mysql
 
-codex mcp list        # 兩個都要是 enabled
+# Claude Code 同一組參數換成 claude mcp add mysql --scope user …
+
+codex mcp list        # playwright（plugin 帶）與 mysql 都要是 enabled
 ```
 
 已經在 `~/.codex/config.toml` 裡但 `enabled = false` 的，把那行改成 `true`（或刪掉那行）就好，不用重 add。`codex/agents/*.toml` 裡也有同一組範本（註解掉的 `[mcp_servers.*]`），那是給你想把 MCP 綁在單一 agent 上時用的，一般不用碰。
@@ -258,6 +259,6 @@ Codex 實測（2026-09-09，`codex exec --dangerously-bypass-hook-trust`）：Co
 | 指令 | 拆什麼 | 不碰什麼 |
 |---|---|---|
 | `/plugin uninstall bstack@bstack` | Claude Code：plugin 核心（skills / agents / hooks / 守則） | 你的 settings、extras 寫的東西 |
-| `pwsh -File scripts/extras.ps1 -Uninstall` | extras 加過的 key 與 playwright MCP（依 manifest） | 你本來就有的同名設定 |
+| `pwsh -File scripts/extras.ps1 -Uninstall` | extras 加過的 key、舊版由它裝的 playwright MCP（依 manifest） | 你本來就有的同名設定 |
 | `pwsh -File scripts/extras.ps1 -Migrate` | 舊版 setup.ps1 留在 `~/.claude/` 的副本 | 你自己的 skill / hook / 被改過的 CLAUDE.md |
 | `pwsh -File scripts/install-codex.ps1 -Uninstall` | Codex：plugin、agents TOML、config 的 `[tools.update_plan]` 表 | 你的其他 Codex 設定、marketplace 條目 |

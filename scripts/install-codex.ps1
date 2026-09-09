@@ -443,6 +443,20 @@ elseif ($hasOtherDef) {
 }
 Save-Manifest $manifest
 
+# ── 6. MCP ───────────────────────────────────────────────────────────────────
+# playwright 隨 plugin 自帶（repo 根 .mcp.json，實測 codex mcp list 看得到）；mysql 含帳密不進 repo、只印範本
+Step 6 'MCP（playwright 隨 plugin 自帶；mysql 印範本）'
+$mcpList = if ($DryRun) { '' } else { (& $script:CodexExe mcp list 2>$null | Out-String) }
+if ($DryRun) { Write-Host "  [whatif] codex mcp list 看 playwright / mysql 狀態" }
+else {
+    Write-Host "  playwright：$(if ($mcpList -match '(?m)^playwright\s') { '已可用（plugin 自帶）' } else { '沒看到——開新 session 再 codex mcp list 確認；還是沒有就 codex mcp add playwright -- npx -y @playwright/mcp@0.0.68' })"
+    Write-Host "  mysql：$(if ($mcpList -match '(?m)^mysql\s') { '已設定' } else { '未設定，db-access 會在需要它的步驟停下來' })"
+}
+Write-Host @"
+  mysql MCP 含帳密，請自己填、自己跑（server 名必須恰為 mysql，skill 才對得上 mcp__mysql__mysql_query）：
+  codex mcp add mysql --env MYSQL_HOST=<host> --env MYSQL_PORT=3306 --env MYSQL_USER=<唯讀帳號> --env MYSQL_PASS=<密碼> --env MYSQL_DB=<庫名> --env ALLOW_INSERT_OPERATION=false --env ALLOW_UPDATE_OPERATION=false --env ALLOW_DELETE_OPERATION=false -- npx -y @benborla29/mcp-server-mysql
+"@
+
 # ── 收尾 ─────────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "接下來：" -ForegroundColor Green

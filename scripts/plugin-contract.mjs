@@ -564,8 +564,10 @@ const p13 = {
   versionThreePlaces: !apj.__err && !amk.__err && typeof cpj.version === 'string' && apj.version === cpj.version && ame.version === cpj.version,
   cross: ame.name === cme.name && exists(join(cme.source?.path || '.', '.codex-plugin/plugin.json')),
   descHostNeutral: [apj.description, amk.metadata?.description, ame.description, cpj.description].every((d) => typeof d === 'string' && !/Claude Code 九階段|Claude Code 開發流程/.test(d) && /Codex/.test(d)),
+  // plugin 自帶的 MCP（根目錄 .mcp.json，兩 host 都讀）：只准 playwright、stdio、版本 pin；mysql 含帳密不得進來
+  mcpBundle: (() => { const m = parseJson('.mcp.json'); const s = m.mcpServers || {}; const pw = s.playwright; return !m.__err && Object.keys(s).length === 1 && pw?.type === 'stdio' && pw.command === 'npx' && /^@playwright\/mcp@\d+\.\d+\.\d+$/.test((pw.args || []).at(-1) || '') && !('mysql' in s); })(),
 };
-check('P13 Codex manifest（.codex-plugin/plugin.json skills=./skills/）、.agents/plugins/marketplace.json（local ./、policy、category）、hooks.json matcher 整字涵蓋 Write / Edit / NotebookEdit、版本三處一致、兩份 marketplace plugin 名相同、description host 中性',
+check('P13 Codex manifest（.codex-plugin/plugin.json skills=./skills/）、.agents/plugins/marketplace.json（local ./、policy、category）、hooks.json matcher 整字涵蓋 Write / Edit / NotebookEdit、版本三處一致、兩份 marketplace plugin 名相同、description host 中性、.mcp.json 只帶 pin 版 playwright（stdio）',
   Object.values(p13).every(Boolean),
   `${Object.entries(p13).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；版本 [${apj.version}, ${ame.version}, ${cpj.version}]（後果：Codex 裝不起來或裝到沒 hook 的半套、Claude Code 與 Codex 版本漂移、Codex 的 Write|Edit 別名對不上 matcher；改處：.codex-plugin/plugin.json、.agents/plugins/marketplace.json、hooks/hooks.json、.claude-plugin/*）`);
 

@@ -41,7 +41,7 @@ bstack 是一套給 coding agent 的開發流程：28 個 skill、6 個 agent、
   /plugin install bstack@bstack
   ```
 
-- 個人偏好（statusLine、唯讀權限白名單、Agent Teams 開關、playwright MCP）可選裝：
+- 個人偏好（statusLine、唯讀權限白名單、Agent Teams 開關）可選裝；playwright MCP 隨 plugin 自帶，mysql MCP 含帳密、腳本會印指令範本讓你填：
 
   ```pwsh
   pwsh -File scripts/extras.ps1
@@ -51,7 +51,7 @@ bstack 是一套給 coding agent 的開發流程：28 個 skill、6 個 agent、
 
 ### Codex CLI
 
-- 一站式（裝 plugin、複製 agent TOML、開 `tools.update_plan`）：
+- 一站式（裝 plugin、複製 agent TOML、開 `tools.update_plan`、印 mysql MCP 的指令範本；playwright MCP 隨 plugin 自帶）：
 
   ```pwsh
   git clone https://github.com/fujiei22/bstack.git
