@@ -18,7 +18,7 @@ bstack 目前只能以 Claude Code plugin 安裝。Codex（OpenAI）的 skill �
 2. `.codex-plugin/plugin.json`（Codex 原生 manifest）與 `.agents/plugins/marketplace.json`（原生 marketplace）；`.claude-plugin/*` 保留。
 3. `skills/devwork/hosts.md`：六個抽象動作在兩個 host 的具體工具對照（決策點 / 任務追蹤 / 派 subagent / code review / memory 路徑 / 停用 plugin），含 host 判定規則；devwork 使用契約第 1 步一併讀。
 4. skill 文字的雙 host 化：`request-review`（code-review 段）、`dispatch-parallel`（移除 Agent Teams 分支）、`brainstorm` 0a（memory 路徑依 host）、`rules.md` Tier 表 review 欄與 §決策點選單、`pr-explain` 移除 `context: fork`、`devwork` 讀 hosts.md。其餘 skill 保留 `AskUserQuestion` / `TaskCreate` / `Agent` / `subagent_type` / `mcp__<server>__<tool>` 等字樣當**抽象動詞**，由 hosts.md 定義兩 host 的具體工具，不逐檔改。
-4b. **全 35 檔（28 skill + 6 agent + rules.md）Claude 專屬字面掃描**：2026-09-09 實測，4b 之外還有 12 檔各含 1 到 3 處字面（`~/.claude/…` 路徑：context-snapshot、retro；`.claude/`：design-language、execute-plan、retro、write-skill；`@import`：dev-workflow、design-language；`SendMessage`：review-plan；`NotebookEdit` 字樣：finish-branch、lock-files、hypothesis-tester、security-auditor；`${CLAUDE_PLUGIN_ROOT}`：design-direction（Codex 相容、可留）；`TaskList` 歷史：retro）。逐處改成 host 中性或雙 host 寫法。**契約 P12**：hosts.md 與 README 以外的 skill / agent 檔禁出現字面清單（`~/.claude`、`.claude/`、`@import`、`SendMessage`、`context: fork`、`claude --plugin-dir`、`/plugin `），紅就擋 merge。
+4b. **全 35 檔（28 skill + 6 agent + rules.md）Claude 專屬字面掃描**：2026-09-09 實測，4b 之外還有 12 檔各含 1 到 3 處字面（`~/.claude/…` 路徑：context-snapshot、retro；`.claude/`：design-language、execute-plan、retro、write-skill；`@import`：dev-workflow、design-language；`SendMessage`：review-plan；`NotebookEdit` 字樣：finish-branch、lock-files、hypothesis-tester、security-auditor；`${CLAUDE_PLUGIN_ROOT}`：design-direction（Codex 相容、可留）；`TaskList` 歷史：retro）。逐處改成 host 中性或雙 host 寫法。**契約 P14**（掃描集合刻意只含 `skills/*/SKILL.md` 與 `agents/*.md`；rules.md / hosts.md 是規則書本體，由 P16 明列斷言守）：禁帶語境的字面（`@skills/devwork/rules.md` 引用寫法、`~/.claude/projects`、`SendMessage`、`context: fork`、`/bstack:`、`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`、同行無「Claude Code」註記的裸 `NotebookEdit`）；`.claude/skills` 出現的行必須同時含 `.agents/skills`（正向雙寫）；design-language 的 CSS `@import` 追溯句不動。另加反向白名單：skill / agent 內出現的已知 Claude 工具名必須是 hosts.md 第一欄列出的抽象動詞。紅就擋 merge。
 5. `codex/agents/*.toml` 產生器（從 `agents/*.md` 產 Codex custom agent TOML：`name` / `description` / `developer_instructions` = 本文、`model` 對照、reviewer 類 `sandbox_mode = "read-only"`、MCP 依賴）；產物入版控、契約守同步。
 6. `scripts/install-codex.ps1` 與 README「Codex」節。
 7. `scripts/plugin-contract.mjs`：新增 Codex manifest 檢查、雙 manifest 版本一致、apply_patch fixture、agents TOML 同步、hosts.md 存在且 devwork 有讀。
@@ -35,7 +35,7 @@ bstack 目前只能以 Claude Code plugin 安裝。Codex（OpenAI）的 skill �
 | 檔 / 模組 | 改動類型 | 風險 |
 |---|---|---|
 | `hooks/guard.mjs` | edit | 高：兩 host 共用；patch 解析錯會漏擋或誤擋。契約 P2d/P2e 加 fixture |
-| `hooks/hooks.json` | 不動 | 低：matcher `Write\|Edit\|NotebookEdit` 在 Codex 是 apply_patch 別名，`${CLAUDE_PLUGIN_ROOT}` Codex 相容 |
+| `hooks/hooks.json` | edit（拆成 `Write\|Edit` 與 `NotebookEdit` 兩個 matcher group、command 相同） | 低：Claude Code 兩組不重疊、guard 仍只跑一次；換掉「交替式含 NotebookEdit 在 Codex 仍匹配 apply_patch 別名」這條純推斷。`${CLAUDE_PLUGIN_ROOT}` Codex 相容 |
 | `.codex-plugin/plugin.json` | new | 低 |
 | `.agents/plugins/marketplace.json` | new | 中：entry 需 `policy.installation` / `policy.authentication` / `category`，格式錯整個 marketplace 不載 |
 | `.claude-plugin/plugin.json`、`marketplace.json` | edit（版本 1.6.0） | 低 |
@@ -70,8 +70,11 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 - **Codex 沒有可由模型呼叫的內建 code-review**：改派 read-only reviewer subagent，覆蓋面低於 Claude Code 8 finder；Tier 表註明。
 - **Codex plugin 不能帶 agents**：TOML 靠安裝腳本複製到 `~/.codex/agents/`，未複製時 hosts.md 規定退 `explorer` + agent 本文當 prompt。
 - **Codex CLI 是否讀 `.claude-plugin/marketplace.json`** 文件只寫 desktop app 與 enterprise import；保險同時提供 `.agents/plugins/marketplace.json`。實測關卡見 verify-done。
-- **guard.mjs 多檔判定**：一個 patch 多個檔任一命中就 exit 2；WARN token 路徑以檔為單位，多檔 WARN 時使用者要建多個 token（訊息逐檔列）。
-- **同一份 hooks.json**：Codex 的 `Write|Edit` 別名對 `apply_patch` 生效；`NotebookEdit` 在 Codex 永不匹配，無害。
+- **guard.mjs 多檔判定**：一個 patch 多個檔任一命中就 exit 2；branch 段對整個 payload 判一次；file-type 段兩趟——第一趟只判不消 token，全部 WARN 都有有效 token 且無 BLOCK / branch 阻擋才消耗，所以多檔 WARN 時使用者必須**一次建齊**所有 token 再 retry（訊息逐檔列 `--token` 行，共用步驟只印一次）。
+- **apply_patch 送相對路徑**：guard.mjs 只對 apply_patch 來源的路徑以 repo root 解析成絕對路徑再進兩段判定；Write / Edit 的 `file_path` 維持原樣（review 實測：不解析的話 Dockerfile / lock / CI yml 在 Codex 全部靜默放行）。
+- **同一份 hooks.json**：拆兩個 matcher group 後 Codex 的 `Write|Edit` 別名對 `apply_patch` 生效；`NotebookEdit` 那組在 Codex 永不匹配，無害。Task 0 先實測 hook 會被 Codex 呼叫。
+
+- **舊版副本遮蔽（2026-09-09 實查本機）**：`~/.agents/skills/` 已有舊版 `dev-workflow`（關鍵詞自動攔截版）、`db-access` 等 bstack 副本；Codex 同名 skill 不合併、兩個都列，舊版會搶先自動觸發。`install-codex.ps1` 加 `-Migrate`（列出並搬進備份目錄、不刪）；`~/.codex/AGENTS.md` 只警告不動。同機 `codex` 不在 PATH，Task 0 前先問 user 是否安裝 CLI。
 
 ## 待釐清
 - Codex 安裝後 skill 命名空間實際顯示為 `$bstack:devwork` 還是 `$devwork`（文件以 `$codex-security:security-scan` 為例，推定前者）；verify-done 實測後回填 README。
