@@ -10,8 +10,10 @@
  *   P7 agents frontmatter 與 README 計數   P8 README / index.html skill 計數 == 磁碟
  *   P9 T2 lane 精簡（施工清單 / code-review 內建 / pr-explain 限 T3）   P10 verify-done 文字節點豁免判定器
  *   P11 design-language 延遲載入、副檔名清單七處一致   P12 security-audit 純文件 T3 跳的六處同步
+ *   P13 Codex manifest / marketplace / hooks.json 兩組 / 版本三處   P14 skill / agent 無 Claude 專屬字面 + hosts.md 反向白名單
+ *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 + devwork / rules.md 接線 + build-references 內嵌
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P13-P16：P7 先算是因為 P4 要用 agentFiles 掃描；
  * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -525,6 +527,85 @@ check('P12 security-audit 純文件 T3 跳：rules.md T3 security 欄、security
   Object.values(p12).every(Boolean),
   `${Object.entries(p12).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；T3 security 欄=「${t3Sec}」 dev-workflow 第 6 行=「${dwSecT3.trim()}」 殘留「T3 必跑 / 必用」=[${mustRunResidue.join(', ')}]` +
     `（後果：Tier 表是 lane 唯一真相，任一處留「T3 必跑」Claude 就照舊 spawn security-auditor、純文件 PR 多燒 3-5 分鐘；改處：rules.md §Tier 表 T3 security 欄、security-audit §使用契約 第 2 步與 §hand-off state、dev-workflow 9 階段圖第 6 行、data.js SecQ / LoadChk、agents/security-auditor.md description、finish-branch PR 模板 checklist）`);
+
+// ── P13-P16 Codex 支援（2026-09-09，feat/codex-install）──────────────────────
+// 同一個 repo 同時是 Claude Code plugin 與 Codex plugin：兩份 manifest、一份 skills/、hosts.md 對照表、agents → TOML 產生器。
+const J = (p) => { try { return JSON.parse(rd(p)); } catch (e) { return { __err: e.message }; } };
+const lf = (s) => s.replace(/\r\n/g, '\n');   // autocrlf 機器工作樹是 CRLF，行尾錨定 regex 一律先正規化
+// P13：Codex manifest / marketplace / hooks.json 兩組 / 版本三處 / 交叉（兩份 marketplace 的 plugin 名相同、source.path 下有 .codex-plugin、description host 中性）
+const cpj = J('.codex-plugin/plugin.json'), cmk = J('.agents/plugins/marketplace.json'), apj = J('.claude-plugin/plugin.json'), amk = J('.claude-plugin/marketplace.json'), hj = J('hooks/hooks.json');
+const cme = cmk.plugins?.[0] || {}, ame = amk.plugins?.[0] || {};
+const hookGroups = hj.hooks?.PreToolUse || [];
+const p13 = {
+  codexManifest: !cpj.__err && cpj.name === 'bstack' && cpj.skills === './skills/' && exists('skills'),
+  codexHooksField: !('hooks' in cpj) || (typeof cpj.hooks === 'string' && cpj.hooks.startsWith('./') && exists(cpj.hooks)),   // 沒填走預設 hooks/hooks.json；填了就必須存在
+  codexMarketplace: !cmk.__err && cmk.name === 'bstack' && cme.name === 'bstack' && cme.source?.source === 'local' && cme.source?.path === './'
+    && ['AVAILABLE', 'INSTALLED_BY_DEFAULT'].includes(cme.policy?.installation) && !!cme.policy?.authentication && !!cme.category,
+  hooksTwoGroups: hookGroups.length === 2 && hookGroups.some((g) => g.matcher === 'Write|Edit') && hookGroups.some((g) => g.matcher === 'NotebookEdit') && new Set(hookGroups.map((g) => g.hooks?.[0]?.command)).size === 1,
+  versionThreePlaces: !apj.__err && !amk.__err && typeof cpj.version === 'string' && apj.version === cpj.version && ame.version === cpj.version,
+  cross: ame.name === cme.name && exists(join(cme.source?.path || '.', '.codex-plugin/plugin.json')),
+  descHostNeutral: [apj.description, amk.metadata?.description, ame.description, cpj.description].every((d) => typeof d === 'string' && !/Claude Code 九階段|Claude Code 開發流程/.test(d) && /Codex/.test(d)),
+};
+check('P13 Codex manifest（.codex-plugin/plugin.json skills=./skills/）、.agents/plugins/marketplace.json（local ./、policy、category）、hooks.json 兩組 matcher 同 command、版本三處一致、兩份 marketplace plugin 名相同、description host 中性',
+  Object.values(p13).every(Boolean),
+  `${Object.entries(p13).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；版本 [${apj.version}, ${ame.version}, ${cpj.version}]（後果：Codex 裝不起來或裝到沒 hook 的半套、Claude Code 與 Codex 版本漂移、Codex 的 Write|Edit 別名對不上 matcher；改處：.codex-plugin/plugin.json、.agents/plugins/marketplace.json、hooks/hooks.json、.claude-plugin/*）`);
+
+// P14：skill / agent 內文禁 Claude 專屬字面（context-aware：同行有「Claude Code」的 NotebookEdit 放行）+ 正向雙寫（.claude/skills ↔ .agents/skills）
+//      + 反向白名單：工具名 token 只能是 hosts.md 各節第一欄列過的抽象動詞，沒列的（TaskOutput / ExitPlanMode / WebFetch …）就紅——要嘛加進 hosts.md 對照、要嘛改寫。
+//      刻意不含 rules.md / hosts.md：規則書與對照表本體就是要寫 host 專屬字面（兩邊的工具名並列），由 P16 明列守。
+// 第三欄 = 同行有這個字樣就放行（雙 host 並列寫法、或明標 Claude Code 限定的段落）；null = 一律禁
+const BAN14 = [[/@skills\/devwork\/rules\.md/, 'CLAUDE.md @import 字樣', null], [/~\/\.claude\/projects/, 'Claude 專屬 memory 路徑', null], [/\bSendMessage\b/, 'SendMessage 工具名', null],
+  [/^context: fork$/, 'context: fork', null], [/\/bstack:/, '/bstack: 前綴沒並列 $bstack:', /\$bstack:/], [/CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS/, 'Agent Teams 開關沒標 Claude Code 限定', /Claude Code 限定/]];
+const p14Files = [...skillDirs.map((n) => `skills/${n}/SKILL.md`), ...agentFiles.map((f) => `agents/${f}`)].filter(exists);
+const hostsMd = exists('skills/devwork/hosts.md') ? lf(rd('skills/devwork/hosts.md')) : '';
+// 白名單：hosts.md 每個表列第一欄裡的反引號詞（欄位用未跳脫的 | 切，`\|` 是表格內的字面）；
+// `subagent_type: <name>` 取冒號前、`mcp__<server>__<tool>` 取 mcp__、`Skill("code-review", …)` 取 code-review
+const whitelist = new Set(hostsMd.split('\n').filter((l) => /^\| /.test(l)).flatMap((l) => [...l.split(/(?<!\\)\|/)[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]))
+  .map((s) => s.replace(/^Skill\("([^"]+)".*$/, '$1').replace(/^(mcp__).*$/, '$1').replace(/[:(（].*$/, '').trim()).filter(Boolean));
+const TOKEN14 = /\b(AskUserQuestion|TaskCreate|TaskUpdate|TaskList|TaskOutput|Agent|subagent_type|NotebookEdit|SendMessage|ExitPlanMode|WebFetch)\b|Skill\("code-review"/g;
+const p14Hits = [];
+for (const f of p14Files) lf(rd(f)).split('\n').forEach((line, i) => {
+  for (const [re, why, unless] of BAN14) if (re.test(line) && !(unless && unless.test(line))) p14Hits.push(`${f}:${i + 1} ${why}`);
+  if (/\.claude\/skills/.test(line) && !/\.agents\/skills/.test(line)) p14Hits.push(`${f}:${i + 1} 只寫 .claude/skills 沒雙寫 .agents/skills`);
+  for (const m of line.matchAll(TOKEN14)) {
+    const tok = m[1] || 'code-review';
+    if (tok === 'NotebookEdit') { if (!/Claude Code/.test(line)) p14Hits.push(`${f}:${i + 1} NotebookEdit 同行沒標 Claude Code`); continue; }
+    if (!whitelist.has(tok)) p14Hits.push(`${f}:${i + 1} 工具名 ${tok} 不在 hosts.md 第一欄`);
+  }
+});
+check(`P14 skill / agent 內無 Claude 專屬字面（${p14Files.length} 檔；rules.md / hosts.md 刻意不掃）、.claude/skills 有雙寫 .agents/skills、工具名 token 都在 hosts.md 對照表第一欄（白名單 ${whitelist.size} 項）`,
+  p14Hits.length === 0 && whitelist.size >= 6,
+  `命中 [${p14Hits.slice(0, 12).join(' | ')}${p14Hits.length > 12 ? ` …另 ${p14Hits.length - 12} 處` : ''}] 白名單=[${[...whitelist].join(', ')}]（後果：Codex 上照字面去找不存在的工具、靜默略過決策點 / 派工，或剔除規則只認 .claude/skills 讓 .agents/skills 下的 skill 檔被當成前端介面；改處：命中的那行改成抽象動詞或雙 host 寫法，新工具名先加進 skills/devwork/hosts.md 對應節）`);
+
+// P15：agents/*.md → codex/agents/*.toml 產生器 --check 綠（產物沒過期）+ render() 對 fixture 推導 sandbox_mode
+const genChk = spawnSync(process.execPath, [join(REPO, 'scripts/gen-codex-agents.mjs'), '--check'], { encoding: 'utf8', cwd: REPO });
+let renderOut = '', renderErr = '';
+try { const { render } = await import('../scripts/gen-codex-agents.mjs'); renderOut = render('fx', '---\nname: fx\ndescription: |\n  測試用 agent。\n  第二句。\ntools: ["Read", "Grep"]\nmodel: sonnet\n---\n本文\n'); } catch (e) { renderErr = e.message; }
+const p15Render = /^name = "fx"$/m.test(renderOut) && /^description = "測試用 agent。 第二句。"$/m.test(renderOut) && /^sandbox_mode = "read-only"$/m.test(renderOut) && /^developer_instructions = '''$/m.test(renderOut) && !/\r/.test(renderOut);
+check('P15 gen-codex-agents.mjs --check 綠（codex/agents/*.toml 與 agents/*.md 一致）、render() 從 tools 推導 read-only、description 單行、literal string',
+  genChk.status === 0 && p15Render,
+  `--check=${genChk.status} ${(genChk.stdout || genChk.stderr || '').trim().split('\n').slice(-2).join(' / ')} render=${p15Render}${renderErr ? ` err=${renderErr}` : ''}（後果：改了 agents/*.md 沒重產，Codex 端 spawn 到舊 prompt；或 Write 權限的 agent 被產成 read-only 動不了檔；改處：node scripts/gen-codex-agents.mjs 重產、或 render() 的推導）`);
+
+// P16：hosts.md 八節標題（行首錨定）+ 第一行護欄 + devwork / rules.md 接線 + build-references 內嵌 hosts.md（docs 站要看得到對照表）
+const dw16 = exists('skills/devwork/SKILL.md') ? lf(rd('skills/devwork/SKILL.md')) : '', rules16 = lf(rd('skills/devwork/rules.md'));
+const HEADS16 = ['Host 判定', '決策點', '任務追蹤', '派 subagent', '程式碼審查', 'MCP 工具', 'Memory 路徑', '停用 plugin'];
+const missHead = HEADS16.filter((n) => !new RegExp(`^##[ \\t]+§${n}[ \\t]*$`, 'm').test(hostsMd));
+const t2Row16 = (rules16.match(/^\| \*\*T2\*\*.*$/m) || [''])[0], t3Row16 = (rules16.match(/^\| \*\*T3\*\*.*$/m) || [''])[0];
+const bsSec = (rules16.match(/^### §Branch safety[\s\S]*?(?=^### )/m) || [''])[0];
+const p16 = {
+  heads: missHead.length === 0,
+  guardLine: /^> .*抽象動詞.*不是工具名/m.test(hostsMd.split('\n').slice(0, 3).join('\n')),
+  hostsTools: /request_user_input/.test(hostsMd) && /update_plan/.test(hostsMd) && /spawn_agent/.test(hostsMd) && /mcp__/.test(hostsMd),
+  devwork: /hosts\.md/.test(dw16) && /\$bstack:devwork/.test(dw16) && !/@import/.test(dw16),
+  rulesDigest: /hosts\.md/.test(rules16) && /request_user_input/.test(rules16),
+  tierRows: /code-review medium/.test(t2Row16) && /Codex/.test(t2Row16) && /code-review high/.test(t3Row16) && /依改動面向/.test(t3Row16),
+  branchSafety: /\/plugin disable bstack@bstack/.test(bsSec) && /\/plugins/.test(bsSec),
+  noTeams: /Codex 無 Agent Teams/.test(rules16),
+  buildRefs: exists('scripts/build-references.ps1') && /hosts\.md/.test(rd('scripts/build-references.ps1')),
+};
+check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具名；devwork 讀 hosts.md、$bstack:devwork、無 @import；rules.md 濃縮表、Tier 表 T2 / T3 保留字面並加 Codex、§Branch safety 兩 host 停用句、Codex 無 Agent Teams；build-references 內嵌 hosts.md',
+  Object.values(p16).every(Boolean),
+  `${Object.entries(p16).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead.join(', ')}]（後果：P14 白名單抽不到第一欄、Codex 上 devwork 不知道 AskUserQuestion 對應什麼、docs 站沒有對照表；改處：skills/devwork/hosts.md / SKILL.md / rules.md、scripts/build-references.ps1 $map）`);
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
 // 用 exitCode 而非 process.exit()：stdout 接 pipe 時 exit() 可能截掉最後幾行（含 ALL PASS 那行）
