@@ -97,6 +97,8 @@
 
 ## 安裝
 
+本節（Prerequisites → 一站式 → A / B / C）是 **Claude Code** 的裝法；**Codex** 的裝法見下面的 [Codex](#codex) 節，兩邊裝的是同一份 plugin。
+
 ### Prerequisites
 
 | 項目 | 用途 |

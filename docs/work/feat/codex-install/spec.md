@@ -120,6 +120,12 @@ design.involved=false（0b′ 比對：無 `.css` `.scss` `.tsx` `.jsx` `.vue` `
 
 **Task 10 判定**：7 項中 1 / 3 / 4 / 5 / 7 綠、6 揭露一個文件層面的限制（已回填）、2 是互動步驟留給 user。實測環境：Windows 11、Codex CLI 0.153.4、`gpt-5.6-luna`。
 
+### 追加：landing 文案雙 host 化（2026-09-09，user 在 pr-explain 後追加）
+
+- 改 `docs/index.html`：title / og / twitter 標題與描述、hero 加 Codex 安裝指令、安裝節前置文案、卡 01 加 Codex 兩行指令與 `/hooks` 提醒、卡 02 標 Claude Code 專用、卡 03 加 `$bstack:devwork`。`docs/js/data.js` 的流程圖 label 不動（契約 C8d 守）。
+- design-language：`scope=文件站`（`docs/reference/design-map.md`，token 來源 `docs/index.html` `:root`）、`size=小改`。四項對齊：元件狀態 → 新 `<pre>` / `<code>` 原樣抄同卡片既有 inline style（含 `style-hover`）；斷點 → N/A（沿用 grid `auto-fit`，未加 media query）；表單 → N/A（無表單）；dark mode → 只用 `--sunk` / `--line` / `--ink-3` / `--accent`，`:root[data-theme="dark"]` 已有第二套值。
+- smoke（static-serve + Playwright）：標題與三處新文字都找得到；console 35 個 error 全來自內嵌 `flow.html?embed=1`（模板佔位字串在 JS 接手前被瀏覽器解析、`FLOW_DATA` 重複宣告），stash 回改動前同樣 35 個 → 既有問題，記 follow-up。
+
 ### request-review / receive-review（2026-09-09）
 
 - code-review high 的主控 fork 收不到 finder 回報（finder 把結果送到主 session），verifier 由主 agent 接手；能實測的都用 Codex CLI 實測。整合結果與處置在 `code-review.md`。

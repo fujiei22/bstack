@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>bstack — 把 Claude Code 的開發流程固定下來</title>
-<meta name="description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
+<title>bstack — 把 Claude Code 與 Codex 的開發流程固定下來</title>
+<meta name="description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
 <!-- social meta 一律留在靜態 <head>，不要搬進 <helmet>：
      <helmet> 的內容是 dc-runtime 在執行期才掛進 <head> 的，而 LINE / Slack / FB / X
      的預覽爬蟲不執行 JS —— 搬進去等於整組 og 全部讀不到，連 <title> 都沒有。
@@ -14,15 +14,15 @@
 <meta property="og:site_name" content="bstack" />
 <meta property="og:locale" content="zh_TW" />
 <meta property="og:url" content="https://fujiei22.github.io/bstack/" />
-<meta property="og:title" content="bstack — 把 Claude Code 的開發流程固定下來" />
-<meta property="og:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
+<meta property="og:title" content="bstack — 把 Claude Code 與 Codex 的開發流程固定下來" />
+<meta property="og:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
 <meta property="og:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="bstack 標記與「Claude Code 開發流程包」字樣" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="bstack — 把 Claude Code 的開發流程固定下來" />
-<meta name="twitter:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，裝成 Claude Code plugin；/devwork 把改動類請求導進固定的九階段流程。" />
+<meta name="twitter:title" content="bstack — 把 Claude Code 與 Codex 的開發流程固定下來" />
+<meta name="twitter:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
 <meta name="twitter:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
 <link rel="icon" href="./brand/favicon.svg" type="image/svg+xml" />
 <script>
@@ -127,7 +127,7 @@
   })();
 </script>
 
-<title>bstack — 把 Claude Code 的開發流程固定下來</title>
+<title>bstack — 把 Claude Code 與 Codex 的開發流程固定下來</title>
 <link rel="prefetch" href="./flow.html" />
 <link rel="prefetch" href="./js/vendor/dagre.min.js" />
 <link rel="prefetch" href="./js/vendor/marked.min.js" />
@@ -222,7 +222,8 @@
   <div style="margin-top:clamp(24px,4vh,38px);font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;color:var(--accent)">拒絕即興 · 追求穩定</div>
   <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:clamp(18px,3vh,26px)">
     <a href="./flow.html" style="padding:12px 20px;border-radius:2px;border:1px solid var(--line-2);color:var(--ink);font-weight:500;font-size:14px;transition:border-color var(--t)" style-hover="border-color:var(--accent)">打開流程圖</a>
-    <span style="padding:12px 0;color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:12.5px">/plugin install bstack@bstack</span>
+    <span style="padding:12px 0;color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:12.5px">Claude Code · /plugin install bstack@bstack</span>
+    <span style="padding:12px 0;color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:12.5px">Codex · codex plugin add bstack@bstack</span>
   </div>
 
   <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:clamp(26px,5vh,52px);padding-top:clamp(18px,3vh,30px);border-top:1px solid var(--line)">
@@ -422,7 +423,7 @@
 <section id="install" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Install · 06 / 三步</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">三個步驟，想裝自己裝<br />不會裝就叫 AI 幫你裝</h2>
-  <p style="margin:0 0 clamp(18px,3vh,28px);font-size:14.5px;line-height:1.8;color:var(--ink-2);max-width:64ch">前置兩件：node 要在啟動 Claude Code 的 PATH 內（hook 需要），以及 git。</p>
+  <p style="margin:0 0 clamp(18px,3vh,28px);font-size:14.5px;line-height:1.8;color:var(--ink-2);max-width:64ch">前置兩件：node 要在啟動 Claude Code 或 Codex 的 PATH 內（hook 需要），以及 git。Claude Code 與 Codex 裝的是同一份 plugin，指令不同而已。</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(240px,31%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;flex:none;min-height:0;overflow:auto;overscroll-behavior:contain">
     <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
       <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">01</div>
@@ -430,18 +431,22 @@
       <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">推薦專案層級：把 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">templates/project-settings.json</code> 複製成你專案的 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">.claude/settings.json</code>；沒自動裝就手動跑這兩行。</p>
       <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">/plugin marketplace add fujiei22/bstack
 /plugin install bstack@bstack</pre>
+      <p style="margin:12px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">Codex 兩行對應（裝完開新 session 跑 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">/hooks</code> 信任 hook，否則 branch 保護不生效；一站式改跑 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">scripts/install-codex.ps1</code>）：</p>
+      <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">codex plugin marketplace add fujiei22/bstack
+codex plugin add bstack@bstack</pre>
     </div>
     <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
       <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">02</div>
-      <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">個人偏好（可跳過）</div>
+      <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">個人偏好（可跳過；Claude Code 專用）</div>
       <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">statusLine、唯讀權限白名單、Agent Teams 開關、playwright MCP，四項各選裝到使用者層級、目前專案或跳過。不選就什麼都不寫。</p>
       <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">pwsh -File scripts/extras.ps1</pre>
     </div>
     <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
       <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">03</div>
       <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">開新 session，下指令</div>
-      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">既有 session 不會載入新 plugin。載入成功的第一行是「已載入守則」；裸 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">/devwork</code> 目前也可以，沒反應再改用帶前綴的寫法。</p>
-      <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">/bstack:devwork 要做的事</pre>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:var(--ink-2)">既有 session 不會載入新 plugin。載入成功的第一行是「已載入守則」；裸 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">/devwork</code> 目前也可以，沒反應再改用帶前綴的寫法；Codex 一律帶 <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--sunk);padding:1px 5px;border-radius:2px">$bstack:</code> 前綴。</p>
+      <pre title="點一下複製" style="margin:12px 0 0;padding:12px 14px;overflow-x:auto;cursor:copy;background:var(--sunk);border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink);transition:border-color 240ms ease,background 240ms ease" style-hover="border-color:var(--ink-3)">/bstack:devwork 要做的事
+$bstack:devwork 要做的事</pre>
     </div>
   </div></section>
 
