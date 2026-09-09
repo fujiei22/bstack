@@ -289,7 +289,15 @@ if ($have) {
 } else {
     Write-Host "  供應鏈提醒：marketplace 來源是 $srcArg，plugin 內含會在你每個專案執行的 PreToolUse hook（hooks/guard.mjs）；裝之前請自行看過原始碼。" -ForegroundColor Yellow
     if ($Source -eq 'local') { Write-Host "  -Source local 會複製整個 working tree（含 ignored 目錄）進 plugin cache，Windows 實測較容易撞到「存取被拒 (os error 5)」；github 來源只有 tracked 檔、樹小得多。" }
-    if ((Run-Codex @('plugin', 'marketplace', 'add', $srcArg)) -ne 0) { Write-Host "  marketplace add 失敗" -ForegroundColor Red; exit 1 }
+    $mkRc = Run-Codex @('plugin', 'marketplace', 'add', $srcArg)
+    # GitHub 來源在有防毒即時掃描的機器上會每次都撞「存取被拒 (os error 5)」：Codex clone 完立刻 rename，剛寫入的檔還被掃描器抓著
+    # （2026-09-09 實測 Trellix：clone 後 0 秒 rename 被拒、10 秒後才放行）。退到本機來源：這個 clone 就是 marketplace root，不用再 clone
+    if ($mkRc -ne 0 -and $Source -eq 'github' -and $script:LastCodexOutput -match 'os error 5|存取被拒|Access is denied') {
+        Write-Host "  GitHub 來源在這台機器撞到 clone 後 rename 被拒（多半是防毒即時掃描），改用本機來源 $RepoRoot" -ForegroundColor Yellow
+        $srcArg = $RepoRoot; $Source = 'local'
+        $mkRc = Run-Codex @('plugin', 'marketplace', 'add', $srcArg)
+    }
+    if ($mkRc -ne 0) { Write-Host "  marketplace add 失敗" -ForegroundColor Red; exit 1 }
 }
 
 # ── 3. plugin ────────────────────────────────────────────────────────────────

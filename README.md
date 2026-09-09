@@ -199,7 +199,17 @@ codex plugin add bstack@bstack
 **為什麼預設走 GitHub 而不是本機路徑**（`-Source local` 兩個坑，都是實測）：
 
 - `codex plugin add` 會**複製整個 working tree**，連 `.gitignore` 掉的目錄都抄（本 repo 7,621 個項目、144 MB、約 60 秒）。GitHub 來源只有版控裡的檔，樹小得多。
-- 同一個本機 repo 會**間歇失敗** `failed to activate plugin cache entry: 存取被拒 (os error 5)`（連續 9 次有 6 次失敗）。失敗點在複製完成後的 rename，**推斷**是 Windows 上剛寫入的大量檔案還被掃描類程序抓著 handle（未證實）。`install-codex.ps1` 遇到會自動重試 3 次；手動裝就再跑一次同一行。
+- 同一個本機 repo 會**間歇失敗** `failed to activate plugin cache entry: 存取被拒 (os error 5)`（連續 9 次有 6 次失敗）。失敗點在複製完成後的 rename。`install-codex.ps1` 遇到會自動重試 3 次；手動裝就再跑一次同一行。
+
+**但有防毒即時掃描的機器，GitHub 來源反而每次都失敗**（實測 Trellix Endpoint Security）：`codex plugin marketplace add fujiei22/bstack` 回 `failed to install marketplace at ~/.codex/.tmp/marketplaces/bstack: 存取被拒 (os error 5)`。根因實測：`git clone` 完的目錄在約 10 秒內 rename 都會被拒（掃描器還抓著剛寫入的檔），Codex 是 clone 完立刻 rename，所以連續 5 次都撞、重跑也沒用（上面 `plugin add` 的間歇失敗是同一個機制）。這種機器改用本機來源：
+
+```
+git clone https://github.com/fujiei22/bstack.git
+codex plugin marketplace add <clone 的絕對路徑>
+codex plugin add bstack@bstack
+```
+
+`install-codex.ps1` 偵測到這個錯誤會自動改用本機來源（它本來就從 clone 裡跑）。要根治只能請 IT 把 `~/.codex` 加進掃描排除。
 
 ### 生效條件
 
