@@ -76,6 +76,7 @@ export function render(name, md, version = pluginVersion()) {
   if (body.includes("'''")) throw new Error(`${name}: 本文含 ''' 無法用 literal string`);
   const lines = [`# 由 scripts/gen-codex-agents.mjs 從 agents/${name}.md 產生（bstack ${version}），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs`,
     `name = ${q(name)}`, `description = ${q(description(head))}`, `model = ${q(MODEL[mk])}`, 'model_reasoning_effort = "high"',
+    '# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；README §已知限制）',
     `sandbox_mode = ${q(write ? 'workspace-write' : 'read-only')}`, "developer_instructions = '''", body.trim(), "'''", ''];
   for (const s of servers) lines.push(...MCP_TEMPLATES[s], '');
   return lines.join('\n');

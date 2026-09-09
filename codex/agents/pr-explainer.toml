@@ -3,6 +3,7 @@ name = "pr-explainer"
 description = "PR diff 詳盡解釋 reviewer（繁中）：獨立 context 重讀 diff，寫「為何 + 怎做 + 關聯」到 docs/work/<branch-name>/pr-review.md。 載入：pr-explain spawn。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
+# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；README §已知限制）
 sandbox_mode = "workspace-write"
 developer_instructions = '''
 你是 PR 詳解特化 senior reviewer。**繁中**輸出、**獨立 context**：從 diff 重建意圖、不預設改動者邏輯正確。

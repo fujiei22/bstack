@@ -72,3 +72,9 @@
 - 修法實測（Codex CLI 0.153.4）：假 CODEX_HOME 放「[tui] 夾在定界之間」的 config 跑真 `-Uninstall` → 只拔 update_plan 表、[tui] 留著、舊註解清掉；新 guard 在 main 擋、`feat/x` 子目錄 cwd=`.github` 的 `workflows/ci.yml` 命中 CI WARN（用 toplevel 解析會漏）。
 - 本機 `~/.codex/config.toml` 的兩行舊定界註解已清掉（備份 `.bak-20260909-receive-review`）。
 - 列入 follow-up（不在本 PR）：`docs/index.html` 首頁 DOCS 索引加 hosts.md；TOKEN14 改成機械抽取；P15 in-process 比對。
+
+## Security audit（security-auditor，獨立 context）
+- Critical：無。四條已修的 Critical 逐一重讀確認修好。
+- Major 3 條全修（不危險類，一顆 commit）：M1 guard 判成非 Codex 卻帶 `cwd` 時印稽核提示（判定不變）；M2 `-Uninstall` 的 manifest `agents[]` 只准純檔名（防 `../` traversal 刪錯檔）；M3 產生的 TOML 在 `sandbox_mode` 上方加「父 session 覆寫時不生效」註解。
+- Minor：m1 file-type 段用未 canonicalize 的路徑比對（pre-existing，symlink / 8.3 短檔名理論繞過；改用 canonical key 會動到 fixture 9 的既有行為）→ follow-up；m2 consumed.log 剝控制字元 → 已修；m3 `--token` state dir 跨 host 只會 over-block → 不修；m4 Backup / Move 的 TOCTOU 單機單使用者 → 不修。
+- PASS 覆蓋：applyPatchPaths regex、`\\?\` 前綴、大小寫、Move to 絕對路徑、相對路徑 fail-closed、payload.cwd 不可由 patch 偽造、token 指令無 shell injection、config 拔表 regex 邊界案例、-Migrate 無 traversal、供應鏈揭露、MCP 範本註解、PII / 密鑰、`.gitattributes` 與 lock-files 假命中。

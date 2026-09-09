@@ -302,7 +302,9 @@ function main() {
       try { unlinkSync(tokenPath); } catch { /* ignore */ }
       const valid = ageSec <= TOKEN_TTL_SEC;
       // 留一行紀錄：token 可被預建，事後至少查得出「何時、哪個檔用 token 放行過（或過期被清）」。布林沿用舊 ps1 的 True/False
-      try { appendFileSync(path.join(path.dirname(tokenPath), 'consumed.log'), `${new Date().toISOString()} consumed ${path.basename(tokenPath)} for ${target} valid=${valid ? 'True' : 'False'}\n`); } catch { /* ignore */ }
+      // target 剝掉控制字元：路徑來自 patch 文字，夾單獨 \r 會把 log 排版弄成假的一行（security-audit m2）
+      const safeTarget = String(target).replace(/[\x00-\x1f\x7f]/g, '?');
+      try { appendFileSync(path.join(path.dirname(tokenPath), 'consumed.log'), `${new Date().toISOString()} consumed ${path.basename(tokenPath)} for ${safeTarget} valid=${valid ? 'True' : 'False'}\n`); } catch { /* ignore */ }
       return { existed: true, valid };
     },
     ensureStateDir(dir) {
@@ -318,6 +320,8 @@ function main() {
     process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: lines.join('\n') } }) + '\n');
     return 0;
   }
+  // 判成 Claude Code 卻帶 cwd 欄位（Codex 特徵之一）：可能是 Codex 改了 payload 形狀、我們判錯了 → 只留痕跡不改判定（security-audit M1）
+  if (exit === 2 && payload && typeof payload === 'object' && typeof payload.cwd === 'string') process.stderr.write('[bstack] 注意：這個 payload 帶 cwd 但沒被判成 Codex；若你是 Codex 而檔案仍被寫入，代表 hook 判定要更新（hooks/guard.mjs isCodexPayload）\n');
   return exit;
 }
 

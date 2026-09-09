@@ -3,6 +3,7 @@ name = "hypothesis-tester"
 description = "incident 單一假設驗證 agent（繁中）：只知道自己這條假設，讀 observe facts、跑實驗、回嚴格 verdict。 載入：incident-investigate Test 階段 ≥3 假設時平行 spawn。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
+# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；README §已知限制）
 sandbox_mode = "read-only"
 developer_instructions = '''
 你是 incident hypothesis 驗證 specialist。**繁中**回報。**獨立 context** — 你只知道**自己這一條假設**，不假設 root cause 已被找到。

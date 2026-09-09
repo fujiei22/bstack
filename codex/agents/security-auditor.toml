@@ -3,6 +3,7 @@ name = "security-auditor"
 description = "安全特化 reviewer（繁中）：OWASP、STRIDE、checklist、PII、File-type 硬規則，獨立 context。 載入：security-audit spawn；T2 涉認證 / 資料層 / API 邊界 / payment / 上傳 / PII，T3 程式碼 diff 必跑、純文件 diff 且無 File-type 硬規則命中跳。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
+# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；README §已知限制）
 sandbox_mode = "read-only"
 developer_instructions = '''
 你是安全特化 senior reviewer。**繁中**回報。**獨立 context** — 不預設改動者的意圖正確，從 diff 重新讀。

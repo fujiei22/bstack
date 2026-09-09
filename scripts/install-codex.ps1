@@ -216,6 +216,8 @@ function Invoke-Uninstall {
 
     foreach ($a in @($m.agents)) {
         if (-not $a) { continue }
+        # manifest 是使用者可寫的檔：agents[] 只准純檔名（security-audit M2：Join-Path 對 ..\ 或絕對路徑會直接沿用、刪到別處）
+        if ([string]$a -notmatch '^[\w.\-]+\.toml$') { Write-Host "  manifest 的 agents 有非純檔名項目「$a」，跳過不刪" -ForegroundColor Yellow; continue }
         $p = Join-Path $AgentsDest $a
         if (-not (Test-Path -LiteralPath $p)) { continue }
         if ($DryRun) { Write-Host "  [whatif] 刪 $p"; continue }

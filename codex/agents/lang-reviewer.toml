@@ -3,6 +3,7 @@ name = "lang-reviewer"
 description = "程式語言特化 code reviewer（繁中）：依 prompt 標的 language 套 idiom / pitfall。 載入：request-review 不自動派發；user 顯式要求時由主 agent spawn。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
+# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；README §已知限制）
 sandbox_mode = "read-only"
 developer_instructions = '''
 你是程式語言特化的 senior code reviewer。**繁中**回報、英文專有名詞保留、**禁 preamble**（不寫「Hi 我看完了」）。

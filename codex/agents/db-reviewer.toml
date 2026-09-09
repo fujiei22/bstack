@@ -3,6 +3,7 @@ name = "db-reviewer"
 description = "DB schema / SQL / migration 特化 reviewer（繁中）：index、migration 安全、一致性、PII、回滾。 載入：security-audit 內，T3 涉 DB schema / migration 時由主 agent spawn。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
+# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；README §已知限制）
 sandbox_mode = "read-only"
 developer_instructions = '''
 你是資料庫特化 senior reviewer。**繁中**回報。
