@@ -1,8 +1,8 @@
 # bstack
 
-繁中台灣用語的 Claude Code 開發流程 plugin。
+繁中台灣用語的開發流程 plugin，Claude Code 與 Codex 共用一套 skill。
 
-輸入 `/devwork <要做的事>`，讓 Claude Code 走完整 9 階段開發流程（brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro），並支援 Track / Tier 分流、subagent 隔離、TDD 紅綠循環、T3 PR 自動解釋落檔。不下指令時，它就是普通的 Claude Code；安裝不會動你 `~/.claude/` 裡任何既有設定。
+輸入 `/devwork <要做的事>`（Codex 上是 `$bstack:devwork <要做的事>`，見 [Codex](#codex)），走完整 9 階段開發流程（brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro），並支援 Track / Tier 分流、subagent 隔離、TDD 紅綠循環、T3 PR 自動解釋落檔。不下指令時，它就是普通的 Claude Code / Codex；Claude Code 這邊安裝不會動你 `~/.claude/` 裡任何既有設定（Codex 的一站式腳本會寫 `~/.codex/`，有備份、可 `-Uninstall`）。
 
 ---
 
@@ -89,7 +89,9 @@
 | **branch-safety 段** | 命中 `main / master / production / prod / release` 直接 block 寫入動作，訊息附開 branch 的做法；只管 project repo 底下的檔 |
 | **file-type 段** | 按副檔名 / 路徑分流：密鑰類硬擋；migration / lockfile / CI / infra / shell config 類先擋，二次確認後由 AI 用 `node hooks/guard.mjs --token <path>` 在系統 temp 建一次性 token 放行；**不看 repo 範圍**，`~/.gitconfig` 也擋 |
 
-**hook 需要 `node` 在啟動 Claude Code 的環境 PATH 內**（`node --version` 驗；macOS 從 Dock 開的 app 不一定吃到 brew 的 PATH）。**Claude Code 自己不帶 node**——官方 setup 文件寫明 `claude` 是 native binary、npm 裝法也只是下載 binary，所以 native 安裝的機器要另裝 node。缺了會怎樣：官方 hooks 文件說 hook 起不來會印一行 non-blocking 通知、工具照跑；Windows 實測（2026-09-07，`claude -p` stream-json）連通知都沒有、檔案照寫——**保護一樣不存在**，跟舊版缺 pwsh 一樣。pwsh 7+ **只有 `scripts/install.ps1` / `scripts/extras.ps1` 兩支可選的輔助腳本需要**，不跑它們、照下面 `/plugin` 兩行也裝得起來；貢獻者另需 pwsh 跑 `scripts/build-references.ps1`。
+**hook 需要 `node` 在啟動 Claude Code 的環境 PATH 內**（`node --version` 驗；macOS 從 Dock 開的 app 不一定吃到 brew 的 PATH）。**Claude Code 自己不帶 node**——官方 setup 文件寫明 `claude` 是 native binary、npm 裝法也只是下載 binary，所以 native 安裝的機器要另裝 node。缺了會怎樣：官方 hooks 文件說 hook 起不來會印一行 non-blocking 通知、工具照跑；Windows 實測（2026-09-07，`claude -p` stream-json）連通知都沒有、檔案照寫——**保護一樣不存在**，跟舊版缺 pwsh 一樣。pwsh 7+ **只有 `scripts/install.ps1` / `scripts/extras.ps1` / `scripts/install-codex.ps1` 三支可選的輔助腳本需要**，不跑它們、照下面 `/plugin` 兩行也裝得起來；貢獻者另需 pwsh 跑 `scripts/build-references.ps1`。
+
+**Codex**：同一支 `guard.mjs` 也給 Codex 用（攔它的寫檔工具 `apply_patch`，一個 patch 內多個檔逐一判）。但 Codex 的 plugin hook **裝好後預設不信任**：開新 session 跑 `/hooks` 信任 bstack 的 PreToolUse，否則 hook 根本不跑、保護跟缺 node 一樣不存在。企業設定 `allow_managed_hooks_only` 會整批跳過 plugin hook。細節見 [Codex](#codex)。（`apply_patch` 解析與 manifest 是本 repo 實作並有契約 fixture 守；「Codex 端真的會呼叫這支 hook」的端到端實測待補回填。）
 
 ---
 
@@ -101,8 +103,9 @@
 |---|---|
 | **Node.js**（含 npx） | **hook 必需**（缺了 hook 起不來、保護不存在，見上）；MCP 也用 |
 | **git** | repo 操作 |
-| **pwsh 7+** | 只有 `scripts/install.ps1` / `scripts/extras.ps1` 這兩支可選腳本、與開發本 repo（`build-references.ps1`）需要 |
+| **pwsh 7+** | 只有 `scripts/install.ps1` / `scripts/extras.ps1` / `scripts/install-codex.ps1` 這三支可選腳本、與開發本 repo（`build-references.ps1`）需要 |
 | **bash + jq** | 只有選了 statusLine 才需要（`winget install jqlang.jq` / `brew install jq`） |
+| **Codex CLI 0.153+** | 只有走 Codex 才需要（`powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 \| iex"`） |
 
 ### 一站式（推薦第一次裝的人）
 
@@ -166,6 +169,91 @@ pwsh -File scripts/extras.ps1
 
 ---
 
+## Codex
+
+同一份 skill / hook 也能裝進 **Codex CLI**（OpenAI）；skill 內文用抽象動詞寫，由 `skills/devwork/hosts.md` 對照到各 host 的實際工具，不是兩份分叉的複本。以下標「實測」的是 2026-09-09 在 Codex CLI 0.153.4 / Windows 11 跑出來的結果，其餘標明是官方文件或推斷。
+
+### 安裝
+
+一站式（推薦）：
+
+```pwsh
+git clone https://github.com/fujiei22/bstack.git
+cd bstack
+pwsh -File scripts/install-codex.ps1
+```
+
+它依序做：前置檢查（codex / node / git）→ 列出並搬走 `~/.agents/skills/` 的舊同名副本（搬進備份目錄、不刪）→ `codex plugin marketplace add` + `codex plugin add` → 複製 `codex/agents/*.toml` 到 `~/.codex/agents/` → 在 `~/.codex/config.toml` 開 `tools.update_plan`。非互動 `-Yes`；只印會做什麼 `-WhatIf`；改用本機 repo 當來源 `-Source local`。
+
+手動只裝 plugin（等同上面第三步）：
+
+```
+codex plugin marketplace add fujiei22/bstack
+codex plugin add bstack@bstack
+```
+
+`bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。Codex 讀的是 `.agents/plugins/marketplace.json`（實測：`codex plugin list --json` 回的 `installPolicy` / `authPolicy` 只有這份 manifest 有，legacy 的 `.claude-plugin/marketplace.json` 沒有）。
+
+**為什麼預設走 GitHub 而不是本機路徑**（`-Source local` 兩個坑，都是實測）：
+
+- `codex plugin add` 會**複製整個 working tree**，連 `.gitignore` 掉的目錄都抄（本 repo 7,621 個項目、144 MB、約 60 秒）。GitHub 來源只有版控裡的檔，樹小得多。
+- 同一個本機 repo 會**間歇失敗** `failed to activate plugin cache entry: 存取被拒 (os error 5)`（連續 9 次有 6 次失敗）。失敗點在複製完成後的 rename，**推斷**是 Windows 上剛寫入的大量檔案還被掃描類程序抓著 handle（未證實）。`install-codex.ps1` 遇到會自動重試 3 次；手動裝就再跑一次同一行。
+
+### 生效條件
+
+三件事都要，缺一件就有東西不生效：
+
+| 條件 | 沒做會怎樣 |
+|---|---|
+| 開**新** session | 既有 session 不會載入新 plugin |
+| 在新 session 跑 `/hooks` 信任 bstack 的 PreToolUse | hook 完全不跑：branch safety 與 file-type 硬規則都不存在。安裝腳本代不了你信任（信任綁 hook 內容的 hash，設計上要人審） |
+| `tools.update_plan.enabled = true` | 任務追蹤工具叫不動（官方文件：Codex 0.152 起預設關）。`install-codex.ps1` 會寫；手動裝要自己開，沒開時流程退成用 spec 施工清單 / plan.md 自身的勾選格 |
+
+裝好後在 Codex 打：
+
+```
+$bstack:devwork 要做的事
+```
+
+實測：28 個 skill 在模型看到的清單裡全叫 `bstack:<name>`，所以呼叫名帶 `bstack:` 前綴。
+
+### 供應鏈與寫入範圍
+
+- marketplace source **沒有版本 pin**（跟 Claude Code 那邊同一個問題）：`codex plugin add` 拿到的是 `fujiei22/bstack` 當下的內容，而 hook 是每次寫檔都會跑的程式碼。要更嚴格就 fork 一份自己管控的 repo，把來源改成你的。
+- `install-codex.ps1` 只寫兩個地方：`~/.codex/agents/`（6 個 agent 的 TOML）與 `~/.codex/config.toml` 的一段 `[tools.update_plan]`（改前先備份成 `.bak-<時間>`）。寫過什麼記在 `~/.codex/bstack-codex.json`，`pwsh -File scripts/install-codex.ps1 -Uninstall` 照這份記錄拆，不碰你其他 Codex 設定。
+
+### 與 Claude Code 的差異
+
+| 做什麼 | Claude Code | Codex |
+|---|---|---|
+| 決策點問你 | `AskUserQuestion` | `request_user_input`（官方標 experimental；不可用時退成文字列選項、你回編號） |
+| 任務追蹤 | `TaskCreate` | `update_plan`（要先開 `tools.update_plan.enabled`） |
+| 派 subagent | `Agent` | `spawn_agent` |
+| code review | 內建 `/code-review` | read-only 的 reviewer subagent |
+| MCP 工具名 | `mcp__<server>__<tool>` | 同格式 |
+| memory 路徑 | 見 `skills/devwork/hosts.md` §Memory 路徑 | 同左，路徑依 host 不同 |
+| 停用 plugin | `/plugin disable bstack@bstack` | `/plugins` |
+
+### 已知限制
+
+- **Codex 的 IDE extension 不支援 plugin**（官方文件），只有 CLI 裝得起來。
+- **沒有 Agent Teams**：多個 subagent 平行跑可以，但「隊友之間互相對話、你中途切進去改方向」那套只有 Claude Code 有。
+- **shell 寫檔兩個 host 都攔不到**：hook 只看寫檔工具（Claude Code 的 Write / Edit、Codex 的 `apply_patch`），繞道 shell 重導向寫檔一律放行。
+- **reviewer 覆蓋面比較低**：Claude Code 走內建 code-review 的 8 個 finder，Codex 這邊是一個 read-only reviewer subagent。
+- **本機 marketplace 間歇 `os error 5`**（見上，重跑即可）。
+
+### 從舊版遷移
+
+`~/.agents/skills/` 裡若還有舊版 bstack 副本（實測本機有 `dev-workflow` / `db-access` / `huashu-design`），Codex **不合併、兩份並列**出現在 skill 清單裡，而舊版 `dev-workflow` 是關鍵詞自動攔截版、會搶先觸發。
+
+```pwsh
+pwsh -File scripts/install-codex.ps1 -Migrate
+```
+
+它列出符合的舊副本並搬進 `~/.agents/bstack-migrate-bak-<時間>/`（不刪，誤判可救回）。`~/.codex/AGENTS.md` 是你的全域指示檔，腳本只警告不動——裡面若有「寫 / 改 / 修 / 加一律進 dev-workflow」這類句子，自己拿掉，否則自動攔截照樣復活。
+
+---
+
 ## 確認 plugin 有載入
 
 1. 輸入 `/devwork`，應看到第一行 `[bstack devwork · plugin] 已載入守則。…`。
@@ -203,6 +291,7 @@ pwsh -File scripts/extras.ps1 -Migrate
 | `/plugin uninstall bstack@bstack` | plugin 核心：skills / agents / hooks / 守則 | 你的 settings、extras 寫的東西 |
 | `pwsh -File scripts/extras.ps1 -Uninstall` | extras 加過的 key 與 playwright MCP（依 manifest） | 你本來就有的同名設定 |
 | `pwsh -File scripts/extras.ps1 -Migrate` | 舊版 setup.ps1 留在 `~/.claude/` 的副本 | 你自己的 skill / hook / 被改過的 CLAUDE.md |
+| `pwsh -File scripts/install-codex.ps1 -Uninstall` | Codex：plugin、agents TOML、config 段 | 你的其他 Codex 設定 |
 
 ---
 
@@ -214,9 +303,10 @@ node scripts/plugin-contract.mjs            # plugin 結構契約（在 Git Bash
 node docs/tools/docs-site-contract.mjs      # docs 站契約
 pwsh -File scripts/build-references.ps1 -Check   # 內嵌文件是否過期；改了 skill 就重跑不帶 -Check
 pwsh -File scripts/extras.ps1 -SelfTest     # extras 行為斷言
+node scripts/gen-codex-agents.mjs --check   # 改了 agents/*.md 就不帶 --check 重跑
 ```
 
-新增 skill 要動的地方見 `skills/write-skill/SKILL.md` §新 skill 落地 checklist。repo 搬家要改 `templates/project-settings.json` 的 `repo`。
+新增 skill 要動的地方見 `skills/write-skill/SKILL.md` §新 skill 落地 checklist。新增 agent：寫 `agents/<name>.md` → 重跑產生器（`node scripts/gen-codex-agents.mjs`）→ 把產出的 `codex/agents/<name>.toml` 一起 commit → README 的 Agents 表計數 +1。repo 搬家要改 `templates/project-settings.json` 的 `repo`。
 
 ---
 
