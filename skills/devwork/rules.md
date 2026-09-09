@@ -156,7 +156,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 Task / verify / review fail → **不靜默重試**；評起因；`AskUserQuestion` 提 retry / adjust+retry / rollback / 回上層 Phase / escalate。細則 → `dev-workflow`。
 
 ### §Settings.json
-專案 `.claude/settings.json`（Claude Code 專案設定；Codex 對應為 `.codex/config.toml` 與 `rules/*.rules`，見 README Codex 節）的 `permissions.allow` **僅限 read-only / 查詢類**（範本：https://github.com/fujiei22/bstack/blob/main/templates/project-settings.json）；寫入類（Edit / Write / commit / push / checkout / rm / npm install）一律 prompt。個人偏好走 `scripts/extras.ps1`，本流程不主動寫使用者層級的 settings。範本裡的 `Bash(cat/head/tail:*)` 是任意檔讀取、不受 file-type 段（只管寫入）保護，專案內有密鑰檔就拿掉。
+專案 `.claude/settings.json`（Claude Code 專案設定；Codex 對應為 `.codex/config.toml` 與 `rules/*.rules`，見 docs/install.md 的 Codex 節）的 `permissions.allow` **僅限 read-only / 查詢類**（範本：https://github.com/fujiei22/bstack/blob/main/templates/project-settings.json）；寫入類（Edit / Write / commit / push / checkout / rm / npm install）一律 prompt。個人偏好走 `scripts/extras.ps1`，本流程不主動寫使用者層級的 settings。範本裡的 `Bash(cat/head/tail:*)` 是任意檔讀取、不受 file-type 段（只管寫入）保護，專案內有密鑰檔就拿掉。
 
 ## 程式碼規範
 

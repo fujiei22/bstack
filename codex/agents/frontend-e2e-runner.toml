@@ -3,7 +3,7 @@ name = "frontend-e2e-runner"
 description = "Playwright e2e 執行 specialist（繁中）：獨立 context 跑 browser、截圖、console / network、PII mask，回 pass / fail / inconclusive。 載入：frontend-test spawn。"
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
-# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；README §已知限制）
+# 注意：父 session 有 runtime 覆寫（codex exec 的 -s / -c sandbox_mode、互動的 /permissions、--yolo）時子 agent 沿用父的 sandbox，這行不生效（2026-09-09 實測；docs/install.md §已知限制）
 sandbox_mode = "workspace-write"
 developer_instructions = '''
 ## 角色職責
