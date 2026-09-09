@@ -1,21 +1,28 @@
 #!/usr/bin/env node
 /**
- * bstack PreToolUse hook（Write / Edit / NotebookEdit）——一支腳本、兩段檢查，取代原本兩支 pwsh
- * （branch-safety.ps1 + file-type-guard.ps1，2026-09-07 之前的版本在 git history）：
+ * bstack PreToolUse hook——一支腳本、兩段檢查，Claude Code（Write / Edit / NotebookEdit）與 Codex（apply_patch）共用：
  *   branch-safety 段：受保護 branch（main / master / production / prod / release）上禁寫 project repo 內的檔。
  *   file-type 段：密鑰類硬擋；CI / migration / lock / infra / shell config 類先擋、user 二次確認後由 AI 建 single-use token 放行。
  *     這一段**不看 repo scope**——repo 外的 ~/.gitconfig、~/.npmrc 也擋，那正是 rules.md §File-type 列 shell config 的用意。
- * 兩段都跑、兩邊訊息都印、任一 block → exit 2。官方 hooks 文件：同 matcher 多個 hook 平行執行、stderr 合併、
- * 任一 exit 2 就 block——所以一支兩段與原本兩支的可見行為相同（差別只有 stderr 順序從不定變固定）。
+ * 兩段都跑、兩邊訊息都印、任一 block → exit 2（兩個 host 的 hook 契約相同：exit 2 + stderr = 擋）。
  * JSON 壞 / git 失敗 / 路徑解析失敗 → 放行：hook 不因自身錯誤擋人。
  * 但 stdin 空、或 Write / Edit 沒帶 file_path 時 branch 段照舊查 branch（舊 ps1 就是這樣，零改變照搬）。
  *
+ * 兩個 host 的差異（2026-09-09）：
+ *   - Claude Code 一次一個檔（file_path / notebook_path 絕對路徑）、給 CLAUDE_PROJECT_DIR。
+ *   - Codex 的 Write / Edit 只是 apply_patch 的別名：tool_name 仍是 apply_patch、tool_input.command 是整段 patch 文字，
+ *     一個 patch 可含多個檔、路徑相對 repo root，且沒有 CLAUDE_PROJECT_DIR——repoDir 改用 `git rev-parse --show-toplevel` 算
+ *     （Codex 上每次 hook 多一次 git spawn，約 30-50ms）。所以判定改成「多目標」：相對路徑一律以 repoDir 解析、canonical 後去重、
+ *     branch 段只查一次、file-type 段兩趟——第一趟只看（peekToken）分類 BLOCK / WARN，全部過關才第二趟逐檔消耗 token；
+ *     一個 patch 裡有任何一檔擋下就整包 exit 2 且**不消耗任何 token**，免得 user 確認過的 token 被同一包裡另一個檔的失敗白白燒掉。
+ *   - 訊息自帶兩個 host 的答案（AskUserQuestion / request_user_input），不引用任何 skill 檔——hook 在沒載 /devwork 時也會跑。
+ *
  * 為什麼從 pwsh 改 node：pwsh -NoProfile 單支啟動約 1.1 秒、兩支每次編輯合計約 3.2 秒；node 約 0.3-0.5 秒（2026-09-07 實測）。
- * 注意 Claude Code 是 native binary、不自帶 node（官方 /setup 文件）；node 不在 PATH 時 hook 起不來——官方 /hooks 文件說會印
+ * 注意 Claude Code / Codex 都是 native binary、不自帶 node；node 不在 PATH 時 hook 起不來——Claude Code 官方 /hooks 文件說會印
  * non-blocking 通知、工具照跑；Windows 非互動模式實測連通知都沒有、檔案照寫。兩種說法下保護都不存在，跟舊版缺 pwsh 一樣。
  *
- * decide() / tokenPathFor() 是純函式（不做 IO），契約 P2d 直接 import 對 fixture 測；CLI 段只負責讀 stdin / 跑 git / 碰 token 檔。
- * 子命令 `--token <path>`：建 confirm token（給 Claude 照抄，免拼引號與反斜線）。
+ * decide() / targetsOf() / applyPatchPaths() / tokenPathFor() 是純函式（不做 IO），契約 P2d 直接 import 對 fixture 測；
+ * CLI 段只負責讀 stdin / 跑 git / 碰 token 檔。子命令 `--token <path>`：建 confirm token（給 AI 照抄，免拼引號與反斜線）。
  */
 import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync, utimesSync, appendFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -40,25 +47,54 @@ const WARN = [
   [/\.k8s\.ya?ml$/, 'K8s manifest'], [/\/\.bashrc$/, 'bash config'], [/\/\.zshrc$/, 'zsh config'], [/\/\.npmrc$/, 'npm config'], [/\/\.gitconfig$/, 'git config'],
 ];
 export const TOKEN_TTL_SEC = 300;
-const DISABLE_HINT = '若你沒在用 bstack 流程、不想要這個檢查：/plugin disable bstack@bstack';
+const WARN_LIST_MAX = 5;   // 多檔 WARN 只列前幾個，免得一個大 patch 把 stderr 灌爆
+const DISABLE_HINT = '若你沒在用 bstack 流程、不想要這個檢查：Claude Code 打 /plugin disable bstack@bstack；Codex 打 /plugins 選 bstack 按 Space 停用（Codex 另需 /hooks 信任本 hook 才會跑）';
+const ASK_HINT = 'Claude Code 用 AskUserQuestion；Codex 用 request_user_input，工具不在清單就文字提問、選項編號';
 const fwd = (p) => String(p).replace(/\\/g, '/');
 
 /**
- * tool_name 大小寫不敏感（pwsh switch 預設）；回 { isWrite, target }。非三類寫入 tool → isWrite=false。
- * payload === null 代表 stdin 真的是空字串：舊 branch 段這時照樣查 branch（零改變）。
- * JSON 是 scalar（"x" / 123 / true）→ 舊 ps1 取 .tool_name 得 null → default → exit 0，所以這裡回 isWrite=false。
+ * apply_patch 的 command（整段 patch 文字）→ 路徑陣列。
+ * 只認行首 `*** Add File: / Update File: / Delete File: / Move to: `——patch 內容行一律有 `+` / `-` / 空白前綴，不會誤觸。
+ * 截斷的 patch（沒有 `*** End Patch`）也回已經看到的路徑（fail-closed：看得到的都判）；CRLF 也吃。
  */
-export function targetOf(payload) {
-  if (payload === undefined) return { isWrite: true, target: null };      // stdin 真的是空字串
-  if (payload === null || typeof payload !== 'object') return { isWrite: false, target: null };   // JSON 字面 null / scalar：舊 .tool_name 取 null → exit 0
+export function applyPatchPaths(cmd) {
+  if (typeof cmd !== 'string') return [];
+  const out = [];
+  for (const line of cmd.split(/\r?\n/)) {
+    const m = line.match(/^\*\*\* (?:Add File|Update File|Delete File|Move to): (.+)$/);
+    if (m && m[1].trim()) out.push(m[1].trim());
+  }
+  return out;
+}
+
+/**
+ * tool_name 大小寫不敏感（pwsh switch 預設）；回 { isWrite, targets: [{ path, relTo }] }。
+ * relTo === 'repo' 代表這個路徑（apply_patch 給的）相對 repo root，decide 要先以 repoDir 解析再判；null 代表照原樣（Claude Code 給絕對路徑）。
+ * payload === undefined 代表 stdin 真的是空字串：舊 branch 段這時照樣查 branch（零改變）。
+ * JSON 是 scalar（"x" / 123 / true）→ 舊 ps1 取 .tool_name 得 null → default → exit 0，所以這裡回 isWrite=false。
+ * apply_patch 沒帶 command / 解析不到任何路徑 → 當「沒帶路徑」（branch 段照查、file-type 段沒得判），跟 Write 缺 file_path 同一條路。
+ */
+export function targetsOf(payload) {
+  if (payload === undefined) return { isWrite: true, targets: [{ path: null, relTo: null }] };
+  if (payload === null || typeof payload !== 'object') return { isWrite: false, targets: [] };
   const t = String(payload.tool_name || '').toLowerCase();
   const i = (payload.tool_input && typeof payload.tool_input === 'object') ? payload.tool_input : {};
   // 非字串的 file_path（數字 / 物件）一律當「沒帶路徑」→ branch 段照查、file-type 段沒得判。
   // 不能讓它進 path.resolve 拋錯再 catch 成「repo 外」放行——那是 security-audit 實測繞過 protected branch 的路（D3）
   const str = (v) => (typeof v === 'string' && v !== '' ? v : null);
-  if (t === 'edit' || t === 'write') return { isWrite: true, target: str(i.file_path) };
-  if (t === 'notebookedit') return { isWrite: true, target: str(i.notebook_path) };
-  return { isWrite: false, target: null };
+  if (t === 'edit' || t === 'write') return { isWrite: true, targets: [{ path: str(i.file_path), relTo: null }] };
+  if (t === 'notebookedit') return { isWrite: true, targets: [{ path: str(i.notebook_path), relTo: null }] };
+  if (t === 'apply_patch') {
+    const ps = applyPatchPaths(i.command);
+    return { isWrite: true, targets: ps.length ? ps.map((p) => ({ path: p, relTo: 'repo' })) : [{ path: null, relTo: null }] };
+  }
+  return { isWrite: false, targets: [] };
+}
+
+/** 相容殼：舊呼叫端只要第一個路徑。回 { isWrite, target }。 */
+export function targetOf(payload) {
+  const r = targetsOf(payload);
+  return { isWrite: r.isWrite, target: r.targets[0]?.path ?? null };
 }
 
 /**
@@ -79,19 +115,19 @@ export function tokenPathFor(normalized, env = process.env, platform = process.p
 
 /**
  * 純判定。ctx：
- *   repoDir、getBranch() → string | null（null = 非 git / 無 commit / git 不在；lazy，repo 外的檔不會 spawn git）、
+ *   repoDir、getBranch() → string | null（null = 非 git / 無 commit / git 不在；lazy，repo 外的檔不會 spawn git；本函式只呼叫一次）、
  *   env、selfPath（本腳本絕對路徑，印進 token 指令）、
- *   consumeToken(tokenPath) → { existed, valid }（存在即刪 + 寫 consumed.log；呼叫端負責 IO）、
+ *   peekToken(tokenPath) → { valid }（只查存在且未過期、不刪；沒給時退到 consumeToken 的結果——舊 ctx 相容）、
+ *   consumeToken(tokenPath, target) → { existed, valid }（存在即刪 + 寫 consumed.log；呼叫端負責 IO；第二個參數只用來 log）、
  *   ensureStateDir(dir) → bool。
  * 回 { exit: 0|2, lines: string[] }（兩段訊息合併）。
  */
 export function decide(payload, ctx) {
-  const { isWrite, target } = targetOf(payload);
+  const { isWrite, targets } = targetsOf(payload);
   if (!isWrite) return { exit: 0, lines: [] };
   const lines = [];
   let exit = 0;
 
-  // ── branch-safety 段：目標在 repo 外才跳；取不到路徑照舊查（零改變）──
   // canonical：舊 .NET GetFullPath 會把 Windows 8.3 短檔名（TOMMY_~1）展開；path.resolve 不會，兩邊寫法不同就會誤判「repo 外」放行。
   // 用 realpath 展開到最深的存在祖先，剩餘段接回去（目標檔常常還不存在）。ctx.realpath 可注入（契約測時不碰磁碟）。
   const canonical = (p) => {
@@ -105,58 +141,99 @@ export function decide(payload, ctx) {
       tail.unshift(path.basename(head)); head = parent;
     }
   };
-  let inScope = true;
-  if (target) {
+
+  // ── 解析 + 去重：apply_patch 的相對路徑以 repoDir 解析（由此必在 repo 內）；同一檔在一個 patch 出現兩次（Update + Move to）只判一次 ──
+  let anyNull = false, anyRel = false;
+  const resolved = [];   // { path（給訊息 / normalized 用）, key（去重 / scope 用）}
+  const seen = new Set();
+  for (const t of targets) {
+    if (!t.path) { anyNull = true; continue; }
+    let p = t.path;
+    if (t.relTo === 'repo' && !path.isAbsolute(p)) { p = path.resolve(ctx.repoDir, p); anyRel = true; }
+    let key;
+    try { key = canonical(p); } catch { key = fwd(p).toLowerCase(); }
+    if (seen.has(key)) continue;
+    seen.add(key);
+    resolved.push({ path: p, key });
+  }
+
+  // ── branch-safety 段：全部目標都在 repo 外才跳；取不到路徑照舊查（零改變）。只查一次 branch、只印一次 ──
+  let inScope = anyNull || anyRel || resolved.length === 0;
+  if (!inScope) {
     try {
-      const absT = canonical(target);
       const absR = canonical(ctx.repoDir).replace(/[\\/]+$/, '');
-      inScope = absT.startsWith(absR + path.sep) || absT.startsWith(absR + '/');
+      inScope = resolved.some(({ key }) => key.startsWith(absR + path.sep) || key.startsWith(absR + '/'));
     } catch { inScope = true; }   // 解析失敗 = 不知道，不當「repo 外」；照查 branch（fail-closed）
   }
   if (inScope) {
     const branch = ctx.getBranch();
     if (branch && PROTECTED.test(branch)) {
       lines.push(`[bstack] 目前在 '${branch}'，這是受保護的 branch，不直接寫入 / 編輯 project repo 內的檔。`);
-      lines.push('請先開 branch：用 AskUserQuestion 跟 user 確認名稱 → `git checkout -b <type>/<short-desc>`（type ∈ feat/fix/refactor/docs/chore/test/hotfix）→ retry。');
+      lines.push(`請先開 branch：跟 user 確認名稱（${ASK_HINT}）→ \`git checkout -b <type>/<short-desc>\`（type ∈ feat/fix/refactor/docs/chore/test/hotfix）→ retry。`);
       lines.push(DISABLE_HINT);
       exit = 2;
     }
   }
 
   // ── file-type 段：不看 repo scope；沒路徑就沒得判 ──
-  if (!target) return { exit, lines };
-  const normalized = fwd(target).toLowerCase();
-  if (EXEMPT.some((r) => r.test(normalized))) return { exit, lines };
-  for (const [re, tag] of BLOCK) {
-    if (!re.test(normalized)) continue;
-    lines.push(`[bstack] BLOCK：命中密鑰類檔案（${tag}）：${target}`);
-    lines.push('不直接寫入 / 編輯。如確需修改，先在對話向 user 說明動機與影響、取得 user 明確指示後再操作。');
-    lines.push(DISABLE_HINT);
-    return { exit: 2, lines };
-  }
-  for (const [re, tag] of WARN) {
-    if (!re.test(normalized)) continue;
+  if (resolved.length === 0) return { exit, lines };
+  // 第一趟：只分類、只 peek，不消耗 token
+  const blocks = [], warns = [];
+  for (const { path: p } of resolved) {
+    const normalized = fwd(p).toLowerCase();
+    if (EXEMPT.some((r) => r.test(normalized))) continue;
+    const b = BLOCK.find(([re]) => re.test(normalized));
+    if (b) { blocks.push({ tag: b[1], path: p }); continue; }
+    const w = WARN.find(([re]) => re.test(normalized));
+    if (!w) continue;
     const tokenPath = tokenPathFor(normalized, ctx.env);
-    const { valid } = ctx.consumeToken(tokenPath);      // 存在即刪（single-use；過期視同無效）
-    if (valid) return { exit, lines };
-    if (!ctx.ensureStateDir(path.dirname(tokenPath))) {
-      lines.push(`[bstack] state dir 建立失敗：${fwd(path.dirname(tokenPath))}。請確認 TEMP 環境變數指向可寫目錄，或 /plugin disable bstack@bstack。`);
-      return { exit: 2, lines };
-    }
-    lines.push(`[bstack] WARN：命中敏感類檔案（${tag}）：${target}`);
-    lines.push('處置（依序執行）：');
-    lines.push('  1) 向 user 說明動機 + 預期影響，走 AskUserQuestion 取得確認。');
-    lines.push('  2) user 確認後，AI 建立 confirm token（兩個路徑照抄，正斜線在 Bash / PowerShell tool 都能跑）：');
-    lines.push(`       node "${fwd(ctx.selfPath)}" --token "${fwd(tokenPath)}"`);
-    lines.push(`  3) retry 此 tool call；hook 偵測 token 即放行（single-use，TTL ${TOKEN_TTL_SEC}s）。`);
-    lines.push('備註：token 路徑由 normalized 檔案路徑 hash 決定、跨檔案不共用；勿手動產 token 繞 AskUserQuestion。');
-    lines.push(DISABLE_HINT);
-    return { exit: 2, lines };
+    const valid = ctx.peekToken ? !!ctx.peekToken(tokenPath).valid : !!ctx.consumeToken(tokenPath, p).valid;
+    warns.push({ tag: w[1], path: p, tokenPath, valid });
   }
+  for (const { tag, path: p } of blocks) lines.push(`[bstack] BLOCK：命中密鑰類檔案（${tag}）：${p}`);
+  if (blocks.length) {
+    lines.push('不直接寫入 / 編輯。如確需修改，先在對話向 user 說明動機與影響、取得 user 明確指示後再操作。');
+    exit = 2;
+  }
+  const pending = warns.filter((w) => !w.valid);
+  if (pending.length) {
+    for (const w of pending) {
+      if (!ctx.ensureStateDir(path.dirname(w.tokenPath))) {
+        lines.push(`[bstack] state dir 建立失敗：${fwd(path.dirname(w.tokenPath))}。請確認 TEMP 環境變數指向可寫目錄，或停用本 hook（${DISABLE_HINT}）。`);
+        return { exit: 2, lines };
+      }
+    }
+    const shown = pending.slice(0, WARN_LIST_MAX);
+    for (const w of shown) lines.push(`[bstack] WARN：命中敏感類檔案（${w.tag}）：${w.path}`);
+    if (pending.length > shown.length) lines.push(`[bstack] WARN：另有 ${pending.length - shown.length} 個敏感類檔案未列（先處理上面 ${shown.length} 個，retry 後會列出其餘）`);
+    lines.push('處置（依序執行）：');
+    lines.push(`  1) 向 user 說明動機 + 預期影響，取得確認（${ASK_HINT}）。`);
+    lines.push(`  2) user 確認後，AI 建立 confirm token（${shown.length > 1 ? '每個檔一行、' : ''}路徑照抄，正斜線在 Bash / PowerShell tool 都能跑）：`);
+    for (const w of shown) lines.push(`       node "${fwd(ctx.selfPath)}" --token "${fwd(w.tokenPath)}"`);
+    lines.push(`  3) retry 此 tool call；hook 偵測 token 即放行（single-use，TTL ${TOKEN_TTL_SEC}s）。`);
+    lines.push('備註：token 路徑由 normalized 檔案路徑 hash 決定、跨檔案不共用；勿手動產 token 繞過 user 確認。');
+    exit = 2;
+  }
+  if (exit === 2) { lines.push(DISABLE_HINT); return { exit: 2, lines }; }   // 任一檔擋下：整包擋、不消耗任何 token
+  // 第二趟：全部過關才逐檔消耗（single-use）
+  if (ctx.peekToken) for (const w of warns) ctx.consumeToken(w.tokenPath, w.path);
   return { exit, lines };
 }
 
 // ───────────────────────── CLI ─────────────────────────
+/** cwd 所在 git repo 的 toplevel；非 git / git 不在 → null。Windows 上 git 只以 git.cmd 包裝時退到 shell 版重試一次（同 getBranch）。 */
+function gitToplevel(cwd) {
+  const opts = { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] };
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], opts).trim() || null;
+  } catch (e) {
+    if (e && e.code === 'ENOENT' && process.platform === 'win32') {
+      try { return execFileSync('git rev-parse --show-toplevel', { ...opts, shell: true }).trim() || null; } catch { return null; }
+    }
+    return null;
+  }
+}
+
 function main() {
   const argv = process.argv.slice(2);
   const ti = argv.indexOf('--token');
@@ -176,12 +253,14 @@ function main() {
   }
   let raw = '';
   try { raw = readFileSync(0, 'utf8'); } catch { return 0; }   // stdin 讀不到（EAGAIN 之類）= 自身錯誤 → 放行，不假裝成「空 stdin」
-  let payload;   // undefined = 完全空字串（舊 branch 段照查 branch）；JSON null / scalar / 只有空白 → targetOf 回 isWrite=false 或這裡 catch → exit 0
+  let payload;   // undefined = 完全空字串（舊 branch 段照查 branch）；JSON null / scalar / 只有空白 → targetsOf 回 isWrite=false 或這裡 catch → exit 0
   if (raw !== '') {
     try { payload = JSON.parse(raw); } catch { return 0; }
   }
-  const repoDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-  const targetForLog = targetOf(payload).target;
+  // repoDir：Claude Code 給 CLAUDE_PROJECT_DIR；Codex 沒有，用 cwd 所在 repo 的 toplevel（hook 的 cwd = session cwd，可能在子目錄）；都沒有才退回 cwd
+  let repoDir = process.env.CLAUDE_PROJECT_DIR || null;
+  if (!repoDir) repoDir = gitToplevel(process.cwd()) || process.cwd();
+  const ageSecOf = (p) => { try { return (Date.now() - statSync(p).mtimeMs) / 1000; } catch { return Infinity; } };   // 讀不到 mtime 視同過期
   const ctx = {
     repoDir, env: process.env, selfPath: path.resolve(process.argv[1]),
     getBranch() {
@@ -197,14 +276,16 @@ function main() {
         return null;
       }
     },
-    consumeToken(tokenPath) {
+    peekToken(tokenPath) {
+      return { valid: existsSync(tokenPath) && ageSecOf(tokenPath) <= TOKEN_TTL_SEC };
+    },
+    consumeToken(tokenPath, target) {
       if (!existsSync(tokenPath)) return { existed: false, valid: false };
-      let ageSec = Infinity;
-      try { ageSec = (Date.now() - statSync(tokenPath).mtimeMs) / 1000; } catch { /* 視同過期 */ }
+      const ageSec = ageSecOf(tokenPath);
       try { unlinkSync(tokenPath); } catch { /* ignore */ }
       const valid = ageSec <= TOKEN_TTL_SEC;
       // 留一行紀錄：token 可被預建，事後至少查得出「何時、哪個檔用 token 放行過」。布林沿用舊 ps1 的 True/False
-      try { appendFileSync(path.join(path.dirname(tokenPath), 'consumed.log'), `${new Date().toISOString()} consumed ${path.basename(tokenPath)} for ${targetForLog} valid=${valid ? 'True' : 'False'}\n`); } catch { /* ignore */ }
+      try { appendFileSync(path.join(path.dirname(tokenPath), 'consumed.log'), `${new Date().toISOString()} consumed ${path.basename(tokenPath)} for ${target} valid=${valid ? 'True' : 'False'}\n`); } catch { /* ignore */ }
       return { existed: true, valid };
     },
     ensureStateDir(dir) {
