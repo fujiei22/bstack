@@ -34,7 +34,7 @@ description: |
 
 **常規**：task 要動的前端檔**在** `codebase_impact.files` 裡 → §Task 推進規則 第 3 步之前載 `design-language`、寫完跑 `design-language §對齊檢查清單` 四項（元件狀態 / 斷點 / 表單 / dark mode）。見 `dev-workflow` §跨流程 skill 載入。
 
-**例外**：施工中發現要動的前端檔不在 `codebase_impact.files` 裡（Phase 0 沒看到它）。副檔名清單與排除規則照 `design-language` §前端副檔名 與 §使用契約 第 1 步：剔除路徑含 `skills/<name>/SKILL.md` 的 skill 定義目錄（plugin 快取、專案 `.claude/skills/`、repo `skills/` 都算）；**不得用裸 `skills/` 比對**——專案可能有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除。動作五步：
+**例外**：施工中發現要動的前端檔不在 `codebase_impact.files` 裡（Phase 0 沒看到它）。副檔名清單與排除規則照 `design-language` §前端副檔名 與 §使用契約 第 1 步：剔除路徑含 `skills/<name>/SKILL.md` 的 skill 定義目錄（plugin 快取、專案 `.claude/skills/`（Claude Code）與 `.agents/skills/`（Codex）、repo `skills/` 都算）；**不得用裸 `skills/` 比對**——專案可能有叫 `skills/` 的產品目錄，裸比對會把真實介面靜默排除。動作五步：
 
 1. **暫停當前 task**，`TaskUpdate` 維持 `in_progress`，**不 commit 半成品**。
 2. **補判**：載入 `design-language`，把新冒出的檔交給它，取回 `design.*` 六欄。

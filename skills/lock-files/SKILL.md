@@ -13,7 +13,7 @@ description: |
 
 1. `AskUserQuestion` 問 user 要鎖哪些 path（檔 / 目錄 / glob）。
 2. 寫進 `state.locked_paths`、印確認清單。
-3. 此後**任何 Edit / Write / NotebookEdit**前，先檢 path 是否命中 locked：
+3. 此後**任何 Edit / Write / NotebookEdit（NotebookEdit 是 Claude Code 才有）／ Codex 的 apply_patch**前，先檢 path 是否命中 locked：
    - 命中 → 拒絕、印警告、不執行
    - 不命中 → 放行
 4. user 顯式 unlock → 移除 entry。
@@ -33,7 +33,7 @@ user 提供後，主 agent 印已鎖清單與 unlock 說法。
 
 ## §寫入 pre-check
 
-每 Edit / Write / NotebookEdit 前：取 target `file_path`，對 `state.locked_paths` 逐項比對（glob match）；命中 → 拒絕：
+每 Edit / Write / NotebookEdit（NotebookEdit 是 Claude Code 才有）／ Codex 的 apply_patch 前：取 target `file_path`，對 `state.locked_paths` 逐項比對（glob match）；命中 → 拒絕：
 
 ```
 [LOCK-FILES] 命中鎖檔：<file_path>

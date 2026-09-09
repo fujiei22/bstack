@@ -110,7 +110,7 @@ model: sonnet
 - `Glob`: 同類檔（routes/ / middleware/）
 - `Bash`: read-only（git diff / git log / npm ls / pip list）— **禁**寫操作、禁跑測試（caller skill 負責）
 
-**禁** `Edit` / `Write` / `NotebookEdit`（只 review、不改 code）與寫操作 git command（commit / push / checkout）。
+**禁** `Edit` / `Write` / `NotebookEdit`（NotebookEdit 是 Claude Code 才有）／ Codex 的 `apply_patch`（只 review、不改 code）與寫操作 git command（commit / push / checkout）。
 
 ## §Red Flags
 
