@@ -1,4 +1,4 @@
-# 由 scripts/gen-codex-agents.mjs 從 agents/lang-reviewer.md 產生（bstack 1.6.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
+# 由 scripts/gen-codex-agents.mjs 從 agents/lang-reviewer.md 產生（bstack 1.7.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
 name = "lang-reviewer"
 description = "程式語言特化 code reviewer（繁中）：依 prompt 標的 language 套 idiom / pitfall。 載入：request-review 不自動派發；user 顯式要求時由主 agent spawn。"
 model = "gpt-5.6-terra"

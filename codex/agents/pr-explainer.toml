@@ -1,4 +1,4 @@
-# 由 scripts/gen-codex-agents.mjs 從 agents/pr-explainer.md 產生（bstack 1.6.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
+# 由 scripts/gen-codex-agents.mjs 從 agents/pr-explainer.md 產生（bstack 1.7.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
 name = "pr-explainer"
 description = "PR diff 詳盡解釋 reviewer（繁中）：獨立 context 重讀 diff，寫「為何 + 怎做 + 關聯」到 docs/work/<branch-name>/pr-review.md。 載入：pr-explain spawn。"
 model = "gpt-5.6-terra"

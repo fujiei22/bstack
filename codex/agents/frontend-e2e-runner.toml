@@ -1,4 +1,4 @@
-# 由 scripts/gen-codex-agents.mjs 從 agents/frontend-e2e-runner.md 產生（bstack 1.6.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
+# 由 scripts/gen-codex-agents.mjs 從 agents/frontend-e2e-runner.md 產生（bstack 1.7.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
 name = "frontend-e2e-runner"
 description = "Playwright e2e 執行 specialist（繁中）：獨立 context 跑 browser、截圖、console / network、PII mask，回 pass / fail / inconclusive。 載入：frontend-test spawn。"
 model = "gpt-5.6-terra"
