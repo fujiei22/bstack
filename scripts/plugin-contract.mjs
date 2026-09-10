@@ -117,22 +117,25 @@ check('P2c guard.mjs 不寫 plugin 目錄內的 state/（含 docstring）、舊 
 const G = await import('../hooks/guard.mjs');
 const REPO_FIX = process.platform === 'win32' ? 'C:\\repo' : '/repo';
 const inRepo = (rel) => REPO_FIX + (process.platform === 'win32' ? '\\' : '/') + rel;
-const ctxOf = ({ branch = 'feat/x', token = 'none', stateDir = true } = {}) => ({
+const ctxOf = ({ branch = 'feat/x', token = 'none', stateDir = true, claimed = true } = {}) => ({
   repoDir: REPO_FIX, env: { TMP: 'C:/t', USERNAME: 'u' }, selfPath: 'X:/p/hooks/guard.mjs',
   realpath: (p) => { throw new Error('nope'); },   // fixture 路徑不存在磁碟上；讓 canonical 退到 path.resolve
   getBranch: () => branch,
   cwd: REPO_FIX,   // apply_patch 相對路徑的基準（Codex session cwd）；預設就是 repo root
   peekToken: () => ({ existed: token !== 'none', valid: token === 'valid' }),
-  consumeToken: () => token === 'none' ? { existed: false, valid: false } : { existed: true, valid: token === 'valid' },
+  // claimed=false 模擬原子 claim 輸掉（另一個 hook 先 rename 走、或檔案鎖住）
+  consumeToken: () => token === 'none' ? { existed: false, valid: false, claimed: false } : { existed: true, valid: token === 'valid' && claimed, claimed },
   ensureStateDir: () => stateDir,
 });
+// symlink / junction 別名：realpath 注入把 alias（原始路徑）解成 target，模擬「檔名普通、實際指到敏感檔」
+const aliasCtx = (alias, target, o = {}) => ({ ...ctxOf(o), realpath: (p) => (p.toLowerCase() === resolve(REPO_FIX, alias).toLowerCase() ? resolve(REPO_FIX, target) : p) });
 const W = (file_path, tool_name = 'Write') => ({ tool_name, tool_input: { file_path } });
 // Codex apply_patch：tool_input.command 是整段 patch 文字、路徑相對 repo root
 const AP = (files, op = 'Update File') => ({ tool_name: 'apply_patch', tool_input: { command: ['*** Begin Patch', ...files.map((f) => `*** ${op}: ${f}`), '*** End Patch'].join('\n') } });
 // 多 token ctx：tokens = { [tokenPath]: true } 為有效；consumeToken 記錄呼叫（守「擋下就不消耗」與「逐檔 target 各對」）
-const ctx2 = (o = {}) => { const c = ctxOf(o); c.consumed = []; c.peekToken = (p) => ({ existed: p in (o.tokens || {}), valid: (o.tokens || {})[p] === true }); c.consumeToken = (p, t) => { c.consumed.push({ p, t }); return { existed: true, valid: (o.tokens || {})[p] === true }; }; return c; };
+const ctx2 = (o = {}) => { const c = ctxOf(o); c.consumed = []; c.peekToken = (p) => ({ existed: p in (o.tokens || {}), valid: (o.tokens || {})[p] === true }); c.consumeToken = (p, t) => { c.consumed.push({ p, t }); const claimed = !(o.claimFail || []).includes(p); return { existed: true, valid: claimed && (o.tokens || {})[p] === true, claimed }; }; return c; };
 const tokOf = (rel) => G.tokenPathFor(resolve(REPO_FIX, rel).replace(/\\/g, '/').toLowerCase(), ctxOf().env);   // 不寫死 hash
-const tags = (r) => ({ b: r.lines.some((l) => l.includes('目前在')), B: r.lines.some((l) => l.includes('BLOCK')), W: r.lines.some((l) => l.includes('WARN')), S: r.lines.some((l) => l.includes('state dir')) });
+const tags = (r) => ({ b: r.lines.some((l) => l.includes('目前在')), B: r.lines.some((l) => l.includes('BLOCK')), W: r.lines.some((l) => l.includes('WARN')), S: r.lines.some((l) => l.includes('state dir')), C: r.lines.some((l) => l.includes('消耗失敗')) });
 const P2D = [
   ['1 protected + repo 內 → 擋', W(inRepo('src/a.ts')), ctxOf({ branch: 'main' }), 2, { b: true }],
   ['2 feature + repo 內 → 放', W(inRepo('src/a.ts')), ctxOf(), 0, {}],
@@ -142,7 +145,8 @@ const P2D = [
   ['6 .env.example → 放', W(inRepo('.env.example')), ctxOf(), 0, {}],
   ['7 .env.local → BLOCK', W(inRepo('.env.local')), ctxOf(), 2, { B: true }],
   ['8 NotebookEdit id_rsa → BLOCK', { tool_name: 'NotebookEdit', tool_input: { notebook_path: inRepo('.ssh/id_rsa') } }, ctxOf(), 2, { B: true }],
-  ['9 裸 credentials.json（無前導斜線）→ 放（既有行為）', W('credentials.json'), ctxOf(), 0, {}],
+  // 2026-09-10 前：裸相對路徑沒有前導斜線、/credentials\./ 對不上 → 放。canonical（path.resolve）那一邊有斜線 → 現在 BLOCK，與 35（apply_patch 相對 credentials.json）一致
+  ['9 裸 credentials.json（無前導斜線）→ BLOCK（canonical 那一邊命中）', W('credentials.json'), ctxOf(), 2, { B: true }],
   ['10 migrations/x.sql 無 token → WARN', W(inRepo('db/migrations/x.sql')), ctxOf(), 2, { W: true }],
   ['11 同檔 token valid → 放', W(inRepo('db/migrations/x.sql')), ctxOf({ token: 'valid' }), 0, {}],
   ['12 同檔 token expired → WARN', W(inRepo('db/migrations/x.sql')), ctxOf({ token: 'expired' }), 2, { W: true }],
@@ -172,7 +176,7 @@ const P2D = [
   ['32 apply_patch 相對 Dockerfile → WARN', AP(['Dockerfile']), ctxOf(), 2, { W: true }],
   ['33 apply_patch 相對 package-lock.json → WARN', AP(['package-lock.json']), ctxOf(), 2, { W: true }],
   ['34 apply_patch 相對 .github/workflows/ci.yml → WARN', AP(['.github/workflows/ci.yml']), ctxOf(), 2, { W: true }],
-  ['35 apply_patch 相對 credentials.json → BLOCK（Write 裸 credentials.json 仍放，fixture 9）', AP(['credentials.json'], 'Add File'), ctxOf(), 2, { B: true }],
+  ['35 apply_patch 相對 credentials.json → BLOCK（Write 裸 credentials.json 同樣 BLOCK，fixture 9）', AP(['credentials.json'], 'Add File'), ctxOf(), 2, { B: true }],
   ['36 apply_patch Move to id_rsa → BLOCK', { tool_name: 'apply_patch', tool_input: { command: '*** Begin Patch\n*** Update File: a.txt\n*** Move to: .ssh/id_rsa\n*** End Patch' } }, ctxOf(), 2, { B: true }],
   ['37 apply_patch 無 command → 當沒帶路徑（protected 擋）', { tool_name: 'apply_patch', tool_input: {} }, ctxOf({ branch: 'main' }), 2, { b: true }],
   ['38 apply_patch Delete .env.example → 放', AP(['.env.example'], 'Delete File'), ctxOf(), 0, {}],
@@ -185,6 +189,11 @@ const P2D = [
   // 45-46：相對路徑以 session cwd 解析（review C：用 toplevel 會讓子目錄 session 的 file-type 規則 fail-open）；../ 跳出去仍查 branch（fail-closed）
   ['45 cwd=repo/.github、patch workflows/ci.yml → 解析成 .github/workflows/ci.yml → WARN', AP(['workflows/ci.yml']), { ...ctxOf(), cwd: resolve(REPO_FIX, '.github') }, 2, { W: true }],
   ['46 cwd=repo/sub、patch ../x.txt（protected）→ 仍查 branch、擋', AP(['../x.txt']), { ...ctxOf({ branch: 'main' }), cwd: resolve(REPO_FIX, 'sub') }, 2, { b: true }],
+  // 47-50：2026-09-10 Codex 外部 review 第 3、4 項——原子 claim 輸掉不放行；別名（symlink）走 canonical 也分類
+  ['47 token valid 但 claim 失敗 → 擋、含「消耗失敗」、不含 WARN', W(inRepo('db/migrations/x.sql')), ctxOf({ token: 'valid', claimed: false }), 2, { C: true, W: false }],
+  ['48 config.txt 是 .env 的 symlink → BLOCK', W(inRepo('config.txt')), aliasCtx('config.txt', '.env'), 2, { B: true }],
+  ['49 .env.example 是 .env 的 symlink → BLOCK（EXEMPT 只豁免原始那一邊）', W(inRepo('.env.example')), aliasCtx('.env.example', '.env'), 2, { B: true }],
+  ['50 notes.txt 是 Dockerfile 的 symlink → WARN、token 綁原始路徑', W(inRepo('notes.txt')), aliasCtx('notes.txt', 'Dockerfile'), 2, { W: true }],
 ];
 // 31 / 41-44 的副作用斷言（P2D 表只看 exit + 訊息 tag）：每案用自己新建的 ctx，不共用、不受執行順序影響
 const apSE = (payload, o) => { const c = ctx2(o); return { r: G.decide(payload, c), c }; };
@@ -197,7 +206,12 @@ const ap43ok = ap43.consumed.length === 2 && ap43.consumed.every((c) => /dockerf
 const ap44 = apSE({ tool_name: 'apply_patch', tool_input: { command: '*** Begin Patch\n*** Update File: Dockerfile\n*** Move to: Dockerfile\n*** End Patch' } }, { tokens: { [tokOf('Dockerfile')]: true } }).c.consumed.length === 1;   // 去重後只消耗一次
 const ap47 = apSE(AP(['Dockerfile']), { tokens: { [tokOf('Dockerfile')]: false } });   // 過期 token（existed 但 !valid）：第一趟就消耗掉（刪 + log），仍 WARN
 const ap47ok = ap47.r.exit === 2 && ap47.c.consumed.length === 1 && ap47.r.lines.some((l) => l.includes('WARN'));
-const apExtra = ap31 && ap41 && ap42ok && ap43ok && ap44 && ap47ok;
+// 50 的 token 身分：--token 指令印的是原始路徑（notes.txt）算出來的 hash，不是 Dockerfile 的
+const ap50 = G.decide(W(inRepo('notes.txt')), aliasCtx('notes.txt', 'Dockerfile')).lines.some((l) => l.includes(tokOf('notes.txt').replace(/\\/g, '/')));
+// 51：兩 WARN 兩 token 都有效、第二個 claim 輸掉 → 擋、兩個都嘗試過（第一個已消耗、不退還）
+const ap51 = apSE(AP(['Dockerfile', 'docker-compose.yml']), { tokens: { [tokOf('Dockerfile')]: true, [tokOf('docker-compose.yml')]: true }, claimFail: [tokOf('docker-compose.yml')] });
+const ap51ok = ap51.r.exit === 2 && ap51.c.consumed.length === 2 && ap51.r.lines.some((l) => l.includes('消耗失敗') && /docker-compose/.test(l)) && ap51.r.lines.some((l) => l.includes('不退還'));
+const apExtra = ap31 && ap41 && ap42ok && ap43ok && ap44 && ap47ok && ap50 && ap51ok;
 const p2dBad = P2D.filter(([, payload, ctx, exit, tg]) => { const r = G.decide(payload, ctx); const t = tags(r); return r.exit !== exit || Object.entries(tg).some(([k, v]) => t[k] !== v); }).map(([n]) => n);
 // 25 / 26：token 路徑純運算——期望值用舊 ps1 對同一字串算過（2026-09-07：sha256("d:/x/.env") 前 16 hex）
 const tp25 = G.tokenPathFor('d:/x/.env', { TMP: 'C:/t', USERNAME: 'u' }, 'win32', () => false).replace(/\\/g, '/');
@@ -207,7 +221,7 @@ const p2dScalar = G.decide('x', ctxOf({ branch: 'main' })).exit === 0 && G.decid
 const HASH25 = '5cda4cbfd584ef07';
 check(`P2d guard.mjs 純判定 ${P2D.length} 案全對（含 apply_patch 多檔兩趟）、scalar JSON 放行、token 路徑照 .NET 順序`,
   p2dBad.length === 0 && apExtra && p2dScalar && tp25 === `C:/t/bstack-file-guard-u/${HASH25}.token` && tp26 === `C:/t2/bstack-file-guard-v/${HASH25}.token`,
-  `錯的案=[${p2dBad.join(' | ')}] apply_patch 副作用 31=${ap31} 41=${ap41} 42=${ap42ok} 43=${ap43ok} 44=${ap44} 過期消耗=${ap47ok} scalar 放行=${p2dScalar} tp25=${tp25} tp26=${tp26}（後果：該擋沒擋 / 不該擋擋了、Codex 相對路徑 fail-open、一包 patch 裡別的檔失敗把 user 確認過的 token 燒掉、或 token 目錄跟舊版對不上；改處：hooks/guard.mjs decide / targetsOf / applyPatchPaths / tokenPathFor）`);
+  `錯的案=[${p2dBad.join(' | ')}] apply_patch 副作用 31=${ap31} 41=${ap41} 42=${ap42ok} 43=${ap43ok} 44=${ap44} 過期消耗=${ap47ok} 別名 token 身分=${ap50} claim 輸掉=${ap51ok} scalar 放行=${p2dScalar} tp25=${tp25} tp26=${tp26}（後果：該擋沒擋 / 不該擋擋了、Codex 相對路徑 fail-open、一包 patch 裡別的檔失敗把 user 確認過的 token 燒掉、或 token 目錄跟舊版對不上；改處：hooks/guard.mjs decide / targetsOf / applyPatchPaths / tokenPathFor）`);
 // P2e：真 spawn，守「CLI 有接上兩段 + 真的跑 git + --token 子命令 + consumeToken 的 IO」——P2d 全部 mock，這些只有這裡守
 const { spawnSync, execFileSync: xgit } = await import('node:child_process');   // 在 else 區塊內，不能用 import 宣告
 const { tmpdir } = await import('node:os');
@@ -228,6 +242,8 @@ const e5 = tokenPath ? spawnHook(undefined, ['--token', tokenPath]) : { status: 
 const tokenMade = tokenPath ? exists(tokenPath) || (await import('node:fs')).existsSync(tokenPath) : false;
 const e6 = spawnHook({ tool_name: 'Write', tool_input: { file_path: dockerOut } });                    // 有 token → 放行、token 刪、log +1
 const tokenGone = tokenPath ? !(await import('node:fs')).existsSync(tokenPath) : false;
+// 原子 claim 的殘留：rename 成 .claim-<pid> 後要刪掉，state dir 不能留 claim 檔
+const claimResidue = tokenPath ? readdirSync(join(tokenPath, '..')).filter((f) => f.includes('.claim-')) : ['no-token'];
 const logOk = tokenPath ? /consumed .*valid=True/.test((() => { try { return rf(join(tokenPath, '..', 'consumed.log'), 'utf8'); } catch { return ''; } })()) : false;
 // Codex 路：沒有 CLAUDE_PROJECT_DIR、cwd 在 repo 子目錄、apply_patch 相對路徑 → 靠 git toplevel 算 repoDir，main 仍擋；stderr 自帶兩 host 答案
 const p2eSub = join(p2eRepo, 'sub'); mkd(p2eSub, { recursive: true });
@@ -253,8 +269,8 @@ const e9dup = ((e9.stderr || '').match(/若你沒在用 bstack 流程/g) || []).
 rmSync(p2eDir, { recursive: true, force: true });
 check('P2e guard.mjs 真 spawn：Read → 0；repo 外 .env → BLOCK；真 git main → 擋；WARN → --token 建檔 → 再跑放行且 token 已刪、consumed.log 有 valid=True；Codex apply_patch（無 CLAUDE_PROJECT_DIR、子目錄 cwd）走 git toplevel 仍擋且回 JSON deny、訊息含兩 host 工具名、多檔 WARN 兩行 --token 共用步驟一次、payload.cwd 解析相對路徑；帶 turn_id → JSON deny、停用提示只印一次',
   gitOk && e1.status === 0 && e2.status === 2 && /BLOCK/.test(e2.stderr || '') && e3.status === 2 && /目前在/.test(e3.stderr || '') &&
-    e4.status === 2 && /WARN/.test(e4.stderr || '') && !!tokenPath && e5.status === 0 && tokenMade && e6.status === 0 && tokenGone && logOk && e7ok && e8ok && e9ok && e9dup && e10ok,
-  `git=${gitOk} Read=${e1.status} .env=${e2.status} main擋=${e3.status}/${/目前在/.test(e3.stderr || '')} WARN=${e4.status} tokenPath=${!!tokenPath} --token=${e5.status}/${tokenMade} 放行=${e6.status} token刪=${tokenGone} log=${logOk} codex-toplevel=${e7.status}/${e7ok} 多檔WARN=${e8.status}/${e8tok}/${e8ok} codex-deny=${e9.status}/${e9ok}/${e9dup} cwd解析=${e10.status}/${e10ok}` +
+    e4.status === 2 && /WARN/.test(e4.stderr || '') && !!tokenPath && e5.status === 0 && tokenMade && e6.status === 0 && tokenGone && claimResidue.length === 0 && logOk && e7ok && e8ok && e9ok && e9dup && e10ok,
+  `git=${gitOk} Read=${e1.status} .env=${e2.status} main擋=${e3.status}/${/目前在/.test(e3.stderr || '')} WARN=${e4.status} tokenPath=${!!tokenPath} --token=${e5.status}/${tokenMade} 放行=${e6.status} token刪=${tokenGone} claim殘留=[${claimResidue.join(',')}] log=${logOk} codex-toplevel=${e7.status}/${e7ok} 多檔WARN=${e8.status}/${e8tok}/${e8ok} codex-deny=${e9.status}/${e9ok}/${e9dup} cwd解析=${e10.status}/${e10ok}` +
     `（後果：CLI 沒接上判定、git spawn 寫壞會靜默放行、Codex 上 repoDir 退回 cwd 讓子目錄裡的相對路徑 fail-open、Codex 只看到 exit 2 不看到 JSON deny 就整個不擋（2026-09-09 實測）、或 WARN 指示照抄卻建不出 token；改處：hooks/guard.mjs main() / isCodexPayload / gitToplevel / consumeToken / --token）`);
 
 // ── P3 skills ───────────────────────────────────────────────────────────────
