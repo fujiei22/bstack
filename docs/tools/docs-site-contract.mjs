@@ -385,15 +385,25 @@ check(
     `懸空邊 ${dangling.length} 條（後果：dagre 會把孤兒堆到角落，懸空邊直接讓佈局炸掉）`
 );
 
-// data.js 與 layout.js 都不該被動——它們是資料與 dagre 參數，不在改版 scope
-for (const f of ['docs/js/data.js', 'docs/js/layout.js']) {
+// data.js 與 layout.js 都不該被動——它們是資料與 dagre 參數，不在改版 scope。
+// layout.js 看 git diff；data.js 改看「執行後的 FLOW_DATA 內容」是否與 HEAD 相同：宣告方式（const → var，2026-09-10 RWD 版為了
+// 讓 flow.html 被 index 內嵌時重複掛載不炸）與註解可以動，節點 / 邊 / 分組的資料不能動。
+try {
+  execFileSync('git', ['diff', '--exit-code', 'HEAD', '--', 'docs/js/layout.js'], { cwd: REPO, stdio: 'pipe' });
+  check('C8d layout.js 未被改動', true);
+} catch {
+  check('C8d layout.js 未被改動', false, `期望 git diff 乾淨，實際有改動（後果：改到了 dagre 佈局參數，整張圖的座標會位移）`);
+}
+{
+  let headFD = null, headErr = '';
   try {
-    execFileSync('git', ['diff', '--exit-code', 'HEAD', '--', f], { cwd: REPO, stdio: 'pipe' });
-    check(`C8d ${f.replace('docs/js/', '')} 未被改動`, true);
-  } catch {
-    check(`C8d ${f.replace('docs/js/', '')} 未被改動`, false,
-      `期望 git diff 乾淨，實際有改動（後果：改到了資料或 dagre 佈局參數，整張圖的座標會位移）`);
-  }
+    const src = execFileSync('git', ['show', 'HEAD:docs/js/data.js'], { cwd: REPO, encoding: 'utf8' });
+    const w = {}; new Function('window', src)(w);   // 跟上面載入工作樹版 data.js 同一招
+    headFD = w.FLOW_DATA;
+  } catch (e) { headErr = e.message; }
+  const same = headFD && JSON.stringify(headFD) === JSON.stringify(FD);
+  check('C8d data.js 的 FLOW_DATA 內容與 HEAD 相同（宣告方式與註解可改）', !!same,
+    `HEAD 版${headErr ? `讀不到：${headErr}` : '讀到了'}，內容${same ? '相同' : '不同'}（後果：改到了節點 / 邊 / 分組資料，整張圖的座標會位移）`);
 }
 
 // references 裡「不是 skill 也不是 agent」的規則層文件：C8b 的期望數與 C18b 的白名單都從這一份算，加一份只改這裡
