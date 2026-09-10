@@ -131,7 +131,7 @@ cd bstack
 pwsh -File scripts/install-codex.ps1
 ```
 
-它依序做：前置檢查（codex / node / git）→ 列出並搬走 `~/.agents/skills/` 的舊同名副本（搬進備份目錄、不刪）→ `codex plugin marketplace add` + `codex plugin add` → 複製 `codex/agents/*.toml` 到 `~/.codex/agents/` → 在 `~/.codex/config.toml` 開 `tools.update_plan`。非互動 `-Yes`；只印會做什麼 `-WhatIf`；改用本機來源 `-Source local`（把這個 clone 的目前 branch 精簡 clone 到 `~/.codex/bstack-src` 當 marketplace root，見下一節為什麼）。後兩步不做也能用，只是降級：subagent 退成內建 `explorer`、任務追蹤退成勾 checkbox。
+它依序做：前置檢查（codex / node / git）→ 列出並搬走 `~/.agents/skills/` 的舊同名副本（搬進備份目錄、不刪）→ `codex plugin marketplace add` + `codex plugin add --json` → 從裝好的 plugin（`--json` 回的 `installedPath`）複製 `codex/agents/*.toml` 到 `~/.codex/agents/`，跟 plugin 必然同版本、不從本 clone 抄 → 在 `~/.codex/config.toml` 開 `tools.update_plan`。非互動 `-Yes`；只印會做什麼 `-WhatIf`；改用本機來源 `-Source local`（把這個 clone 的目前 branch 精簡 clone 到 `~/.codex/bstack-src` 當 marketplace root，見下一節為什麼）。後兩步不做也能用，只是降級：subagent 退成內建 `explorer`、任務追蹤退成勾 checkbox。
 
 手動只裝 plugin（等同上面第三步）：
 
