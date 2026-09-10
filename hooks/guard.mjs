@@ -15,8 +15,12 @@
  *     一個 patch 可含多個檔、路徑**相對 session cwd**（payload 帶 cwd 欄位；hook 進程的 cwd 也是它），且沒有 CLAUDE_PROJECT_DIR——
  *     repoDir 改用 `git rev-parse --show-toplevel` 算（跟 branch 同一次 spawn 一起拿，Codex 上每次 hook 只多這一次 git）。
  *     判定改成「多目標」：相對路徑以 cwd 解析、canonical 後去重、branch 段只查一次、file-type 段兩趟——第一趟只看（peekToken）
- *     分類 BLOCK / WARN，全部過關才第二趟逐檔消耗 token；一個 patch 裡有任何一檔擋下就整包擋且**不消耗任何有效 token**，
+ *     分類 BLOCK / WARN，全部過關才第二趟逐檔消耗 token；預檢有任何一檔擋下就整包擋且**不消耗任何有效 token**，
  *     免得 user 確認過的 token 被同一包裡另一個檔的失敗白白燒掉（過期的 token 例外：第一趟就刪掉並記 consumed.log valid=False，稽核軌跡不斷）。
+ *     第二趟的消耗是**原子 claim**（rename 成 .claim-<pid> 再刪）：兩個 hook 在 TTL 內同時跑同一檔，只有 rename 成功的那個放行；
+ *     claim 失敗整包擋、已 claim 的不退還（重新向 user 確認再建）——放棄「多檔全有全無」換取 single-use 真的成立。
+ *   - file-type 分類同時看原始路徑與 canonical（realpath）路徑、取較嚴格：config.txt 是 .env 的 symlink 也擋得到；
+ *     token 身分仍綁原始路徑的 normalized hash（印給 user 的 --token 指令要對得上他確認的那個檔名）。
  *   - Codex 上 apply_patch 的相對路徑一律視為 repo 內（fail-closed）：rules.md §Branch safety 的「repo 外放行」豁免只對絕對路徑成立。
  *   - 訊息自帶兩個 host 的答案（AskUserQuestion / request_user_input），不引用任何 skill 檔——hook 在沒載 /devwork 時也會跑。
  *
@@ -27,7 +31,7 @@
  * decide() / targetsOf() / applyPatchPaths() / tokenPathFor() / isCodexPayload() 是純函式（不做 IO），契約 P2d 直接 import 對 fixture 測；
  * CLI 段只負責讀 stdin / 跑 git / 碰 token 檔。子命令 `--token <path>`：建 confirm token（給 AI 照抄，免拼引號與反斜線）。
  */
-import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync, utimesSync, appendFileSync, mkdirSync, realpathSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync, renameSync, utimesSync, appendFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -131,7 +135,8 @@ export function tokenPathFor(normalized, env = process.env, platform = process.p
  *   getBranch() → string | null（null = 非 git / 無 commit / git 不在；lazy，repo 外的檔不會 spawn git；本函式只呼叫一次）、
  *   env、selfPath（本腳本絕對路徑，印進 token 指令）、
  *   peekToken(tokenPath) → { existed, valid }（只查存在與是否在 TTL 內、不刪）、
- *   consumeToken(tokenPath, target) → { existed, valid }（存在即刪 + 寫 consumed.log；呼叫端負責 IO；第二個參數只用來 log）、
+ *   consumeToken(tokenPath, target) → { existed, valid, claimed }（原子 claim：rename 成功才算 claimed、再刪 + 寫 consumed.log；
+ *     claimed=false 代表被另一個 hook 先拿走或檔案鎖住；呼叫端負責 IO；第二個參數只用來 log）、
  *   ensureStateDir(dir) → bool。
  * 回 { exit: 0|2, lines: string[] }（兩段訊息合併；exit 2 = 擋，怎麼告訴 host 由 main() 依 host 決定）。
  */
@@ -193,17 +198,27 @@ export function decide(payload, ctx) {
   if (resolved.length === 0) { if (exit === 2) lines.push(DISABLE_HINT); return { exit, lines }; }
   // 第一趟：只分類、只 peek；有效 token 不動，過期的當場刪掉並記 log（稽核：預建的 token 也要留下痕跡）
   const blocks = [], warns = [];
-  for (const { path: p } of resolved) {
+  // 單一路徑的分類：EXEMPT 先讓 .env.example 這類逃過 .env 的 BLOCK pattern；回 { rank, tag }，rank 2=BLOCK 1=WARN 0=無
+  const classify = (n) => {
+    if (EXEMPT.some((r) => r.test(n))) return { rank: 0 };
+    const b = BLOCK.find(([re]) => re.test(n));
+    if (b) return { rank: 2, tag: b[1] };
+    const w = WARN.find(([re]) => re.test(n));
+    return w ? { rank: 1, tag: w[1] } : { rank: 0 };
+  };
+  for (const { path: p, key } of resolved) {
     const normalized = fwd(p).toLowerCase();
-    if (EXEMPT.some((r) => r.test(normalized))) continue;
-    const b = BLOCK.find(([re]) => re.test(normalized));
-    if (b) { blocks.push({ tag: b[1], path: p }); continue; }
-    const w = WARN.find(([re]) => re.test(normalized));
-    if (!w) continue;
+    // 原始路徑與 canonical 路徑各分類一次、取較嚴格：別名（symlink / junction）指到敏感檔時，原始名字看不出來、canonical 看得出來；
+    // 反過來 .env.example 是 .env 的 symlink 時，原始名字 EXEMPT、canonical 命中 BLOCK，也是取 BLOCK。EXEMPT 只豁免自己那一邊，不提早 continue
+    const canon = key ? fwd(key) : normalized;
+    const c1 = classify(normalized), c2 = canon !== normalized ? classify(canon) : { rank: 0 };
+    const c = c2.rank > c1.rank ? c2 : c1;
+    if (c.rank === 2) { blocks.push({ tag: c.tag, path: p }); continue; }
+    if (c.rank === 0) continue;
     const tokenPath = tokenPathFor(normalized, ctx.env);
     const peek = ctx.peekToken(tokenPath);
     if (peek.existed && !peek.valid) ctx.consumeToken(tokenPath, p);   // 過期：刪 + log valid=False
-    warns.push({ tag: w[1], path: p, tokenPath, valid: !!peek.valid });
+    warns.push({ tag: c.tag, path: p, tokenPath, valid: !!peek.valid });
   }
   for (const { tag, path: p } of blocks) lines.push(`[bstack] BLOCK：命中密鑰類檔案（${tag}）：${p}`);
   if (blocks.length) {
@@ -223,13 +238,24 @@ export function decide(payload, ctx) {
     lines.push(`  1) 向 user 說明動機 + 預期影響，取得確認（${ASK_HINT}）。`);
     lines.push(`  2) user 確認後，AI 建立 confirm token（${pending.length > 1 ? '每個檔一行、' : ''}路徑照抄，正斜線在 Bash / PowerShell tool 都能跑）：`);
     for (const w of pending) lines.push(`       node "${fwd(ctx.selfPath)}" --token "${fwd(w.tokenPath)}"`);
-    lines.push(`  3) retry 此 tool call；hook 偵測 token 即放行（single-use，TTL ${TOKEN_TTL_SEC}s；一包 patch 內全部 token 都有效才放行，任一檔失敗不消耗其他檔的 token）。`);
+    lines.push(`  3) retry 此 tool call；hook 偵測 token 即放行（single-use，TTL ${TOKEN_TTL_SEC}s；一包 patch 內全部 token 都有效才放行，預檢沒過不消耗任何 token；預檢過後逐檔原子消耗，消耗失敗整包擋、已消耗的不退還）。`);
     lines.push('備註：token 路徑由 normalized 檔案路徑 hash 決定、跨檔案不共用；勿手動產 token 繞過 user 確認。');
     exit = 2;
   }
   if (exit === 2) { lines.push(DISABLE_HINT); return { exit: 2, lines }; }   // 任一檔擋下：整包擋、不消耗任何有效 token
-  // 第二趟：全部過關才逐檔消耗（single-use）
-  for (const w of warns) ctx.consumeToken(w.tokenPath, w.path);
+  // 第二趟：全部過關才逐檔消耗（single-use）。消耗 = 原子 claim；claim 不到（另一個 hook 同時拿走、檔案鎖住、或 claim 時已過期）→ 擋整包。
+  // 前面已 claim 成功的不退還：要退還就得再做一套復原流程，超過這支防誤操作 hook 的規模；代價是 user 要重新確認一次
+  const failed = [];
+  for (const w of warns) {
+    const c = ctx.consumeToken(w.tokenPath, w.path);
+    if (!c.claimed || !c.valid) failed.push(w);
+  }
+  if (failed.length) {
+    for (const w of failed) lines.push(`[bstack] token 消耗失敗（同時有另一個 hook 在用、檔案鎖住、或已過期）：${w.path}`);
+    lines.push('這一包不放行；本次已消耗的 token 不退還。請重新向 user 確認後再建 token、retry。');
+    lines.push(DISABLE_HINT);
+    return { exit: 2, lines };
+  }
   return { exit, lines };
 }
 
@@ -297,15 +323,18 @@ function main() {
       return { existed: true, valid: ageSecOf(tokenPath) <= TOKEN_TTL_SEC };
     },
     consumeToken(tokenPath, target) {
-      if (!existsSync(tokenPath)) return { existed: false, valid: false };
-      const ageSec = ageSecOf(tokenPath);
-      try { unlinkSync(tokenPath); } catch { /* ignore */ }
+      if (!existsSync(tokenPath)) return { existed: false, valid: false, claimed: false };
+      // 原子 claim：同目錄 rename 在 Windows / POSIX 都是原子的，兩個 hook 同時搶只有一個成功；失敗就當被拿走、不放行
+      const claim = `${tokenPath}.claim-${process.pid}`;
+      try { renameSync(tokenPath, claim); } catch { return { existed: true, valid: false, claimed: false }; }
+      const ageSec = ageSecOf(claim);   // rename 不動 mtime，TTL 照原 token 算
+      try { unlinkSync(claim); } catch { /* 刪不掉也已改名，不會再被當 token 認到 */ }
       const valid = ageSec <= TOKEN_TTL_SEC;
       // 留一行紀錄：token 可被預建，事後至少查得出「何時、哪個檔用 token 放行過（或過期被清）」。布林沿用舊 ps1 的 True/False
       // target 剝掉控制字元：路徑來自 patch 文字，夾單獨 \r 會把 log 排版弄成假的一行（security-audit m2）
       const safeTarget = String(target).replace(/[\x00-\x1f\x7f]/g, '?');
       try { appendFileSync(path.join(path.dirname(tokenPath), 'consumed.log'), `${new Date().toISOString()} consumed ${path.basename(tokenPath)} for ${safeTarget} valid=${valid ? 'True' : 'False'}\n`); } catch { /* ignore */ }
-      return { existed: true, valid };
+      return { existed: true, valid, claimed: true };
     },
     ensureStateDir(dir) {
       if (existsSync(dir)) return true;
