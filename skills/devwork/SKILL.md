@@ -25,10 +25,6 @@ description: |
 
 **若接著又出現一行 `[已載入 dev-workflow]`**，代表載到的是舊版 setup.ps1 留在使用者層級的副本、它遮蔽了 plugin 版：請使用者跑 `pwsh -File scripts/extras.ps1 -Migrate` 後重開 session。
 
-## 為什麼要有這一層
-
-以前流程靠 skill 描述的關鍵詞自動攔截、守則放全域 CLAUDE.md 對所有專案生效，使用者沒有「這次不要走流程」的選項；現在守則跟著 `/devwork` 走，不下指令就不生效。
-
 ## 顯式呼叫其他 skill
 
 流程內的 skill 都能單獨呼叫（Claude Code `/bstack:finish-branch`、`/bstack:retro`、`/bstack:context-snapshot` …；Codex `$bstack:finish-branch`、`$bstack:retro`、`$bstack:context-snapshot` …），缺的 hand-off state 欄位由該 skill 用 AskUserQuestion 補問。這是全 repo 唯一寫出 `/bstack:` 與 `$bstack:` 前綴清單的地方。

@@ -192,12 +192,6 @@ state:
 
 **下一 phase**：T3 → `pr-explain`；T0-T2 → 無（等 merge；merge 後做 §Merge 後：docs 歸檔）
 
-## §結尾 Trace 標籤
-
-```
-[Trace] Phase=finish-branch | Tier=<T0-T3> | Track=<Bug/Dev> | Skill=finish-branch
-```
-
 ## §Red Flags
 
 | 想法 | 真相 |

@@ -545,6 +545,30 @@ check('P12 security-audit 純文件 T3 跳：rules.md T3 security 欄、security
   `${Object.entries(p12).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；T3 security 欄=「${t3Sec}」 dev-workflow 第 6 行=「${dwSecT3.trim()}」 殘留「T3 必跑 / 必用」=[${mustRunResidue.join(', ')}]` +
     `（後果：Tier 表是 lane 唯一真相，任一處留「T3 必跑」Claude 就照舊 spawn security-auditor、純文件 PR 多燒 3-5 分鐘；改處：rules.md §Tier 表 T3 security 欄、security-audit §使用契約 第 2 步與 §hand-off state、dev-workflow 9 階段圖第 6 行、data.js SecQ / LoadChk、agents/security-auditor.md description、finish-branch PR 模板 checklist）`);
 
+// ── P18 T2 security-audit 觸發面向：rules.md 定義、其餘對齊（2026-09-10，Codex 外部 review 第 1 項）──
+// 曾四處三種集合（rules.md 2 項、dev-workflow / security-audit 描述 3 項、security-audit 本文 7 項、agent 6 項）。
+// 真相留在 rules.md §Tier 表 T2 security 欄（L122 明定表是唯一真相）；security-audit 本文與兩個 description 要帶完整集合
+// （執行端與載入判斷都用得到），dev-workflow 路徑圖只引用不重列；全 repo 不得殘留舊的短集合。
+const SEVEN = '認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII';
+const t2Sec = (tierT2.split('|').map((s) => s.trim())[7]) || '';
+const saStep2b = (saMd.match(/^2\. \*\*判定要不要跑\*\*[\s\S]*?(?=^3\. )/m) || [''])[0].replace(/\*/g, '');
+const dwSecT2 = (dwMd.match(/^6\. security-audit[^\n]*\n {3}├─ (T2 = .*)$/m) || ['', ''])[1];   // Phase 5 也有「├─ T2 =」，要錨在第 6 行底下
+const staleSet = /認證 \/ 資料層才|認證 \/ 資料層 \/ API 邊界才|認證 \/ 資料層 \/ API 邊界 \/ payment \/ 上傳 \/ PII/;
+const staleHits = [];
+for (const p of scanTargets) rd(p).split(/\r?\n/).forEach((line, i) => { if (staleSet.test(line)) staleHits.push(`${p}:${i + 1}`); });
+const p18 = {
+  rulesCell: t2Sec.includes(SEVEN) && /才 audit/.test(t2Sec),
+  saStep2: saStep2b.includes(SEVEN),
+  saDesc: description(frontmatter(saMd)).includes(SEVEN),
+  agentDesc: description(frontmatter(saAgent)).includes(SEVEN),
+  dwRefersRules: /rules\.md §Tier 表/.test(dwSecT2) && !/認證/.test(dwSecT2),
+  residue: staleHits.length === 0,
+};
+check('P18 T2 security-audit 七項面向：rules.md T2 security 欄定義、security-audit 第 2 步與描述、security-auditor 描述同集合；dev-workflow 第 6 行只引用；全 repo 無舊短集合殘留',
+  Object.values(p18).every(Boolean),
+  `${Object.entries(p18).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；T2 security 欄=「${t2Sec}」 dev-workflow T2 行=「${dwSecT2.trim()}」 殘留=[${staleHits.join(', ')}]` +
+    `（後果：主 agent 照 rules.md 跳掉 security-audit 本文明明要求的稽核；改處：rules.md §Tier 表 T2 security 欄、security-audit 第 2 步 + description、agents/security-auditor.md description、dev-workflow 第 6 行）`);
+
 // ── P13-P16 Codex 支援（2026-09-09，feat/codex-install）──────────────────────
 // 同一個 repo 同時是 Claude Code plugin 與 Codex plugin：兩份 manifest、一份 skills/、hosts.md 對照表、agents → TOML 產生器。
 const lf = (s) => s.replace(/\r\n/g, '\n');   // autocrlf 機器工作樹是 CRLF，行尾錨定 regex 一律先正規化

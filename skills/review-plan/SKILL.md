@@ -127,12 +127,6 @@ state:
   current_phase: review-plan-done
 ```
 
-## §結尾 Trace 標籤
-
-```
-[Trace] Phase=review-plan | Tier=T3 | Track=Dev | Skill=review-plan
-```
-
 ## §Red Flags
 
 | 想法 | 真相 |

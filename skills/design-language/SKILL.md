@@ -32,10 +32,6 @@ description: |
 .css  .scss  .tsx  .jsx  .vue  .svelte  .html
 ```
 
-其他檔案引用「前端副檔名」一律**指向本節**。**例外**：`brainstorm` §Phase 0b′ 與 rules.md §設計語言對齊 重列（它們**不載入本 skill**也要判得出來）；另 4 處觸發用引用列同一份（dev-workflow §跨流程 skill 載入 frontend-test 列、verify-done §UI / browser e2e、frontend-test §載入時機、流程圖 DesignQ label）。契約 P11 守七處一致，改這裡要同步那六處。
-
-> **現況分歧（待收斂）**：`.sass` 目前只出現在 `frontend-test` 的 description 觸發詞，`verify-done` §UI / browser e2e 兩處與 `dev-workflow` §跨流程觸發表都沒有。本清單暫不收 `.sass`，與多數處對齊；要收的話需同時補回那兩個檔。
-
 ## §對外契約
 
 ```yaml

@@ -78,7 +78,7 @@ Track / Tier 預判表與「命中 File-type 硬規則自動升至少 T2」見 `
    receive-review（含 §Auto-fix）
    ↓
 6. security-audit（OWASP + STRIDE）
-   ├─ T2 = 涉認證 / 資料層 / API 邊界才用
+   ├─ T2 = 涉 rules.md §Tier 表 T2 security 欄所列面向才用
    └─ T3 = 程式碼 diff 必用 + security-checklist + db-reviewer（DB 改動）；純文件 diff 且無 File-type 硬規則命中 → 跳（沿用 request-review 的 code_review_applicable）
    ↓
 7. finish-branch（含 git workflow 細則 + branch-safety）
@@ -148,10 +148,6 @@ state:
 
 每輪 AI 回覆**結尾**貼一行；**省略時機**：T0 task 全程、純問答 / 規劃對談無 phase 推進。
 
-```
-[Trace] Phase=<phase-name> | Tier=<T0/T1/T2/T3> | Track=<Bug/Dev/—> | Skill=<active-skill>
-```
-
 ## §Auto-fix 原則
 
 分流見 rules.md §Auto-fix（不危險類自動修 + 貼 diff；危險類 `AskUserQuestion` 問 user）。
@@ -211,16 +207,6 @@ state:
 | 「risky 改動我評估安全」 | Auto-fix 危險類**必須**問 user |
 | 「skill 之間自由跳」「Trace / memory 省一次沒差」 | 嚴格按 Phase 序、state hand-off；每輪貼 Trace（T0 除外）；0a 必讀 memory |
 | 「fail 多 retry 一次就好」 | 不靜默重試（見 §Fail handling）|
-
-## §跟 rules.md 的關係
-
-| 項目 | 落點 |
-|---|---|
-| 強制守則（Task / 決策點 / Branch / File-type / PII / DB / Settings） | rules.md（聖旨）|
-| Track / Tier / Phase / Trace / Auto-fix / Fail / Memory hook **政策** | rules.md（聲明）|
-| Track / Tier / Phase 詳細 **routing 表 + hand-off state** | 本 skill |
-| Track / Tier **heuristic 表**與自動升級規則 | `brainstorm` §Phase 0c / §Phase 0d |
-| 各 phase 自身行為 | 對應 phase skill（brainstorm / write-plan / ...）|
 
 ## §載入此 skill 後第一句台詞
 

@@ -2,7 +2,7 @@
 name: security-audit
 description: |
   OWASP + STRIDE 安全稽核（繁中）：判定要不要跑、spawn security-auditor、整合 finding、critical gate。
-  載入：dev-workflow Phase 6；T2 涉認證 / 資料層 / API 邊界才用、T3 程式碼 diff 必用、純文件 diff 且無 File-type 硬規則命中跳。
+  載入：dev-workflow Phase 6；T2 涉認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII 才用、T3 程式碼 diff 必用、純文件 diff 且無 File-type 硬規則命中跳。
 ---
 
 # security-audit
@@ -82,11 +82,6 @@ state:
   current_phase: security-audit-done
 ```
 **下一 phase**：→ `finish-branch`
-
-## §結尾 Trace 標籤
-```
-[Trace] Phase=security-audit | Tier=<T2/T3> | Track=<Bug/Dev> | Skill=security-audit
-```
 
 ## §Red Flags
 | 想法 | 真相 |

@@ -1,7 +1,5 @@
 # hosts.md（host 對照表）
 > **本表裡的 `AskUserQuestion` / `TaskCreate` / `TaskUpdate` / `TaskList` / `Agent` / `subagent_type` / `SendMessage` / `mcp__<server>__<tool>` 是抽象動詞不是工具名。** 動作前先確認同名工具在你自己的工具清單裡；不在，就照本表對應欄——**不要去找同名工具、也不要靜默略過該動作**。§Host 判定 只是預設值，工具清單永遠優先。
-> 八個節標題與每節第一欄是契約鍵（plugin-contract.mjs P14 / P16），改名要同步。
-> 工具名在 skill 內文的三種待遇（P14 守）：**列在本表第一欄的**可直接當抽象動詞寫（`AskUserQuestion`、`Agent`…）；**只有一個 host 有的**（`NotebookEdit`、`SendMessage`）要同行寫出另一個 host 的對應（例「Claude Code 用 `SendMessage`；Codex 靠 `wait_agent` 收」）；**都不是的**新工具名先加進本表對應節再用。
 
 ## §Host 判定
 | 訊號 | 判定 |

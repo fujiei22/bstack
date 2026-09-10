@@ -115,11 +115,6 @@ state:
 ```
 **下一 phase**：→ `review-plan`，視角依 `state.review_perspectives`（brainstorm 0b 依改動面向判；Eng 下限）。
 
-## §結尾 Trace 標籤
-```
-[Trace] Phase=write-plan | Tier=T3 | Track=Dev | Skill=write-plan
-```
-
 ## §Red Flags
 | 想法 | 真相 |
 |---|---|
