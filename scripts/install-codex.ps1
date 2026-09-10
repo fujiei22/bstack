@@ -13,12 +13,15 @@
     2.  marketplace  codex plugin marketplace add fujiei22/bstack；-Source local（或 GitHub 撞防毒 rename 鎖時自動退）→ 先把本 clone
                   精簡 clone 一份到 $CODEX_HOME/bstack-src（只有版控檔、約 27 MB）當 marketplace root——直接指 working tree 會連
                   ignored 目錄一起抄（144 MB），複製完 rename 時被掃描器抓著、每次都「存取被拒」；已有就略過
-    3.  plugin       codex plugin add bstack@bstack；Windows 對本機 marketplace 會間歇「存取被拒 (os error 5)」→ 自動重試最多 3 次
-    4.  agents       codex/agents/*.toml 複製到 $CODEX_HOME/agents/（Codex plugin 帶不了 agents，只能靠複製）；已存在的問你覆蓋 / 跳過
+    3.  plugin       codex plugin add bstack@bstack --json；Windows 對本機 marketplace 會間歇「存取被拒 (os error 5)」→ 自動重試最多 3 次
+                  回傳的 installedPath / version 記進 manifest，第 4 步靠它
+    4.  agents       從第 3 步 installedPath 底下的 codex/agents/*.toml 複製到 $CODEX_HOME/agents/（Codex plugin 帶不了 agents，只能靠複製）；
+                  已存在的問你覆蓋 / 跳過。**不從本 clone 的 working tree 複製**：plugin 從 GitHub 裝、TOML 從本機舊 clone 抄，
+                  兩邊會不同版本；取不到 installedPath 就跳過並明報，不猜
     5.  config       $CODEX_HOME/config.toml 補 [tools.update_plan] enabled = true（Codex 0.152 起預設關，流程的任務追蹤靠它）
                   先備份 config.toml.bak-<時間> 再 append；-Uninstall 只拔「[tools.update_plan] 表且內容恰為 enabled = true」那一個表
                   （不用註解定界：Codex 自己重寫 config.toml 時會把別的表排進定界之間，2026-09-09 實測，靠定界拔會連使用者的表一起刪）
-  manifest 住 $CODEX_HOME/bstack-codex.json：記 agents[]、config_patched、marketplace、安裝時間。
+  manifest 住 $CODEX_HOME/bstack-codex.json：記 agents[]、agents_src、plugin_version、config_patched、marketplace、安裝時間。
   本腳本無法代為信任 hook：Codex 的 plugin hook 預設不信任，裝完要在新 session 打 /hooks 手動信任，否則 branch-safety 不生效。
 
 .PARAMETER Yes          非互動：清舊副本直接搬、agents 衝突一律跳過
@@ -60,7 +63,7 @@ $AgentsHome = Join-Path $UserHome '.agents'    # Codex 的使用者級 skill 根
 $ManifestPath = Join-Path $CodexHome 'bstack-codex.json'
 $ConfigPath = Join-Path $CodexHome 'config.toml'
 $AgentsDest = Join-Path $CodexHome 'agents'
-$AgentsSrc = Join-Path $RepoRoot 'codex/agents'
+$AgentsSrcWorkTree = Join-Path $RepoRoot 'codex/agents'   # 只給 -WhatIf 示意用；實跑一律從 plugin add 回的 installedPath 取（見第 4 步）
 $SlimClone = Join-Path $CodexHome 'bstack-src'   # -Source local 的 marketplace root：只含版控檔的精簡 clone（見 .DESCRIPTION 第 2 步）
 # 1.6.0 之前的版本用這兩行註解定界 config 段；-Uninstall 遇到就順手拔掉（只拔註解行本身）
 $LegacyMarkers = @('# bstack install-codex.ps1 加入（begin）', '# bstack install-codex.ps1 加入（end）')
@@ -140,19 +143,50 @@ function Backup-File([string]$path) {
 function Write-Utf8NoBom([string]$path, [string]$text) {
     [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
 }
+function Test-SlimCloneShape([string]$p) {
+    <# 這個目錄長得像本腳本建的精簡 clone 嗎：要有 .codex-plugin/plugin.json 與 .git。遞迴刪除前的守門，免得 manifest 或固定路徑被改錯就刪到別人的東西。 #>
+    return (Test-Path -LiteralPath $p) -and (Test-Path -LiteralPath (Join-Path $p '.codex-plugin/plugin.json')) -and (Test-Path -LiteralPath (Join-Path $p '.git'))
+}
+function Test-IsExpectedSlimClone([string]$p) {
+    <# 路徑（canonical 後）恰為 $SlimClone 且形狀對。兩個條件缺一都不刪。 #>
+    if (-not (Test-SlimCloneShape $p)) { return $false }
+    # 兩邊都走 GetFullPath：Resolve-Path 會保留 8.3 短檔名（TOMMY_~1），GetFullPath 展開成長檔名，混用會把同一個目錄判成不同路徑（實測）
+    $a = [IO.Path]::GetFullPath($p).TrimEnd('\', '/')
+    $b = [IO.Path]::GetFullPath($SlimClone).TrimEnd('\', '/')
+    return [string]::Equals($a, $b, [StringComparison]::OrdinalIgnoreCase)
+}
 function New-SlimClone {
     <#
-    .SYNOPSIS 把本 clone 的目前 branch 精簡 clone 到 $SlimClone（先清掉舊的），回傳 $true / $false。
+    .SYNOPSIS 把本 clone 的目前 branch 精簡 clone 到 $SlimClone，回傳 $true / $false。先 clone 到暫名、成功才換掉舊的，失敗舊的保留。
     .DESCRIPTION 為什麼不直接拿 $RepoRoot 當 marketplace root：codex plugin add 會複製 root 底下**全部**檔案（含 .gitignore 掉的目錄），
       本 repo 是 144 MB / 7,600 項，複製完立刻 rename 進 cache 時剛寫入的檔還被防毒掃描器抓著 → 「存取被拒 (os error 5)」
       （2026-09-09 實測 Trellix：144 MB 連撞 4 次；27 MB 的精簡 clone 一次過）。git clone 只帶版控檔，樹小掃描快。
+      舊目錄只在「形狀像精簡 clone」時才刪（Test-SlimCloneShape）；不像就不動、請使用者自己處理。
     #>
     $branch = (& git -C $RepoRoot rev-parse --abbrev-ref HEAD 2>$null)
     if ([string]::IsNullOrWhiteSpace($branch) -or $branch -eq 'HEAD') { $branch = 'main' }
-    if ($DryRun) { Write-Host "  [whatif] git clone --branch $branch $RepoRoot → $SlimClone（先清掉舊的）"; return $true }
-    if (Test-Path -LiteralPath $SlimClone) { Remove-Item -LiteralPath $SlimClone -Recurse -Force }
-    & git clone -q --branch $branch $RepoRoot $SlimClone 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $SlimClone '.codex-plugin/plugin.json'))) { Write-Host "  精簡 clone 失敗" -ForegroundColor Red; return $false }
+    $new = "$SlimClone.new-$RunStamp"
+    if ($DryRun) { Write-Host "  [whatif] git clone --branch $branch $RepoRoot → $new，成功後換掉 $SlimClone（舊的形狀不對就不刪）"; return $true }
+    if (Test-Path -LiteralPath $new) { Remove-Item -LiteralPath $new -Recurse -Force }   # 帶本次時間戳，殘留只可能是本次自己的
+    & git clone -q --branch $branch $RepoRoot $new 2>&1 | Out-Host
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $new '.codex-plugin/plugin.json'))) {
+        if (Test-Path -LiteralPath $new) { Remove-Item -LiteralPath $new -Recurse -Force -ErrorAction SilentlyContinue }
+        Write-Host "  精簡 clone 失敗；$(if (Test-Path -LiteralPath $SlimClone) { "舊的 $SlimClone 保留不動" } else { '沒有舊的可退' })" -ForegroundColor Red; return $false
+    }
+    if (Test-Path -LiteralPath $SlimClone) {
+        if (-not (Test-SlimCloneShape $SlimClone)) {
+            Remove-Item -LiteralPath $new -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  $SlimClone 已存在但不像本腳本建的精簡 clone（缺 .codex-plugin/plugin.json 或 .git），不刪；請自行搬走後重跑" -ForegroundColor Red; return $false
+        }
+        Remove-Item -LiteralPath $SlimClone -Recurse -Force
+    }
+    # 剛 clone 完的目錄在防毒即時掃描下 rename 會被拒幾秒（2026-09-09 實測 Trellix 0.3–10 秒），重試而不是直接失敗
+    $moved = $false
+    for ($i = 1; $i -le 5; $i++) {
+        try { Move-Item -LiteralPath $new -Destination $SlimClone -ErrorAction Stop; $moved = $true; break }
+        catch { if ($i -lt 5) { Start-Sleep -Seconds 2 } }
+    }
+    if (-not $moved) { Write-Host "  精簡 clone 建好但改名到 $SlimClone 連續失敗（多半是防毒掃描還抓著）；暫存在 $new，請稍後自行改名或重跑" -ForegroundColor Red; return $false }
     Write-Host "  已精簡 clone 到 $SlimClone（branch $branch）"
     return $true
 }
@@ -264,12 +298,15 @@ function Invoke-Uninstall {
     $slim = if ($m.PSObject.Properties['slim_clone']) { [string]$m.slim_clone } else { '' }
     $slimRemoved = $false
     if ($slim -and (Test-Path -LiteralPath $slim)) {
-        if ($DryRun) { Write-Host "  [whatif] codex plugin marketplace remove $MarketplaceName；刪精簡 clone $slim" }
+        # manifest 是使用者可寫的檔：slim_clone 只准恰為本腳本的固定路徑、且形狀像精簡 clone，兩者缺一就不遞迴刪
+        if (-not (Test-IsExpectedSlimClone $slim)) {
+            Write-Host "  manifest 的 slim_clone（$slim）不是本腳本的精簡 clone 路徑（$SlimClone）、或缺 .codex-plugin/plugin.json / .git：不刪、marketplace $MarketplaceName 也不拆；請自行確認後處理" -ForegroundColor Yellow
+        } elseif ($DryRun) { Write-Host "  [whatif] codex plugin marketplace remove $MarketplaceName；刪精簡 clone $slim"; $slimRemoved = $true }
         else {
             if (Find-Codex) { Run-Codex @('plugin', 'marketplace', 'remove', $MarketplaceName) | Out-Null }
             Remove-Item -LiteralPath $slim -Recurse -Force; Write-Host "  已刪精簡 clone $slim 與 marketplace $MarketplaceName"
+            $slimRemoved = $true
         }
-        $slimRemoved = $true
     }
     if ($DryRun) { Write-Host "  [whatif] 刪 manifest $ManifestPath" }
     else { Remove-Item -LiteralPath $ManifestPath -Force; Write-Host "  已刪 $ManifestPath" }
@@ -311,7 +348,8 @@ $usedSlim = $false
 $mk = Get-CodexJson @('plugin', 'marketplace', 'list', '--json')
 $have = $null
 if ($mk -and $mk.marketplaces) { $have = @($mk.marketplaces | Where-Object { $_.name -eq $MarketplaceName }) | Select-Object -First 1 }
-$sameDir = { param($a, $b) $a -and $b -and (Test-Path -LiteralPath $a) -and (Test-Path -LiteralPath $b) -and ((Resolve-Path -LiteralPath $a).Path.TrimEnd('\', '/') -eq (Resolve-Path -LiteralPath $b).Path.TrimEnd('\', '/')) }
+# GetFullPath 而非 Resolve-Path：codex 回的 root 是長檔名、$CODEX_HOME 可能是 8.3 短檔名（TOMMY_~1），Resolve-Path 不展開會把同一目錄判成不同（實測）
+$sameDir = { param($a, $b) $a -and $b -and (Test-Path -LiteralPath $a) -and (Test-Path -LiteralPath $b) -and [string]::Equals([IO.Path]::GetFullPath($a).TrimEnd('\', '/'), [IO.Path]::GetFullPath($b).TrimEnd('\', '/'), [StringComparison]::OrdinalIgnoreCase) }
 if ($have) {
     $haveRoot = [string]$have.root
     $isSlimRoot = & $sameDir $haveRoot $SlimClone
@@ -353,7 +391,8 @@ Step 3 'plugin'
 $maxTry = 3; $rc = 1; $tries = 0
 for ($i = 1; $i -le $maxTry; $i++) {
     $tries = $i
-    $rc = Run-Codex @('plugin', 'add', $PluginId)
+    # --json：回 pluginId / version / installedPath（官方 CLI 文件），第 4 步的 TOML 從 installedPath 取，跟 plugin 必然同版本
+    $rc = Run-Codex @('plugin', 'add', $PluginId, '--json')
     if ($rc -eq 0) { break }
     # 只對那個 rename 競態重試；登入失敗、plugin id 打錯、marketplace 不在等確定性錯誤直接停，不白等 6 秒
     $transient = $script:LastCodexOutput -match 'os error 5|存取被拒|Access is denied|failed to activate plugin cache entry'
@@ -366,24 +405,44 @@ if ($rc -ne 0) {
     exit 1
 }
 
+# plugin add --json 的回傳：從第一個 { 起解析（前面可能夾 Warning 行）；-WhatIf 沒跑、解析不到都當 $null，第 4 步會明報
+$addInfo = $null
+if (-not $DryRun -and $script:LastCodexOutput) {
+    $j = $script:LastCodexOutput.IndexOf('{')
+    if ($j -ge 0) { try { $addInfo = ($script:LastCodexOutput.Substring($j) | ConvertFrom-Json) } catch { $addInfo = $null } }
+}
+$installedPath = if ($addInfo -and $addInfo.PSObject.Properties['installedPath'] -and $addInfo.installedPath) { [string]$addInfo.installedPath } else { $null }
+$pluginVersion = if ($addInfo -and $addInfo.PSObject.Properties['version'] -and $addInfo.version) { [string]$addInfo.version } else { $null }
+if ($installedPath -and -not (Test-Path -LiteralPath $installedPath)) { Write-Host "  plugin add 回的 installedPath 不存在：$installedPath" -ForegroundColor Yellow; $installedPath = $null }
+if ($installedPath) { Write-Host "  已裝 $PluginId $(if ($pluginVersion) { "v$pluginVersion " })→ $installedPath" }
+elseif (-not $DryRun) { Write-Host "  codex plugin add 沒回 installedPath（CLI 太舊、或輸出不是 JSON）：第 4 步的 agents 會跳過" -ForegroundColor Yellow }
+
 # manifest：重裝時聯集既有紀錄，agents[] 不遺失
 $manifest = Read-Manifest
 if (-not $manifest) { $manifest = [pscustomobject]@{ version = 1; installed_at = $null; marketplace = $null; plugin = $PluginId; agents = @(); config_patched = $false } }
 # 手改過的 manifest 可能缺欄位：先補齊再賦值（EAP Stop 下對不存在的屬性賦值會 throw）
-foreach ($k in 'installed_at', 'marketplace', 'plugin', 'agents', 'config_patched') {
+foreach ($k in 'installed_at', 'marketplace', 'plugin', 'plugin_version', 'agents', 'agents_src', 'config_patched') {
     if (-not $manifest.PSObject.Properties[$k]) { $manifest | Add-Member -NotePropertyName $k -NotePropertyValue $(if ($k -eq 'agents') { @() } elseif ($k -eq 'config_patched') { $false } else { $null }) }
 }
 $manifest.installed_at = (Get-Date).ToString('o')
 $manifest.plugin = $PluginId
+$manifest.plugin_version = $pluginVersion
 $manifest.marketplace = [pscustomobject]@{ name = $MarketplaceName; source = $(if ($have -and -not $usedSlim) { "$($have.root)（既有）" } else { $srcArg }) }
 # 精簡 clone 是本腳本建的目錄，記下來 -Uninstall 才知道要連 marketplace 條目一起拆（條目指向的目錄會被刪）
 if ($usedSlim) { if (-not $manifest.PSObject.Properties['slim_clone']) { $manifest | Add-Member -NotePropertyName slim_clone -NotePropertyValue $null }; $manifest.slim_clone = $SlimClone }
 
 # ── 4. agents ────────────────────────────────────────────────────────────────
-Step 4 'agents（codex/agents/*.toml → $CODEX_HOME/agents/）'
+Step 4 'agents（installedPath/codex/agents/*.toml → $CODEX_HOME/agents/）'
+# 來源一律是第 3 步裝好的 plugin（installedPath），跟 skill 必然同版本。-WhatIf 沒有 installedPath，用本 clone 的 codex/agents 示意會複製哪些檔
+$AgentsSrc = if ($DryRun) { $AgentsSrcWorkTree } elseif ($installedPath) { Join-Path $installedPath 'codex/agents' } else { $null }
+# plugin add 剛回來時 cache 樹可能還被防毒掃描器抓著、Test-Path 短暫看不到（第一次實跑撞過一次）；等幾秒再判「不存在」
+if ($AgentsSrc -and -not $DryRun) { for ($i = 0; $i -lt 5 -and -not (Test-Path -LiteralPath $AgentsSrc); $i++) { Start-Sleep -Seconds 1 } }
 if ($SkipAgents) { Write-Host '  跳過（-SkipAgents）' }
-elseif (-not (Test-Path -LiteralPath $AgentsSrc)) { Write-Host "  找不到 codex/agents/，先跑 node scripts/gen-codex-agents.mjs；本步跳過（沒複製時 hosts.md 規定退成 explorer + agent 本文當 prompt）" -ForegroundColor Yellow }
+elseif (-not $AgentsSrc) { Write-Host "  取不到 plugin 的安裝路徑，agents 未複製（不從本 clone 的 working tree 抄：那會跟裝好的 plugin 不同版本）。手動：把 plugin cache 裡的 codex/agents/*.toml 複製到 $AgentsDest；沒複製時 hosts.md 規定退成 explorer + agent 本文當 prompt" -ForegroundColor Yellow }
+elseif (-not (Test-Path -LiteralPath $AgentsSrc)) { Write-Host "  $AgentsSrc 不存在（這版 plugin 沒帶 codex/agents/？），本步跳過（沒複製時 hosts.md 規定退成 explorer + agent 本文當 prompt）" -ForegroundColor Yellow }
 else {
+    if ($DryRun) { Write-Host "  [whatif] 實跑時來源是 codex plugin add --json 回的 installedPath/codex/agents/；以下用本 clone 的 $AgentsSrc 示意" }
+    else { $manifest.agents_src = $AgentsSrc }
     $tomls = @(Get-ChildItem -LiteralPath $AgentsSrc -Filter *.toml)
     if (-not $tomls.Count) { Write-Host "  codex/agents/ 沒有 .toml，跳過" }
     $overwriteAll = $false
