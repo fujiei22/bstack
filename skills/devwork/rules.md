@@ -76,7 +76,6 @@ PII（email / phone / 身分證 / 信用卡 / 地址 / id_number）原值**禁�
 動任何**前端檔**（`.css` `.scss` `.tsx` `.jsx` `.vue` `.svelte` `.html`）之前，**先讀該區塊的既有設計語言**——載 `design-language`，從實際檔案抄 exact values，不憑印象重畫。
 
 > **豁免：只改文字節點時不適用。** 改的是 HTML／JSX 裡的**文字內容**，完全不碰 token、class、屬性、標籤結構、版面。**邊界**：只要動到 `class` / `style` / 任何屬性值 / 標籤增刪，就不算文字節點改動，規則照舊適用；判不出來就當作適用。
-> 為什麼有此豁免：潤 `docs/index.html` 文案時撞到——規則字面命中 `.html`、實質無設計決策，載 design-language 只得到一份用不上的摘要；不寫明則每次都由執行的 agent 自己推。
 
 - **判定** brainstorm Phase 0b′ 產出 `design.{involved, scope, scope_evidence, size, precedent, map_status}`，與 Track / Tier 合併一個 `AskUserQuestion` 一次確認。**0b′ 必跑**（含純後端 task）：brainstorm 自己做零成本的副檔名比對，不命中就不載 design-language、命中照舊必載
 - **小改**（沿用既有 token、無新視覺決策）→ 直接改 code，改完跑**四項對齊檢查**（元件狀態 / 斷點 / 表單 / dark mode；該區客觀上無此維度 → 標 N/A 並附依據）
@@ -114,14 +113,14 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 |---|---|---|---|---|---|---|---|
 | **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
 | **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |
-| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium`（Codex：reviewer subagent，見 hosts.md §程式碼審查）+ 主 agent 對 spec 自檢；純文件 diff 跳 code-review、自檢照做 | 涉認證 / 資料層才 audit | 跳（PR body 已含 why / what / test） |
+| **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium`（Codex：reviewer subagent，見 hosts.md §程式碼審查）+ 主 agent 對 spec 自檢；純文件 diff 跳 code-review、自檢照做 | 涉認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII 才 audit | 跳（PR body 已含 why / what / test） |
 | **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 內建 `/code-review high`（Codex：reviewer subagent，見 hosts.md §程式碼審查）+ 1 個 spec / 架構對齊 subagent（附語言 idiom）；純文件 diff 跳 code-review、對齊 subagent 照派 | audit + checklist + db-reviewer；純文件 diff（request-review 判 `code_review_applicable=false`）且無 File-type 硬規則命中 → 跳 audit 與 checklist | 用 |
 
 Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確認。
 
 - **本表是 lane 的唯一真相**；與任何 skill 衝突以本表為準。施工清單格式以 `brainstorm` §spec 文件結構與落檔 為準；超過表列上限代表 Tier 判低了，回 0d 升 T3。
 - **code review 先看副檔名再看 Tier**：diff 含程式碼副檔名才跑內建 code-review（不帶 `--fix`、finding 交 receive-review）；純文件 diff 跳過，一致性靠契約腳本與 review-plan。「符合 spec / 規則書」內建的不看：T2 主 agent 自檢、T3 派一個 subagent。判定表見 `request-review` §副檔名分流。
-- **security 同樣先看副檔名再看 Tier**：T3 純文件 diff 且沒有任何檔命中 §File-type 硬規則表 → 跳 audit + checklist；命中硬規則的不論副檔名照跑（那些在 request-review 表裡歸純文件，卻是安全面最該看的檔）。判定沿用 request-review 產出的 `code_review_applicable`，security-audit 不自己再比對副檔名；state 沒這欄就當程式碼 diff 照跑。T2 條件（涉認證 / 資料層才 audit）與 db-reviewer 條件不變。
+- **security 同樣先看副檔名再看 Tier**：T3 純文件 diff 且沒有任何檔命中 §File-type 硬規則表 → 跳 audit + checklist；命中硬規則的不論副檔名照跑（那些在 request-review 表裡歸純文件，卻是安全面最該看的檔）。判定沿用 request-review 產出的 `code_review_applicable`，security-audit 不自己再比對副檔名；state 沒這欄就當程式碼 diff 照跑。T2 條件（表列七項）與 db-reviewer 條件不變。
 - **`lang-reviewer` agent 不自動 spawn**：語言提示由 request-review 依副檔名寫進 T3 對齊 subagent 的 prompt；user 顯式要「用 lang-reviewer 看」才派。
 - **T3 review-plan 視角依改動面向**：機械可驗 → Eng（下限）；有人要讀 → DX；跨模組契約 / 對外介面 → Design。命中幾個派幾個，brainstorm 0b 判、寫進 state；「該不該做 / 範圍」在 brainstorm 就定案，plan 階段不再設策略視角。
 - 精簡依據見 `docs/archive/2026/` 的 `t2-lane-slim` 主題，不在此重述。

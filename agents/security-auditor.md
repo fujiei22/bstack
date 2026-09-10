@@ -2,7 +2,7 @@
 name: security-auditor
 description: |
   安全特化 reviewer（繁中）：OWASP、STRIDE、checklist、PII、File-type 硬規則，獨立 context。
-  載入：security-audit spawn；T2 涉認證 / 資料層 / API 邊界 / payment / 上傳 / PII，T3 程式碼 diff 必跑、純文件 diff 且無 File-type 硬規則命中跳。
+  載入：security-audit spawn；T2 涉認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII，T3 程式碼 diff 必跑、純文件 diff 且無 File-type 硬規則命中跳。
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---

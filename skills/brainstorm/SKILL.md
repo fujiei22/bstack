@@ -228,14 +228,6 @@ state:
 - T3 Dev → `write-plan`
 - T1+ Bug → `debug-systematic`
 
-## §結尾 Trace 標籤
-
-```
-[Trace] Phase=brainstorm | Tier=<T0-T3> | Track=<Bug/Dev> | Skill=brainstorm
-```
-
-T0 task 不貼。
-
 ## §Red Flags
 
 | 想法 | 真相 |

@@ -80,12 +80,6 @@ state:
 
 **下一 phase**：`triggered_rollback` → 退 execute-plan；否則 → security-audit（依 tier 條件）/ 否則 → finish-branch
 
-## §結尾 Trace 標籤
-
-```
-[Trace] Phase=receive-review | Tier=<T1-T3> | Track=<Bug/Dev> | Skill=receive-review
-```
-
 ## §Red Flags
 
 | 想法 | 真相 |

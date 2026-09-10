@@ -75,12 +75,6 @@ state:
 
 **下一 phase**：→ `<next skill>`
 
-## §結尾 Trace 標籤
-
-```
-[Trace] Phase=<phase> | Tier=<...> | Track=<...> | Skill=<this skill>
-```
-
 ## §Red Flags
 
 | 想法 | 真相 |

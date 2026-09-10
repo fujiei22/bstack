@@ -106,10 +106,6 @@ state:
   flaky_tests: [...]
   current_phase: verify-done-done
 ```
-## §結尾 Trace 標籤
-```
-[Trace] Phase=verify-done | Tier=<T1-T3> | Track=<Bug/Dev> | Skill=verify-done
-```
 ## §Red Flags
 | 想法 | 真相 |
 |---|---|

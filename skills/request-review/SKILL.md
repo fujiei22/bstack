@@ -36,7 +36,7 @@ description: |
 
 Claude Code 側的回收方式：不給 target 就是當前 branch 對 upstream / main 的 diff（含未 commit 的）。Skill 工具會立刻回「launched (forked execution, running in the background)」，**結果走 task-notification 的 `<result>`**——等通知，不要用 `TaskOutput block=true` 輪詢（fork 派出 finder 子 agent 等待期間它會立刻回 completed）。
 
-**medium 做什麼**：多個 finder 各找 candidate、去重後逐條 verifier 驗證，輸出 JSON 陣列 `{file, line, summary, failure_scenario}`，沒東西就 `[]`。一次約 7 分鐘、fork 十萬 token 級（2026-09-04 實測；finder / verifier 另計）——這是判「要不要跑 medium」的依據。Codex 的 reviewer 只有一個 agent、沒有 finder / verifier 兩層，覆蓋面比 medium 低（差異註在 rules.md §Tier 表），本 skill 不另外補償。
+Codex 的 reviewer 只有一個 agent、沒有 finder / verifier 兩層，覆蓋面比 medium 低（差異註在 rules.md §Tier 表），本 skill 不另外補償。
 ### §spec coverage 自檢（主 agent 自己做，不另開 subagent）
 code-review 只看 diff 本身會不會壞，**不知道 spec 要什麼**。等通知的同時主 agent 做：
 1. 讀 `spec_path` 的 `## 施工清單`，逐列對 diff：這列做了嗎？有沒有做了清單外的事？
@@ -165,10 +165,6 @@ state:
   current_phase: request-review-done
 ```
 **下一 phase**：→ `receive-review`（處置 finding、執行 auto-fix / 問 user）
-## §結尾 Trace 標籤
-```
-[Trace] Phase=request-review | Tier=<T1-T3> | Track=<Bug/Dev> | Skill=request-review
-```
 ## §Red Flags
 | 想法 | 真相 |
 |---|---|
