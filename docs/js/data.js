@@ -18,7 +18,10 @@
  *   diamond - 決策菱形
  *   rect    - 一般矩形
  */
-const FLOW_DATA = {
+// `var` 而不是 `const`：這份檔可能被掛兩次（實測：預覽 / 嵌入環境下 helmet 會重新掛載），
+// const 重複宣告是 SyntaxError —— 第二份整張不執行，console 就多一條硬錯。
+// var 可重複宣告，重跑只是拿同一份資料再賦一次值。
+var FLOW_DATA = {
   /**
    * 版面分組（給可摺疊 phase block + legend 用）
    * order 決定 legend 垂直順序（不影響 dagre layout）

@@ -175,39 +175,149 @@
   a:hover { color: var(--ink); }
   button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
   @keyframes caret { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+  /* 橫向換頁的落點：觸控裝置上改由原生 scroll-snap 收尾。
+     手指快滑放開後，瀏覽器的慣性會繼續寫 scrollLeft；JS 這邊若再補一段 goTo()，
+     兩邊同時寫同一個值，落點就被慣性帶偏（實測：快滑放開會停在兩頁之間）。
+     snap 的對齊點與 this.offsets 完全一致（panel 寬度＝clientWidth－--rail，
+     而 scroll-padding-left 也是 --rail，兩边相消），所以 current() / progress() 不需要調。
+     只有 JS 自己在補間時（[data-glide]）才把 snap 關掉，不然滑桿拖曳與 rAF 每一幀都會被重新吸附。 */
+  [data-track] { scroll-snap-type: none; }
+  @media (pointer: coarse) { [data-track] { scroll-snap-type: x mandatory; } }
+  [data-track][data-glide="1"] { scroll-snap-type: none !important; }
+  /* 平板以下（含平板，≤1024px）不顯示 02 的終端機示意：
+     它是一個實寬至少 340px 的 mono 區塊，抬進兩欄之後兩邊都不好讀；
+     抽掉後 grid 只剩一個子項，九階段清單自動佔滿整行。 */
+  @media (max-width: 1024px) { [data-termcard] { display: none !important; } }
   /* 文件抽屜：換一份文件時整份內文重播一次，內文的每個區塊再依序浮起 */
   @keyframes docIn { from { opacity: 0; transform: translateY(12px); } }
   #dc-root ::-webkit-scrollbar { width: 0; height: 0; }
   @keyframes docBlock { from { opacity: 0; transform: translateY(9px); } }
+
+  /* ===== RWD =====
+     ≤700px 改走一般垂直捲動。panel 的固定高與 overflow:hidden 是桌機橫向換頁的前提，
+     在手機上會把超出視窗的內容上下同時裁掉（而且捲不到）；這裡把它們攤平，
+     rail 落到底部變成拇指可及的工具列，Tier 表攤成四張卡。
+     斷點只看寬度 —— 平板橫放仍然是橫向換頁，這是刻意的。
+     inline style 贏過任何 stylesheet 規則，所以下面每一條覆寫都必須帶 !important。
+     行為面（wheel / 觸控換頁 / rail 拖曳 / 接環複本）由 logic 的 this.mobile 一起關；
+     只改 CSS 會留下一個看不見卻還在攜手勢的 track。 */
+  @media (max-width: 700px) {
+    html { height: auto !important; overflow: visible !important; }
+    /* body 的 overflow 刻意不帶 !important：彈窗 / 流程圖滑入時要用 inline style 鎖住背景捲動，
+       !important 的 author 規則會贏過 inline，鎖就永遠鎖不起來。
+       這條在同一份 <style> 裡排在 body{overflow:hidden} 之後，同比重、後者勝，已經夠了。 */
+    body { height: auto !important; overflow: visible; }
+    /* dc-runtime 自己會注入 html,body{height:100%} 與 #dc-root{height:100%}（FULL_PAGE_CSS），
+       不一起解掉的話垂直捲動會被這一層鎖在一個視窗高裡 */
+    #dc-root, #dc-root > .sc-host { height: auto !important; }
+    [data-shell] { height: auto !important; overflow: visible !important; }
+    [data-track] { display: block !important; height: auto !important; overflow: visible !important; padding-left: 0 !important; padding-bottom: 72px !important; scroll-snap-type: none !important; }
+    [data-panel] { height: auto !important; overflow: visible !important; content-visibility: visible !important; padding: 40px 20px 46px !important; box-shadow: inset 0 -1px 0 var(--line); }
+    [data-scroll] { overflow: visible !important; min-height: 0 !important; }
+    [data-grid1] { grid-template-columns: 1fr !important; }
+
+    [data-stats] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 20px 18px !important; }
+    [data-stats] > div { border-right: 0 !important; padding-left: 0 !important; }
+    [data-stats] > div > b { font-size: 34px !important; }
+
+    /* Tier 表 → 四張堆疊卡。欄名用 nth-child 從 CSS 供給，
+       不必在 32 個 <td> 上补 data-label（表頭一改，這七條要跟著改）。 */
+    [data-tier-wrap] { border: 0 !important; }
+    [data-tier] { min-width: 0 !important; display: block !important; }
+    [data-tier] thead { display: none !important; }
+    [data-tier] tbody, [data-tier] tr { display: block !important; }
+    [data-tier] tr { border: 1px solid var(--line); border-radius: 2px; margin-bottom: 12px; padding: 6px 0 8px; }
+    [data-tier] td { display: flex !important; gap: 12px; padding: 7px 14px !important; border: 0 !important; }
+    [data-tier] td::before { content: ''; flex: none; width: 74px; padding-top: 2px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+    [data-tier] td:first-child { padding-bottom: 11px !important; margin-bottom: 4px; box-shadow: inset 0 -1px 0 var(--line); }
+    [data-tier] td:first-child::before { display: none; }
+    [data-tier] td:nth-child(2)::before { content: '量體'; }
+    [data-tier] td:nth-child(3)::before { content: 'brainstorm'; }
+    [data-tier] td:nth-child(4)::before { content: 'plan'; }
+    [data-tier] td:nth-child(5)::before { content: 'tdd'; }
+    [data-tier] td:nth-child(6)::before { content: 'review'; }
+    [data-tier] td:nth-child(7)::before { content: 'security'; }
+    [data-tier] td:nth-child(8)::before { content: 'pr-explain'; }
+
+    /* rail → 底部工具列；垂直的頁碼 scrubber 在垂直捲動模式沒意義，收掉，
+       改用工具列頂緣一條 2px 的捲動進度線 */
+    [data-rail] { position: fixed !important; left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; width: auto !important; height: 56px !important; flex-direction: row !important; justify-content: space-between !important; padding: 0 18px !important; z-index: 80 !important; background: var(--bg); box-shadow: inset 0 1px 0 var(--line); }
+    [data-rail-home] { flex-direction: row !important; gap: 10px !important; }
+    [data-rail-end] { flex-direction: row !important; align-items: center !important; gap: 20px !important; }
+    [data-vert] { writing-mode: horizontal-tb !important; }
+    [data-scrub] { display: none !important; }
+    [data-mprog] { display: block !important; }
+
+    /* 文件彈窗：全螢幕，左側索引收成可展開的抽屜 */
+    [data-modal-scrim] { padding: 0 !important; }
+    [data-modal-card] { width: 100% !important; height: 100% !important; border: 0 !important; box-shadow: none !important; }
+    [data-modal-side] { position: absolute !important; left: 0; top: 0; bottom: 0; z-index: 2; width: 80% !important; max-width: 300px; transform: translateX(-101%); transition: transform 340ms cubic-bezier(.16,.84,.44,1); box-shadow: 14px 0 44px rgba(0,0,0,.42); }
+    /* 展開狀態標在抽屜自己身上，不靠祖先的後代選擇器。
+       **兩端都不能帶 !important**：transition 的優先順序在 important author 宣告之上，
+       只有一端帶 !important 時補間拿不到兩個可插值的端點，使用值會永遠卡在起點
+       （實測：屬性翻了、規則也命中了，但 computed transform 到 1800ms 還是 -303px）。
+       展開態的選擇器比重本來就高一級（0,2,0 vs 0,1,0），!important 本來就不必要。 */
+    [data-modal-side][data-open="1"] { transform: translateX(0); }
+    [data-drawer-btn] { display: inline-flex !important; }
+    [data-modal-body] { padding: 22px 20px 56px !important; }
+
+    /* 手機上不留內層捲軸：內層捲動區在觸控上很難確定自己捲到哪一層，
+       能折行的一律折行。面板層的捲軸已經由 [data-scroll] 拆掉，這裡收尾的是
+       指令框、終端示意與文件內的 code / 表格這四種橫向捲動。 */
+    [data-copy] pre { white-space: pre-wrap !important; overflow-x: visible !important; overflow-wrap: anywhere; }
+    [data-term] { overflow-x: visible !important; }
+    [data-term] > div { overflow-wrap: anywhere; }
+    [data-modal-body] pre { white-space: pre-wrap !important; overflow-x: visible !important; overflow-wrap: anywhere; }
+    [data-mdtable] { overflow-x: visible !important; }
+    [data-mdtable] table { font-size: 11.5px !important; }
+    [data-mdtable] th, [data-mdtable] td { overflow-wrap: anywhere; }
+
+    /* 04「內涵」的四列：桌機是「色片 · 名稱96px · 說明 · 數量」一行擺平，
+       350px 的可用寬裡 flex:1 1 240px 的說明欄擠不下就亂折。改成兩行網格：
+       第一行放色片 / 名稱 / 數量，說明整段落到第二行跨滿。
+       四格全部明確定位 —— 交給自動排版的話 count 會被推到第三行去。 */
+    [data-inv-row] { display: grid !important; grid-template-columns: 8px 1fr auto !important; gap: 4px 10px !important; align-items: center !important; padding: 13px 0 !important; }
+    [data-inv-row] > *:nth-child(1) { grid-area: 1 / 1; }
+    [data-inv-row] > *:nth-child(2) { grid-area: 1 / 2; width: auto !important; }
+    [data-inv-row] > *:nth-child(4) { grid-area: 1 / 3; }
+    [data-inv-row] > *:nth-child(3) { grid-area: 2 / 2 / 3 / 4; align-self: start; }
+
+    /* 抽屜遮罩：起點的 opacity:0 必須寫在這裡、不能寫在 inline style，
+       不然 inline 永遠贏過展開態那條非 important 規則，遮罩永遠不會浮現
+       （pointer-events 帶了 !important 所以有反應 —— 結果是一層看不見卻會吃點擊的透明層）。 */
+    [data-modal-drawerscrim] { display: block !important; opacity: 0; }
+    [data-modal-drawerscrim][data-open="1"] { opacity: 1; pointer-events: auto !important; }
+  }
 </style>
 </helmet>
 
-<div style="position:relative;height:100dvh;overflow:hidden;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.65">
+<div data-shell style="position:relative;height:100dvh;overflow:hidden;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.65">
 
-<div style="position:absolute;left:0;top:0;bottom:0;width:var(--rail);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 0 26px;pointer-events:none">
-  <a href="#top" onClick="{{ onHome }}" style="flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:auto">
+<div data-rail style="position:absolute;left:0;top:0;bottom:0;width:var(--rail);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 0 26px;pointer-events:none">
+  <div ref="{{ mprogRef }}" data-mprog style="display:none;position:absolute;left:0;top:0;width:0;height:2px;background:var(--accent);pointer-events:none"></div>
+  <a href="#top" onClick="{{ onHome }}" data-rail-home style="flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:auto">
     <span style="display:inline-flex;color:var(--ink-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex:none;display:block"><rect x="3" y="3" width="7.5" height="18" fill="currentColor"></rect><rect x="13.5" y="3" width="7.5" height="7.5" fill="var(--accent)"></rect><rect x="13.5" y="13.5" width="7.5" height="7.5" fill="currentColor"></rect></svg></span>
-    <span style="flex:none;writing-mode:vertical-rl;white-space:nowrap;overflow:visible;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2)">bstack</span>
+    <span data-vert style="flex:none;writing-mode:vertical-rl;white-space:nowrap;overflow:visible;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2)">bstack</span>
   </a>
-  <div ref="{{ railRef }}" onPointerDown="{{ onRailDown }}" onPointerMove="{{ onRailMove }}" onPointerUp="{{ onRailUp }}" onPointerCancel="{{ onRailUp }}" title="拖曳可快速換頁" style="flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:26px 12px;cursor:ns-resize;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none">
+  <div ref="{{ railRef }}" onPointerDown="{{ onRailDown }}" onPointerMove="{{ onRailMove }}" onPointerUp="{{ onRailUp }}" onPointerCancel="{{ onRailUp }}" data-scrub title="拖曳可快速換頁" style="flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:26px 12px;cursor:ns-resize;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none">
     <div style="position:relative;width:1px;height:100%;background:var(--line)">
       <div ref="{{ barRef }}" style="position:absolute;left:0;top:0;width:1px;height:0%;background:var(--accent);transition:height 120ms linear"></div>
       <div ref="{{ knobRef }}" style="position:absolute;left:7px;top:0;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;transition:top 120ms linear">00</div>
     </div>
   </div>
-  <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:18px;pointer-events:auto">
+  <div data-rail-end style="flex:none;display:flex;flex-direction:column;align-items:center;gap:18px;pointer-events:auto">
     <button onClick="{{ onTheme }}" title="{{ themeTitle }}" aria-label="{{ themeTitle }}" style="flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-3);transition:border-color var(--t),color var(--t)" style-hover="color:var(--ink)">
       <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg></sc-if>
       <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.6v2.2M12 19.2v2.2M4.4 12H2.2M21.8 12h-2.2M6.3 6.3 4.7 4.7M19.3 19.3l-1.6-1.6M17.7 6.3l1.6-1.6M4.7 19.3l1.6-1.6"></path></svg></sc-if>
       <sc-if value="{{ isAuto }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8.4"></circle><path d="M12 3.6a8.4 8.4 0 0 1 0 16.8Z" fill="currentColor" stroke="none"></path></svg></sc-if>
     </button>
-    <a href="./flow.html" style="flex:none;writing-mode:vertical-rl;white-space:nowrap;overflow:visible;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase">流程圖 →</a>
+    <a href="./flow.html" data-vert style="flex:none;writing-mode:vertical-rl;white-space:nowrap;overflow:visible;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase">流程圖 →</a>
   </div>
 </div>
 
-<div ref="{{ trackRef }}" onScroll="{{ onTrack }}" style="height:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;display:flex;align-items:stretch;scroll-snap-type:none;scroll-padding-left:var(--rail);padding-left:var(--rail)">
+<div ref="{{ trackRef }}" onScroll="{{ onTrack }}" data-track style="height:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;display:flex;align-items:stretch">
 
-<section id="top" style="position:relative;flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+<section id="top" data-panel style="position:relative;flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
   <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin-bottom:clamp(22px,4vh,40px)">
     <span style="display:inline-flex;align-items:center;gap:10px;flex:none">
       <span style="display:inline-flex;color:var(--ink)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex:none;display:block"><rect x="3" y="3" width="7.5" height="18" fill="currentColor"></rect><rect x="13.5" y="3" width="7.5" height="7.5" fill="var(--accent)"></rect><rect x="13.5" y="13.5" width="7.5" height="7.5" fill="currentColor"></rect></svg></span>
@@ -216,7 +326,7 @@
     <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)">AI agent plugin · 繁中 · mit</span>
   </div>
   <h1 style="margin:0;max-width:22ch;font-weight:500;font-size:clamp(34px,5.6vw,64px);line-height:1.28;letter-spacing:-.04em;color:var(--ink)">讓那個沒規沒矩的 AI<br />長點管理的腦子</h1>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:clamp(20px,3vw,44px);margin-top:clamp(26px,4vh,44px)">
+  <div data-grid1 style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:clamp(20px,3vw,44px);margin-top:clamp(26px,4vh,44px)">
     <p style="margin:0;font-size:15.5px;line-height:1.75;color:var(--ink-2);max-width:52ch">AI 很會寫 code，但這從來不是問題。問題是流程與管理。</p>
   </div>
   <div style="margin-top:clamp(24px,4vh,38px);font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;color:var(--accent)">拒絕即興 · 追求穩定</div>
@@ -228,7 +338,7 @@
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:clamp(26px,5vh,52px);padding-top:clamp(18px,3vh,30px);border-top:1px solid var(--line)">
+  <div data-stats style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:clamp(26px,5vh,52px);padding-top:clamp(18px,3vh,30px);border-top:1px solid var(--line)">
     <div style="padding:2px 0;border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">28</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">skills</span></div>
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">6</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">agents</span></div>
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">1</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
@@ -237,14 +347,14 @@
   </div>
 </section>
 
-<section id="what" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+<section id="what" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
   <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:baseline;justify-content:space-between;margin-bottom:clamp(22px,4vh,38px)">
     <div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Behaviour · 01 / 管理</div>
       <h2 style="margin:0;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">跟 AI 耳提面命<br />不如提早訂好規矩</h2>
     </div>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(272px,31%)),1fr));align-content:start;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain">
+  <div data-scroll style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(272px,31%)),1fr));align-content:start;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain">
     <a href="./flow.html" data-node="HBranch" style="display:block;background:var(--bg);padding:22px 22px 20px;color:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,0);transition:background var(--t),box-shadow 260ms cubic-bezier(.16,.84,.44,1)" style-hover="background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:#FF8A3D"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">不會直接改 main</div>
@@ -284,10 +394,10 @@
   </div>
 </section>
 
-<section id="phases" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+<section id="phases" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Nine Phases · 02 / 階段</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">階段有點多<br />但都很實用</h2>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:clamp(18px,3vw,40px);align-items:start;min-height:0;overflow-y:auto;overscroll-behavior:contain">
+  <div data-grid1 data-scroll style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:clamp(18px,3vw,40px);align-items:start;min-height:0;overflow-y:auto;overscroll-behavior:contain">
     <div style="border-top:1px solid var(--line)">
       <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">01</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">brainstorm</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">問清楚要做什麼、判 Track 與 Tier；T1 以上先切 branch 再落 spec</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">全部</span></div>
       <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">02</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">write-plan → review-plan</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">拆成一條條 task 落成 plan.md，再依改動面向派 1–3 個視角 review 這份計畫</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">T3</span></div>
@@ -300,12 +410,12 @@
       <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">09</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">retro</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">回顧一段期間做了什麼，把歸納出的偏好寫回 memory</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">手動</span></div>
     </div>
 
-    <div style="border:1px solid var(--line);border-radius:2px;background:var(--surface);overflow:hidden;min-width:0">
+    <div data-termcard style="border:1px solid var(--line);border-radius:2px;background:var(--surface);overflow:hidden;min-width:0">
       <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)">
         <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--ink-3)">devwork 的開場</span>
         <span style="margin-left:auto;padding:2px 8px;border:1px solid var(--accent-line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;color:var(--accent)">示意</span>
       </div>
-      <div style="padding:16px;overflow-x:auto;font-family:'JetBrains Mono','Noto Sans TC',monospace;font-size:12px;line-height:1.95;color:var(--ink-2)">
+      <div data-term style="padding:16px;overflow-x:auto;font-family:'JetBrains Mono','Noto Sans TC',monospace;font-size:12px;line-height:1.95;color:var(--ink-2)">
         <div style="white-space:pre-wrap;color:var(--ink)"><span style="color:var(--accent)">$</span> /bstack:devwork 登入逾時後 session 沒清乾淨</div>
         <div style="height:.9em"></div>
         <div style="white-space:pre-wrap;color:var(--ink-3)">[bstack devwork · plugin] 已載入守則。</div>
@@ -327,11 +437,11 @@
   </div>
 </section>
 
-<section id="tier" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+<section id="tier" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Four Tiers · 03 / 量體</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">改一行 Typo 不必大費周章<br />動到 Schema 不能便宜行事</h2>
-  <div style="overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:2px;min-height:0;overscroll-behavior:contain">
-    <table style="width:100%;min-width:780px;border-collapse:collapse;font-size:13px;line-height:1.7">
+  <div data-tier-wrap data-scroll data-xscroll style="overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:2px;min-height:0;overscroll-behavior:contain">
+    <table data-tier style="width:100%;min-width:780px;border-collapse:collapse;font-size:13px;line-height:1.7">
       <thead><tr>
         <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">tier</th>
         <th style="padding:12px 14px;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap">量體</th>
@@ -388,25 +498,25 @@
   </div>
 </section>
 
-<section id="inv" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+<section id="inv" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 04 / 內涵</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">你說內涵喔<br />這樣應該夠用了</h2>
   <div style="border-top:1px solid var(--line)">
-    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、九條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">28</span></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#4FA8FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">agents</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">DB review、安全稽核、e2e、假設驗證、PR 解說、語言專家，各跑獨立 context</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">6</span></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#FF8A3D"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">hook</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">guard.mjs 一支 PreToolUse：branch-safety 與 file-type 兩段檢查，跑在 node</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#B388FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">rules.md</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">強制守則：Task 追蹤、決策點只能點選項、branch 與檔案類型硬規則、PII 底線、DB 唯讀</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
+    <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、九條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">28</span></div>
+    <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#4FA8FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">agents</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">DB review、安全稽核、e2e、假設驗證、PR 解說、語言專家，各跑獨立 context</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">6</span></div>
+    <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#FF8A3D"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">hook</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">guard.mjs 一支 PreToolUse：branch-safety 與 file-type 兩段檢查，跑在 node</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
+    <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#B388FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">rules.md</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">強制守則：Task 追蹤、決策點只能點選項、branch 與檔案類型硬規則、PII 底線、DB 唯讀</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
   </div>
 </section>
 
-<section id="index" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+<section id="index" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Index · 05 / 功能索引</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">35 個功能<br />查，都可以查</h2>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px">
     <input type="search" value="{{ query }}" onInput="{{ onQuery }}" placeholder="例：review、design、db、context" style="flex:1 1 260px;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:2px;background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink);outline:none;transition:border-color var(--t)" style-focus="border-color:var(--accent)" />
     <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);font-variant-numeric:tabular-nums">{{ resultLabel }}</span>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,max(300px,32%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain;pointer-events:{{ listPE }}">
+  <div data-scroll style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,max(300px,32%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;min-height:0;overflow:auto;overscroll-behavior:contain;pointer-events:{{ listPE }}">
     <sc-for list="{{ items }}" as="it" hint-placeholder-count="12">
       <button type="button" onClick="{{ it.onOpen }}" style="display:flex;text-align:left;align-items:baseline;gap:10px;padding:11px 14px;border:0;background:var(--bg);color:inherit;min-width:0;cursor:pointer;font:inherit;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line);transform-origin:left center;backface-visibility:hidden;transition:transform 200ms cubic-bezier(.16,.84,.44,1),background var(--t)" style-hover="transform:scale(.995);background:var(--sunk)">
         <span style="width:8px;height:8px;flex:none;align-self:center;background:{{ it.bd }}"></span>
@@ -422,11 +532,11 @@
   </sc-if>
 </section>
 
-<section id="install" style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);overflow:hidden">
+<section id="install" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Install · 06 / 三步</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">三個步驟，想裝自己裝<br />不會裝就叫 AI 幫你裝</h2>
   <p style="margin:0 0 clamp(18px,3vh,28px);font-size:14.5px;line-height:1.8;color:var(--ink-2);max-width:64ch">前置兩件：node 要在啟動 Claude Code 或 Codex 的 PATH 內（hook 需要），以及 git。Claude Code 與 Codex 裝的是同一份 plugin，指令不同而已。</p>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(240px,31%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;flex:none;min-height:0;overflow:auto;overscroll-behavior:contain">
+  <div data-scroll style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(240px,31%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain">
     <div style="background:var(--bg);padding:20px 20px 22px;box-shadow:inset -1px 0 0 var(--line),inset 0 -1px 0 var(--line)">
       <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--accent)">01</div>
       <div style="margin-top:10px;font-weight:500;font-size:15px;letter-spacing:-.02em;color:var(--ink)">啟用 plugin</div>
@@ -462,16 +572,17 @@
     </div>
   </div></section>
 
-<footer style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) clamp(16px,2.2vw,36px);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3)">
+<footer data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3)">
   <span>MIT LICENSE © 2026 TOMMY SIAN</span>
   <a href="https://github.com/fujiei22/bstack" style="color:var(--ink-2)">GITHUB.COM/FUJIEI22/BSTACK</a>
 </footer>
 
 </div>
   <div ref="{{ flowHostRef }}" style="position:fixed;inset:0;z-index:70;background:var(--bg);transform:translateY(100%);pointer-events:none;will-change:transform;transition:transform 620ms cubic-bezier(.16,.84,.44,1)"></div>
-  <div ref="{{ scrimRef }}" onClick="{{ onScrim }}" style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:clamp(16px,4vh,52px) clamp(16px,4vw,60px);background:rgba(0,0,0,.66);opacity:{{ scrimO }};pointer-events:{{ scrimPE }}">
-    <div onClick="{{ stop }}" style="display:flex;width:min(1120px,100%);height:min(760px,100%);background:var(--bg);border:1px solid var(--line-2);border-radius:2px;box-shadow:0 40px 120px rgba(0,0,0,.5);overflow:hidden;transition:opacity 300ms ease,transform 440ms cubic-bezier(.16,.84,.44,1);opacity:{{ cardO }};transform:{{ cardT }}">
-      <div style="flex:none;width:232px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface)">
+  <div ref="{{ scrimRef }}" onClick="{{ onScrim }}" data-modal-scrim style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:clamp(16px,4vh,52px) clamp(16px,4vw,60px);background:rgba(0,0,0,.66);opacity:{{ scrimO }};pointer-events:{{ scrimPE }}">
+    <div onClick="{{ stop }}" data-modal-card data-drawer="{{ drawerOn }}" style="display:flex;position:relative;width:min(1120px,100%);height:min(760px,100%);background:var(--bg);border:1px solid var(--line-2);border-radius:2px;box-shadow:0 40px 120px rgba(0,0,0,.5);overflow:hidden;transition:opacity 300ms ease,transform 440ms cubic-bezier(.16,.84,.44,1);opacity:{{ cardO }};transform:{{ cardT }}">
+      <div data-modal-drawerscrim data-open="{{ drawerOn }}" onClick="{{ onDrawerClose }}" style="display:none;position:absolute;inset:0;z-index:1;background:rgba(0,0,0,.42);pointer-events:none;transition:opacity 300ms ease"></div>
+      <div data-modal-side data-open="{{ drawerOn }}" style="flex:none;width:232px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface)">
         <div style="flex:none;padding:14px 16px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">Index · 直接跳</div>
         <div style="flex:1;min-height:0;overflow:auto;overscroll-behavior:contain">
           <sc-for list="{{ items }}" as="it" hint-placeholder-count="10">
@@ -485,13 +596,14 @@
       </div>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column">
         <div style="flex:none;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:15px clamp(20px,3vw,40px);border-bottom:1px solid var(--line)">
+          <button type="button" onClick="{{ onDrawer }}" data-drawer-btn aria-label="索引" title="索引" style="display:none;flex:none;width:30px;height:30px;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:2px;color:var(--ink-3);transition:color var(--t),border-color var(--t)" style-hover="color:var(--ink);border-color:var(--line-2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="18" height="2"></rect><rect x="3" y="11" width="18" height="2"></rect><rect x="3" y="17" width="18" height="2"></rect></svg></button>
           <span style="width:8px;height:8px;flex:none;background:var(--accent)"></span>
           <span style="font-family:'JetBrains Mono',monospace;font-size:13.5px;color:var(--ink)">{{ openName }}</span>
           <span style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ openPath }}</span>
           <a href="./flow.html" onClick="{{ onFocusFlow }}" title="到流程圖，並選取這份文件對應的節點" style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10.5px">流程圖 →</a>
           <button type="button" onClick="{{ onClose }}" aria-label="關閉" style="flex:none;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1;color:var(--ink-3);transition:color var(--t),border-color var(--t)" style-hover="color:var(--ink);border-color:var(--line-2)" title="點卡片外或按 ESC 也可以關">✕</button>
         </div>
-        <div style="flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:28px clamp(20px,3vw,40px) 64px;font-size:14px;line-height:1.9;color:var(--ink-2)">
+        <div data-modal-body style="flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:28px clamp(20px,3vw,40px) 64px;font-size:14px;line-height:1.9;color:var(--ink-2)">
           <!-- 不設行長上限：彈窗本身已經有寬度上限，內容就把它用滿。
                原本 max-width:76ch（709px）在 886px 的可用寬度裡會空掉右邊 177px，
                看起來像彈窗沒對齊。與 flow.html 的 .md-body 同一個決定。 -->
@@ -556,9 +668,28 @@ const THEMES = ['dark', 'light', 'auto'];
 const STORE = 'bstack-void-theme';
 
 class Component extends DCLogic {
-  state = { q: '', themeMode: 'dark', open: null, docsFailed: false, armed: false };
+  // **必須是 class field，不能只在 componentDidMount 裡算**：
+  // trackRef 在第一次 render 就會呼叫 measure()，而 React 的 ref callback 早於
+  // componentDidMount。模式旗標那時還是 undefined 的話，measure() 會以為自己在桌機模式，
+  // 建出一份接環用的首屏複本 —— 在手機的垂直捲動下就是 footer 後面多了一區首屏。
+  mobile = window.matchMedia('(max-width: 700px)').matches;
+
+  state = { q: '', themeMode: 'dark', open: null, docsFailed: false, armed: false, drawer: false };
 
   componentDidMount() {
+    // ≤700px 走一般垂直捲動；橫向換頁的行為全部由這個旗標關掉
+    //（CSS 那一半在 helmet 的 RWD 區塊，兩边共用同一個 700px）
+    this.mqW = window.matchMedia('(max-width: 700px)');
+    this.mobile = this.mqW.matches;
+    // 上面那句話雑的保障：萬一 render 前的判定跟現在不一致（例如預覽容器剛好在掛載途中改寬），
+    // 把己經建出來的複本拆掉，不要等 matchMedia 的 change（一開就是窄的話那一發永遠不會來）
+    if (this.mobile && this.loop) { this.loop.remove(); this.loop = null; this.offsets = null; }
+    this.hw = () => {
+      if (this.mqW.matches === this.mobile) return;
+      this.mobile = this.mqW.matches;
+      this.switchMode();
+    };
+    this.mqW.addEventListener('change', this.hw);
     this.hookNav();
     this.enhance();
     try {
@@ -576,8 +707,10 @@ class Component extends DCLogic {
     setTimeout(() => { this.measure(); this.progress(); }, 1200);
     this.onKey = e => {
       if (this.flowOpen) { if (e.key === 'Escape') this.slideFlow(false); return; }
+      if (e.key === 'Escape' && this.state.drawer) { this.setState({ drawer: false }); return; }
       if (e.key === 'Escape') { this.closeDoc(); return; }
       if (this.state.open) return;
+      if (this.mobile) return;   // 垂直捲動模式：方向鍵交還瀏覽器
       if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); this.step(1); }
       if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); this.step(-1); }
       if (e.key === 'Home') { e.preventDefault(); this.goTo(0); }
@@ -588,9 +721,11 @@ class Component extends DCLogic {
     // 直向滾輪換成一次一頁；面板內自己有捲軸的區塊先讓給它捲完
     this.onWheel = e => {
       const t = this.track;
-      if (!t || this.state.open || this.flowOpen) return;
+      if (!t || this.state.open || this.flowOpen || this.mobile) return;
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (!d) return;
+      // 橫向捲動區（Tier 表）：橫向的捲動意圖讓給它，不拿去換頁
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && e.target.closest && e.target.closest('[data-xscroll]')) return;
       let n = e.target;
       while (n && n !== t) {
         if (n.scrollHeight > n.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(n).overflowY)) {
@@ -610,16 +745,27 @@ class Component extends DCLogic {
     // 觸控橫滑
     this.onResize = () => {
       const t = this.track;
+      if (this.mobile) { this.progress(); return; }
       if (t && !this.gliding) { this.measure(); const i = this.current(); t.scrollLeft = t.children[i].offsetLeft - t.children[0].offsetLeft; this.progress(); }
     };
     window.addEventListener('resize', this.onResize, { passive: true });
-    this.onTouchStart = e => { this.tx = e.touches[0].clientX; this.ty = e.touches[0].clientY; };
+    this.onTouchStart = e => {
+      this.tx = e.touches[0].clientX;
+      this.ty = e.touches[0].clientY;
+      // Tier 表自己要吃橫滑（min-width:780px，小螢幕不靠橫捲就看不完），
+      // 換頁手勢在它上面停用 —— 不然手指一拖就被拿去翻頁，表格永遠捲不動
+      this.txSkip = !!(e.target.closest && e.target.closest('[data-xscroll]'));
+    };
     this.onTouchEnd = e => {
-      if (this.tx == null || this.state.open) return;
+      if (this.tx == null || this.txSkip || this.mobile || this.state.open) return;
       const dx = this.tx - (e.changedTouches[0].clientX);
       const dy = this.ty - (e.changedTouches[0].clientY);
       this.tx = null;
-      if (Math.abs(dx) > 46 && Math.abs(dx) > Math.abs(dy)) this.step(dx > 0 ? 1 : -1);
+      if (!(Math.abs(dx) > 46 && Math.abs(dx) > Math.abs(dy))) return;
+      // 原生 snap 有生效就整段交給它：再補一段 goTo() 會跟慣性同時寫 scrollLeft，
+      // 這就是快滑放開後停在兩頁之間的原因。接環（滑進複本）改由 afterSettle() 接手。
+      if (this.snapActive()) return;
+      this.step(dx > 0 ? 1 : -1);
     };
     window.addEventListener('touchstart', this.onTouchStart, { passive: true });
     window.addEventListener('touchend', this.onTouchEnd, { passive: true });
@@ -641,11 +787,49 @@ class Component extends DCLogic {
   onTrack = () => {
     if (this._tick) return;
     this._tick = requestAnimationFrame(() => { this._tick = 0; this.progress(); if (this.reveal) this.reveal(); });
+    clearTimeout(this._settle);
+    this._settle = setTimeout(() => this.afterSettle(), 140);
   };
+
+  /** track 是不是真的有原生 snap（只有觸控裝置有，見 helmet 的 pointer: coarse） */
+  snapActive() {
+    const t = this.track;
+    if (!t || this.mobile) return false;
+    const v = getComputedStyle(t).scrollSnapType || '';
+    return /none/.test(v) ? false : /\bx\b|\bboth\b/.test(v);
+  }
+
+  /** JS 自己在補間的期間把原生 snap 關掉，不然每一幀的 scrollLeft 都會被重新吸附 */
+  setGlide(on) {
+    const t = this.track;
+    if (!t) return;
+    if (on) t.dataset.glide = '1';
+    else delete t.dataset.glide;
+  }
+
+  /**
+   * 原生慣性＋snap 落定之後的收尾：停在接環複本上時無聲接回第一頁。
+   * 複本與首屏長得一模一樣，所以內容是瞬移、看不見；進度指示器則由 sweepRail 一路補間回頂端。
+   */
+  afterSettle() {
+    const t = this.track;
+    if (!t || this.mobile || this.gliding || this.dragging) return;
+    if (!this.offsets) this.measure();
+    const loopAt = this.offsets ? this.offsets[this.pages] : null;
+    if (loopAt == null || Math.abs(t.scrollLeft - loopAt) > 4) return;
+    this.sweepRail(0, 380, 0);
+    this.jumpTo(0);
+  }
 
   measure() {
     const t = this.track;
     if (!t) return;
+    // 垂直捲動模式不需要接環複本，也沒有 offsets 可量（panel 都在同一欄）
+    if (this.mobile) {
+      this.offsets = null;
+      this.pages = [...t.children].filter(k => !k.dataset.loop).length;
+      return;
+    }
     if (!this.loop) {
       const first = t.children[0];
       if (first) {
@@ -684,6 +868,35 @@ class Component extends DCLogic {
 
   /** 面板編號的 title：與畫面上的編號同一套，不要一個 0 起算一個 1 起算。 */
   panelTitle(idx) { return '面板 ' + this.panelLabel(idx) + ' / ' + this.panelLabel(this.pages - 1); }
+
+  /**
+   * 斷點跨過 700px 時清掉另一種模式的殘留。只改 CSS 不夠：
+   * 接環複本、track 的 scrollLeft、rail 的補間鎖都是 JS 留下的狀態。
+   * 不清的話：進手機模式會多出一份首屏（複本變成第九區），
+   * 回桌機模式又會停在半頁。
+   */
+  switchMode() {
+    const t = this.track;
+    this.railLock = 0;
+    this.offsets = null;
+    this.target = null;
+    if (t) t.scrollLeft = 0;
+    if (this.mobile) {
+      if (this.loop) { this.loop.remove(); this.loop = null; }
+      window.scrollTo(0, 0);
+      // 進場動畫本來看的是水平位置，模式切換後那一刷沒人重新判定，
+      // 已經在視窗內卻還是 opacity:0 的面板要自己點亮（後續的交給 revIo）
+      if (this.showPanel && t) [...t.children].forEach(p => {
+        const r = p.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) this.showPanel(p);
+      });
+    } else {
+      document.body.style.overflow = '';
+      this.measure();
+      if (this.reveal) this.reveal();
+    }
+    this.progress();
+  }
 
   // 接環時進度條自己走完全程：內容瞬移是看不見的（前後兩頁長得一樣），
   // 但進度條會一路補間到新位置，所以不會有跳格，也不必淡出遮掩。
@@ -734,6 +947,7 @@ class Component extends DCLogic {
   }
 
   step(dir) {
+    if (this.mobile) return;
     // 只擋「同一次揮動」的連發，不擋「動畫還在跑」——想連翻兩頁不必等
     const now = performance.now();
     if (now - (this._lastStep || 0) < 150) return;
@@ -758,7 +972,7 @@ class Component extends DCLogic {
   // 這裡用 rAF ＋ timer 雙軌推進，最後一定用 instant 收在整頁位置。
   goTo(i, wrap) {
     const t = this.track;
-    if (!t) return;
+    if (!t || this.mobile) return;
     if (!this.offsets) this.measure();
     const n = Math.max(0, Math.min(this.offsets.length - 1, i));
     const to = Math.min(this.offsets[n], t.scrollWidth - t.clientWidth);
@@ -769,11 +983,13 @@ class Component extends DCLogic {
     clearTimeout(this._glide);
     if (Math.abs(to - from) < 1) {
       this.gliding = false;
+      this.setGlide(false);
       this.progress();
       if (wrap) this.wrapHome();
       return;
     }
     this.gliding = true;
+    this.setGlide(true);
     const dur = 620;
     const t0 = performance.now();
     const ease = p => 1 - Math.pow(1 - p, 4);
@@ -786,6 +1002,7 @@ class Component extends DCLogic {
       clearTimeout(this._glide);
       t.scrollLeft = to;
       this.gliding = false;
+      this.setGlide(false);
       this.progress();
       if (wrap) this.wrapHome();
     };
@@ -802,7 +1019,11 @@ class Component extends DCLogic {
     this._glide = setTimeout(finish, dur + 120);
   }
 
-  onHome = e => { e.preventDefault(); this.goTo(0); };
+  onHome = e => {
+    e.preventDefault();
+    if (this.mobile) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    this.goTo(0);
+  };
   /**
    * 開關 bar / knob 的位置補間。
    * @param {boolean} instant true = 拖曳中，1:1 跟手；false = 還原成預設的 120ms linear
@@ -813,12 +1034,13 @@ class Component extends DCLogic {
   }
 
   onRailDown = e => {
-    if (!this.rail) return;
+    if (!this.rail || this.mobile) return;
     this.dragging = true;
     // **拖曳期間必須關掉補間**：bar / knob 的 inline style 帶著 120ms linear，
     // 每次 pointermove 設值都會再補一次 120ms，位置永遠落在游標後面；
     // 而 knob 的數字是直接換 textContent、沒有補間，於是數字先到、線後到，看起來就是兩者不同步。
     this.setRailEase(true);
+    this.setGlide(true);   // 拖曳期間也要關 snap：每次 pointermove 寫值都被吸附的話，滑桿是一格一格跳的
     // 讓拖曳接管任何進行中的動畫——使用者的手應該壓過補間：
     // sweep 會鎖住 railLock 讓 progress() 直接 return（指示器完全不動），
     // goTo() 的補間則會逐格覆寫 scrollLeft，把 railSeek() 設好的位置蓋回去。
@@ -844,7 +1066,7 @@ class Component extends DCLogic {
   // 拖曳時 1:1 跟手，不套動畫；放開才吸到最近的一頁
   railSeek(e) {
     const t = this.track, r = this.rail;
-    if (!t || !r) return;
+    if (!t || !r || this.mobile) return;
     if (!this.offsets) this.measure();
     const box = r.getBoundingClientRect();
     const p = Math.min(1, Math.max(0, (e.clientY - box.top - 26) / Math.max(1, box.height - 52)));
@@ -854,9 +1076,17 @@ class Component extends DCLogic {
   }
 
   // 左邊界那條線＝橫向進度；底下的數字是第幾面板
+  // 垂直捲動模式改成底部工具列頂緣那條 2px 橫線（helmet 的 [data-mprog]）
   progress() {
     const t = this.track;
     if (!t) return;
+    if (this.mobile) {
+      if (this.mprog) {
+        const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        this.mprog.style.width = Math.min(100, Math.max(0, window.scrollY / max * 100)) + '%';
+      }
+      return;
+    }
     if (!this.offsets) this.measure();
     const max = this.offsets[this.pages - 1] || 1;
     const p = Math.min(1, Math.max(0, t.scrollLeft / max));
@@ -894,7 +1124,9 @@ class Component extends DCLogic {
   openDoc(name, group) {
     if (name === this.state.open) return;   // 已經開著這一份就不動作（關閉走 ✕ / ESC / 點卡片外）
     this.htmlFor(this.docPathFor(name, group));   // 先轉好再開，fade 那一幀就沒有重活
-    this.setState({ open: name, closing: false, armed: false });
+    // 垂直捲動模式下 body 才是捲動容器：彈窗全螢幕時要鎖住，不然背景會跟著滑
+    if (this.mobile) document.body.style.overflow = 'hidden';
+    this.setState({ open: name, closing: false, armed: false, drawer: false });
   }
 
   /**
@@ -931,7 +1163,10 @@ class Component extends DCLogic {
     this.setState({ closing: true, armed: false });
     clearTimeout(this._close);
     cancelAnimationFrame(this._armRaf);
-    this._close = setTimeout(() => this.setState({ open: null, closing: false }), 420);
+    this._close = setTimeout(() => {
+      document.body.style.overflow = '';
+      this.setState({ open: null, closing: false, drawer: false });
+    }, 420);
   }
 
   docPathFor(name, group) {
@@ -1013,7 +1248,7 @@ class Component extends DCLogic {
         while (i < lines.length && lines[i].trim().startsWith('|')) { rows.push(cells(lines[i])); i++; }
         i--;
         const td = 'padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top';
-        emit('<div style="overflow-x:auto;margin:14px 0"><table style="width:100%;border-collapse:collapse;font-size:12.5px;line-height:1.7"><thead><tr>' +
+        emit('<div data-mdtable style="overflow-x:auto;margin:14px 0"><table style="width:100%;border-collapse:collapse;font-size:12.5px;line-height:1.7"><thead><tr>' +
           head.map(c => '<th style="' + td + ';text-align:left;font-weight:500;' + MONO + ';font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">' + inline(c) + '</th>').join('') +
           '</tr></thead><tbody>' +
           rows.map(r => '<tr>' + r.map(c => '<td style="' + td + ';color:var(--ink-2)">' + inline(c) + '</td>').join('') + '</tr>').join('') +
@@ -1052,6 +1287,8 @@ class Component extends DCLogic {
 
   componentWillUnmount() {
     if (this.mq) this.mq.removeEventListener('change', this.h);
+    if (this.mqW) this.mqW.removeEventListener('change', this.hw);
+    if (this.revIo) this.revIo.disconnect();
     if (this.io) this.io.disconnect();
     if (this.navIo) this.navIo.disconnect();
     window.removeEventListener('scroll', this.onScroll);
@@ -1065,6 +1302,7 @@ class Component extends DCLogic {
     window.removeEventListener('touchend', this.onTouchEnd);
     clearTimeout(this._close);
     cancelAnimationFrame(this._armRaf);
+    clearTimeout(this._settle);
   }
 
   // 捲動進場、數字計數、指標跟隨光暈、導覽高亮、指令一鍵複製。
@@ -1084,22 +1322,34 @@ class Component extends DCLogic {
           k.style.transform = 'translateY(14px)';
         });
       });
+      this.showPanel = p => {
+        if (p.dataset.shown) return;
+        p.dataset.shown = '1';
+        [...p.children].forEach((k, n) => {
+          const d = Math.min(n, 6) * 55;
+          k.style.willChange = 'opacity, transform';
+          k.style.transition = 'opacity 620ms ' + EASE + ' ' + d + 'ms, transform 620ms ' + EASE + ' ' + d + 'ms';
+          k.style.opacity = '1';
+          k.style.transform = 'none';
+          setTimeout(() => { k.style.willChange = 'auto'; }, 900 + d);
+        });
+      };
+      // 橫向換頁：看面板的水平位置
       this.reveal = () => {
-        if (!track) return;
+        if (!track || this.mobile) return;
         panels.forEach(p => {
           if (p.dataset.shown) return;
           if ((this.offsets ? this.offsets[panels.indexOf(p)] : p.offsetLeft) - track.scrollLeft > track.clientWidth * 1.1) return;
-          p.dataset.shown = '1';
-          [...p.children].forEach((k, n) => {
-            const d = Math.min(n, 6) * 55;
-            k.style.willChange = 'opacity, transform';
-            k.style.transition = 'opacity 620ms ' + EASE + ' ' + d + 'ms, transform 620ms ' + EASE + ' ' + d + 'ms';
-            k.style.opacity = '1';
-            k.style.transform = 'none';
-            setTimeout(() => { k.style.willChange = 'auto'; }, 900 + d);
-          });
+          this.showPanel(p);
         });
       };
+      // 垂直捲動：offsets 在這個模式是 null、所有 panel 的 offsetLeft 也都一樣，
+      // 水平判定會讓整片卡在 opacity:0（或反過來一次全亮），改用進視窗判定
+      this.revIo = new IntersectionObserver(entries => {
+        if (!this.mobile) return;
+        entries.forEach(en => { if (en.isIntersecting) this.showPanel(en.target); });
+      }, { rootMargin: '0px 0px -10% 0px' });
+      panels.forEach(p => this.revIo.observe(p));
       this.reveal();
 
       // 2. 數字計數：捲到才從 0 跑上去
@@ -1143,6 +1393,7 @@ class Component extends DCLogic {
       // 4. header：捲動後壓一條分隔線陰影；導覽連結跟著章節高亮
       const header = root.querySelector('header');
       this.onScroll = () => {
+        if (this.mobile) this.progress();   // 垂直捲動模式的進度線
         if (!header) return;
         const y = window.scrollY;
         // 無邊際：不用底線，捲動後只靠一層極淡的陰影把它從內容上抬起來
@@ -1310,11 +1561,13 @@ class Component extends DCLogic {
     const vh = window.innerHeight;
     const band = this.makeBand(open ? 1 : -1, open ? 0 : -(vh + 56));
     if (open) host.style.pointerEvents = 'auto';
+    if (this.mobile) document.body.style.overflow = open ? 'hidden' : '';
     setTimeout(() => {
       const E = 'cubic-bezier(.16,.84,.44,1)';
       r.style.willChange = 'transform';
       r.style.transition = 'transform 620ms ' + E;
-      r.style.transform = open ? 'translateY(-42%)' : 'translateY(0)';
+      // 用 px 不用 %：垂直捲動模式下 #dc-root 是整份文件的高度，-42% 會把頁面甲出去
+      r.style.transform = open ? 'translateY(-' + Math.round(vh * 0.42) + 'px)' : 'translateY(0)';
       host.style.transform = open ? 'translateY(0)' : 'translateY(100%)';
       band.style.transition = 'transform 620ms ' + E;
       band.style.transform = 'translateY(' + (open ? -(vh + 56) : 0) + 'px)';
@@ -1435,6 +1688,10 @@ class Component extends DCLogic {
       onHome: this.onHome,
       trackRef: el => { this.track = el; if (el) { el.style.scrollBehavior = 'auto'; this.measure(); this.progress(); if (this.reveal) this.reveal(); } },
       barRef: el => { this.bar = el; },
+      mprogRef: el => { this.mprog = el; },
+      drawerOn: this.state.drawer ? '1' : '0',
+      onDrawer: () => this.setState(s => ({ drawer: !s.drawer })),
+      onDrawerClose: () => this.setState({ drawer: false }),
       stop: this.stop,
       onClose: () => this.closeDoc(),
       // **這裡必須自己 preventDefault**：dc-runtime 把模板的 onClick 綁成原生 onclick 並擋掉冒泡，
