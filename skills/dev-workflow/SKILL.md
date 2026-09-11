@@ -13,7 +13,7 @@ description: |
 2. 進 **Phase 0 入口分流**（5 子步驟，下節展開）。
 3. 依 Track + Tier **逐 Phase** 推進，每 Phase 結尾貼 Trace 標籤。
 4. 階段間以**結構化 state** hand-off（見 §Skill hand-off）。
-5. user 決策點走 `AskUserQuestion`，**禁文字 token NLP 判斷**。
+5. user 決策點走 `AskUserQuestion`，**禁文字 token NLP 判斷**；headless 時依 `headless-mode` §分流表（表外一律 B）。
 
 **rules.md 永遠優先**：本 skill 只描述 routing，衝突時 **rules.md > 本 skill > phase skill**。
 
@@ -137,6 +137,13 @@ state:
   current_phase: <名稱>
   trace_chain: [phase1, phase2, ...]  # 歷經 phase
   fail_history: [...]         # 每次 fail 的 retry / rollback 記錄
+  headless: <bool>            # 以下七欄 headless-mode 寫，定義以其 §hand-off state 為準
+  source_issue: <owner/repo#n | null>
+  auto_decisions: [...]
+  pending_question: <obj | null>
+  pr_url: <url | null>
+  archive_done: <bool>
+  blocked_reason: <一句 | null>
 ```
 
 每個 phase 結束時：
@@ -159,6 +166,7 @@ state:
 
 1. **不靜默重試**
 2. **評起因**：實作錯 / plan 錯 / test 設定錯 / 架構假設錯 / 需求理解錯
+   headless 時 → B 類（`execute-plan/fail`）：不 retry，五個選項寫進留言後結束本輪（`headless-mode`）。
 3. `AskUserQuestion` 提選項：
    - **retry** — 同樣作法再跑（適暫態 / 偶發）
    - **adjust + retry** — AI 提具體調整方案、user 點頭後跑
@@ -190,6 +198,7 @@ state:
 | `safety-guard` | 寫入 / commit 前掃 PII / 密鑰 / token 殘留 |
 | `context-snapshot` | user 顯式存進度 / context 接近 auto-compact 閾值 |
 | `context-resume` | 新 session 開始、user 顯式接續舊 task |
+| `headless-mode` | devwork 依 hosts.md §Host 判定 判為 headless 時載；phase skill 遇決策點依其 §分流表、派 subagent 依其 §子 agent 約束，不各自判 |
 | `dispatch-parallel` | execute-plan 遇 parallel-group >1 task |
 | `lang-reviewer` | user 顯式要求時由主 agent spawn；request-review 不自動派，語言提示寫進 T3 對齊 subagent 的 prompt（T2 交內建 code-review，沒有自寫 prompt） |
 | `db-reviewer` | T3 + DB 改動，security 階段內 |
@@ -203,7 +212,7 @@ state:
 | 想法 | 真相 |
 |---|---|
 | 「這是 trivial 不用走流程」「先看 codebase / 我先想一下 / 直接寫 code」 | T0 由 0d 判、看 codebase 是 0b、「想」是 0a 要結構化，都在 Phase 0 內，不是你跳 |
-| 「不問 user 直接決定 tier」 | tier 必經 AskUserQuestion |
+| 「不問 user 直接決定 tier」 | tier 必經 AskUserQuestion；headless 時採推薦但必記 auto_decisions（`headless-mode`） |
 | 「risky 改動我評估安全」 | Auto-fix 危險類**必須**問 user |
 | 「skill 之間自由跳」「Trace / memory 省一次沒差」 | 嚴格按 Phase 序、state hand-off；每輪貼 Trace（T0 除外）；0a 必讀 memory |
 | 「fail 多 retry 一次就好」 | 不靜默重試（見 §Fail handling）|

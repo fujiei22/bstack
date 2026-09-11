@@ -30,8 +30,8 @@ description: |
 
 1. **讀 memory**（必）：路徑依 hosts.md §Memory 路徑，吸收 user 偏好 / 領域背景 / 過去關鍵決策；讀不到 → hand-off state 寫 `memory_loaded: false`、原因寫進 spec §待釐清，**不能因此卡住**。讀到了才算過 0a 這步。
 2. **Paraphrase**：用自己的話複述 user 想做的事（一兩句話）。
-3. **如複述不準 / 有歧義** → 反問**一次一題**，preferring 多選（`AskUserQuestion`），open-ended 也可。
-4. **抓 success criteria**：「做完什麼樣算對？」沒這條 0d 判 tier 會偏。
+3. **如複述不準 / 有歧義** → 反問**一次一題**，preferring 多選（`AskUserQuestion`），open-ended 也可。headless 時 → B 類 `brainstorm/0a-ambiguous`，留言後結束本輪（`headless-mode`）。
+4. **抓 success criteria**：「做完什麼樣算對？」沒這條 0d 判 tier 會偏。headless 時抓不到 → 同上 B 類。
 
 ## §Phase 0b — 看 codebase
 
@@ -83,7 +83,7 @@ T0 / T1 / T2 / T3。Heuristic：
 
 ## §Phase 0c/0d 合併確認
 
-0b′ / 0c / 0d 判完後，**用一個 `AskUserQuestion` 一次確認**，不要問三次。
+0b′ / 0c / 0d 判完後，**用一個 `AskUserQuestion` 一次確認**，不要問三次。headless 時 → A 類 `brainstorm/0cd-confirm` 採推薦、每題記 `auto_decisions`；第 3 題 `size=大改` → B 類 `brainstorm/0cd-design-size`（`headless-mode`）。
 
 | 情境 | 問幾題 |
 |---|---|
@@ -183,6 +183,8 @@ self-review 完 → user 看 spec。**走 `AskUserQuestion`，不要用自由文
   3. 退回 0a 重新釐清需求
 ```
 
+headless 時 → A 類 `brainstorm/spec-gate`：spec §待釐清 先寫「headless 自動採用」子清單（每筆 auto_decisions 六欄），再留一則 `<!-- bstack-progress -->` 進度留言（不等回覆、不結束本輪、每 issue 一次），直接交棒（`headless-mode`）。
+
 ## §補施工清單入口
 
 execute-plan、dispatch-parallel 或 verify-done 退回來「改施工清單」時走這裡：state 已有 `tier=T2` 且 `spec_path` 存在 → **不跑 Phase 0**，只做：Read spec → 改寫 `## 施工清單`（改完列數上限仍依 rules.md §Tier 表；超過才回 0d 升 T3）→ 同一顆 spec gate 只問這張表 → 交棒 execute-plan。把 user 拉回 0a 重問 Track / Tier 是錯的。
@@ -233,7 +235,7 @@ state:
 | 想法 | 真相 |
 |---|---|
 | 「user 看起來知道要做什麼，跳 0a；memory 太雜不用讀」 | 0a 就是要把「知道」結構化；memory 必讀，user 偏好若漏會走錯路 |
-| 「我猜 tier 算了不問」 | tier 必經 `AskUserQuestion` |
+| 「我猜 tier 算了不問」 | tier 必經 `AskUserQuestion`；headless 例外見 `headless-mode` |
 | 「spec 短到不用落檔 / 設計這麼簡單還要 spec」 | T1+ 都要落 docs/work/；spec 短也要、user approval 不可省 |
 | 「純後端 task，0b′ 跳過」 | 0b′ 必跑；brainstorm 自己做零成本副檔名比對，不命中就不載 design-language |
 | 「T1 這麼小，不用問 UI 判定」 | 禁止用 Tier 推導 size；兩根尺各自判 |
