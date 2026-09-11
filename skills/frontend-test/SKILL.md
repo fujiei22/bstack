@@ -25,7 +25,7 @@ verify-done 的「UI / browser e2e」子流程，**Mode A 架構**：規劃 / us
 
 1. **讀 hand-off state** 取 `tier`、`codebase_impact.files`、`track`、`plan_path`。
 2. **抽測試範圍**：依改動檔對 §測試矩陣。
-3. **確認 preview URL**：state 有 → 用；沒有 → `AskUserQuestion` 問 user；headless 時沒有 → blocked `frontend-test/preview-url`（`headless-mode`）。
+3. **確認 preview URL**：state 有 → 用；沒有 → `AskUserQuestion` 問 user；headless 時沒有 → B 類 `frontend-test/preview-url`（留言：1. 第二行給 URL 2. 跳過 e2e、PR body 標未驗證；`headless-mode`）。
 4. **解析 `<branch-name>`**（§branch-name fallback 鏈）、建 `docs/work/<branch-name>/test-reports/<YYYYMMDD-HHmm>/screenshots/`。
 5. **規劃測試矩陣 table**（含 scenario / viewport / steps / expected 4 欄）。
 6. **Spawn `frontend-e2e-runner` agent**（見 §Dispatch）。
