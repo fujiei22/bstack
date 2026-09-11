@@ -416,6 +416,7 @@ var FLOW_DATA = {
         { name: 'cmd-guard',        docKey: 'LoadCmdG',  desc: 'rm -rf / drop / force push 前防呆' },
         { name: 'context-snapshot', docKey: 'LoadCtxS',  desc: '中斷 / 跨 session 暫停存進度' },
         { name: 'context-resume',   docKey: 'LoadCtxR',  desc: '接續上次進度' },
+        { name: 'headless-mode',    docKey: 'LoadHL',    desc: '無人環境：決策點採推薦或留言問人' },
         { name: 'write-skill',      docKey: 'LoadWS',    desc: 'meta：新增 / 改 skill' },
       ],
     },

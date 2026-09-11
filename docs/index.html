@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>bstack — 把 Claude Code 與 Codex 的開發流程固定下來</title>
-<meta name="description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
+<meta name="description" content="29 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
 <!-- social meta 一律留在靜態 <head>，不要搬進 <helmet>：
      <helmet> 的內容是 dc-runtime 在執行期才掛進 <head> 的，而 LINE / Slack / FB / X
      的預覽爬蟲不執行 JS —— 搬進去等於整組 og 全部讀不到，連 <title> 都沒有。
@@ -15,14 +15,14 @@
 <meta property="og:locale" content="zh_TW" />
 <meta property="og:url" content="https://fujiei22.github.io/bstack/" />
 <meta property="og:title" content="bstack — 把 Claude Code 與 Codex 的開發流程固定下來" />
-<meta property="og:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
+<meta property="og:description" content="29 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
 <meta property="og:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="bstack 標記與「Claude Code 開發流程包」字樣" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="bstack — 把 Claude Code 與 Codex 的開發流程固定下來" />
-<meta name="twitter:description" content="28 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
+<meta name="twitter:description" content="29 個 skill、6 個 agent、1 支兩段式 PreToolUse hook 與一份規則書，同一套裝進 Claude Code 或 Codex；/devwork（Codex 是 $bstack:devwork）把改動類請求導進固定的九階段流程。" />
 <meta name="twitter:image" content="https://fujiei22.github.io/bstack/og.png?v=2" />
 <link rel="icon" href="./brand/favicon.svg" type="image/svg+xml" />
 <script>
@@ -339,7 +339,7 @@
   </div>
 
   <div data-stats style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:clamp(26px,5vh,52px);padding-top:clamp(18px,3vh,30px);border-top:1px solid var(--line)">
-    <div style="padding:2px 0;border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">28</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">skills</span></div>
+    <div style="padding:2px 0;border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">29</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">skills</span></div>
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">6</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">agents</span></div>
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">1</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">9</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">phases</span></div>
@@ -502,7 +502,7 @@
   <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 04 / 內涵</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">你說內涵喔<br />這樣應該夠用了</h2>
   <div style="border-top:1px solid var(--line)">
-    <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、九條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">28</span></div>
+    <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、十條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">29</span></div>
     <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#4FA8FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">agents</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">DB review、安全稽核、e2e、假設驗證、PR 解說、語言專家，各跑獨立 context</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">6</span></div>
     <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#FF8A3D"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">hook</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">guard.mjs 一支 PreToolUse：branch-safety 與 file-type 兩段檢查，跑在 node</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
     <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#B388FF"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">rules.md</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">強制守則：Task 追蹤、決策點只能點選項、branch 與檔案類型硬規則、PII 底線、DB 唯讀</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">1</span></div>
@@ -641,6 +641,7 @@ const SKILLS = [
   ['lock-files', '標某些檔禁改', '跨流程'],
   ['context-snapshot', '把進度存下來換 session', '跨流程'],
   ['context-resume', '把上次的進度讀回來繼續', '跨流程'],
+  ['headless-mode', '無人環境：決策點採推薦或留言問人', '跨流程'],
   ['dispatch-parallel', '多 task 可同時做時派平行 subagent', 'meta'],
   ['retro', '回顧一段期間、歸納偏好寫回 memory', 'meta'],
   ['write-skill', '自己加新 skill 的範本與規格', 'meta']
@@ -657,7 +658,7 @@ const AGENTS = [
 
 /**
  * 既不是 skill 也不是 agent 的文件。流程圖頁的側欄索引有 35 份
- *（28 skill + 6 agent + rules.md），首頁索引原本只鋪前兩類、少了規則書這一份。
+ *（29 skill + 6 agent + rules.md），首頁索引原本只鋪前兩類、少了規則書這一份。
  * 排在最後與流程圖頁的 docSection 同序（Skill → Agent → Doc）。
  */
 const DOCS = [

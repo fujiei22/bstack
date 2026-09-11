@@ -18,3 +18,6 @@
 
 # frontend-e2e-runner verify 留下的截圖與報告（agent 的 cwd artifact，不入 repo）
 scripts/test-reports/
+
+# context-snapshot 的暫存進度（headless-mode 靠它跨輪接續；local-only、不入 repo）
+docs/snapshots/
