@@ -365,7 +365,8 @@ const nodeCount = Object.keys(FD.nodes).length;
 const edgeCount = FD.edges.length;
 const phaseCount = FD.phases.length;
 const typeCount = new Set(Object.values(FD.nodes).map((n) => n.type || 'default')).size;
-const EXPECT = { nodes: 96, edges: 135, phases: 15, types: 8 };
+// 2026-09-11 feat/headless-mode：+1 區段（headless）、+5 節點、+8 邊；型別不變
+const EXPECT = { nodes: 101, edges: 143, phases: 16, types: 8 };
 check(
   `C8a 圖的規模 ${EXPECT.nodes} 節點 / ${EXPECT.edges} 邊 / ${EXPECT.phases} phase / ${EXPECT.types} 型別`,
   nodeCount === EXPECT.nodes && edgeCount === EXPECT.edges &&

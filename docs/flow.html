@@ -482,7 +482,9 @@ const DRAWER_EXIT = 260;
  * RPT3 的 label 是「T3：依改動面向 1-3 視角」，整串沒有 review-plan 四個字。
  */
 const DOC_OVERRIDES = {
-  RPT3: 'review-plan'
+  RPT3: 'review-plan',
+  // headless 旁線四個節點都講同一份 skill；label 沒有可撞的名字（HeadlessQ / HLA / HLB / HLResume）
+  HeadlessQ: 'headless-mode', HLA: 'headless-mode', HLB: 'headless-mode', HLResume: 'headless-mode'
 };
 
 class Component extends DCLogic {

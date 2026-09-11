@@ -343,7 +343,7 @@
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">6</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">agents</span></div>
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">1</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">hook</span></div>
     <div style="padding:2px 0 2px clamp(14px,2vw,24px);border-right:1px solid var(--line)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">9</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">phases</span></div>
-    <div style="padding:2px 0 2px clamp(14px,2vw,24px)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">96</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">nodes</span></div>
+    <div style="padding:2px 0 2px clamp(14px,2vw,24px)"><b style="display:block;font-weight:500;font-size:clamp(30px,3.6vw,44px);line-height:1;letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums">101</b><span style="display:block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">nodes</span></div>
   </div>
 </section>
 
@@ -388,7 +388,7 @@
     <div style="background:var(--surface);padding:22px 22px 20px">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:8px;height:8px;background:var(--accent)"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">flow</span></div>
       <div style="font-weight:500;font-size:17px;line-height:1.35;letter-spacing:-.02em;color:var(--ink)">整條路徑，一張圖上看完</div>
-      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">96 個節點、135 條邊，每個檢查點與 agent 的位置都在上面。點節點就展開對應的文件，離線也讀得到。</p>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--ink-2)">101 個節點、143 條邊，每個檢查點與 agent 的位置都在上面。點節點就展開對應的文件，離線也讀得到。</p>
       <div style="margin-top:14px"><a href="./flow.html" style="font-family:'JetBrains Mono',monospace;font-size:10.5px">打開流程圖 →</a></div>
     </div>
   </div>
@@ -498,8 +498,28 @@
   </div>
 </section>
 
+<section id="headless" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Headless · 04 / 無人</div>
+  <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">沒有人在也能跑<br />該問的留言問，其餘自己決定</h2>
+  <div data-grid1 data-scroll style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:clamp(18px,3vw,40px);align-items:start;min-height:0;overflow-y:auto;overscroll-behavior:contain">
+    <div style="border-top:1px solid var(--line)">
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">01</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">偵測</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">工具清單沒有 AskUserQuestion、又設了 BSTACK_HEADLESS=1（或 AUTOPILOT_LABEL）、指得到來源 issue，才載 headless-mode；被派出去的 subagent 永遠不算</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">每輪</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">02</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">A 類：自己決定</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">AI 已有推薦答案的決策點（Track / Tier / branch 名 / spec gate / 跑法）直接採用，每一筆記進 auto_decisions，PR body 一併列給你看</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">自動</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">03</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">B 類：留言問你</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">真正要人決定的（需求歧義、危險修改、fail 處置、conflict、security critical、表上沒列的）寫成編號選項留言到 issue，然後結束這一輪</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">留言</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">04</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">下一輪接續</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">你回一則留言、第一行只寫編號；下一輪醒來只認第一行、接著做。沒回就靜靜等，一天後提醒一次，不洗版</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">接續</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">05</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">終點是 PR</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">開好 PR 就停。issue 留言不算 merge 授權，merge 永遠由人在 GitHub 按</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">永不 merge</span></div>
+    </div>
+
+    <div style="border-top:1px solid var(--line)">
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">你</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">人只做三件事</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">開 issue（title + body 就是需求）並讓排程指到它 → 看到「bstack 需要你決定」就回編號 → PR 開好後 review、按 merge</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">三步</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">跑</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">哪裡跑</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">任何定時跑 claude -p 或 codex exec 的容器（例如 claude-autopilot）。workspace 要跨輪持久，進度存在 docs/snapshots/issue-&lt;n&gt;.md，不入版控</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">排程</span></div>
+      <div style="display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)"><span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">守</span><span style="flex:1;min-width:0"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink)">誰在守</span><span style="display:block;margin-top:3px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">契約 P19：每個有決策點的 skill 都要有分流、引用的 decision_id 都要在分流表、派工 prompt 都要帶「你不是主流程」；回覆解析是純函式，18 個 fixture 守著</span></span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-3)">契約</span></div>
+    </div>
+  </div>
+</section>
+
 <section id="inv" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 04 / 內涵</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Inside · 05 / 內涵</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">你說內涵喔<br />這樣應該夠用了</h2>
   <div style="border-top:1px solid var(--line)">
     <div data-inv-row style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)"><span style="width:8px;height:8px;flex:none;align-self:center;background:#7CF5A6"></span><span style="flex:none;width:96px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">skills</span><span style="flex:1 1 240px;font-size:13.5px;line-height:1.75;color:var(--ink-2)">流程的十三個階段步驟、十條按需載入的跨流程 skill、兩條設計 lane、四條 meta</span><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">29</span></div>
@@ -510,7 +530,7 @@
 </section>
 
 <section id="index" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Index · 05 / 功能索引</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Index · 06 / 功能索引</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">36 個功能<br />查，都可以查</h2>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px">
     <input type="search" value="{{ query }}" onInput="{{ onQuery }}" placeholder="例：review、design、db、context" style="flex:1 1 260px;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:2px;background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink);outline:none;transition:border-color var(--t)" style-focus="border-color:var(--accent)" />
@@ -533,7 +553,7 @@
 </section>
 
 <section id="install" data-panel style="flex:0 0 100%;width:100%;height:100%;content-visibility:auto;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vh,56px) clamp(28px,4vw,72px) clamp(24px,4vh,56px) calc(var(--rail) + clamp(16px,2.2vw,36px));overflow:hidden">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Install · 06 / 三步</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Install · 07 / 三步</div>
   <h2 style="margin:0 0 12px;max-width:26ch;font-weight:500;font-size:clamp(24px,3vw,38px);line-height:1.34;letter-spacing:-.032em;color:var(--ink)">三個步驟，想裝自己裝<br />不會裝就叫 AI 幫你裝</h2>
   <p style="margin:0 0 clamp(18px,3vh,28px);font-size:14.5px;line-height:1.8;color:var(--ink-2);max-width:64ch">前置兩件：node 要在啟動 Claude Code 或 Codex 的 PATH 內（hook 需要），以及 git。Claude Code 與 Codex 裝的是同一份 plugin，指令不同而已。</p>
   <div data-scroll style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(240px,31%)),1fr));align-content:start;background:var(--bg);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:2px;flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain">
@@ -859,7 +879,7 @@ class Component extends DCLogic {
 
   /**
    * 面板編號一律**從 00 起算**：封面是 00，之後每一頁的 kicker
-   *（「Behaviour · 01 / 它管什麼」「Install · 06 / 三步」）就是這個數字。
+   *（「Behaviour · 01 / 它管什麼」「Install · 07 / 三步」）就是這個數字。
    * 改版初期這裡是 1 起算，於是第二頁 kicker 寫 01、左側進度條卻顯示 02，
    * 從那一頁之後整份差一格。改編號要兩邊一起改。
    * @param {number} idx 0 起算的面板索引
