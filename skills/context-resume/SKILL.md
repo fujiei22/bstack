@@ -9,7 +9,7 @@ description: |
 
 ## 使用契約
 
-1. **找 snapshot**：user 給 path 就用；否則 `Glob docs/snapshots/**/*.md` 依檔名 ts 取最新；都沒有 → 印「沒找到，請走 brainstorm 開新 task」、結束。headless 時只找 `docs/snapshots/issue-<n>-*.md`（`headless-mode` §偵測）
+1. **找 snapshot**：user 給 path 就用；否則 `Glob docs/snapshots/**/*.md` 依檔名 ts 取最新；都沒有 → 印「沒找到，請走 brainstorm 開新 task」、結束。headless 時只開 `docs/snapshots/issue-<n>.md`（`headless-mode` §偵測）
 2. **Read snapshot 全文**。
 3. **印 progress**（snapshot 濃縮）。
 4. `AskUserQuestion` 確認接續方向；headless 時不問：snapshot 有 `pending_question` → `headless-mode` §讀回覆，沒有 → 接續下一步（等同選項 1）。

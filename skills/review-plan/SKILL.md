@@ -54,7 +54,8 @@ description: |
 Claude Code 上你寫在回覆裡的東西不會自動傳給派工者——不送就等於沒交。
 ```
 
-headless 時 prompt 另含 `headless-mode` §子 agent 約束 那段（禁留言 / push / snapshot，問題回報主 agent）。
+prompt 結尾固定附這一句（`headless-mode` §子 agent 約束，互動模式也附、無副作用）：
+`你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。`
 
 > 為什麼要寫「把結論送回」：實測四個 reviewer 全部只送 idle 訊號，主 session 逐一去要才拿到——「做完」跟「送到」在 subagent 眼裡是同一件事（實測 2026-09-03；Claude Code 實測，Codex 對應見 `devwork/hosts.md` §派 subagent）
 

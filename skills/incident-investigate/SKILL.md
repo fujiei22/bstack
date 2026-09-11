@@ -98,12 +98,13 @@ options:
 **Hypothesis**: <H_N 文字>
 
 **Expected if true**: <see hypotheses.md>
-<headless 時此處貼 `headless-mode` §子 agent 約束 那段，逐字>
 **Expected if false**: <see hypotheses.md>
 
 **共同 facts artifact**: docs/incidents/<id>/observe.md（先 Read 它）
 
 **Repo**: <repo path>
+
+你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
 **相關 commits（可選）**: <如有>
 
 依 agent system prompt 跑驗證、回嚴格 output 格式（Verdict / Confidence / Evidence / Caveats / Unexpected findings）。

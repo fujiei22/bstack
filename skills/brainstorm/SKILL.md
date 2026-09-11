@@ -236,7 +236,7 @@ state:
 |---|---|
 | 「user 看起來知道要做什麼，跳 0a；memory 太雜不用讀」 | 0a 就是要把「知道」結構化；memory 必讀，user 偏好若漏會走錯路 |
 | 「我猜 tier 算了不問」 | tier 必經 `AskUserQuestion`；headless 例外見 `headless-mode` |
-| 「spec 短到不用落檔 / 設計這麼簡單還要 spec」 | T1+ 都要落 docs/work/；spec 短也要、user approval 不可省 |
+| 「spec 短到不用落檔 / 設計這麼簡單還要 spec」 | T1+ 都要落 docs/work/；spec 短也要、user approval 不可省（headless 時 spec gate 是 A 類，靠進度留言讓人喊停，見 `headless-mode`） |
 | 「純後端 task，0b′ 跳過」 | 0b′ 必跑；brainstorm 自己做零成本副檔名比對，不命中就不載 design-language |
 | 「T1 這麼小，不用問 UI 判定」 | 禁止用 Tier 推導 size；兩根尺各自判 |
 | 「T2 也寫個 plan.md 比較保險」 | rules.md §Tier 表：T2 的計畫就是施工清單，寫 plan.md 是走回舊 lane |

@@ -9,10 +9,10 @@ user 要的是：**AI 已有推薦答案的決策點自己採用並留紀錄；�
 
 ## 目標 / Success criteria
 
-- `node scripts/plugin-contract.mjs` 全綠（含新契約 P18），`--selftest` 綠，`build-references.ps1 -Check` exit 0。
+- `node scripts/plugin-contract.mjs` 全綠（含新契約 P19；P18 是既有 security-audit 契約，只補檔頭索引），`--selftest` 綠，`build-references.ps1 -Check` exit 0，`docs/tools/docs-site-contract.mjs` 全綠。
 - 新 skill `skills/headless-mode/SKILL.md` 存在，description 兩句式，含 §偵測 / §分流表 / §問人格式 / §讀回覆 / §本輪結束協定 / §hand-off state / §Red Flags。
 - rules.md §決策點選單 與 hosts.md §Host 判定 / §決策點 明寫 headless 分流入口（單一真相在 headless-mode，兩處只指向）。
-- 下列 phase skill 的每個 `AskUserQuestion` 決策點有一行 headless 分流（A 類採推薦 / B 類問人），指向 headless-mode §分流表：devwork、dev-workflow、brainstorm、dispatch-parallel、review-plan、receive-review、execute-plan、finish-branch、context-resume、context-snapshot、cmd-guard。
+- 每個含 `AskUserQuestion` 的 skill（P19 從磁碟推導；只由 user 顯式呼叫的 retro / lock-files 除外）每個決策點有一行 headless 分流（A 類採推薦 / B 類問人），指向 headless-mode §分流表；引用的 `decision_id` 必須是分流表的列；8 個派工 skill 的 prompt 範本含 §子 agent 約束 字面句。
 - README「Skills（29）」與 index.html 三處計數 + `SKILLS` 陣列同步（P8 綠）。
 - 互動模式（有 `AskUserQuestion` / `request_user_input`）**零行為改變**：所有新規則以 headless 判定為前提句。
 
@@ -21,8 +21,8 @@ user 要的是：**AI 已有推薦答案的決策點自己採用並留紀錄；�
 **包含**
 - 新 skill `headless-mode`（跨流程、條件載入）：政策的單一真相。
 - rules.md / hosts.md 接線（各一兩句，指向 headless-mode）。
-- 11 個 phase skill 的決策點加一行分流。
-- 契約 P18（機械守：三處接線 + 11 個 skill 含 `headless-mode` 字樣 + 新 skill 六節標題）。
+- 21 個 skill 的決策點加一行分流（含 design-language / design-direction）；8 個派工點貼約束句。
+- 契約 P19（機械守：三處接線 + 推導清單 + decision_id 校驗 + 派工約束字面 + 新 skill 九節標題 + parser fixture）；`scripts/headless-reply.mjs` 回覆解析純函式。
 - README / index.html 計數與索引卡；`docs/js/references-data.js` 重產。
 
 **排除**（明寫避免 scope creep）
@@ -50,7 +50,10 @@ user 要的是：**AI 已有推薦答案的決策點自己採用並留紀錄；�
 | `skills/context-resume/SKILL.md` | edit | headless：接續方向不問、改讀 issue 回覆；state 不一致 = B 類 |
 | `skills/context-snapshot/SKILL.md` | edit | headless 直接存；快照結構加 `pending_question` / `source_issue` / `auto_decisions` |
 | `skills/cmd-guard/SKILL.md` | edit | L2 / L3 = B 類；L4 拒絕不變 |
-| `scripts/plugin-contract.mjs` | edit | 加 P18；P3a 下限 28 不動（P8 精確） |
+| `scripts/plugin-contract.mjs` | edit | 加 P19（P18 為既有 security-audit 契約，只補檔頭索引）；P3a 下限 28 不動（P8 精確） |
+| `scripts/headless-reply.mjs` | new | 回覆解析純函式 + CLI；輸入壞掉 exit 2 |
+| `.gitignore`、`docs/js/data.js` | edit | snapshots 不入 repo；流程圖 crosscut 加 headless-mode |
+| 八個支線 skill + design-language / design-direction | edit | 決策點分流與派工約束（v2 擴充） |
 | `README.md` | edit | 計數 28→29、跨流程列加 headless-mode |
 | `docs/index.html` | edit | meta 三處 + hero + inventory 計數、`SKILLS` 陣列加一列（文字節點 / JS 資料，無 markup 變動） |
 | `docs/js/references-data.js` | regenerate | 只能由 build-references.ps1 產 |
@@ -154,7 +157,7 @@ state:
 - **A 類判斷力**：Tier 推薦錯會走錯 lane；但錯的 Tier 會在 PR body 的 auto_decisions 被人看到，且 review 階段仍跑。
 - **留言洗版**：`waiting` 不重問是刻意的；代價是人若沒看到留言，任務就靜靜等。autopilot 的 journal 會每輪記 `waiting`。
 - **常駐成本**：rules.md 只加 2 行，政策放條件載入的 skill；description 兩句式。
-- **互動模式回歸**：所有改動前置「headless 時」；契約 P18 不守這點，靠 review-plan DX 視角與 code-review 檢查前提句。
+- **互動模式回歸**：所有改動前置「headless 時」；契約 P19 不守這點，靠 review-plan DX 視角與 code-review 檢查前提句（code-review 逐行確認：唯一動到互動模式的是 `.gitignore` 加 `docs/snapshots/`，context-snapshot 的 commit 分支已同步註明）。
 - **Codex host**：`codex exec` 同樣沒有 `request_user_input`，偵測同一套；`gh` 需在 PATH。skill 內文須過 P14（不寫 Claude 專屬字面）。
 
 ## 待釐清

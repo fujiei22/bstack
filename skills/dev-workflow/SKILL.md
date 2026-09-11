@@ -10,7 +10,7 @@ description: |
 ## 使用契約（強制）
 
 1. user prompt 由 `devwork` 交進來（`/devwork` 後面的文字）；純問答已在 devwork 過濾，這裡收到的一律是改動類。
-2. 進 **Phase 0 入口分流**（5 子步驟，下節展開）。
+2. 進 **Phase 0 入口分流**（5 子步驟，下節展開）；headless 且 state 有 `pending_question`（devwork 1b 已讀到 answered）→ 不進 Phase 0，載 `context-resume` 接續。
 3. 依 Track + Tier **逐 Phase** 推進，每 Phase 結尾貼 Trace 標籤。
 4. 階段間以**結構化 state** hand-off（見 §Skill hand-off）。
 5. user 決策點走 `AskUserQuestion`，**禁文字 token NLP 判斷**；headless 時依 `headless-mode` §分流表（表外一律 B）。
@@ -166,7 +166,7 @@ state:
 
 1. **不靜默重試**
 2. **評起因**：實作錯 / plan 錯 / test 設定錯 / 架構假設錯 / 需求理解錯
-   headless 時 → B 類（`execute-plan/fail`）：不 retry，五個選項寫進留言後結束本輪（`headless-mode`）。
+   headless 時 → B 類（task fail 用 `execute-plan/fail`、verify / review fail 用 `verify-done/fail`）：不 retry，五個選項寫進留言後結束本輪（`headless-mode`）。
 3. `AskUserQuestion` 提選項：
    - **retry** — 同樣作法再跑（適暫態 / 偶發）
    - **adjust + retry** — AI 提具體調整方案、user 點頭後跑

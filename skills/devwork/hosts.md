@@ -25,7 +25,7 @@
 |---|---|---|---|
 | `Agent` + `subagent_type: <name>` | 同名工具、`subagent_type: bstack:<name>` | `spawn_agent`，agent 名 = `~/.codex/agents/<name>.toml` 的 `name`；收結果 `wait_agent` | 沒裝 TOML → 內建 `explorer`（唯讀）或 `worker`，把 `agents/<name>.md` 本文貼進 prompt；連 spawn 都沒有 → 主 agent 自己做並在回報標「未隔離」 |
 | `SendMessage`（subagent 回結論 / 隊友通訊） | 同名工具 | 結論由 `wait_agent` 收；追加指令 `send_input` | 把結論寫在最終回覆 |
-| headless 派工約束 | 派工 prompt 必含 `headless-mode` §子 agent 約束 那段（禁留言 / push / snapshot，問題回報主 agent） | 同左 | 同左 |
+| headless 派工約束 | 派工 prompt 結尾貼 `headless-mode` §子 agent 約束 那段，逐字、不分互動或 headless（四項禁令 + 問題回報派工 agent） | 同左 | 同左 |
 
 ## §程式碼審查
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |

@@ -14,7 +14,7 @@ execute-plan 遇 `parallel-group` 同號多 task 時，把這些 task 平行跑�
 1. **讀 hand-off state** 取當前 group 的 task 清單（task ID + 來源：plan Task N section（T3）／ spec `## 施工清單` 第 N 列（T2））。
 2. **檢預設**：group 內 task **真的無依賴**（T3 由 write-plan 標、T2 由 brainstorm 施工清單標，這裡是 T2 唯一一次驗）；工作目錄 clean（無未 commit 改動）。
 3. **協作模式判定** → 走 §協作模式判定；互動模式 `AskUserQuestion` 讓 user 選跑法、**禁自行決定**；headless 時 → A 類 `dispatch-parallel/mode`（`headless-mode`），派工 prompt 必含其 §子 agent 約束。
-4. **依 user 選擇分流**：
+4. **依選定的跑法分流**（headless 時依第 3 步的 A 類結果，不走 Agent Teams 分支）：
    - Agent Teams（Claude Code 限定）→ §隊友派工
    - subagent 平行 → §Spawn 細節
    - 單一 session 串行 → 退回 execute-plan 逐 task 跑，不用本 skill 後續流程
@@ -156,8 +156,8 @@ Agent tool call:
     **禁**：
     - 動 task <N> 以外的檔（除非 plan 明列）
     - 跑 push / open PR（主 agent 統一做）
-    - 互動 user（subagent 無 AskUserQuestion 通道；遇要 user 決定 → fail with 原因）
-    <headless 時此處貼 `headless-mode` §子 agent 約束 那段，逐字>
+    - 互動 user（subagent 無 AskUserQuestion 通道；遇要 user 決定 → 回報派工 agent、由它決定，不自行 fail）
+    你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
 ```
 
 主 agent **自己**也跑一個 task（不浪費 idle），同樣走 tdd-cycle 5 step；跑完等剩餘 subagent 返回，收 N 個 commit sha、N 個 verify 結果與 blocker / fail report。

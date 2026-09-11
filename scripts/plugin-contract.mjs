@@ -705,60 +705,105 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
 }
 
 // P19：headless 無人模式。政策單一真相在 skills/headless-mode/SKILL.md（條件載入）；rules.md 跨節例外、hosts.md 三列
-//      指向它；19 個有決策點或派工點的 skill 各有一行分流——漏一個，無人模式跑到那裡就印一個沒人回答的問題、那一輪白跑。
-//      回覆解析是純函式，對 fixture 跑；其餘只守字樣與節位置，不守「前提句」語意（交 review）。
-//      決策點落點（給後人）：devwork 1.5；dev-workflow 契約 5 / §Fail handling / 跨流程表；brainstorm 0a 3-4 / 合併確認 / spec gate；
-//      dispatch-parallel 3 / 派工 prompt；review-plan 6 / 視角 prompt；receive-review 4-5 / T3 特例 / 衝突；execute-plan 前端大改 / fail；
-//      finish-branch conflict / §Squash merge / PR 模板；cmd-guard 3；context-snapshot 2；context-resume 4；verify-done 2；
-//      security-audit critical gate / §Dispatch；safety-guard 不可自動類；debug-systematic 兩處；request-review T3 對齊 prompt；
-//      incident-investigate gate / hypothesis prompt；frontend-test preview URL / 8b-8d / §Dispatch；pr-explain §0 派發方式。
+//      指向它；每個有決策點（含 AskUserQuestion）或派工點的 skill 各有一行分流——漏一個，無人模式跑到那裡就印一個沒人回答的
+//      問題、那一輪白跑。清單從磁碟推導（含 AskUserQuestion 的 SKILL.md），不寫死；只有 user 顯式呼叫才會跑的 skill 列白名單。
+//      回覆解析是純函式，直接 import 對 fixture 跑（8 spawn 要 2 秒，import 2 ms），另留一次 CLI 冒煙；
+//      skill 內引用的 decision_id 必須是 §分流表 的列；派工 skill 必含 §子 agent 約束 的字面句（無條件貼，互動模式是 no-op）。
+//      不守「前提句」語意（每行是否以 headless 為條件），交 review。
 {
-  const hm = exists('skills/headless-mode/SKILL.md') ? lf(rd('skills/headless-mode/SKILL.md')) : '';
+  const rdOr = (p) => (exists(p) ? lf(rd(p)) : '');
+  const hm = rdOr('skills/headless-mode/SKILL.md');
   const HEADS19 = ['使用契約（強制）', '§偵測', '§分流表', '§問人格式', '§讀回覆', '§本輪結束協定', '§子 agent 約束', '§hand-off state', '§Red Flags'];
-  const missHead19 = HEADS19.filter((n) => !new RegExp(`^##[ \\t]+${n.replace(/[()（）]/g, '\\$&')}[ \\t]*$`, 'm').test(hm));
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\（）]/g, '\\$&');
+  const missHead19 = HEADS19.filter((n) => !new RegExp(`^##[ \\t]+${esc(n)}[ \\t]*$`, 'm').test(hm));
   const rulesDP = section(rules16, /^### §決策點選單[^\n]*\n/m), rulesTeam = section(rules16, /^### §協作模式判定[^\n]*\n/m), rulesTrace = section(rules16, /^### §Trace 標籤[^\n]*\n/m);
   const hostsHost = section(hostsMd, /^## §Host 判定[^\n]*\n/m), hostsDP = section(hostsMd, /^## §決策點[^\n]*\n/m), hostsSub = section(hostsMd, /^## §派 subagent[^\n]*\n/m);
   const hostRows = hostsHost.split('\n'), iSub = hostRows.findIndex((l) => /被 spawn 的 subagent/.test(l)), iHl = hostRows.findIndex((l) => /headless-mode/.test(l));
-  const PHASE19 = ['devwork', 'dev-workflow', 'brainstorm', 'dispatch-parallel', 'review-plan', 'receive-review', 'execute-plan', 'finish-branch', 'context-resume', 'context-snapshot', 'cmd-guard',
-    'verify-done', 'security-audit', 'safety-guard', 'debug-systematic', 'request-review', 'incident-investigate', 'frontend-test', 'pr-explain'];
-  const missPhase = PHASE19.filter((s) => !exists(`skills/${s}/SKILL.md`) || !/headless-mode/.test(lf(rd(`skills/${s}/SKILL.md`))));
-  const dwf = exists('skills/dev-workflow/SKILL.md') ? lf(rd('skills/dev-workflow/SKILL.md')) : '';
-  const squash = exists('skills/finish-branch/SKILL.md') ? section(lf(rd('skills/finish-branch/SKILL.md')), /^## §Squash merge[^\n]*\n/m) : '';
-  const gi = exists('.gitignore') ? lf(rd('.gitignore')) : '';
-  // parser fixture：CLI 走 stdin JSON，跟 P2e 一樣真 spawn，守「腳本存在 + 匯出行為」
-  const mk = (id, body, extra = {}) => ({ id, body, createdAt: `2026-09-11T0${id}:00:00Z`, author: { login: 'owner' }, authorAssociation: 'OWNER', viewerDidAuthor: false, url: `u${id}`, ...extra });
-  const base = { optionCount: 3, askedAt: '2026-09-11T02:00:00Z', selfLogin: 'bot', allowFree: false };
-  const FIX19 = [
-    ['root 正常', [mk(1, '<!-- bstack-ask: x -->'), mk(3, '2')], base, { status: 'answered', option: 2 }],
-    ['1. 帶句點', [mk(3, '1.\n因為快')], base, { status: 'answered', option: 1 }],
-    ['#１ 全形加井號', [mk(3, '#１')], base, { status: 'answered', option: 1 }],
-    ['選 0 帶文字', [mk(3, '0\n改用方案 C')], base, { status: 'answered', option: 0, freeText: '改用方案 C' }],
-    ['作者不符', [mk(3, '2', { authorAssociation: 'NONE' })], base, { status: 'none' }],
-    ['bot 自己', [mk(3, '2', { author: { login: 'bot' }, viewerDidAuthor: true })], base, { status: 'none' }],
-    ['提問前的舊留言', [mk(1, '2')], base, { status: 'none' }],
-    ['格式錯', [mk(3, '選 2 吧')], base, { status: 'unparseable', commentId: 3 }],
-  ];
+  // 分流清單推導：含 AskUserQuestion 的 skill 都要有分流；白名單 = 只由 user 顯式呼叫、headless 不會走到的
+  const ONLY_EXPLICIT = new Set(['retro', 'lock-files']);
+  const skillText = Object.fromEntries(skillDirs.map((s) => [s, rdOr(`skills/${s}/SKILL.md`)]));
+  const needWire = skillDirs.filter((s) => s !== 'headless-mode' && !ONLY_EXPLICIT.has(s) && /AskUserQuestion/.test(skillText[s]));
+  const missPhase = needWire.filter((s) => !/headless-mode/.test(skillText[s]));
+  // decision_id：§分流表 第一欄的反引號 id 是全集；skill 裡任何長得像 `<skill>/<id>` 的反引號 token 都得在表裡
+  const tableSec = section(hm, /^## §分流表[^\n]*\n/m);
+  const tableIds = new Set([...tableSec.matchAll(/^\| `([a-z][a-z-]*\/[A-Za-z0-9*-]+)` \|/gm)].map((m) => m[1]));
+  const idPrefixes = new Set([...skillDirs, 'branch', 'fallback']);
+  const badIds = [];
+  for (const s of skillDirs) for (const m of skillText[s].matchAll(/`([a-z][a-z-]*)\/([A-Za-z0-9-]+)`/g)) {
+    if (!idPrefixes.has(m[1])) continue;
+    const id = `${m[1]}/${m[2]}`;
+    if (!tableIds.has(id) && !(m[1] === 'fallback')) badIds.push(`${s}:${id}`);
+  }
+  // 派工點：這些 skill 會 spawn subagent，prompt 範本必含約束句字面（無條件）
+  const DISPATCHERS = ['dispatch-parallel', 'review-plan', 'request-review', 'security-audit', 'incident-investigate', 'frontend-test', 'pr-explain', 'design-direction'];
+  const missDispatch = DISPATCHERS.filter((s) => !/你不是 headless 主流程/.test(skillText[s] || ''));
+  const dwf = skillText['dev-workflow'] || '';
+  const squash = section(skillText['finish-branch'] || '', /^## §Squash merge[^\n]*\n/m);
+  const gi = rdOr('.gitignore');
+  // parser fixture：直接 import 純函式；留言物件只給 parser 真的會讀的欄位（id / body / createdAt / authorAssociation）
   const fixBad = [];
-  if (exists('scripts/headless-reply.mjs')) for (const [name, comments, opts, want] of FIX19) {
-    const r = spawnSync(process.execPath, [join(REPO, 'scripts/headless-reply.mjs')], { input: JSON.stringify({ comments, ...opts }), encoding: 'utf8' });
-    let got; try { got = JSON.parse(r.stdout); } catch { got = { parseError: r.stderr || r.stdout }; }
-    const ok = r.status === 0 && Object.entries(want).every(([k, v]) => got[k] === v);
-    if (!ok) fixBad.push(`${name}: want ${JSON.stringify(want)} got ${JSON.stringify(got)}`);
-  } else fixBad.push('scripts/headless-reply.mjs 不存在');
+  let parseReply = null;
+  try { ({ parseReply } = await import('../scripts/headless-reply.mjs')); } catch (e) { fixBad.push(`import 失敗：${e.message}`); }
+  const mk = (id, body, extra = {}) => ({ id, body, createdAt: `2026-09-11T0${id}:00:00Z`, authorAssociation: 'OWNER', ...extra });
+  const base = { optionCount: 3, askedAt: '2026-09-11T02:00:00Z', decisionId: 'x/y' };
+  const ASK = '<!-- bstack-ask: x/y | 2026-09-11T02:00:00Z -->';
+  const FIX19 = [
+    ['root 正常', [mk(1, ASK), mk(3, '2')], base, { status: 'answered', option: 2, commentId: 3 }],
+    ['1. 帶句點', [mk(3, '1.\n因為快')], base, { status: 'answered', option: 1, freeText: '因為快' }],
+    ['#１ 全形加井號', [mk(3, '#１')], base, { status: 'answered', option: 1 }],
+    ['（１） 全形括號', [mk(3, '（１）')], base, { status: 'answered', option: 1 }],
+    ['選 0 帶文字', [mk(3, '0\n改用方案 C')], base, { status: 'answered', option: 0, freeText: '改用方案 C' }],
+    ['裸 0 無內容 → 不合格', [mk(3, '0')], base, { status: 'unparseable', commentId: 3 }],
+    ['出界編號 → 不合格', [mk(3, '9')], base, { status: 'unparseable', commentId: 3 }],
+    ['作者不符 → 忽略', [mk(3, '2', { authorAssociation: 'NONE' })], base, { status: 'none' }],
+    ['bot 自己的標記留言不算回覆', [mk(3, '<!-- bstack-progress -->\n進度')], base, { status: 'none' }],
+    ['同帳號跑：人的回覆沒標記照收', [mk(3, '2', { viewerDidAuthor: true })], base, { status: 'answered', option: 2 }],
+    ['提問前的舊留言 → none', [mk(1, '2')], base, { status: 'none' }],
+    ['格式錯 → unparseable', [mk(3, '選 2 吧')], base, { status: 'unparseable', commentId: 3 }],
+    ['答完編號再閒聊：仍取編號', [mk(3, '1'), mk(4, '順便問這會影響 CI 嗎')], base, { status: 'answered', option: 1, commentId: 3 }],
+    ['舊提問的 reask 標記不算本題', [mk(1, '<!-- bstack-reask: x/y -->'), mk(3, '選 2 吧')], base, { status: 'unparseable', reasked: false }],
+    ['別題的 reask 標記不算本題', [mk(3, '<!-- bstack-reask: a/b -->'), mk(4, '選 2 吧')], base, { status: 'unparseable', reasked: false }],
+    ['本題已 reask / remind 過', [mk(3, '<!-- bstack-reask: x/y -->'), mk(4, '<!-- bstack-remind: x/y -->')], base, { status: 'none', reasked: true, reminded: true }],
+    ['snake_case 鍵也收', [mk(3, '2')], { option_count: 3, asked_at: '2026-09-11T02:00:00Z', decision_id: 'x/y' }, { status: 'answered', option: 2 }],
+  ];
+  const THROWS19 = [
+    ['askedAt null → throw', [mk(3, '2')], { optionCount: 3, askedAt: null }],
+    ['askedAt 本地時間 → throw', [mk(3, '2')], { optionCount: 3, askedAt: '2026-09-11T10:00:00+08:00' }],
+    ['optionCount 缺 → throw', [mk(3, '2')], { askedAt: '2026-09-11T02:00:00Z' }],
+  ];
+  if (parseReply) {
+    for (const [name, comments, opts, want] of FIX19) {
+      let got; try { got = parseReply(comments, opts); } catch (e) { got = { threw: e.message }; }
+      if (!Object.entries(want).every(([k, v]) => got[k] === v)) fixBad.push(`${name}: want ${JSON.stringify(want)} got ${JSON.stringify(got)}`);
+    }
+    for (const [name, comments, opts] of THROWS19) {
+      let threw = false; try { parseReply(comments, opts); } catch { threw = true; }
+      if (!threw) fixBad.push(`${name}: 沒有 throw`);
+    }
+    // CLI 冒煙（一次）：stdin JSON → stdout JSON；壞輸入 exit 2
+    const cli = (payload) => spawnSync(process.execPath, [join(REPO, 'scripts/headless-reply.mjs')], { input: payload, encoding: 'utf8', cwd: REPO });
+    const ok1 = cli(JSON.stringify({ comments: [mk(3, '2')], ...base }));
+    let j1; try { j1 = JSON.parse(ok1.stdout); } catch { j1 = {}; }
+    if (ok1.status !== 0 || j1.status !== 'answered' || j1.option !== 2) fixBad.push(`CLI 冒煙: rc=${ok1.status} out=${ok1.stdout.slice(0, 80)}`);
+    const bad1 = cli('{"comments":[],"optionCount":3,"askedAt":null}');
+    if (bad1.status !== 2) fixBad.push(`CLI 壞輸入應 exit 2，實際 ${bad1.status}`);
+  }
   const p19 = {
-    skillHeads: hm !== '' && missHead19.length === 0,
+    skillHeads: missHead19.length === 0,
     skillBody: ['BSTACK_HEADLESS', 'BSTACK_ISSUE', 'AUTOPILOT_LABEL', '<!-- bstack-ask:', '[bstack headless]', 'headless-reply.mjs', '表外一律 B'].every((s) => hm.includes(s)) && hm.split('\n').some((l) => /merge/.test(l) && /永不/.test(l)),
-    rules: /headless-mode/.test(rulesDP) && /BSTACK_HEADLESS/.test(rulesDP) && /重讀/.test(rulesDP) && /headless/.test(rulesTeam) && /bstack headless/.test(rulesTrace),
+    rules: /headless-mode/.test(rulesDP) && /BSTACK_HEADLESS/.test(rulesDP) && /重讀|重新載入/.test(rulesDP) && /headless/.test(rulesTeam) && /bstack headless/.test(rulesTrace),
     hosts: /BSTACK_HEADLESS/.test(hostsHost) && iHl > iSub && iSub >= 0 && /headless-mode/.test(hostsDP) && /headless/.test(hostsSub),
-    phases: missPhase.length === 0,
+    phases: missPhase.length === 0 && needWire.length >= 19,
+    decisionIds: badIds.length === 0 && tableIds.size >= 20,
+    dispatchers: missDispatch.length === 0,
     crossTable: /^\| `headless-mode` \|/m.test(dwf),
     noMerge: squash.split('\n').filter((l) => /headless/.test(l)).length >= 3,
     gitignore: /^docs\/snapshots\/$/m.test(gi),
     parser: fixBad.length === 0,
   };
-  check('P19 headless-mode 九節 + 契約字樣 + merge 永不；rules.md 三節 / hosts.md 三節指向（Host 判定列在 subagent 列之後）；19 個 skill 各有分流；dev-workflow 跨流程表有列；finish-branch §Squash merge headless 行 ≥3；.gitignore 有 docs/snapshots/；回覆 parser 8 個 fixture',
+  check(`P19 headless-mode 九節 + 契約字樣 + merge 永不；rules.md 三節 / hosts.md 三節指向（Host 判定列在 subagent 列之後）；含 AskUserQuestion 的 ${needWire.length} 個 skill 各有分流；skill 引用的 decision_id 都在 §分流表（${tableIds.size} 列）；${DISPATCHERS.length} 個派工 skill 含約束句字面；dev-workflow 跨流程表有列；finish-branch §Squash merge headless 行 ≥3；.gitignore 有 docs/snapshots/；回覆 parser ${FIX19.length} 個 fixture + ${THROWS19.length} 個 throw + CLI 冒煙`,
     Object.values(p19).every(Boolean),
-    `${Object.entries(p19).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead19.join(', ')}] 缺分流=[${missPhase.join(', ')}] parser=[${fixBad.slice(0, 3).join(' | ')}]（後果：無人模式跑到沒分流的決策點就白跑一輪、或 subagent 自己去 issue 留言；改處：skills/headless-mode/SKILL.md、skills/devwork/{rules,hosts}.md、缺分流的 skill、scripts/headless-reply.mjs）`);
+    `${Object.entries(p19).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead19.join(', ')}] 缺分流=[${missPhase.join(', ')}] 壞 id=[${badIds.slice(0, 6).join(', ')}] 缺約束句=[${missDispatch.join(', ')}] parser=[${fixBad.slice(0, 3).join(' | ')}]（後果：無人模式跑到沒分流的決策點就白跑一輪、subagent 自己去 issue 留言、或回覆永遠讀不到；改處：skills/headless-mode/SKILL.md、skills/devwork/{rules,hosts}.md、缺分流 / 缺約束句的 skill、scripts/headless-reply.mjs）`);
 }
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);

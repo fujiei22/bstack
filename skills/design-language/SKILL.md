@@ -80,7 +80,7 @@ design:
 2. **排除 vendor 與產物**：`node_modules/`、`dist/`、`build/`、`vendor/`、`.gitignore` 命中的路徑、`**/design-demos/`。
 3. **追 import 圖**：`Grep` 誰 import 每個 token 來源檔（`@import` / `import` / `<link rel="stylesheet">`），得到用該套 token 的檔案集合。
 4. **合併成區塊**：共用同一組 token 來源的集合 = 一個區塊，最大公因目錄當「檔案範圍」。
-5. **`AskUserQuestion` 給 user 確認或修正**（必經，不得自行定案）。選項：
+5. **`AskUserQuestion` 給 user 確認或修正**（必經，不得自行定案；headless 時 → A 類 `design-language/confirm-map`，採你的判定並記 `auto_decisions`，見 `headless-mode`）。選項：
    1. 表正確，寫入（推薦）
    2. 區塊切錯，我來指認邊界
    3. 此專案先不建地圖（回 `map_status: absent`）
@@ -137,7 +137,7 @@ grep -oE '`[^`]+\.(css|scss|sass|ts|js|mjs|cjs)`' docs/reference/design-map.md \
     done
 ```
 
-**終止條件（不許無限重跑）**：同一次 task 內已重畫過一次、改動檔仍落在所有區塊之外 → 停止重跑，回 `scope: null` / `map_status: remapped`，走 `AskUserQuestion`：
+**終止條件（不許無限重跑）**：同一次 task 內已重畫過一次、改動檔仍落在所有區塊之外 → 停止重跑，回 `scope: null` / `map_status: remapped`，走 `AskUserQuestion`（headless 時 → B 類 `design-language/confirm-map`）：
 
 1. 我指認它屬於哪一區
 2. 此檔不納入地圖（例如 `design-demos/` 這類產物）

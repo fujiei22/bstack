@@ -21,7 +21,7 @@ description: |
 
 1. 抽 state 內容
 2. 詢 user 是否要存（無顯式觸發 case 才問；顯式觸發直接存）；headless 時一律存、不問（`headless-mode`）
-3. 寫到 `docs/snapshots/<topic-slug>-<ISO-ts>.md`
+3. 寫到 `docs/snapshots/<topic-slug>-<ISO-ts>.md`（headless 時固定 `docs/snapshots/issue-<n>.md`，見 §存哪裡）
 4. 印 path、告知 user 怎麼 resume
 
 ## §快照結構
@@ -108,13 +108,13 @@ Resume 流程：
 ## §存哪裡
 
 - `docs/snapshots/<topic-slug>-<ISO-ts>.md`；`topic-slug` 對齊 `docs/work/<branch-name>/`；ISO-ts 如 `2026-05-13T14-30-00`（檔名禁`:`，用 `-`）
-- headless 時檔名 `docs/snapshots/issue-<n>-<topic-slug>-<ISO-ts>.md`（`headless-mode` §偵測 靠前綴定位；同一 issue 的後續存檔覆寫同一檔而非新開）
+- headless 時檔名固定 `docs/snapshots/issue-<n>.md`，**沒有時間戳**（同一 issue 永遠覆寫這一檔；`headless-mode` §偵測 直接開它，topic-slug 已在 yaml 的 branch 欄）
 - 可選 `docs/snapshots/index.md`（每 entry 1 行），user 啟動才做、不自動
 
 ## §commit snapshot 不？
 
 - 預設**不 commit**：transient、非 deliverable、local-only；`docs/snapshots/` 進 `.gitignore`；headless 時不問、不 commit，靠 workspace 持久
-- user 要跨機器 / 跨 session 用：
+- user 要跨機器 / 跨 session 用（`docs/snapshots/` 已進 `.gitignore` 的 repo——含本 repo——跳過這段，改手動複製檔案）：
   - `AskUserQuestion` 問是否 commit
   - 確認 sensitive content 已被 safety-guard 篩過才 commit
 

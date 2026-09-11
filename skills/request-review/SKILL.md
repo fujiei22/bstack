@@ -58,7 +58,7 @@ PII / File-type：<無命中 / 命中什麼>
 ## §T3：內建 code-review + 對齊 subagent
 **Claude Code**：呼叫 `Skill("code-review", args="high")`：覆蓋更廣、可能含不確定的 finding（PLAUSIBLE 也會進來）。**Codex**：reviewer 一個（同 §T2 的派法與 §Codex reviewer prompt；Codex 沒有 `high` 檔位，一樣只回有 `failure_scenario` 的）+ 下面的對齊 subagent 一個。回收方式同 T2。
 ### 對齊 subagent（spec / 架構）
-與 code-review / Codex reviewer **並行** spawn 一個 `general-purpose` agent（依 hosts.md §派 subagent；純文件 diff 時只派這個）；prompt 附 §語言提示，headless 時另含 `headless-mode` §子 agent 約束：
+與 code-review / Codex reviewer **並行** spawn 一個 `general-purpose` agent（依 hosts.md §派 subagent；純文件 diff 時只派這個）；prompt 附 §語言提示，結尾固定附 `headless-mode` §子 agent 約束 那句（§Codex reviewer prompt 同樣附）：`你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。`
 ```
 你是架構 reviewer。讀以下 diff 與 context：
 <diff>

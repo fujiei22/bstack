@@ -35,7 +35,7 @@ How：brainstorm 0b 並聯抽樣；write-plan / review-plan 涉資料每點附�
 ### §決策點選單
 user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」；平台附 `Other`。**禁文字 token NLP**（`approve / LGTM / 通過 / ✅` 不當 gate 信號）。
 
-**headless（無人模式）**：不是被 spawn 的 subagent、工具清單沒有 `AskUserQuestion` / `request_user_input`、且 `BSTACK_HEADLESS=1` 或 `AUTOPILOT_LABEL` 非空 → 載 `headless-mode`。此時**本檔各節**寫的「必經 `AskUserQuestion`」「一律等 user 選」「危險類必問」一律改讀 `headless-mode` §分流表（A 類採推薦記 `auto_decisions`、B 類 `gh issue comment` 後結束本輪、表外一律 B）；merge 永不自動；遇決策點 context 找不到 §分流表 → 先重讀 `skills/headless-mode/SKILL.md`。互動模式不受影響。
+**headless（無人模式）**：不是被 spawn 的 subagent、工具清單沒有 `AskUserQuestion` / `request_user_input`、且 `BSTACK_HEADLESS=1` 或 `AUTOPILOT_LABEL` 非空 → 載 `headless-mode`。此時**本檔各節任何要 user 決定的句子**（「必經 `AskUserQuestion`」「一律等 user 選」「危險類必問」「二次確認」「T3 先 diff 再 commit」）一律改讀 `headless-mode` §分流表（A 類採推薦記 `auto_decisions`、B 類 `gh issue comment` 後結束本輪、表外一律 B）；merge 永不自動；遇決策點 context 找不到 §分流表 → 先重讀（重新載入 `headless-mode` skill，不用 repo 相對路徑找檔）。互動模式不受影響。
 
 本檔與各 skill 寫的工具名是**抽象動詞**，兩個 host 的實際工具如下（完整版與「工具不在清單時」的退路見 `skills/devwork/hosts.md`）：
 

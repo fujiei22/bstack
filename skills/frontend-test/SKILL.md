@@ -43,7 +43,7 @@ Agent:
   prompt: |
     preview_url: <url>
     output_dir: docs/work/<branch-name>/test-reports/<ts>/
-    <headless 時此處貼 `headless-mode` §子 agent 約束 那段，逐字>
+    你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
     tier: <T1/T2/T3>
 
     test_matrix:

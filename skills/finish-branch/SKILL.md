@@ -104,7 +104,7 @@ EOF
 
 ### §PR body 模板
 
-headless 時在測試節之後**新增**「## headless 自動決策」表（phase / decision_id / 問題 / 採用 / 未採用 / 理由 六欄，來源 `state.auto_decisions`）與 `review-fixes.diff` 路徑；模板本身不帶。
+headless 時在測試節之後**新增**「## headless 自動決策」表（phase / decision_id / 問題 / 採用 / 未採用 / 理由 六欄，來源 `state.auto_decisions`）與 receive-review 各 fix commit 的 sha 清單；模板本身不帶。
 
 ```markdown
 ## 動機 / Why
