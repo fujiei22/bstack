@@ -1,4 +1,4 @@
-# 由 scripts/gen-codex-agents.mjs 從 agents/hypothesis-tester.md 產生（bstack 1.7.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
+# 由 scripts/gen-codex-agents.mjs 從 agents/hypothesis-tester.md 產生（bstack 1.8.0），勿手改；改 md 後重跑 node scripts/gen-codex-agents.mjs
 name = "hypothesis-tester"
 description = "incident 單一假設驗證 agent（繁中）：只知道自己這條假設，讀 observe facts、跑實驗、回嚴格 verdict。 載入：incident-investigate Test 階段 ≥3 假設時平行 spawn。"
 model = "gpt-5.6-terra"

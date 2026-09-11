@@ -7,7 +7,7 @@
       "name": "bstack",
       "source": "./",
       "description": "繁中台灣用語的九階段開發流程：/devwork（Claude Code）或 $bstack:devwork（Codex）啟動 brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro",
-      "version": "1.7.0",
+      "version": "1.8.0",
       "category": "workflow"
     }
   ]
