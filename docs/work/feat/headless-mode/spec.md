@@ -63,7 +63,9 @@ user 要的是：**AI 已有推薦答案的決策點自己採用並留紀錄；�
 - 設計語言摘要：改動只有計數數字（文字節點）與 `SKILLS` JS 陣列加一列；索引卡由既有 JS 渲染、沿用既有 token，無新視覺決策。execute-plan 動 index.html 那個 task 前後載 design-language 跑四項對齊檢查（預期四項 N/A：沒有新元件狀態 / 斷點 / 表單 / dark mode 決策，依據＝diff 不含 class / style / 標籤）。
 - 小改，未走三方向。
 
-## 政策設計（headless-mode 的內容，plan 依此拆）
+## 政策設計（v1 草案；v2 以 `skills/headless-mode/SKILL.md` 為準）
+
+> **v2 差異摘要**（review.md + `out/codex-dialogue.md` 共識後）：偵測從三條改五條（第 0 條 subagent 排除、`BSTACK_HEADLESS=1` OR `AUTOPILOT_LABEL`、`gh auth status`）；snapshot 檔名帶 `issue-<n>-` 前綴並定位、`snapshot-lost` / `duplicate-instance` 兩種 blocked；分流表每列有 `decision_id`、加兜底「表外一律 B」、接線 11 → 19 個 skill；回覆解析抽成 `scripts/headless-reply.mjs` 純函式（放寬 `1.` `#１`、選項 0 自由文字、作者限 OWNER / MEMBER / COLLABORATOR、排除自己）；`unparseable` 澄清一次、`none` 12 輪提醒一次、answered 先清 `pending_question` 再確認留言；`done` 之後靠 `pr_url` 判 PR 狀態不重跑；結束行分隔符改 ` | `、Trace 倒數第二行；派工 prompt 必含 §子 agent 約束；`auto_decisions` 六欄、spec gate 後留一則進度留言。下面 v1 內容保留作歷史，**衝突處以 SKILL.md 為準**。
 
 ### 偵測（三條全中才是 headless）
 1. 工具清單沒有 `AskUserQuestion` 也沒有 `request_user_input`。
@@ -157,5 +159,12 @@ state:
 
 ## 待釐清
 
-- `BSTACK_ISSUE` 這個環境變數名是本 spec 定的（autopilot 那側 role 的 `env` 檔要跟著設）；user 未指定，先用這個。
-- 每輪全新 clone 的部署（snapshot 消失）：本次不支援，skill §前提 明寫。
+- `BSTACK_ISSUE` / `BSTACK_HEADLESS` 兩個環境變數名是本 spec 定的（autopilot 那側 role 的 `env` 檔要跟著設）；user 未指定，先用這個。
+- 每輪全新 clone 的部署（snapshot 消失）：本次不支援，skill §偵測 前提明寫，並以 `snapshot-lost` blocked 可觀測。
+- subagent 排除靠「第 0 條 + 派工 prompt 強制標示」雙保險，Codex 側沒有可辨別子 agent 的保證訊號（Codex Q3 結論），是防呆不是保證。
+
+## 施工紀錄
+
+- **設計語言四項對齊（execute-plan Task 7，`docs/index.html`）**：diff 以 `git diff --word-diff=porcelain` 驗證，只動三處 meta 的 `28`→`29`、hero `28`→`29`、inventory 「九條」→「十條」與 `28`→`29`、JS 註解 `28`→`29`、`SKILLS` 陣列加一列；無任何 `class` / `style` / 標籤 / 色彩變動。元件狀態 N/A（無新互動元件）、斷點 N/A（無版面改動）、表單 N/A（無表單）、dark mode N/A（無新色彩）。
+- **執行偏差**：plan Task 7 預期 `node docs/tools/docs-site-contract.mjs` 全綠；實際 C8d「data.js FLOW_DATA 與 HEAD 相同」在 commit 前紅（該契約比對工作樹 vs HEAD，設計上守「不要動 data.js」），commit 後重跑綠。crosscut 加 headless-mode 是刻意的內容變更（review DX 11）。
+- **契約 P19 一路紅→綠的順序**：Task 1 parser 綠 → Task 2 skillHeads / skillBody → Task 3 rules / hosts → Task 4 crossTable + 4 skill → Task 5 noMerge + 6 skill → Task 6 8 skill → Task 7 gitignore。每個 task 的 Step 2 / Step 4 都對照 P19 失敗訊息的 key 清單判讀。
