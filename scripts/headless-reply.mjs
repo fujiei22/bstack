@@ -10,8 +10,9 @@
  *   exit 2：askedAt 不是 gh 回傳的 RFC 3339 `…Z` 字串、optionCount 不是 ≥1 的整數、stdin 不是 JSON。
  *          fail-loud：這兩個值錯掉時安靜回 none 會讓流程永遠 waiting（code-review 實測抓到）。
  *
- * 「自己的留言」不看作者：headless 可能用人自己的帳號跑（solo dev 的 gh token），viewerDidAuthor 對人的回覆也是 true。
- * 改認內容——bstack 留的每一則都帶 `<!-- bstack-… -->` 標記或「已讀到選項」前綴，人不會寫這些。
+ * 「自己的留言」不看帳號：headless 可能用人自己的帳號跑（solo dev 的 gh token），viewerDidAuthor 對人的回覆也是 true。
+ * 改認內容——bstack 留的每一則都帶 `<!-- bstack-… -->` 標記或「已讀到選項」前綴，人不會寫這些；但標記留言仍要求
+ * authorAssociation 受信（bstack 用的 token 必然是 OWNER / MEMBER / COLLABORATOR），路人偽造標記不算數。
  * 契約 plugin-contract.mjs P19 對 fixture 直接 import 跑，另跑一次 CLI 冒煙。
  */
 import { realpathSync } from 'node:fs';
@@ -23,7 +24,8 @@ const FULL = '０１２３４５６７８９';
 const norm = (s) => String(s).replace(/[０-９]/g, (c) => String(FULL.indexOf(c)));
 const FIRST = /^\s*[#＃（(]?\s*(\d+)\s*[.)．、。,，）]?\s*$/;
 const ISO_Z = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
-const isMine = (c) => /<!-- bstack-/.test(String(c.body)) || /^\s*已讀到選項/.test(String(c.body));
+// 標記留言也要求作者受信：路人貼一則假 <!-- bstack-reask --> 不能把狀態機弄髒（security-audit M1）
+const isMine = (c) => TRUSTED.has(c.authorAssociation) && (/<!-- bstack-/.test(String(c.body)) || /^\s*已讀到選項/.test(String(c.body)));
 
 /** 第一行是不是受限編號；回 {option, rest} 或 null。 */
 export function parseFirstLine(body) {

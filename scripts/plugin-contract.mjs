@@ -764,6 +764,7 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
     ['舊提問的 reask 標記不算本題', [mk(1, '<!-- bstack-reask: x/y -->'), mk(3, '選 2 吧')], base, { status: 'unparseable', reasked: false }],
     ['別題的 reask 標記不算本題', [mk(3, '<!-- bstack-reask: a/b -->'), mk(4, '選 2 吧')], base, { status: 'unparseable', reasked: false }],
     ['本題已 reask / remind 過', [mk(3, '<!-- bstack-reask: x/y -->'), mk(4, '<!-- bstack-remind: x/y -->')], base, { status: 'none', reasked: true, reminded: true }],
+    ['路人偽造標記不算自己的、也不算回覆', [mk(3, '<!-- bstack-reask: x/y -->', { authorAssociation: 'NONE' }), mk(4, '<!-- bstack-ask: x/y | t -->', { authorAssociation: 'NONE' })], base, { status: 'none', reasked: false }],
     ['snake_case 鍵也收', [mk(3, '2')], { option_count: 3, asked_at: '2026-09-11T02:00:00Z', decision_id: 'x/y' }, { status: 'answered', option: 2 }],
   ];
   const THROWS19 = [
