@@ -9,10 +9,10 @@ description: |
 
 ## 使用契約
 
-1. **找 snapshot**：user 給 path 就用；否則 `Glob docs/snapshots/**/*.md` 依檔名 ts 取最新；都沒有 → 印「沒找到，請走 brainstorm 開新 task」、結束
+1. **找 snapshot**：user 給 path 就用；否則 `Glob docs/snapshots/**/*.md` 依檔名 ts 取最新；都沒有 → 印「沒找到，請走 brainstorm 開新 task」、結束。headless 時只開 `docs/snapshots/issue-<n>.md`（`headless-mode` §偵測）
 2. **Read snapshot 全文**。
 3. **印 progress**（snapshot 濃縮）。
-4. `AskUserQuestion` 確認接續方向。
+4. `AskUserQuestion` 確認接續方向；headless 時不問：snapshot 有 `pending_question` → `headless-mode` §讀回覆，沒有 → 接續下一步（等同選項 1）。
 5. 還原 `state` 結構 → 接續對應 phase skill（依 `current_phase`）。
 
 ## §印 progress 給 user
@@ -69,7 +69,7 @@ state:
 
 **驗 state 完整**：各 path（spec / plan / review）存在、branch 還在且 clean、最後 commit sha 仍是 HEAD。
 
-不一致 → 印 warning + `AskUserQuestion`：
+不一致 → 印 warning + `AskUserQuestion`（headless 時 → B 類 `context-resume/inconsistent`）：
 - 是否 force resume（user 知狀態變了）
 - 是否重新 reconcile（更新 state 對齊現實）
 - 是否 discard snapshot 開新
@@ -111,7 +111,7 @@ Skill 欄貼接續的 phase skill，不貼 context-resume。
 
 | 想法 | 真相 |
 |---|---|
-| 「snapshot 全自動還原、不問 user」 | 必走 AskUserQuestion 確認方向 |
+| 「snapshot 全自動還原、不問 user」 | 必走 AskUserQuestion 確認方向；headless 例外見 `headless-mode` |
 | 「最新 snapshot 一定對」 | 驗 state 與現實一致；不一致問 user |
 | 「resume 跳 Phase 0、user 提新想法也接」 | 偏離原 task → 拒；引導開新 |
 | 「snapshot 不存 = 開新」 | 印找不到、引導 brainstorm；別自行開新 |

@@ -14,7 +14,7 @@ argument-hint: "[pr-number]（可選；省略則自動取當前 branch 的 PR）
 
 ## 0. 派發方式
 
-本 skill 不在主 context 自己做。Claude Code 由 frontmatter 的 `context: fork` + `agent: pr-explainer` 自動 fork 到獨立 context 跑（harness 強制，不靠自律）；Codex 不認這兩個 key（實測照常列出 skill、無副作用），所以在 Codex 上由主 agent 以 hosts.md §派 subagent 的方式 spawn `pr-explainer`（agent 定義在 `agents/pr-explainer.md`；Codex 側的 TOML 與沒裝時的退路都寫在該節），把下面 1-6 步連同 `$ARGUMENTS` 整段當 prompt 交給它，等它回 §6 的摘要再往下。主 agent 不自己讀 diff、不自己寫檔——獨立 context 重讀 diff 才是這個 phase 的價值。
+本 skill 不在主 context 自己做。Claude Code 由 frontmatter 的 `context: fork` + `agent: pr-explainer` 自動 fork 到獨立 context 跑（harness 強制，不靠自律）；Codex 不認這兩個 key（實測照常列出 skill、無副作用），所以在 Codex 上由主 agent 以 hosts.md §派 subagent 的方式 spawn `pr-explainer`（agent 定義在 `agents/pr-explainer.md`；Codex 側的 TOML 與沒裝時的退路都寫在該節），把下面 1-6 步連同 `$ARGUMENTS` 整段當 prompt 交給它，等它回 §6 的摘要再往下。主 agent 不自己讀 diff、不自己寫檔——獨立 context 重讀 diff 才是這個 phase 的價值。headless 時**不走 `context: fork`**（fork 的 prompt 固定是本文、`$ARGUMENTS` 只能放 PR number，塞不進約束句）：主 agent 改用 hosts.md §派 subagent 的方式 spawn `pr-explainer`，prompt 結尾附「你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。」，步驟 4 的 push 與步驟 5 的 PR comment 由主 agent 代做。
 
 ## 1. 取 PR number
 

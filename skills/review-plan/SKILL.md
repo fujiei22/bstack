@@ -18,7 +18,7 @@ description: |
 3. **每視角 spawn 一個 subagent**（用 Agent tool、`subagent_type` = `general-purpose` 或對應 reviewer agent），帶 plan + spec + 視角 prompt 進去。
 4. **subagent 回傳 review 結論**（結構化 finding 清單）。
 5. **主 agent 整合所有視角**：去重、分類嚴重度（critical / major / minor / nit）。
-6. `AskUserQuestion` 提 user gate：accept plan / 改某項 / 退回 write-plan / 退回 brainstorm。
+6. `AskUserQuestion` 提 user gate：accept plan / 改某項 / 退回 write-plan / 退回 brainstorm。headless 時 → `review-plan/gate`：無 critical 採 accept（留下的 major 數寫進 reason）、有 critical B 類（`headless-mode`）。
 
 **禁止跳階**：state 標了的視角不能少；T2 進了本 skill 就是路徑錯，回報並交棒 execute-plan（user 顯式呼叫例外：照 user 指定的視角跑）。
 
@@ -53,6 +53,9 @@ description: |
 收件人：主 session 通常是 `main`，但你若是被另一個 subagent 派的，收件人就是它——**照派工訊息的來源填，不要寫死**。
 Claude Code 上你寫在回覆裡的東西不會自動傳給派工者——不送就等於沒交。
 ```
+
+prompt 結尾固定附這一句（`headless-mode` §子 agent 約束，互動模式也附、無副作用）：
+`你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。`
 
 > 為什麼要寫「把結論送回」：實測四個 reviewer 全部只送 idle 訊號，主 session 逐一去要才拿到——「做完」跟「送到」在 subagent 眼裡是同一件事（實測 2026-09-03；Claude Code 實測，Codex 對應見 `devwork/hosts.md` §派 subagent）
 
@@ -134,4 +137,4 @@ state:
 | 「主 agent 自己 review 不要 subagent」 | subagent 才有獨立視角；主 agent self-review 偏向自我合理化 |
 | 「T2 進來了就順便審」 | T2 不進本 skill；回報並交棒 execute-plan |
 | 「視角少一個沒差」 | state 標的視角是 0b 依改動面向判的；少一個就是那個面向沒人看 |
-| 「review 沒 critical 就直接過」 | 仍要走 user gate（accept / adjust / reject）|
+| 「review 沒 critical 就直接過」 | 仍要走 user gate（accept / adjust / reject）；headless 時無 critical 可 A 類 accept，見 `headless-mode` |

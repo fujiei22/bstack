@@ -13,7 +13,7 @@ description: |
 
 1. 識別危險度等級（L1-L4）
 2. 印 command + 風險 + 安全替代建議
-3. `AskUserQuestion` 二次確認（L3 / L4 必須）
+3. `AskUserQuestion` 二次確認（L3 / L4 必須）；headless 時 L2 / L3 → B 類 `cmd-guard/L2-L3`、L4 → blocked `cmd-guard/L4`（`headless-mode`）
 4. user 決定後執行（或 abort）
 5. 執行後印 outcome
 

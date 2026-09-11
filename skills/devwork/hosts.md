@@ -7,11 +7,12 @@
 | 工具清單有 `AskUserQuestion` | Claude Code |
 | 工具清單有 `apply_patch` 或 `spawn_agent` | Codex |
 | 都沒有（例如你是被 spawn 的 subagent） | 不做決策點；把要問 user 的問題回報給主 agent，由它問 |
+| 不是 subagent、都沒有、且 `BSTACK_HEADLESS=1` 或 `AUTOPILOT_LABEL` 非空（POSIX `printenv` / PowerShell `$env:`） | headless：載 `headless-mode` 走其 §偵測；決策點依 §分流表（A 類採推薦 / B 類 issue 留言後結束本輪） |
 
 ## §決策點
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |
 |---|---|---|---|
-| `AskUserQuestion` | 同名工具；推薦選項第一、標「（推薦）」 | `request_user_input`（1-3 題附選項；experimental） | 文字提問、**選項編號、user 回編號**。編號可窮舉、無歧義、不靠語意判斷，所以不算 rules.md 禁的「文字 token NLP」；回的不是清單內編號一律重問、不猜 |
+| `AskUserQuestion` | 同名工具；推薦選項第一、標「（推薦）」 | `request_user_input`（1-3 題附選項；experimental） | 文字提問、**選項編號、user 回編號**。編號可窮舉、無歧義、不靠語意判斷，所以不算 rules.md 禁的「文字 token NLP」；回的不是清單內編號一律重問、不猜；主 agent 且 `BSTACK_HEADLESS=1` / `AUTOPILOT_LABEL` 非空 → headless，見 `headless-mode` §分流表，不用文字提問 |
 
 ## §任務追蹤
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |
@@ -24,6 +25,7 @@
 |---|---|---|---|
 | `Agent` + `subagent_type: <name>` | 同名工具、`subagent_type: bstack:<name>` | `spawn_agent`，agent 名 = `~/.codex/agents/<name>.toml` 的 `name`；收結果 `wait_agent` | 沒裝 TOML → 內建 `explorer`（唯讀）或 `worker`，把 `agents/<name>.md` 本文貼進 prompt；連 spawn 都沒有 → 主 agent 自己做並在回報標「未隔離」 |
 | `SendMessage`（subagent 回結論 / 隊友通訊） | 同名工具 | 結論由 `wait_agent` 收；追加指令 `send_input` | 把結論寫在最終回覆 |
+| headless 派工約束 | 派工 prompt 結尾貼 `headless-mode` §子 agent 約束 那段，逐字、不分互動或 headless（四項禁令 + 問題回報派工 agent） | 同左 | 同左 |
 
 ## §程式碼審查
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |

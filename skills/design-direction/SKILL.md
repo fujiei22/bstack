@@ -26,7 +26,7 @@ description: |
 
 **落檔時機（硬規則）**：3 份 HTML ＋ 3 張截圖 ＋ 回寫 `spec.md` 全落 `docs/work/<branch-name>/` 底下，**必須 branch 已建立**——Phase 0 仍在 `main`，`hooks/guard.mjs`（branch-safety 段）會 `exit 2` 擋掉。`<branch-name>` 沿用 `frontend-test` §branch-name fallback 鏈（feature branch → `task-<id>` → `manual-<sha>`），`/` 保留為目錄層。
 
-**禁止**：user 沒看到真實視覺就選方向（沒依據的選擇無效）；自行選定後繼續執行（含 autonomous / 無人值守）；從對話文字推斷 user 想跳過（違反 rules.md §決策點選單「**禁文字 token NLP**」，豁免只來自那個選單）。
+**禁止**：user 沒看到真實視覺就選方向（沒依據的選擇無效）；自行選定後繼續執行（含 autonomous；headless 走 `headless-mode` B 類 `design-direction/pick`：三版產出後留言列方向 + 推薦、結束本輪，其餘無人值守情境停在這裡等）；從對話文字推斷 user 想跳過（違反 rules.md §決策點選單「**禁文字 token NLP**」，豁免只來自那個選單）。
 
 ## §對外契約
 
@@ -164,6 +164,7 @@ Agent:
     2. 一句話說明「本版的骨架差在哪」（導航 / 構圖 / 內容區結構挑一項）
 
     禁止參考其他兩版；禁止 Lorem；禁止發明新顏色。
+    你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
 ```
 
 **截圖**（`--viewport-size` **必須帶引號**，PowerShell 下逗號會被當參數分隔、實測回 `Invalid viewport size format`）：

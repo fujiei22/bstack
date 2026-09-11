@@ -35,6 +35,8 @@ How：brainstorm 0b 並聯抽樣；write-plan / review-plan 涉資料每點附�
 ### §決策點選單
 user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」；平台附 `Other`。**禁文字 token NLP**（`approve / LGTM / 通過 / ✅` 不當 gate 信號）。
 
+**headless（無人模式）**：不是被 spawn 的 subagent、工具清單沒有 `AskUserQuestion` / `request_user_input`、且 `BSTACK_HEADLESS=1` 或 `AUTOPILOT_LABEL` 非空 → 載 `headless-mode`。此時**本檔各節任何要 user 決定的句子**（「必經 `AskUserQuestion`」「一律等 user 選」「危險類必問」「二次確認」「T3 先 diff 再 commit」）一律改讀 `headless-mode` §分流表（A 類採推薦記 `auto_decisions`、B 類 `gh issue comment` 後結束本輪、表外一律 B）；merge 永不自動；遇決策點 context 找不到 §分流表 → 先重讀（重新載入 `headless-mode` skill，不用 repo 相對路徑找檔）。互動模式不受影響。
+
 本檔與各 skill 寫的工具名是**抽象動詞**，兩個 host 的實際工具如下（完整版與「工具不在清單時」的退路見 `skills/devwork/hosts.md`）：
 
 | 抽象動詞 | Claude Code | Codex |
@@ -135,7 +137,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 
 三條全中 → `AskUserQuestion` 問跑法（Agent Teams / subagent 平行 / 單一 session 串行），照 §決策點選單、每個選項附**代價**；推薦哪個依判定實據決定，**不預設 Agent Teams**。
 
-- **禁自行開隊友**：判定只產生選項，一律等 user 選。
+- **禁自行開隊友**：判定只產生選項，一律等 user 選（headless 例外見 `headless-mode`：不開隊友、依實據選 subagent 或串行）。
 - **唯讀 fan-out 一律 subagent**：review / 驗證 / 稽核類（review-plan 多視角、request-review T3 對齊 subagent 與內建 code-review 的 finder、incident-investigate 多假設、security-audit）**不開隊友、也不問**——沒人在動檔（判準 1 防互蓋的前提不成立），且**獨立性本身就是產出價值**，互相聽到彼此結論會污染判斷。
 - **開關偵測**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 未設時無法開隊友；選單改列「先開開關（需重開 session）」、其餘照常。
 - **成本告知**：每個隊友是完整一份 Claude Code、各自載入全套 CLAUDE.md + skill，token 隨隊友數線性疊加。
@@ -144,7 +146,7 @@ Track（Bug / Dev）+ Tier 在 brainstorm 0c / 0d 判定、`AskUserQuestion` 確
 觸發點：**只有一個**——`execute-plan` 遇 `parallel-group` 同號多 task 而載入 `dispatch-parallel` 時。判準表 / 選單範本 → `dispatch-parallel` §協作模式判定；隊友派工範本 → 同檔 §隊友派工。
 
 ### §Trace 標籤
-每輪結尾：`[Trace] Phase=<x> | Tier=<T0-T3> | Track=<Bug/Dev/—> | Skill=<active>`。T0 / 純問答省。
+每輪結尾：`[Trace] Phase=<x> | Tier=<T0-T3> | Track=<Bug/Dev/—> | Skill=<active>`。T0 / 純問答省。headless 時 Trace 在倒數第二行，最後一行是 `[bstack headless] …`（見 `headless-mode` §本輪結束協定）。
 
 ### §Auto-fix
 - **不危險**（typo / lint / 變數名 / 格式 / 註解 / 純 refactor）→ AI 自動修 + diff

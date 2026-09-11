@@ -1,6 +1,6 @@
 # bstack
 
-bstack 是一套給 coding agent 的開發流程：28 個 skill、6 個 agent、1 支 hook 與一份規則書，裝成 plugin，Claude Code 與 Codex 共用同一份。繁中台灣用語。
+bstack 是一套給 coding agent 的開發流程：29 個 skill、6 個 agent、1 支 hook 與一份規則書，裝成 plugin，Claude Code 與 Codex 共用同一份。繁中台灣用語。
 
 ## 目錄
 
@@ -9,7 +9,7 @@ bstack 是一套給 coding agent 的開發流程：28 個 skill、6 個 agent、
   - [Claude Code](#claude-code)
   - [Codex CLI](#codex-cli)
 - [九階段流程](#九階段流程)
-- [Skills（28）](#skills28)
+- [Skills（29）](#skills29)
 - [Agents（6）](#agents6)
 - [Hook](#hook)
 - [Claude Code 與 Codex 的差異](#claude-code-與-codex-的差異)
@@ -83,7 +83,7 @@ bstack 是一套給 coding agent 的開發流程：28 個 skill、6 個 agent、
 
 另有手動觸發的 **retro**：回顧一段期間的工作，把 user 偏好寫回 memory。
 
-## Skills（28）
+## Skills（29）
 
 **主流程**
 - **devwork** — 唯一入口，讀規則書後交給 dev-workflow
@@ -97,7 +97,7 @@ bstack 是一套給 coding agent 的開發流程：28 個 skill、6 個 agent、
 - **frontend-test** — Playwright e2e
 - **db-access** — DB 唯讀、量限、PII 要 mask
 - **cmd-guard** / **safety-guard** / **lock-files** — 危險指令二次確認、輸出前掃 PII / 密鑰、標檔禁改
-- **context-snapshot** / **context-resume** — 換 session 時存 / 讀進度
+- **context-snapshot** / **context-resume** / **headless-mode** — 換 session 時存 / 讀進度；無人環境（`claude -p` / `codex exec` 排程）的決策點分流：採推薦或留言到 issue 問人
 
 **Meta**
 - **dispatch-parallel** — 多 task 平行時派 subagent 或 Agent Teams

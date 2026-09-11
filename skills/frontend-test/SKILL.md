@@ -25,7 +25,7 @@ verify-done 的「UI / browser e2e」子流程，**Mode A 架構**：規劃 / us
 
 1. **讀 hand-off state** 取 `tier`、`codebase_impact.files`、`track`、`plan_path`。
 2. **抽測試範圍**：依改動檔對 §測試矩陣。
-3. **確認 preview URL**：state 有 → 用；沒有 → `AskUserQuestion` 問 user。
+3. **確認 preview URL**：state 有 → 用；沒有 → `AskUserQuestion` 問 user；headless 時沒有 → B 類 `frontend-test/preview-url`（留言：1. 第二行給 URL 2. 跳過 e2e、PR body 標未驗證；`headless-mode`）。
 4. **解析 `<branch-name>`**（§branch-name fallback 鏈）、建 `docs/work/<branch-name>/test-reports/<YYYYMMDD-HHmm>/screenshots/`。
 5. **規劃測試矩陣 table**（含 scenario / viewport / steps / expected 4 欄）。
 6. **Spawn `frontend-e2e-runner` agent**（見 §Dispatch）。
@@ -43,6 +43,7 @@ Agent:
   prompt: |
     preview_url: <url>
     output_dir: docs/work/<branch-name>/test-reports/<ts>/
+    你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
     tier: <T1/T2/T3>
 
     test_matrix:
@@ -97,6 +98,7 @@ Agent:
 
 ```
 8a. 全 PASS（無 FAIL / INCONCLUSIVE）→ 直接 hand-off
+headless 時 8b-8d 一律 B 類 `frontend-test/fail`（`headless-mode`）。
 8b. 有 FAIL（不論是否同時有 INCONCLUSIVE）→ AskUserQuestion：
       1. retry（單純偶發 / async race、補 wait 條件重跑）
       2. adjust + retry（AI 提具體 fix：補 selector / wait / viewport / 改 spec）

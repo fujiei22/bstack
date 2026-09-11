@@ -38,12 +38,13 @@ Agent:
     - codebase_impact 標記: <auth / data / api / payment / upload / pii ... 任一命中>
     - Diff: <貼 git diff 或指引 agent 用 git diff origin/main..HEAD 自取>
     - Spec / Plan（可選）: <docs/work/<branch-name>/spec.md 或 plan.md>
+    你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
     依 agent「§檢查焦點」做，回結構化 finding（critical / major / minor / nit + PASS）。**不寫 fix code、不問 user**。
 ```
-涉 DB schema / migration 改動：**另外**派 `db-reviewer`（兩 agent 可同 message 平行 spawn）。
+涉 DB schema / migration 改動：**另外**派 `db-reviewer`（兩 agent 可同 message 平行 spawn），prompt 同樣附上面那句「你不是 headless 主流程」約束。
 
 ## §Critical-finding 流程
-任一 Critical finding → `AskUserQuestion`（多個 Critical 一個一個跑，**不**批次成單一問題）：
+任一 Critical finding → `AskUserQuestion`（多個 Critical 一個一個跑，**不**批次成單一問題；headless 時 → 每個 critical 一則 B 類留言 `security-audit/critical`，見 `headless-mode`）：
 ```
 問：Security audit 發現 critical：<簡述>
   位置: <file:line>

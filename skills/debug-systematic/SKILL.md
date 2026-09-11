@@ -33,7 +33,7 @@ description: |
 | 首見 | 什麼時候開始？哪個 release / commit 後？|
 | 環境 | 平台 / 瀏覽器 / OS / 版本？|
 
-不清楚 → `AskUserQuestion` 問 user（不要猜）。
+不清楚 → `AskUserQuestion` 問 user（不要猜）；headless 時 → B 類 `debug-systematic/ask`（`headless-mode`）。
 
 ## §Step 2: Reproduce
 
@@ -44,7 +44,7 @@ description: |
 3. log / screenshot / error trace（如有）
 
 **不能重現 = 不能修**。重現不出來 → 擇一：
-- `AskUserQuestion` 問 user 更精確的 step
+- `AskUserQuestion` 問 user 更精確的 step（headless 時 → B 類 `debug-systematic/ask`）
 - 看 production log / error tracker（Sentry / DataDog）找模式
 - 升 incident-investigate（不易重現 = T2+ 升級信號）
 

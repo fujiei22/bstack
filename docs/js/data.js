@@ -26,13 +26,14 @@ var FLOW_DATA = {
    * 版面分組（給可摺疊 phase block + legend 用）
    * order 決定 legend 垂直順序（不影響 dagre layout）
    *
-   * **這 15 筆不是「9 階段」。** 對外講的 9 階段是 brainstorm→retro 那條開發流程；
+   * **這 16 筆不是「9 階段」。** 對外講的 9 階段是 brainstorm→retro 那條開發流程；
    * 這裡多出 prelude（前導）、hook、Track/Tier 分流、T0 直送、design lane 這些
    * 純版面用的分組。UI 上一律叫「區段」，把「階段」留給那 9 個。
    */
   phases: [
     { id: 'prelude',      label: '前導：user prompt + 強制守則',       order: -2 },
     { id: 'hook',         label: 'PreToolUse hooks',                    order: -1 },
+    { id: 'headless',     label: '無人模式：headless-mode（排程容器）',  order: -0.5 },
     { id: 'phase0',       label: 'Phase 1：brainstorm + Phase 0 分流',  order: 0  },
     { id: 'phase_split',  label: 'Track / Tier 分流',                   order: 1  },
     { id: 'phase_t0',     label: 'T0 直送',                             order: 1.5 },
@@ -64,6 +65,13 @@ var FLOW_DATA = {
     HFile:        { phase: 'hook', type: 'hook', shape: 'rect',    label: 'guard.mjs（file-type 段）\n密鑰 / migration / lockfile / CI / infra' },
     StopBranch:   { phase: 'hook', type: 'stop', shape: 'rect',    label: 'STOP：命中 main / master / production\n→ AskUserQuestion 取 branch 名 → checkout' },
     StopFile:     { phase: 'hook', type: 'stop', shape: 'rect',    label: 'STOP：密鑰 / .env 禁 commit\n→ block；其他類型 → 二次確認' },
+
+    // ───────── headless：無人模式旁線（devwork 1b） ─────────
+    HeadlessQ:    { phase: 'headless', type: 'policy',  shape: 'diamond', label: '無人環境？\n沒有 AskUserQuestion + BSTACK_HEADLESS=1\n且不是被派的 subagent' },
+    LoadHL:       { phase: 'headless', type: 'skill',   shape: 'rect',    label: '載入 skill：headless-mode\n偵測 → 分流表 → 結束協定' },
+    HLA:          { phase: 'headless', type: 'policy',  shape: 'rect',    label: 'A 類：採推薦、記 auto_decisions\n（Track / Tier / branch 名 / spec gate / 跑法）' },
+    HLB:          { phase: 'headless', type: 'gate',    shape: 'rect',    label: 'B 類：gh issue comment 編號選項\n結束本輪，等人回覆（表外一律 B）' },
+    HLResume:     { phase: 'headless', type: 'default', shape: 'rect',    label: '下一輪：headless-reply.mjs 只認第一行編號\n答了 → context-resume 接續；沒答 → waiting' },
 
     // ───────── phase 0：brainstorm ─────────
     BS:           { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：brainstorm' },
@@ -193,6 +201,16 @@ var FLOW_DATA = {
     ['DevWfSkill',   'HBranch',      '寫入動作前',                  'dashed'],
     ['DevWfSkill',   'HFile',        'commit / 改特定檔',           'dashed'],
     ['DevWfSkill',   'BS',           '進主流程',                    'solid'],
+
+    // headless 旁線（devwork 1b：判定在 dev-workflow 之前）
+    ['LoadDevwork',  'HeadlessQ',    '1b',                          'dashed'],
+    ['HeadlessQ',    'DevWfSkill',   '否：互動模式',                'solid'],
+    ['HeadlessQ',    'LoadHL',       '是',                          'solid'],
+    ['LoadHL',       'DevWfSkill',   '進主流程',                    'solid'],
+    ['LoadHL',       'HLA',          '決策點命中 A 類',             'dashed'],
+    ['LoadHL',       'HLB',          'B 類 / 表外',                 'dashed'],
+    ['HLB',          'HLResume',     '下一輪 cron',                 'solid'],
+    ['HLResume',     'LoadHL',       '讀到編號 → 接續',             'dashed'],
 
     // hooks 旁線
     ['HBranch',      'StopBranch',   '命中 protected branch',       'solid'],
@@ -416,6 +434,7 @@ var FLOW_DATA = {
         { name: 'cmd-guard',        docKey: 'LoadCmdG',  desc: 'rm -rf / drop / force push 前防呆' },
         { name: 'context-snapshot', docKey: 'LoadCtxS',  desc: '中斷 / 跨 session 暫停存進度' },
         { name: 'context-resume',   docKey: 'LoadCtxR',  desc: '接續上次進度' },
+        { name: 'headless-mode',    docKey: 'LoadHL',    desc: '無人環境：決策點採推薦或留言問人' },
         { name: 'write-skill',      docKey: 'LoadWS',    desc: 'meta：新增 / 改 skill' },
       ],
     },

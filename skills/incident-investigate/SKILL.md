@@ -13,7 +13,7 @@ description: |
 
 1. 建 incident 工作目錄 `docs/incidents/<id>/`（`<id>` = `<YYYY-MM-DD>-<short-slug>`、user 確認或自取）
 2. 進 Step 1 Observe
-3. 階段間用 `AskUserQuestion` gate
+3. 階段間用 `AskUserQuestion` gate；headless 時 → `incident-investigate/gate`：進下一階段 A 類、Conclude 的處置 B 類（`headless-mode`），hypothesis prompt 另含其 §子 agent 約束
 
 ## §Step 1: Observe — 蒐 fact、落地
 
@@ -103,6 +103,8 @@ options:
 **共同 facts artifact**: docs/incidents/<id>/observe.md（先 Read 它）
 
 **Repo**: <repo path>
+
+你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
 **相關 commits（可選）**: <如有>
 
 依 agent system prompt 跑驗證、回嚴格 output 格式（Verdict / Confidence / Evidence / Caveats / Unexpected findings）。
