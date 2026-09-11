@@ -11,6 +11,7 @@ description: |
 
 1. **讀 `rules.md` 與 `hosts.md`**（同目錄）。rules.md 的位階等同 CLAUDE.md：與任何 skill 衝突時 rules.md 勝；hosts.md 定義所有 skill 裡 `AskUserQuestion` / `TaskCreate` / `Agent` / `mcp__<server>__<tool>` 等抽象動詞在 Claude Code 與 Codex 各對應哪個工具。
    若本 session 的 CLAUDE.md / AGENTS.md 已引用 rules.md（在 bstack repo 內開發時會這樣），rules.md 不重讀、hosts.md 照讀。
+1.5 **headless 入口**：hosts.md §Host 判定 判為 headless → 載 `headless-mode` 跑 §偵測，**兩支都先寫** `state.headless: true` / `source_issue`。snapshot 的 `pr_url` 非空 → 依 `headless-mode` §本輪結束協定「done 之後的輪次」處理後結束；snapshot 有 `pending_question` → 跳過第 2 步、照第 3 步載 `bstack:dev-workflow`（Codex `$bstack:dev-workflow`），由它 dispatch 到 `context-resume` 走 §讀回覆；其餘照第 2 步往下，需求文字取自 issue（§偵測）。
 2. **判斷 `/devwork` 後面的文字**：
    - 純問答 / 教學（「這個函式在做什麼」「X 和 Y 差在哪」）→ 直接回答，不進 Phase 0，結尾提一句「`/devwork` 是給改動類任務用的」。
    - 改動類 → 進第 3 步。
