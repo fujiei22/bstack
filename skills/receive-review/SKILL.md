@@ -12,8 +12,8 @@ description: |
 1. **讀 hand-off state** 取 `review_summary_path`、`tier`、`critical_count`、`major_count`。
 2. **掃 finding 分類**：依 rules.md §Auto-fix 表分「不危險類」與「危險類」。
 3. **不危險類** → 主 agent 直接 fix、commit、把 diff 給 user 看。
-4. **危險類** → `AskUserQuestion` 問 user 該不該修、怎麼修。
-5. **T3 全程**：即使「不危險類」也要 user 看 diff 才 commit（不強制 prompt、但顯式）。
+4. **危險類** → `AskUserQuestion` 問 user 該不該修、怎麼修。headless 時 → B 類 `receive-review/danger-fix`（`headless-mode`）。
+5. **T3 全程**：即使「不危險類」也要 user 看 diff 才 commit（不強制 prompt、但顯式）。headless 時直接 commit，diff 經 safety-guard 後落 `docs/work/<branch-name>/review-fixes.diff`，路徑寫進 PR body。
 6. 全部處置完 → 整理 `review_summary_path` 為定稿 → 交下個 phase。
 
 **T0 不進本 skill**：它的上游 request-review 對 T0 就不啟動（rules.md §Tier 表 T0 review 欄是「跳」）。
@@ -33,7 +33,7 @@ description: |
 1. 逐條寫 fix（可一次改完）
 2. 跑該 tier 的 verify（契約 / test）
 3. **一顆 commit**：`fix: 處理 review finding（N 項）`，body 逐項列「finding 簡述 → 怎麼修」
-4. 印 `git diff HEAD~1` 給 user 看，不需 user 點頭；**T3 特例**：批次完成後、進下 phase 前，整個 diff 給 user 過一眼，有要 revert 的告知，否則進下 phase
+4. 印 `git diff HEAD~1` 給 user 看，不需 user 點頭；**T3 特例**：批次完成後、進下 phase 前，整個 diff 給 user 過一眼，有要 revert 的告知，否則進下 phase；headless 時直接 commit，diff 經 safety-guard 後落 `docs/work/<branch-name>/review-fixes.diff`，路徑寫進 PR body
 
 ## §危險處置（問 user）
 
@@ -56,9 +56,9 @@ description: |
 ## §特殊狀況
 
 - **Review 全綠 / 0 finding**：`review_summary_path` 標「無 finding，跳 receive-review、直接進下 phase」，短路、不啟動 fix 循環
-- 多 reviewer 衝突 → `AskUserQuestion` 把所有視角列給 user 決定
+- 多 reviewer 衝突 → `AskUserQuestion` 把所有視角列給 user 決定；headless 時 → B 類
 
-- **Reviewer 給的 fix 自己錯** → 主 agent 不照搬；提出修正後的 fix、`AskUserQuestion` 給 user 看：
+- **Reviewer 給的 fix 自己錯** → 主 agent 不照搬；提出修正後的 fix、`AskUserQuestion` 給 user 看（headless 時 → B 類）：
   ```
   Reviewer 建議：<原建議>
   主 agent 評：<為何 reviewer fix 不對 / 不適合>
@@ -85,6 +85,6 @@ state:
 | 想法 | 真相 |
 |---|---|
 | 「危險類我判斷一下自己 fix」「reviewer 說 critical 太煩跳過」 | 危險類必問、不准 auto-fix；critical 必處（修 / 列 known issue / 退 execute-plan 三選一）|
-| 「T3 也偷偷 auto-fix 不告訴 user」 | T3 even 不危險 也給 user 看 diff |
+| 「T3 也偷偷 auto-fix 不告訴 user」 | T3 even 不危險 也給 user 看 diff；headless 例外見 `headless-mode`（diff 落檔、路徑進 PR body） |
 | 「reviewer fix 寫對直接套」 | 仍要評；reviewer 不必對 |
 | 「每 finding 一顆 commit 才好 bisect」 | squash merge 後只剩 PR title，bisect 不到；一顆 commit 的 body 列 finding 資訊等價 |

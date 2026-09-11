@@ -9,7 +9,7 @@ description: |
 
 Phase 7：把 feature branch 收尾、開 PR。git workflow 細則（commit / branch 命名 / PR 模板 / rebase / squash merge）合於一處。
 
-**不是 merge** — merge 由 user 觸發（GitHub 側按 squash、或對 AI 明說「merge」/「自己 merge」）。Past PR 授權**不延續**到下個 PR；session 級明授權才能 auto-merge（見 §Squash merge）。
+**不是 merge** — merge 由 user 觸發（GitHub 側按 squash、或對 AI 明說「merge」/「自己 merge」）。Past PR 授權**不延續**到下個 PR；session 級明授權才能 auto-merge（見 §Squash merge）；headless 時無此例外。
 
 ## 使用契約（強制）
 
@@ -68,6 +68,7 @@ git log <base>..HEAD    # commit 清單
 `git rebase` 中 conflict：
 
 1. **不自作主張 resolve** — git 衝突常有 semantic 意圖
+   headless 時 → B 類 `finish-branch/conflict`（`headless-mode`），留言後結束本輪。
 2. `AskUserQuestion`：
    ```
    問：rebase main 時遇 conflict 在 <file>。
@@ -103,6 +104,8 @@ EOF
 
 ### §PR body 模板
 
+headless 時在測試節之後**新增**「## headless 自動決策」表（phase / decision_id / 問題 / 採用 / 未採用 / 理由 六欄，來源 `state.auto_decisions`）與 `review-fixes.diff` 路徑；模板本身不帶。
+
 ```markdown
 ## 動機 / Why
 
@@ -134,9 +137,10 @@ EOF
 
 ## §Squash merge
 
-- **AI 預設不自動 `gh pr merge`**：`gh pr create` 開好 PR、印 URL、停。Merge 由 **user 觸發**（在 GitHub 側按 squash、或對 AI 明說「merge」/「自己 merge」/「可以 merge」）。
+- **AI 預設不自動 `gh pr merge`**：`gh pr create` 開好 PR、印 URL、停。Merge 由 **user 觸發**（在 GitHub 側按 squash、或對 AI 明說「merge」/「自己 merge」/「可以 merge」）。**headless 時 merge 永不自動**：issue 留言不算授權，開好 PR 寫 `state.pr_url` 即止。
 - Past 授權**不延續**：user 在 PR A 說「commit push merge」、不代表 PR B 也能自動 merge。每次明授權**只覆蓋當下這個 PR**。
-- 唯一例外：user 對**整個 workflow / session** 明授權「這個流程可以自己 merge」、session 內延伸；新 session 不繼承。
+- 唯一例外：user 對**整個 workflow / session** 明授權「這個流程可以自己 merge」、session 內延伸；新 session 不繼承。**headless 時不適用**：無人環境沒有 session 級授權的成立條件。
+- headless 的終點是 PR：`state.pr_url` 進 snapshot、本輪 `done` 結束；後續輪次只查 PR 狀態（`headless-mode` §本輪結束協定），merge 由人在 GitHub 側按。
 - 理由：merge 進 main **不可逆**（要 revert 是另開 PR）、屬 rules.md「risky actions / 影響共享狀態」類、需 user 明確同意。
 - GitHub Flow 單線：所有 feature 從 main 切出、無 develop / release branch；repo 預設 squash merge，squash 後 commit message 以 PR title 為準。
 - merge 後立即刪 remote feature branch（GitHub 設定 auto-delete head branches）；local 由 `git fetch --prune` 同步清。
@@ -198,6 +202,6 @@ state:
 |---|---|
 | 「rebase conflict 我先試 resolve」 | 不自作主張；走 §Conflict 流程 |
 | 「force push 比 force-with-lease 簡單」 | 禁裸 force；可能覆 remote 別人推的；feature branch 才能用 `--force-with-lease`、main 永遠禁 |
-| 「PR 開好順手 `gh pr merge`」 | **禁**；merge 由 user 觸發、past PR 授權不延續；session 級明授權才能 auto |
+| 「PR 開好順手 `gh pr merge`」 | **禁**；merge 由 user 觸發、past PR 授權不延續；session 級明授權才能 auto；headless 時連 session 級授權都不成立 |
 | 「skip pre-commit hook」 | 禁；hook 失敗 = 真問題、修了再 commit |
 | 「merge 完就結束、docs 留在 work 沒差」 | 沒搬 archive 的話 `work/` 會變成死活不分的雜物堆；見 §Merge 後：docs 歸檔 |

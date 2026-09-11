@@ -48,7 +48,7 @@ description: |
      5. 接受它是大改、照既有 token 做完並記入技術債
      6. 暫停整個 plan 重新 brainstorm——此時未 commit 的改動一律 `git stash`，不丟棄
      > **不得自行選定後繼續**。大改代表有新的視覺決策要做，那是 user 的決定不是實作細節。
-     > **無人值守**時停在這裡等，**不得自選**（對齊 `design-direction` §使用契約 的同一條禁令）。
+     > **無人值守**時不得自選（對齊 `design-direction` §使用契約 的同一條禁令）：headless 走 `headless-mode` B 類 `execute-plan/design-large`（留言後結束本輪），其餘情境停在這裡等。
 4. **回寫 state**：補判結果寫回 `state.design`（`involved=true`、`size` 依補判），原值存進 `design_rejudge[].design_before`。**大改才另外落檔**（T3 在 `plan.md` 該 task 底下追加 `轉進紀錄`；T1 / T2 追加到 spec 的 `## 施工紀錄`）；小改只進 state、不動檔。
 5. **接回 §Task 推進規則 第 3 步（tdd-cycle）**，從中斷處繼續，**不必整個紅綠循環重來**。
 
@@ -78,7 +78,7 @@ Group 3 task: E, F      ← parallel-group: 3
 
 1. **不靜默 retry**
 2. **印錯誤 + 評起因**（typo / 缺 dep / 假設錯 / 介面變 / plan step 錯）
-3. **走 rules.md §Fail handling**：`AskUserQuestion` 提：
+3. **走 rules.md §Fail handling**（headless 時 → B 類 `execute-plan/fail`，見 `headless-mode`）：`AskUserQuestion` 提：
    - retry — 適暫態 / flaky test
    - adjust + retry — AI 提具體調整、user 點頭跑（如改 plan step）
    - rollback 該 task 的修改、回前一個 commit
