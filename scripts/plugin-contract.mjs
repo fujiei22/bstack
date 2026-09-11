@@ -13,8 +13,9 @@
  *   P13 Codex manifest / marketplace / hooks.json 兩組 / 版本三處   P14 skill / agent 無 Claude 專屬字面 + hosts.md 反向白名單
  *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 + devwork / rules.md 接線 + build-references 內嵌
  *   P17 install-codex.ps1 -WhatIf 冒煙（假 CODEX_HOME、不寫檔）
+ *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P13-P17：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19：P7 先算是因為 P4 要用 agentFiles 掃描；
  * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -701,6 +702,63 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
       missing.length === 0 && !touched && (!hasCodex || w.status === 0) && /bstack-codex\.json/.test(uo),
       `缺訊息=[${missing.join(', ')}] 動到假 CODEX_HOME=${touched} rc=${w.status}（有 codex=${hasCodex}） uninstall 提 manifest=${/bstack-codex\.json/.test(uo)}（後果：安裝腳本改壞沒人知道、-WhatIf 偷寫檔；改處：scripts/install-codex.ps1）`);
   }
+}
+
+// P19：headless 無人模式。政策單一真相在 skills/headless-mode/SKILL.md（條件載入）；rules.md 跨節例外、hosts.md 三列
+//      指向它；19 個有決策點或派工點的 skill 各有一行分流——漏一個，無人模式跑到那裡就印一個沒人回答的問題、那一輪白跑。
+//      回覆解析是純函式，對 fixture 跑；其餘只守字樣與節位置，不守「前提句」語意（交 review）。
+//      決策點落點（給後人）：devwork 1.5；dev-workflow 契約 5 / §Fail handling / 跨流程表；brainstorm 0a 3-4 / 合併確認 / spec gate；
+//      dispatch-parallel 3 / 派工 prompt；review-plan 6 / 視角 prompt；receive-review 4-5 / T3 特例 / 衝突；execute-plan 前端大改 / fail；
+//      finish-branch conflict / §Squash merge / PR 模板；cmd-guard 3；context-snapshot 2；context-resume 4；verify-done 2；
+//      security-audit critical gate / §Dispatch；safety-guard 不可自動類；debug-systematic 兩處；request-review T3 對齊 prompt；
+//      incident-investigate gate / hypothesis prompt；frontend-test preview URL / 8b-8d / §Dispatch；pr-explain §0 派發方式。
+{
+  const hm = exists('skills/headless-mode/SKILL.md') ? lf(rd('skills/headless-mode/SKILL.md')) : '';
+  const HEADS19 = ['使用契約（強制）', '§偵測', '§分流表', '§問人格式', '§讀回覆', '§本輪結束協定', '§子 agent 約束', '§hand-off state', '§Red Flags'];
+  const missHead19 = HEADS19.filter((n) => !new RegExp(`^##[ \\t]+${n.replace(/[()（）]/g, '\\$&')}[ \\t]*$`, 'm').test(hm));
+  const rulesDP = section(rules16, /^### §決策點選單[^\n]*\n/m), rulesTeam = section(rules16, /^### §協作模式判定[^\n]*\n/m), rulesTrace = section(rules16, /^### §Trace 標籤[^\n]*\n/m);
+  const hostsHost = section(hostsMd, /^## §Host 判定[^\n]*\n/m), hostsDP = section(hostsMd, /^## §決策點[^\n]*\n/m), hostsSub = section(hostsMd, /^## §派 subagent[^\n]*\n/m);
+  const hostRows = hostsHost.split('\n'), iSub = hostRows.findIndex((l) => /被 spawn 的 subagent/.test(l)), iHl = hostRows.findIndex((l) => /headless-mode/.test(l));
+  const PHASE19 = ['devwork', 'dev-workflow', 'brainstorm', 'dispatch-parallel', 'review-plan', 'receive-review', 'execute-plan', 'finish-branch', 'context-resume', 'context-snapshot', 'cmd-guard',
+    'verify-done', 'security-audit', 'safety-guard', 'debug-systematic', 'request-review', 'incident-investigate', 'frontend-test', 'pr-explain'];
+  const missPhase = PHASE19.filter((s) => !exists(`skills/${s}/SKILL.md`) || !/headless-mode/.test(lf(rd(`skills/${s}/SKILL.md`))));
+  const dwf = exists('skills/dev-workflow/SKILL.md') ? lf(rd('skills/dev-workflow/SKILL.md')) : '';
+  const squash = exists('skills/finish-branch/SKILL.md') ? section(lf(rd('skills/finish-branch/SKILL.md')), /^## §Squash merge[^\n]*\n/m) : '';
+  const gi = exists('.gitignore') ? lf(rd('.gitignore')) : '';
+  // parser fixture：CLI 走 stdin JSON，跟 P2e 一樣真 spawn，守「腳本存在 + 匯出行為」
+  const mk = (id, body, extra = {}) => ({ id, body, createdAt: `2026-09-11T0${id}:00:00Z`, author: { login: 'owner' }, authorAssociation: 'OWNER', viewerDidAuthor: false, url: `u${id}`, ...extra });
+  const base = { optionCount: 3, askedAt: '2026-09-11T02:00:00Z', selfLogin: 'bot', allowFree: false };
+  const FIX19 = [
+    ['root 正常', [mk(1, '<!-- bstack-ask: x -->'), mk(3, '2')], base, { status: 'answered', option: 2 }],
+    ['1. 帶句點', [mk(3, '1.\n因為快')], base, { status: 'answered', option: 1 }],
+    ['#１ 全形加井號', [mk(3, '#１')], base, { status: 'answered', option: 1 }],
+    ['選 0 帶文字', [mk(3, '0\n改用方案 C')], base, { status: 'answered', option: 0, freeText: '改用方案 C' }],
+    ['作者不符', [mk(3, '2', { authorAssociation: 'NONE' })], base, { status: 'none' }],
+    ['bot 自己', [mk(3, '2', { author: { login: 'bot' }, viewerDidAuthor: true })], base, { status: 'none' }],
+    ['提問前的舊留言', [mk(1, '2')], base, { status: 'none' }],
+    ['格式錯', [mk(3, '選 2 吧')], base, { status: 'unparseable', commentId: 3 }],
+  ];
+  const fixBad = [];
+  if (exists('scripts/headless-reply.mjs')) for (const [name, comments, opts, want] of FIX19) {
+    const r = spawnSync(process.execPath, [join(REPO, 'scripts/headless-reply.mjs')], { input: JSON.stringify({ comments, ...opts }), encoding: 'utf8' });
+    let got; try { got = JSON.parse(r.stdout); } catch { got = { parseError: r.stderr || r.stdout }; }
+    const ok = r.status === 0 && Object.entries(want).every(([k, v]) => got[k] === v);
+    if (!ok) fixBad.push(`${name}: want ${JSON.stringify(want)} got ${JSON.stringify(got)}`);
+  } else fixBad.push('scripts/headless-reply.mjs 不存在');
+  const p19 = {
+    skillHeads: hm !== '' && missHead19.length === 0,
+    skillBody: ['BSTACK_HEADLESS', 'BSTACK_ISSUE', 'AUTOPILOT_LABEL', '<!-- bstack-ask:', '[bstack headless]', 'headless-reply.mjs', '表外一律 B'].every((s) => hm.includes(s)) && hm.split('\n').some((l) => /merge/.test(l) && /永不/.test(l)),
+    rules: /headless-mode/.test(rulesDP) && /BSTACK_HEADLESS/.test(rulesDP) && /重讀/.test(rulesDP) && /headless/.test(rulesTeam) && /bstack headless/.test(rulesTrace),
+    hosts: /BSTACK_HEADLESS/.test(hostsHost) && iHl > iSub && iSub >= 0 && /headless-mode/.test(hostsDP) && /headless/.test(hostsSub),
+    phases: missPhase.length === 0,
+    crossTable: /^\| `headless-mode` \|/m.test(dwf),
+    noMerge: squash.split('\n').filter((l) => /headless/.test(l)).length >= 3,
+    gitignore: /^docs\/snapshots\/$/m.test(gi),
+    parser: fixBad.length === 0,
+  };
+  check('P19 headless-mode 九節 + 契約字樣 + merge 永不；rules.md 三節 / hosts.md 三節指向（Host 判定列在 subagent 列之後）；19 個 skill 各有分流；dev-workflow 跨流程表有列；finish-branch §Squash merge headless 行 ≥3；.gitignore 有 docs/snapshots/；回覆 parser 8 個 fixture',
+    Object.values(p19).every(Boolean),
+    `${Object.entries(p19).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead19.join(', ')}] 缺分流=[${missPhase.join(', ')}] parser=[${fixBad.slice(0, 3).join(' | ')}]（後果：無人模式跑到沒分流的決策點就白跑一輪、或 subagent 自己去 issue 留言；改處：skills/headless-mode/SKILL.md、skills/devwork/{rules,hosts}.md、缺分流的 skill、scripts/headless-reply.mjs）`);
 }
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
