@@ -72,7 +72,7 @@ Generic：`password\s*[:=]\s*['"][^'"]+['"]` / `secret\s*[:=]\s*['"][^'"]+['"]` 
 ## §處置
 
 1. **可自動 mask 類**（email / phone / id_number 等 PII）→ 套 mask、續流程
-2. **不可自動類**（secret / private key / 密碼）→ **拒寫 / 拒 commit**、`AskUserQuestion` 問 user：
+2. **不可自動類**（secret / private key / 密碼）→ **拒寫 / 拒 commit**、`AskUserQuestion` 問 user（headless 時 → **不留言、不 push**、blocked `safety-guard/secret`，見 `headless-mode`；原值不得出現在任何輸出）：
    ```
    發現可能的 secret：<簡述、不貼原值>
    options:

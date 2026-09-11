@@ -13,7 +13,7 @@ description: |
 
 1. 建 incident 工作目錄 `docs/incidents/<id>/`（`<id>` = `<YYYY-MM-DD>-<short-slug>`、user 確認或自取）
 2. 進 Step 1 Observe
-3. 階段間用 `AskUserQuestion` gate
+3. 階段間用 `AskUserQuestion` gate；headless 時 → `incident-investigate/gate`：進下一階段 A 類、Conclude 的處置 B 類（`headless-mode`），hypothesis prompt 另含其 §子 agent 約束
 
 ## §Step 1: Observe — 蒐 fact、落地
 
@@ -98,6 +98,7 @@ options:
 **Hypothesis**: <H_N 文字>
 
 **Expected if true**: <see hypotheses.md>
+<headless 時此處貼 `headless-mode` §子 agent 約束 那段，逐字>
 **Expected if false**: <see hypotheses.md>
 
 **共同 facts artifact**: docs/incidents/<id>/observe.md（先 Read 它）

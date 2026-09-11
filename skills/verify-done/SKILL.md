@@ -24,7 +24,7 @@ description: |
 ## §verify 失敗處置
 特別 case 先分流：lint warning 但功能對 → 走 §Auto-fix 不危險類自動修；test flaky 反覆 3+ 次仍 flaky → 標 flaky、列入 `state.flaky_tests` 給 review 階段看、不阻塞；type error 在改動範圍外 → 標 unrelated、不阻塞但提示 user。其餘走 rules.md §Fail handling：
 1. 不靜默 retry；評起因（flaky / 環境 / 真 bug / verify command 寫錯）
-2. `AskUserQuestion` 提：
+2. `AskUserQuestion` 提（headless 時 → B 類 `verify-done/fail`，見 `headless-mode`）：
    - **retry**（flaky / 暫態）
    - **adjust + retry**（AI 提具體 fix）
    - **rollback** 該 commit / 從前一個綠的 state 重來
