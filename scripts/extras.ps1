@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
   bstack 的「plugin 帶不了」四項偏好選單：statusLine / permissions / env / mcp。
@@ -28,6 +28,7 @@
   pwsh -File scripts/extras.ps1 -Uninstall
   pwsh -File scripts/extras.ps1 -Migrate
   pwsh -File scripts/extras.ps1 -SelfTest
+  powershell -File scripts/extras.ps1             # Windows 沒裝 pwsh 7 時用內建的 Windows PowerShell 5.1，行為相同
 #>
 [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Menu')]
 param(
@@ -58,6 +59,63 @@ $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $RunStamp = Get-Date -Format yyyyMMddHHmmss      # 整支腳本共用；同檔只備份一次
 $script:BackedUp = @{}
 $script:Written = @()                             # 結尾摘要用：@{item; scope; file}
+
+# === Windows PowerShell 5.1 / pwsh 7 相容 ===
+
+# 印給使用者抄的指令用「正在跑本腳本的那個 PowerShell」，沒裝 pwsh 7 的機器照抄也跑得起來
+$PSCmd = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
+
+function Invoke-Native {
+    <#
+    .SYNOPSIS 跑外部指令，輸出轉成字串回傳（預設 stderr 併進來；-NoStderr 丟掉 stderr）；exit code 照舊看 $LASTEXITCODE。
+    .DESCRIPTION Windows PowerShell 5.1 在 $ErrorActionPreference = 'Stop' 時，外部指令只要寫一行 stderr，
+      不論 2>&1 或 2>$null 都會變成終止錯誤、整支腳本停掉（實測）；pwsh 7 不會。本函式範圍內把偏好降成 Continue，兩版行為一致。
+    #>
+    param([string]$exe, [string[]]$argv, [switch]$NoStderr)
+    $ErrorActionPreference = 'Continue'
+    if ($NoStderr) { & $exe @argv 2>$null } else { & $exe @argv 2>&1 | ForEach-Object { "$_" } }
+}
+
+function ConvertTo-JsonText {
+    <#
+    .SYNOPSIS 物件轉 JSON 字串：2 格縮排、`"key": value`；Windows PowerShell 5.1 與 pwsh 7 產出同一份。
+    .DESCRIPTION 5.1 的 ConvertTo-Json 縮排錯亂，且把 ' < > & 寫成 \u0027 \u003c \u003e \u0026（合法但難讀，改使用者的 settings.json 時 diff 很吵，實測）。
+      一律先 -Compress 再逐字元重排：只在字串外插換行與縮排；字串內只還原那四個跳脫，其他跳脫（\" \\ \n …）原樣保留。
+    #>
+    param($obj)
+    $src = $obj | ConvertTo-Json -Depth 20 -Compress
+    $plain = @{ '\u0027' = "'"; '\u003c' = '<'; '\u003e' = '>'; '\u0026' = '&' }
+    $nl = [Environment]::NewLine
+    $sb = New-Object System.Text.StringBuilder
+    $depth = 0; $inStr = $false
+    for ($i = 0; $i -lt $src.Length; $i++) {
+        $c = $src[$i]
+        if ($inStr) {
+            if ($c -eq '\') {
+                # 跳脫一律成對吃掉（\\ 後面的 u0027 不是跳脫），只有那四個還原成原字元
+                $esc = if ($i + 6 -le $src.Length) { $src.Substring($i, 6) } else { '' }
+                if ($plain.ContainsKey($esc)) { [void]$sb.Append($plain[$esc]); $i += 5 }
+                else { [void]$sb.Append($src, $i, 2); $i++ }
+            } else {
+                [void]$sb.Append($c)
+                if ($c -eq '"') { $inStr = $false }
+            }
+            continue
+        }
+        if ($c -eq '"') { $inStr = $true; [void]$sb.Append($c) }
+        elseif ($c -eq '{' -or $c -eq '[') {
+            $close = if ($c -eq '{') { '}' } else { ']' }
+            # 空物件 / 空陣列留在同一行：{} []
+            if ($i + 1 -lt $src.Length -and $src[$i + 1] -eq $close) { [void]$sb.Append($c).Append($close); $i++ }
+            else { $depth++; [void]$sb.Append($c).Append($nl).Append('  ' * $depth) }
+        }
+        elseif ($c -eq '}' -or $c -eq ']') { $depth--; [void]$sb.Append($nl).Append('  ' * $depth).Append($c) }
+        elseif ($c -eq ',') { [void]$sb.Append(',').Append($nl).Append('  ' * $depth) }
+        elseif ($c -eq ':') { [void]$sb.Append(': ') }
+        else { [void]$sb.Append($c) }
+    }
+    return $sb.ToString()
+}
 
 # === 路徑 ===
 
@@ -183,7 +241,10 @@ function Write-JsonAtomic {
     }
     $tmp = "$path.tmp-$PID"
     try {
-        $obj | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $tmp -Encoding UTF8
+        # 不用 Set-Content -Encoding UTF8：5.1 會寫 BOM，node 的 JSON.parse 遇 BOM 直接丟錯（實測），不賭讀檔的一方會先剝掉。
+        # WriteAllText 吃的相對路徑是 .NET 的 cwd、不是 PowerShell 的目前位置，先轉成絕對路徑
+        $full = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($tmp)
+        [IO.File]::WriteAllText($full, (ConvertTo-JsonText $obj) + [Environment]::NewLine, (New-Object System.Text.UTF8Encoding $false))
         Move-Item -LiteralPath $tmp -Destination $path -Force
     } catch {
         Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
@@ -290,7 +351,7 @@ function Add-Mcp {
     if ($PSCmdlet.ShouldProcess('mcp playwright', 'check')) {
         Write-Host "  [skip] mcp：playwright 隨 plugin 自帶（.mcp.json），不另裝"
         if (Test-ClaudeCli) {
-            $existing = (& claude mcp list 2>&1 | Out-String)
+            $existing = (Invoke-Native claude @('mcp', 'list') | Out-String)
             if ($existing -match '(?m)^\s*playwright\s*:') { Write-Host "  提醒：你的 $scope 設定裡另有一份 playwright（舊版本腳本裝的或你自己加的），會跟 plugin 自帶的同名並存；舊版裝的可用 -Uninstall 拆" -ForegroundColor Yellow }
         }
     }
@@ -451,7 +512,7 @@ function Invoke-Migrate {
     if ($touched) { Write-Host "  $settingsPath 內指向舊 hook / statusline 的條目" }
     if ($claudeOld) { Write-Host "  $claude（bstack 舊版守則，內文與現版重疊 ≥90%、未逐行比對）→ 將改名為 CLAUDE.md.bstack-bak-$RunStamp" }
     if ($claudeModified) { Write-Host "  $claude 含 bstack 守則但內文被改過，不自動動它。其中第 $ln 行「…一律進 dev-workflow」會讓流程自動啟動，請自行拿掉。" -ForegroundColor Yellow }
-    if ($ListOnly) { Write-Host "  清理請跑：pwsh -File scripts/extras.ps1 -Migrate"; return }
+    if ($ListOnly) { Write-Host "  清理請跑：$PSCmd -File scripts/extras.ps1 -Migrate"; return }
 
     $bakDir = Join-Path $home_ "bstack-migrate-bak-$RunStamp"
     $go = $Yes -or ((Read-Host "搬到 $bakDir 備份（不直接刪）並處理以上項目？[y/n]").ToLower() -eq 'y')
@@ -485,8 +546,8 @@ function Invoke-SelfTest {
         New-Item -ItemType Directory -Path "$tmp/.claude", "$tmp/proj", "$tmp/one" -Force | Out-Null
         $env:BSTACK_CLAUDE_HOME = "$tmp/.claude"
         $userSettings = "$tmp/.claude/settings.json"
-        # seed 刻意與我們的名單重疊：allow 有 Read、已有自己的 statusLine
-        Set-Content $userSettings '{"model":"opus","theme":"dark","statusLine":{"type":"command","command":"echo mine"},"permissions":{"allow":["Bash(npm test)","Read"]}}' -Encoding UTF8
+        # seed 刻意與我們的名單重疊：allow 有 Read、已有自己的 statusLine；note 帶 ' < > & 與其他跳脫，驗寫回後原樣（w2）
+        Set-Content $userSettings '{"model":"opus","theme":"dark","note":"it''s <x> & y 中文 \\ \"q\"","statusLine":{"type":"command","command":"echo mine"},"permissions":{"allow":["Bash(npm test)","Read"]}}' -Encoding UTF8
 
         Assert 'S0 反向：這條必紅（驗 Assert 會累計）' $false; $script:fails--
 
@@ -495,6 +556,11 @@ function Invoke-SelfTest {
         Add-Item 'permissions' 'user'; $s = Read-Json $userSettings
         Assert 'a2 allow 聯集且保留本機值' (($s.permissions.allow -contains 'Bash(npm test)') -and ($s.permissions.allow -contains 'Grep'))
         Assert 'a3 既有 model/theme 不變' ($s.model -eq 'opus' -and $s.theme -eq 'dark')
+        # 寫檔格式：Windows PowerShell 5.1 與 pwsh 7 必須寫出同一份（見 ConvertTo-JsonText / Write-JsonAtomic）
+        $bytes = [IO.File]::ReadAllBytes($userSettings)
+        Assert 'w1 寫出的 settings.json 無 BOM（node 的 JSON.parse 遇 BOM 會丟錯）' (-not ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF))
+        $raw = [Text.Encoding]::UTF8.GetString($bytes)
+        Assert 'w2 不留 \u0027 類跳脫、其他跳脫原樣、2 格縮排' ($raw.Contains('"note": "it''s <x> & y 中文 \\ \"q\""') -and $raw -match '(?m)^  "model": "opus",\r?$' -and $raw -notmatch '\\u00')
         Add-Item 'env' 'user'; $s = Read-Json $userSettings
         Assert 'a4 env 加入' ($s.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS -eq '1')
         Assert 'b 同檔只備份一次' (@(Get-ChildItem "$tmp/.claude" -Filter 'settings.json.bak-*').Count -eq 1)
@@ -633,5 +699,5 @@ if ($script:Written.Count -eq 0) {
 } else {
     Write-Host "本次寫入 $($script:Written.Count) 項：" -ForegroundColor Green
     $script:Written | ForEach-Object { Write-Host "  $($_.item) → $($_.file)" }
-    Write-Host "反悔：pwsh -File scripts/extras.ps1 -Uninstall"
+    Write-Host "反悔：$PSCmd -File scripts/extras.ps1 -Uninstall"
 }

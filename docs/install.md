@@ -31,7 +31,7 @@ README 只留最短的裝法；這份是完整版：前置、三種 Claude Code 
 |---|---|
 | **Node.js**（含 npx） | **hook 必需**（缺了 hook 起不來、保護不存在，見 [Hook 的前置](#hook-的前置node)）；MCP 也用 |
 | **git** | repo 操作 |
-| **pwsh 7+** | 只有 `scripts/install.ps1` / `scripts/extras.ps1` / `scripts/install-codex.ps1` 這三支可選腳本、與開發本 repo（`build-references.ps1`）需要 |
+| **PowerShell 5.1+ 或 pwsh 7+** | 只有 `scripts/install.ps1` / `scripts/extras.ps1` / `scripts/install-codex.ps1` 這三支可選腳本需要；Windows 10 / 11 內建的 Windows PowerShell 5.1 就能跑，不必另裝 pwsh 7（用法見下方[一站式](#一站式)）。開發本 repo 用的 `build-references.ps1` 沒驗過 5.1，請用 pwsh 7+ |
 | **bash + jq** | 只有選了 statusLine 才需要（`winget install jqlang.jq` / `brew install jq`） |
 | **Codex CLI 0.153+** | 只有走 Codex 才需要（`powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 \| iex"`） |
 
@@ -44,6 +44,8 @@ git clone https://github.com/fujiei22/bstack.git
 cd bstack
 pwsh -File scripts/install.ps1
 ```
+
+沒裝 pwsh 7 的 Windows：把 `pwsh` 換成 `powershell -ExecutionPolicy Bypass`，例如 `powershell -ExecutionPolicy Bypass -File scripts/install.ps1`，行為相同，後續叫 extras.ps1 也沿用同一個 PowerShell。本文其他 `pwsh -File …` 指令同理。`-ExecutionPolicy Bypass` 只對這一次執行有效；Windows 預設的執行原則（Restricted）會擋所有 .ps1。
 
 五步逐一問你：前置檢查 → 清舊 setup.ps1 副本（搬進備份目錄不刪）→ 裝 plugin（問使用者層級 / 目前專案 / 只印試用指令）→ 個人偏好四項逐項選 → 驗證並提醒重開 Claude Code。每步都能跳過；它自己不寫任何檔，寫入都交給 extras.ps1（可 `-Uninstall`）與 claude CLI（可 `/plugin uninstall`）。非互動：`-Yes -Scope user`；只看會做什麼：`-WhatIf`。下面 A / B / C 是它每一步各自的手動版。
 
