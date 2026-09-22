@@ -680,17 +680,22 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   `${Object.entries(p16).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead.join(', ')}] 缺表頭=[${missHeader.join(', ')}]（後果：P14 白名單抽不到第一欄、Codex 上 devwork 不知道 AskUserQuestion 對應什麼、hosts.md 指向的 reviewer prompt 斷鏈、docs 站沒有對照表；改處：skills/devwork/hosts.md / SKILL.md / rules.md、skills/request-review/SKILL.md、scripts/build-references.ps1 $map）`);
 
 // P17：install-codex.ps1 的 -WhatIf 冒煙（review M4：這支是唯一沒契約覆蓋的可執行檔）。真跑安裝留給人；這裡只驗「-WhatIf 什麼都不動、且六步訊息都在」。
-// pwsh 不在時：win32 視為缺前置紅掉（Windows 使用者就是靠它裝）；其他平台只標 skipped
+// 安裝腳本 Windows PowerShell 5.1 / pwsh 7 都支援：win32 先找 pwsh、沒有就用內建的 powershell.exe；兩個都沒有才紅（Windows 使用者就是靠它裝）；其他平台沒 pwsh 只標 skipped
 {
-  const pwshBin = process.platform === 'win32' ? 'pwsh.exe' : 'pwsh';
-  const probe = spawnSync(pwshBin, ['-NoProfile', '-c', '$PSVersionTable.PSVersion.Major'], { encoding: 'utf8' });
-  if (probe.error || probe.status !== 0) {
-    check('P17 install-codex.ps1 -WhatIf 冒煙', process.platform !== 'win32', `pwsh 不在 PATH（${probe.error?.message || probe.status}）：${process.platform === 'win32' ? 'Windows 上這是缺前置' : '非 Windows 跳過'}`);
+  const candidates = process.platform === 'win32' ? ['pwsh.exe', 'powershell.exe'] : ['pwsh'];
+  const probeErr = [];
+  const pwshBin = candidates.find((b) => {
+    const r = spawnSync(b, ['-NoProfile', '-c', '$PSVersionTable.PSVersion.Major'], { encoding: 'utf8' });
+    if (r.error || r.status !== 0) { probeErr.push(`${b}: ${r.error?.message || r.status}`); return false; }
+    return true;
+  });
+  if (!pwshBin) {
+    check('P17 install-codex.ps1 -WhatIf 冒煙', process.platform !== 'win32', `PowerShell 不在 PATH（${probeErr.join('；')}）：${process.platform === 'win32' ? 'Windows 上這是缺前置' : '非 Windows 跳過'}`);
   } else {
     const fakeHome = join(tmpdir(), `bstack-p17-${process.pid}`); rmSync(fakeHome, { recursive: true, force: true }); mkd(fakeHome, { recursive: true });
     const env17 = { ...process.env, CODEX_HOME: fakeHome };
-    const w = spawnSync(pwshBin, ['-NoProfile', '-File', join(REPO, 'scripts/install-codex.ps1'), '-WhatIf', '-Yes', '-SkipMigrate'], { encoding: 'utf8', env: env17, cwd: REPO });
-    const u = spawnSync(pwshBin, ['-NoProfile', '-File', join(REPO, 'scripts/install-codex.ps1'), '-Uninstall', '-WhatIf'], { encoding: 'utf8', env: env17, cwd: REPO });
+    const w = spawnSync(pwshBin, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(REPO, 'scripts/install-codex.ps1'), '-WhatIf', '-Yes', '-SkipMigrate'], { encoding: 'utf8', env: env17, cwd: REPO });
+    const u = spawnSync(pwshBin, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(REPO, 'scripts/install-codex.ps1'), '-Uninstall', '-WhatIf'], { encoding: 'utf8', env: env17, cwd: REPO });
     const wo = (w.stdout || '') + (w.stderr || ''), uo = (u.stdout || '') + (u.stderr || '');
     const touched = existsSync(join(fakeHome, 'bstack-codex.json')) || existsSync(join(fakeHome, 'config.toml')) || existsSync(join(fakeHome, 'agents'));
     rmSync(fakeHome, { recursive: true, force: true });

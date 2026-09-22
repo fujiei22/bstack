@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
   bstack 在 Codex CLI 的一站式安裝：前置檢查 → 清舊副本 → marketplace → plugin → agents TOML → config.toml。
@@ -36,6 +36,7 @@
   pwsh -File scripts/install-codex.ps1 -WhatIf            # 只印會做的事，什麼都不動
   pwsh -File scripts/install-codex.ps1 -Migrate
   pwsh -File scripts/install-codex.ps1 -Uninstall
+  powershell -File scripts/install-codex.ps1      # Windows 沒裝 pwsh 7 時用內建的 Windows PowerShell 5.1，行為相同
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -69,6 +70,8 @@ $SlimClone = Join-Path $CodexHome 'bstack-src'   # -Source local 的 marketplace
 $LegacyMarkers = @('# bstack install-codex.ps1 加入（begin）', '# bstack install-codex.ps1 加入（end）')
 $script:CodexExe = 'codex'
 $script:CodexFromFallback = $false
+# 印給使用者抄的指令用「正在跑本腳本的那個 PowerShell」，沒裝 pwsh 7 的機器照抄也跑得起來
+$PSCmd = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
 
 function Step([string]$n, [string]$title) { Write-Host ""; Write-Host "== 步驟 $n：$title ==" -ForegroundColor Cyan }
 function Ask {
@@ -79,6 +82,16 @@ function Ask {
     if ([string]::IsNullOrWhiteSpace($ans)) { return $default.ToUpper() }
     return $ans.Trim().ToUpper()
 }
+function Invoke-Native {
+    <#
+    .SYNOPSIS 跑外部指令，輸出轉成字串回傳（預設 stderr 併進來；-NoStderr 丟掉 stderr）；exit code 照舊看 $LASTEXITCODE。
+    .DESCRIPTION Windows PowerShell 5.1 在 $ErrorActionPreference = 'Stop' 時，外部指令只要寫一行 stderr，
+      不論 2>&1 或 2>$null 都會變成終止錯誤、整支腳本停掉（實測）；pwsh 7 不會。本函式範圍內把偏好降成 Continue，兩版行為一致。
+    #>
+    param([string]$exe, [string[]]$argv, [switch]$NoStderr)
+    $ErrorActionPreference = 'Continue'
+    if ($NoStderr) { & $exe @argv 2>$null } else { & $exe @argv 2>&1 | ForEach-Object { "$_" } }
+}
 function Find-Codex {
     <#
     .SYNOPSIS 找 codex 執行檔：先看 PATH，找不到再探官方安裝腳本的落點 %LOCALAPPDATA%\Programs\OpenAI\Codex\bin。
@@ -87,7 +100,8 @@ function Find-Codex {
     #>
     $c = Get-Command codex -ErrorAction SilentlyContinue
     if ($c) { $script:CodexExe = $c.Source; return $true }
-    if ($IsWindows -and -not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+    # 不用 $IsWindows：Windows PowerShell 5.1 沒有這個變數（永遠是 $null），這段 fallback 會整個失效
+    if ($env:OS -eq 'Windows_NT' -and -not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
         $p = Join-Path $env:LOCALAPPDATA 'Programs\OpenAI\Codex\bin\codex.exe'
         if (Test-Path -LiteralPath $p) { $script:CodexExe = $p; $script:CodexFromFallback = $true; return $true }
     }
@@ -101,7 +115,7 @@ function Run-Codex {
     if ($DryRun) { Write-Host "  [whatif] $cmd"; return 0 }
     Write-Host "  > $cmd"
     # 一定要接管 stdout：不接的話 stdout 會變成回傳值、跟 exit code 混成陣列，呼叫端 -ne 0 永遠為真（install.ps1 踩過）
-    $out = @(& $script:CodexExe @args_ 2>&1 | ForEach-Object { "$_" })
+    $out = @(Invoke-Native $script:CodexExe $args_)
     $rc = $LASTEXITCODE
     $out | ForEach-Object { Write-Host $_ }
     $script:LastCodexOutput = ($out -join "`n")
@@ -111,7 +125,7 @@ function Get-CodexJson {
     <# 跑 codex 的查詢類指令（-WhatIf 也跑）並解析 --json 輸出；失敗回 $null，呼叫端自己決定要不要當「沒有」。 #>
     param([string[]]$args_)
     try {
-        $raw = (& $script:CodexExe @args_ 2>$null | Out-String)
+        $raw = (Invoke-Native $script:CodexExe $args_ -NoStderr | Out-String)
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($raw)) { return $null }
         # 前面可能夾 Warning 行（實測 plugin list 未登入時會印），從第一個 { 開始解析
         $i = $raw.IndexOf('{'); if ($i -lt 0) { return $null }
@@ -163,12 +177,12 @@ function New-SlimClone {
       （2026-09-09 實測 Trellix：144 MB 連撞 4 次；27 MB 的精簡 clone 一次過）。git clone 只帶版控檔，樹小掃描快。
       舊目錄只在「形狀像精簡 clone」時才刪（Test-SlimCloneShape）；不像就不動、請使用者自己處理。
     #>
-    $branch = (& git -C $RepoRoot rev-parse --abbrev-ref HEAD 2>$null)
+    $branch = (Invoke-Native git @('-C', $RepoRoot, 'rev-parse', '--abbrev-ref', 'HEAD') -NoStderr)
     if ([string]::IsNullOrWhiteSpace($branch) -or $branch -eq 'HEAD') { $branch = 'main' }
     $new = "$SlimClone.new-$RunStamp"
     if ($DryRun) { Write-Host "  [whatif] git clone --branch $branch $RepoRoot → $new，成功後換掉 $SlimClone（舊的形狀不對就不刪）"; return $true }
     if (Test-Path -LiteralPath $new) { Remove-Item -LiteralPath $new -Recurse -Force }   # 帶本次時間戳，殘留只可能是本次自己的
-    & git clone -q --branch $branch $RepoRoot $new 2>&1 | Out-Host
+    Invoke-Native git @('clone', '-q', '--branch', $branch, $RepoRoot, $new) | Out-Host
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $new '.codex-plugin/plugin.json'))) {
         if (Test-Path -LiteralPath $new) { Remove-Item -LiteralPath $new -Recurse -Force -ErrorAction SilentlyContinue }
         Write-Host "  精簡 clone 失敗；$(if (Test-Path -LiteralPath $SlimClone) { "舊的 $SlimClone 保留不動" } else { '沒有舊的可退' })" -ForegroundColor Red; return $false
@@ -232,7 +246,7 @@ function Invoke-Migrate {
         Write-Host "  $agentsMd 第 $($agentsMdHits -join '、') 行含「dev-workflow」或「一律進」：這會讓舊版自動攔截復活，請自行檢視；本腳本不動這個檔。" -ForegroundColor Yellow
     }
     if (-not $targets.Count) { return }
-    if ($ListOnly) { Write-Host "  清理請跑：pwsh -File scripts/install-codex.ps1 -Migrate -Yes"; return }
+    if ($ListOnly) { Write-Host "  清理請跑：$PSCmd -File scripts/install-codex.ps1 -Migrate -Yes"; return }
 
     $bakDir = Join-Path $AgentsHome "bstack-migrate-bak-$RunStamp"
     # Read-Host 在非互動（stdin 接 null）時回 $null，不能直接 .ToLower()
@@ -323,13 +337,13 @@ if ($Migrate) { Step '1.5' '清舊副本'; Invoke-Migrate; exit 0 }
 Step 1 '前置檢查'
 $ok = $true
 if (Find-Codex) {
-    Write-Host "  ✔ codex CLI：$((& $script:CodexExe --version 2>$null | Select-Object -First 1))"
+    Write-Host "  ✔ codex CLI：$(Invoke-Native $script:CodexExe @('--version') -NoStderr | Select-Object -First 1)"
     if ($script:CodexFromFallback) { Write-Host "  提醒：codex 不在這個 shell 的 PATH，本次改用 $script:CodexExe；官方安裝腳本只對新開的 shell 更新 PATH，用完請重開 shell。" -ForegroundColor Yellow }
 } else {
     Write-Host '  ✘ 找不到 codex CLI。安裝：powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"（裝完重開 shell 再跑本腳本）' -ForegroundColor Red; $ok = $false
 }
 # hook 是 node 腳本（hooks/guard.mjs），Codex 不自帶 node，缺了 hook 起不來、branch 保護不存在
-if (Get-Command node -ErrorAction SilentlyContinue) { Write-Host "  ✔ node $((node --version 2>$null))（hook 用）" }
+if (Get-Command node -ErrorAction SilentlyContinue) { Write-Host "  ✔ node $(Invoke-Native node @('--version') -NoStderr)（hook 用）" }
 else { Write-Host "  ✘ 找不到 node：hook 起不來、branch 保護不存在。Windows：winget install OpenJS.NodeJS.LTS；macOS：brew install node" -ForegroundColor Red; $ok = $false }
 if (Get-Command git -ErrorAction SilentlyContinue) { Write-Host "  ✔ git" }
 else { Write-Host "  ✘ 找不到 git（marketplace 從 GitHub 抓要用）。Windows：winget install --id Git.Git；macOS：brew install git" -ForegroundColor Red; $ok = $false }
@@ -505,7 +519,7 @@ Save-Manifest $manifest
 # ── 6. MCP ───────────────────────────────────────────────────────────────────
 # playwright 隨 plugin 自帶（repo 根 .mcp.json，實測 codex mcp list 看得到）；mysql 含帳密不進 repo、只印範本
 Step 6 'MCP（playwright 隨 plugin 自帶；mysql 印範本）'
-$mcpList = if ($DryRun) { '' } else { (& $script:CodexExe mcp list 2>$null | Out-String) }
+$mcpList = if ($DryRun) { '' } else { (Invoke-Native $script:CodexExe @('mcp', 'list') -NoStderr | Out-String) }
 if ($DryRun) { Write-Host "  [whatif] codex mcp list 看 playwright / mysql 狀態" }
 else {
     Write-Host "  playwright：$(if ($mcpList -match '(?m)^playwright\s') { '已可用（plugin 自帶）' } else { '沒看到——開新 session 再 codex mcp list 確認；還是沒有就 codex mcp add playwright -- npx -y @playwright/mcp@0.0.68' })"
@@ -522,7 +536,7 @@ Write-Host "接下來：" -ForegroundColor Green
 Write-Host "  1. 開新 Codex session（既有 session 不會載入新 plugin）"
 Write-Host "  2. 打 /hooks 信任 bstack 的 PreToolUse hook——Codex 對 plugin hook 預設不信任，不信任就沒有 branch-safety / file-type 保護"
 Write-Host '  3. 用法：$bstack:devwork <要做的事>（skill 呼叫名帶 bstack: 命名空間，Task 0 用 codex debug prompt-input 實測）'
-Write-Host "  4. 若 skill 清單還看到不帶命名空間的 dev-workflow / db-access → 舊副本還在，跑 pwsh -File scripts/install-codex.ps1 -Migrate -Yes"
+Write-Host "  4. 若 skill 清單還看到不帶命名空間的 dev-workflow / db-access → 舊副本還在，跑 $PSCmd -File scripts/install-codex.ps1 -Migrate -Yes"
 if ($script:CodexFromFallback) { Write-Host "  5. 重開 shell 讓 codex 進 PATH" }
-Write-Host "  反悔：pwsh -File scripts/install-codex.ps1 -Uninstall（依 $ManifestPath 只拆本腳本加的）"
+Write-Host "  反悔：$PSCmd -File scripts/install-codex.ps1 -Uninstall（依 $ManifestPath 只拆本腳本加的）"
 if ($DryRun) { Write-Host "  （-WhatIf：以上都沒有真的做）" }
