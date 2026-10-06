@@ -200,6 +200,7 @@ state:
 | `context-resume` | 新 session 開始、user 顯式接續舊 task |
 | `headless-mode` | devwork 依 hosts.md §Host 判定 判為 headless 時載；phase skill 遇決策點依其 §分流表、派 subagent 依其 §子 agent 約束，不各自判 |
 | `dispatch-parallel` | execute-plan 遇 parallel-group >1 task |
+| `session-team` | brainstorm 0d 判出可拆 ≥2 個獨立 PR 且 user 在合併確認選 session-team／user 顯式呼叫；Claude Code 限定、headless 不載 |
 | `lang-reviewer` | user 顯式要求時由主 agent spawn；request-review 不自動派，語言提示寫進 T3 對齊 subagent 的 prompt（T2 交內建 code-review，沒有自寫 prompt） |
 | `db-reviewer` | T3 + DB 改動，security 階段內 |
 | `frontend-test` | verify-done 偵測前端檔改動（.tsx / .jsx / .vue / .svelte / .html / .css / .scss）；T3 UI 改動必載、T2 可選；user 顯式呼叫 e2e 也載。**豁免**：diff 只動文字節點 / `data-*`（verify-done §UI / browser e2e 用 `scripts/text-only-diff.mjs` 判 TEXT-ONLY）→ 不載、主 agent smoke |

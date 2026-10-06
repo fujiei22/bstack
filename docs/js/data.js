@@ -435,6 +435,7 @@ var FLOW_DATA = {
         { name: 'context-snapshot', docKey: 'LoadCtxS',  desc: '中斷 / 跨 session 暫停存進度' },
         { name: 'context-resume',   docKey: 'LoadCtxR',  desc: '接續上次進度' },
         { name: 'headless-mode',    docKey: 'LoadHL',    desc: '無人環境：決策點採推薦或留言問人' },
+        { name: 'session-team',     docKey: 'LoadST',    desc: '拆多個獨立 PR：Windows Terminal 分頁起 worker session 分工' },
         { name: 'write-skill',      docKey: 'LoadWS',    desc: 'meta：新增 / 改 skill' },
       ],
     },
