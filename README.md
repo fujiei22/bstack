@@ -1,6 +1,6 @@
 # bstack
 
-bstack 是一套給 coding agent 的開發流程：29 個 skill、6 個 agent、1 支 hook 與一份規則書，裝成 plugin，Claude Code 與 Codex 共用同一份。繁中台灣用語。
+bstack 是一套給 coding agent 的開發流程：30 個 skill、6 個 agent、1 支 hook 與一份規則書，裝成 plugin，Claude Code 與 Codex 共用同一份。繁中台灣用語。
 
 ## 目錄
 
@@ -9,7 +9,7 @@ bstack 是一套給 coding agent 的開發流程：29 個 skill、6 個 agent、
   - [Claude Code](#claude-code)
   - [Codex CLI](#codex-cli)
 - [九階段流程](#九階段流程)
-- [Skills（29）](#skills29)
+- [Skills（30）](#skills30)
 - [Agents（6）](#agents6)
 - [Hook](#hook)
 - [Claude Code 與 Codex 的差異](#claude-code-與-codex-的差異)
@@ -83,7 +83,7 @@ bstack 是一套給 coding agent 的開發流程：29 個 skill、6 個 agent、
 
 另有手動觸發的 **retro**：回顧一段期間的工作，把 user 偏好寫回 memory。
 
-## Skills（29）
+## Skills（30）
 
 **主流程**
 - **devwork** — 唯一入口，讀規則書後交給 dev-workflow
@@ -101,6 +101,7 @@ bstack 是一套給 coding agent 的開發流程：29 個 skill、6 個 agent、
 
 **Meta**
 - **dispatch-parallel** — 多 task 平行時派 subagent 或 Agent Teams
+- **session-team** — 拆成多個獨立 PR 時，在 Windows Terminal 分頁起多個 worker session 分工；worker 的問題傳回主 session 問 user
 - **retro** — 回顧並寫 memory
 - **write-skill** — 新 skill 的範本與落地 checklist
 

@@ -79,6 +79,8 @@ T0 / T1 / T2 / T3。Heuristic：
 | 3-10 個檔 / 單模組 feature / 中型 refactor / 多步 bug fix | T2 |
 | >10 個檔 / 跨模組 / 新建 module / DB schema 改動 / API 介面 / 架構決策 / 含 migration | T3 |
 
+**拆 PR 提議**：同時判「能不能拆成 ≥2 個獨立 PR」（`session-team` §拆工判定 三條全中）。全中 → 合併確認多一題「跑法」：單一 session / session-team 分工，推薦依實據、每個選項寫代價（session-team：每個 worker 是完整一份 Claude Code + 一套 MCP server，記憶體與 usage 隨人數疊加）。選 session-team → 載 `session-team`，本 session 當主 session、本 skill 到此結束（每個 worker 自己跑 devwork）。**不提議**：Codex、headless、本 session 是 worker（收過開頭為「派工：」的 cross-session 訊息）。
+
 判定結果留給 §Phase 0c/0d 合併確認 一次問，**本節不單獨發問**。**Tier 升降 trigger**（理由：這幾類的爆炸半徑與行數無關）：File-type 硬規則（見 rules.md）命中 DB migration / CI/CD / lock / infra 等 → 自動升至少 T2。
 
 ## §Phase 0c/0d 合併確認
@@ -89,6 +91,7 @@ T0 / T1 / T2 / T3。Heuristic：
 |---|---|
 | `design.involved=false` | 2 題：Track、Tier |
 | `design.involved=true` | 3 題：Track、Tier、UI 判定 |
+| 0d 拆 PR 提議成立 | 上兩列再加 1 題「跑法」（最多 4 題，仍是同一次呼叫） |
 
 **第 3 題（UI 判定）的選項**，題目描述必須同時顯示 `scope` / `scope_evidence` / `map_status` 三項，讓 user 看得到判斷依據。
 
