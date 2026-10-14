@@ -8,7 +8,9 @@
     1. 前置檢查   PowerShell 5.1+（Windows 內建即可，不必另裝 pwsh 7）/ node / claude CLI / git（缺了就停，告訴你怎麼裝）
     2. 清舊副本   呼叫 extras.ps1 -Migrate（舊 setup.ps1 留在 ~/.claude/ 的 skill / hook / CLAUDE.md，搬進備份目錄不刪）
     3. 裝 plugin  問層級：[u] 使用者層級 / [p] 目前專案 / [t] 只印試用指令 / [s] 跳過；
-                  marketplace 來源問 [g] GitHub fujiei22/bstack（推薦）/ [l] 本 clone 路徑
+                  marketplace 來源問 [g] GitHub fujiei22/bstack（推薦）/ [l] 本 clone 路徑；
+                  bstack 依賴的兩個第三方 mod（prismantis、filetree）隨 install 自動帶裝；再逐一補裝一次，
+                  讓已裝舊版、更新後缺依賴而 failed to load 的人重跑本腳本就能修好
     4. 個人偏好   呼叫 extras.ps1 選單（statusLine / permissions / env / mcp 逐項選層級，可全跳）
     5. 驗證       claude plugin list 應列出 bstack@bstack；提醒重開 Claude Code 後打 /devwork
   本腳本自己不寫任何檔：寫入都交給 extras.ps1（有備份、可 -Uninstall）與 claude CLI（可 /plugin uninstall）。
@@ -41,6 +43,8 @@ $Extras = Join-Path $PSScriptRoot 'extras.ps1'
 $ProjectRoot = (Get-Location).Path
 try { $top = git rev-parse --show-toplevel 2>$null; if ($LASTEXITCODE -eq 0 -and $top) { $ProjectRoot = $top -replace '/', [IO.Path]::DirectorySeparatorChar } } catch {}
 $GithubRepo = 'fujiei22/bstack'
+# bstack 的 dependencies（.claude-plugin/plugin.json），收錄在 bstack marketplace、鎖 commit
+$Mods = @('prismantis@bstack', 'filetree@bstack')
 $DryRun = [bool]$WhatIfPreference
 # 子行程與印給使用者抄的指令都用「正在跑本腳本的那個 PowerShell」：Windows PowerShell 5.1 → powershell、pwsh 7 → pwsh，
 # 沒裝 pwsh 7 的機器也能一路跑完、照抄提示也跑得起來
@@ -129,6 +133,11 @@ switch ($choice) {
         else { if ((Run-Claude @('plugin', 'marketplace', 'add', $srcArg)) -ne 0) { Write-Host "  marketplace add 失敗" -ForegroundColor Red; exit 1 } }
         if ((Run-Claude @('plugin', 'install', 'bstack@bstack', '-s', $scopeName)) -ne 0) { Write-Host "  plugin install 失敗" -ForegroundColor Red; exit 1 }
         $installed = $true
+        # 新裝時 dependencies 已一起帶裝，這裡是 no-op；bstack 早已裝好時 install 不補依賴（實測回「already installed … dependency still unresolved」），
+        # 舊版更新上來缺依賴、bstack failed to load 的人靠這段修好
+        foreach ($m in $Mods) {
+            if ((Run-Claude @('plugin', 'install', $m, '-s', $scopeName)) -ne 0) { Write-Host "  $m 安裝失敗：缺了它 bstack 會 failed to load，請看上面的輸出後手動 claude plugin install $m" -ForegroundColor Red }
+        }
         if ($scopeName -eq 'project') { Write-Host "  提示：templates/project-settings.json 還帶一份唯讀權限白名單，下一步選 permissions [p] 就會合進來。" }
     }
     default { Write-Host "  不認得「$choice」，跳過" }
@@ -154,4 +163,4 @@ Write-Host "接下來：" -ForegroundColor Green
 Write-Host "  1. 重開 Claude Code（既有 session 不會載入新 plugin）"
 Write-Host "  2. 輸入 /devwork，第一行應是 [bstack devwork · plugin] 已載入守則…"
 Write-Host "  3. 若接著出現 [已載入 dev-workflow] 一行 → 舊副本還在遮蔽，重跑 $PSCmd -File scripts/extras.ps1 -Migrate"
-Write-Host "  反悔：claude plugin uninstall bstack@bstack；extras 加的東西用 $PSCmd -File scripts/extras.ps1 -Uninstall"
+Write-Host "  反悔：claude plugin uninstall bstack@bstack（之後 claude plugin prune 清掉兩個 mod）；extras 加的東西用 $PSCmd -File scripts/extras.ps1 -Uninstall"

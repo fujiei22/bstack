@@ -89,9 +89,18 @@ check('P1a plugin.json 合法且 name=bstack',
   `期望 name=bstack 且有 version/description，實際 ${plugin.__err || JSON.stringify(plugin)}（後果：Claude Code 不認得這個目錄是 plugin）`);
 check('P1b marketplace.json 必填齊且 source 指向 ./',
   !market.__err && market.name === 'bstack' && market.owner && typeof market.owner.name === 'string' &&
-    Array.isArray(market.plugins) && market.plugins.length === 1 &&
+    Array.isArray(market.plugins) && market.plugins.length >= 1 &&
     market.plugins[0].name === 'bstack' && market.plugins[0].source === './',
-  `期望 name=bstack、owner.name、plugins=[{name:bstack, source:'./'}]，實際 ${market.__err || JSON.stringify(market)}（後果：/plugin install bstack@bstack 找不到）`);
+  `期望 name=bstack、owner.name、plugins[0]={name:bstack, source:'./'}，實際 ${market.__err || JSON.stringify(market)}（後果：/plugin install bstack@bstack 找不到）`);
+// P1c：bstack 依賴的第三方 mod（2026-10-14，feat/bundle-mods）。第三方程式碼以使用者權限執行，來源一律鎖 commit；
+// dependencies 與 marketplace 第三方條目一一對應——依賴不在本 marketplace 會裝不起來，條目沒人依賴就是死條目
+const extras = (market.plugins || []).slice(1);
+const pinned = extras.every((p) => typeof p.name === 'string' && p.source?.source === 'github' && /^[0-9a-f]{40}$/.test(p.source?.sha || ''));
+const deps = Array.isArray(plugin.dependencies) ? plugin.dependencies : [];
+const sameSet = deps.length === extras.length && deps.every((d) => typeof d === 'string' && extras.some((p) => p.name === d));
+check('P1c marketplace 第三方 plugin 來源鎖 commit、與 plugin.json dependencies 一一對應',
+  pinned && sameSet,
+  `第三方條目 ${JSON.stringify(extras.map((p) => [p.name, p.source?.sha]))}、dependencies=${JSON.stringify(plugin.dependencies)}（後果：沒鎖 sha 等於讓上游任意更新在使用者機器上執行；依賴不在本 marketplace 會讓 /plugin install bstack@bstack 失敗）`);
 
 // ── P2 hooks ────────────────────────────────────────────────────────────────
 const hooks = parseJson('hooks/hooks.json');
@@ -346,6 +355,7 @@ const p5 = {
   'scripts/install.ps1 存在': exists('scripts/install.ps1'),
   'extras/statusline.sh 存在': exists('extras/statusline.sh'),
   'templates/project-settings.json 合法且 allow 含 Read': !tmpl.__err && Array.isArray(tmpl.permissions?.allow) && tmpl.permissions.allow.includes('Read') && tmpl.enabledPlugins?.['bstack@bstack'] === true,
+  '範本啟用的 @bstack plugin 都在 marketplace': !tmpl.__err && Object.keys(tmpl.enabledPlugins || {}).filter((k) => k.endsWith('@bstack')).every((k) => (market.plugins || []).some((p) => `${p.name}@bstack` === k)),
 };
 const p5bad = Object.entries(p5).filter(([, ok]) => !ok).map(([k]) => k);
 check('P5 全域 sync 路徑已移除、extras 與範本到位', p5bad.length === 0, `不過 [${p5bad.join(', ')}]`);

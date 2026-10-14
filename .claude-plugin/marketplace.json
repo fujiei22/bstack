@@ -1,14 +1,28 @@
 {
   "name": "bstack",
   "owner": { "name": "Tommy Sian" },
-  "metadata": { "description": "bstack 自己的 marketplace（Claude Code 與 Codex 共用），只有一個 plugin" },
+  "metadata": { "description": "bstack 自己的 marketplace（Claude Code 與 Codex 共用）：bstack 本體，加上 bstack 在 Claude Code 依賴的兩個第三方 mod（prismantis、filetree，鎖定 commit）" },
   "plugins": [
     {
       "name": "bstack",
       "source": "./",
       "description": "繁中台灣用語的九階段開發流程：/devwork（Claude Code）或 $bstack:devwork（Codex）啟動 brainstorm → plan → execute → verify → review → security → finish → pr-explain → retro",
-      "version": "1.9.0",
+      "version": "1.10.0",
       "category": "workflow"
+    },
+    {
+      "name": "prismantis",
+      "source": { "source": "github", "repo": "NahumLitvin/prismantis", "ref": "v0.18.3", "sha": "2553620fecbe4d81730c9a222349ec0a5687f673" },
+      "description": "Claude Code mod（第三方，MIT）：回覆的表格、標題、程式碼、Mermaid 圖彩色渲染",
+      "version": "0.18.3",
+      "category": "appearance"
+    },
+    {
+      "name": "filetree",
+      "source": { "source": "github", "repo": "data-goblin/claude-code-filetree", "ref": "v0.2.25", "sha": "42f34d257786d42050898ad8a66da185e1b04230" },
+      "description": "Claude Code mod（第三方，MIT）：側邊檔案樹，標示 Git 狀態與 Claude 讀寫的檔案",
+      "version": "0.2.25",
+      "category": "productivity"
     }
   ]
 }

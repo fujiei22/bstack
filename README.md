@@ -41,6 +41,15 @@ bstack 是一套給 coding agent 的開發流程：30 個 skill、6 個 agent、
   /plugin install bstack@bstack
   ```
 
+- 裝 bstack 會自動帶裝兩個介面 mod（bstack 的 dependencies；第三方、MIT、鎖定 commit，只在 Claude Code 生效）：**prismantis** 把回覆的表格、程式碼、Mermaid 圖畫成彩色；**filetree** 在側邊顯示檔案樹，標出 Claude 讀寫的檔案。filetree 的窗格要全螢幕版面：先 `/tui fullscreen` 再 `/filetree`。prismantis 預設每次提示多附約 630 token 的繪圖說明，不要就在 `/plugin` 關掉它的 `diagramHints`。兩者不能單獨停用（bstack 依賴它們），只能調設定。
+
+- **從 1.9.0 以前升上來**：更新後 bstack 會顯示 `failed to load`（缺依賴，hook 也一起失效），補裝一次就好：
+
+  ```
+  claude plugin install prismantis@bstack
+  claude plugin install filetree@bstack
+  ```
+
 - 個人偏好（statusLine、唯讀權限白名單、Agent Teams 開關）可選裝；playwright MCP 隨 plugin 自帶，mysql MCP 含帳密、腳本會印指令範本讓你填：
 
   ```pwsh

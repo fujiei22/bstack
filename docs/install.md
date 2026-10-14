@@ -66,6 +66,22 @@ pwsh -File scripts/install.ps1
 
 `bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。clone 這個專案的隊友是否會被自動安裝 plugin，官方文件沒明說，所以範本與這兩行都留著。
 
+**兩個第三方 mod（只在 Claude Code）**：bstack 的 `.claude-plugin/plugin.json` 宣告 `dependencies: ["prismantis", "filetree"]`，裝 bstack 就同層級帶裝並啟用 `prismantis@bstack`（回覆彩色渲染）與 `filetree@bstack`（側邊檔案樹），範本與 `scripts/install.ps1` 不用另外處理。它們收錄在 bstack 的 marketplace、來源**鎖定 commit**，不會像 bstack 本體那樣跟著上游變動；要升版得改 `.claude-plugin/marketplace.json` 的 `ref` / `sha`（契約 P1c 守：每個依賴都要有鎖 sha 的條目）。mod 是以你的權限執行的程式碼，鎖版前已讀過原始碼：兩者都不連網路，filetree 只觀察工具呼叫、不核准也不改寫。
+
+依賴的實測行為（Claude Code 2.1.296）：
+- **舊版升上來會壞一次**：已裝 1.9.0 以前的人更新到 1.10.0 後，bstack 顯示 `failed to load: Dependency "prismantis@bstack" is not installed`，branch-safety hook 一起失效；重跑 `claude plugin install bstack@bstack` 也不補依賴。修法是補裝兩行（或重跑 `scripts/install.ps1`，它會逐一補裝）：
+
+  ```
+  claude plugin install prismantis@bstack
+  claude plugin install filetree@bstack
+  ```
+
+- **不能單獨停用**：`claude plugin disable prismantis@bstack` 會被拒（still required by bstack）。不想要它們的畫面就調設定（`/plugin`），或整個停用 bstack。
+- **移除 bstack 不會順便移除 mod**：會印「2 auto-installed dependencies no longer needed」，再跑 `claude plugin prune` 才清掉。
+- 已經從原作者 marketplace 裝過同一個 mod 的人，`@bstack` 版會重複載入，把原作者那份 `claude plugin uninstall` 掉。
+
+filetree 的窗格只出現在全螢幕版面的側邊欄（`/tui fullscreen`，終端機至少 110 欄）。prismantis 的 `diagramHints` 預設開、每次提示多約 630 token，不要就在 `/plugin` 關掉。
+
 **A2. 使用者層級**：不放範本、直接跑上面兩行。Claude Code 會把 plugin 快取在 `~/.claude/plugins/`、在它自己的 settings 記一筆 `enabledPlugins`。這是 Claude Code 的登記機制，`/plugin uninstall bstack@bstack` 可反悔，**不會覆蓋你任何既有設定**。代價：hook 會在你所有專案生效。
 
 **A3. 試用**：不安裝，只在這個 session 載入：
