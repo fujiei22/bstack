@@ -118,6 +118,7 @@ headless 時在測試節之後**新增**「## headless 自動決策」表（phas
 ## 測試 / Test
 
 - [x] verify-done 全綠（test / lint / build / type-check；e2e: <pass | smoke（文字節點豁免，未跑整套）| skipped>）
+- 安全依據（T2+，來源 `state.verify_results.safety_facts`）：<事實>（<L1-L5 | unproven>，<證據>）
 - [x] review 過（reviewer: <列>）
 - [x] security-audit 過（若 tier T2 涉敏感 / T3 程式碼 diff；純文件 diff 跳過時寫 skipped + 理由）
 - [ ] 上 staging 驗 / 手動跑過 e2e（若 UI）

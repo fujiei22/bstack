@@ -11,6 +11,7 @@ description: |
 1. **讀 hand-off state** 取 `tier`、`codebase_impact`、`commits`。
 2. **依 tier 跑驗證套餐**（§Verify 套餐；T0 不進本 skill——rules.md §Tier 表 T0 全跳，直接實作後進 finish-branch）。
 2.5 **跑 §漏網複查 的觸發判斷**（**全 tier 都跑**，成本是 1 個 `git diff`）。
+2.6 **寫 §安全依據**（T2+）。
 3. **每項 verify 印 command + output**（讓 user 看得到）。
 4. 全綠 → 交棒 request-review。
 5. 非綠 → 走 §verify 失敗處置。
@@ -21,6 +22,23 @@ description: |
 | 周邊回歸（動到的 module + 依賴它的 module 的測試）+ build | | ✓ | ✓ |
 | 整個 test suite；改動含 DB → migration dry-run + schema diff 對齊 | | | ✓ |
 | browser e2e：**載入 `frontend-test` skill** 跑 Playwright MCP e2e（必跑）；觸發與例外見 §UI / browser e2e | | | ✓ |
+## §安全依據（T2+）
+測試全綠只證明「測到的地方沒壞」。這節回答另一題：**這次改動不會弄壞別處，靠的是哪個事實？** 多數看起來有風險的改動，安全性其實繫於一兩個事實（例：「這個 cache key 只有 `loadUser` 讀」）。寫出 1-2 條，每條標證據等級：
+
+| 等級 | 意思 | 例 |
+|---|---|---|
+| L1 宣稱 | 只是說了 | 「應該沒有別人用」 |
+| L2 指出 | 附真實 `file:line` 或函式庫原始碼 | `src/cache.ts:42` 是唯一讀取點 |
+| L3 推演 | 一步步走過失敗路徑，證明到不了 | 列出呼叫鏈並說明每一層為何不會進來 |
+| L4 實跑 | 寫腳本 / 測試呼叫真實程式碼，錯了會大聲失敗 | 附指令與輸出 |
+| L5 重現 | 在跑起來的 app 裡重現過 | 附截圖 / log 路徑 |
+
+- **T2**：至少一條，等級不設下限，但要誠實標
+- **T3**：至少一條到 L4；到不了就標 `unproven`，PR body 照實寫，不阻塞 verify
+- grep 找呼叫點只算 L2；找 grep 看不到的：JSON / DB 欄位 / 設定檔 / feature flag / 另一個語言讀同一份資料
+- 純文件 diff：安全依據通常是「契約腳本 / 判定器跑過」（L4），照寫即可
+
+寫進 `state.verify_results.safety_facts`，finish-branch 抄進 PR body。
 ## §verify 失敗處置
 特別 case 先分流：lint warning 但功能對 → 走 §Auto-fix 不危險類自動修；test flaky 反覆 3+ 次仍 flaky → 標 flaky、列入 `state.flaky_tests` 給 review 階段看、不阻塞；type error 在改動範圍外 → 標 unrelated、不阻塞但提示 user。其餘走 rules.md §Fail handling：
 1. 不靜默 retry；評起因（flaky / 環境 / 真 bug / verify command 寫錯）
@@ -94,6 +112,8 @@ state:
     build: pass | fail
     type_check: pass | fail
     e2e: pass | fail | skipped | smoke   # smoke = 文字節點豁免、主 agent 三步 smoke 代替整套
+    safety_facts:               # §安全依據；T1 為空
+      - {fact: <一句>, level: L1 | L2 | L3 | L4 | L5 | unproven, evidence: <file:line / 指令 / 截圖路徑>}
   frontend_test:
     ran: <bool>
     report_dir: <path | null>
@@ -113,4 +133,5 @@ state:
 | 「e2e 慢、跳過」 | T3 UI 改動 e2e 是 must（載 frontend-test）；T1 預設不跑、T2 可選 |
 | 「只改了幾個字，感覺不用跑」 | 用 `text-only-diff.mjs` 判，TEXT-ONLY 才走 smoke；「感覺」不是豁免依據 |
 | 「文字節點豁免也懶得 smoke」 | 豁免的是整套 runner，不是驗證；smoke 三步必做、`e2e=smoke` 必寫 |
+| 「測試全綠就代表安全」「grep 過沒人用」 | 測試只證明測到的地方；grep 只算 L2，T3 要有一條 L4（§安全依據） |
 | 「環境問題不算 verify fail」 | 仍要 escalate，user 環境壞 user 才能修 |
