@@ -50,3 +50,8 @@
 | 4 | 4 | 產出檔 | 跑 build-references 重產、跑契約 | `build-references.ps1 -Check` exit 0 且契約全綠 |
 
 ## 施工紀錄
+- 四項對齊檢查：N/A（無前端檔改動）
+- 1-4 列依序完成，每列一個 commit；無執行偏差
+- verify：`node scripts/plugin-contract.mjs` ALL PASS；`build-references.ps1 -Check` exit 0
+- review：純文件 diff，跳內建 code-review；spec 自檢四條 Success criteria 皆達成
+- 安全依據：契約腳本守的既有字面（P10b verify-done yaml e2e 行、P19 headless 分流）未被改動，契約實跑全綠（L4）
