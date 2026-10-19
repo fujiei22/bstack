@@ -61,6 +61,7 @@ description: |
 | `cmd-guard/L2-L3` | L2 / L3 指令 | B | 留言 |
 | `cmd-guard/L4` | L4 指令 | blocked | 拒絕並結束本輪（`blocked_reason: cmd-L4`） |
 | `finish-branch/conflict` | rebase conflict | B | 留言 |
+| `finish-branch/lesson` | 教訓收集（開 issue / 寫 memory） | A | 不開 issue、不寫 memory；候選列進 PR body「## 候選教訓」段 |
 | `finish-branch/merge` | merge | 永不 | 開 PR、印 URL、寫 `state.pr_url` 即止；issue 留言**不算**授權，headless 下 merge 永不自動 |
 | `context-snapshot/save` | 要不要存 | A | 一律存 |
 | `context-resume/direction` | 接續方向 | A / 讀回覆 | 有 `pending_question` → §讀回覆；沒有 → 接續下一步（等同既有選單的選項 1） |

@@ -80,6 +80,7 @@ description: |
 
 ### Proposal 1
 - **類型**: feedback / user / project / reference
+- **能否做成機制**: <能：架構 / hook / 契約腳本 / 測試 擇一，附為何更高層做不到；不能：一句理由>
 - **理由**: <為何值得記>
 - **建議內容**:
   > <擬寫進 memory 的內容>
@@ -89,6 +90,15 @@ description: |
 ```
 
 ## §Memory hook 流程
+
+**先判能否做成機制**。memory 和規則書是文字，模型沒讀到或忘了就不生效；機制則是犯錯當下直接失敗。每個 proposal 由高往低試，停在第一個做得到的層級：
+
+1. **架構**：刪掉會犯錯的那條路（一個任務只留一種做法、刪掉會被抄的舊寫法）
+2. **檢查**：hook（例 `hooks/guard.mjs`）或契約腳本（例 `scripts/plugin-contract.mjs`）攔下，錯誤訊息直接寫該怎麼改
+3. **測試**：寫一個在錯誤重演時會 fail 的測試
+4. **文字**：前三層都做不到（需要判斷的事）才寫 memory
+
+判到 1-3 層 → 選單第 1 項改成「開 issue 追蹤（推薦）」，issue 內文附這次的證據與建議層級；retro 本身仍不改 code。
 
 每個 proposal 各問一次 `AskUserQuestion`：
 
@@ -104,7 +114,7 @@ description: |
   3. 不寫
 ```
 
-選 1 → Write 進 memory 的 `<name>.md`（路徑依 `devwork/hosts.md` §Memory 路徑）+ 更新 `MEMORY.md` index；選 2 → 等 user 改再寫；選 3 → 略過。
+選「開 issue」→ `gh issue create`，標題寫要防的錯、內文附證據與層級；選 1 → Write 進 memory 的 `<name>.md`（路徑依 `devwork/hosts.md` §Memory 路徑）+ 更新 `MEMORY.md` index；選 2 → 等 user 改再寫；選 3 → 略過。
 格式依 CLAUDE.md「auto memory」段（`name / description / metadata.type`）；**禁**未經 user 同意寫 memory。
 
 ## §禁止的 retro 行為
@@ -147,6 +157,7 @@ TaskList（Claude Code）：工具直接讀；task 是 session-bound、只看當
 | 想法 | 真相 |
 |---|---|
 | 「找不到值得 memory 的就硬塞」「proposal 不用 user 點頭」 | 沒就沒，memory 是品質不是量；必 AskUserQuestion |
+| 「這條教訓寫進 memory 就好」 | 先判能否做成機制（§Memory hook 流程）；能就開 issue，文字是最後手段 |
 | 「直接寫 CLAUDE.md」「retro 順便修一下 code」 | 禁；CLAUDE.md 改要 PR review、retro 不執行 |
 | 「貼 git log 全文進 retro」 | 抽 pattern、不貼全文 |
 | 「喊 retro 就預設本週」「找不到上次日期就 abort」 | 必問期間（AskUserQuestion）；找不到日期退回「本週」並告知 user、不打斷 |

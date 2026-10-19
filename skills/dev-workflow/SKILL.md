@@ -136,7 +136,7 @@ state:
   design_rejudge: [...]       # 施工開始後對 design.* 的重判（execute-plan 中途轉進／verify-done 漏網複查共用）
   current_phase: <名稱>
   trace_chain: [phase1, phase2, ...]  # 歷經 phase
-  fail_history: [...]         # 每次 fail 的 retry / rollback 記錄
+  fail_history: [...]         # 每次 fail 的 retry / rollback 記錄；每筆含 premise（這次修法假設的那一句）
   headless: <bool>            # 以下七欄 headless-mode 寫，定義以其 §hand-off state 為準
   source_issue: <owner/repo#n | null>
   auto_decisions: [...]
@@ -166,6 +166,7 @@ state:
 
 1. **不靜默重試**
 2. **評起因**：實作錯 / plan 錯 / test 設定錯 / 架構假設錯 / 需求理解錯
+   **同前提連敗檢查**：翻 `state.fail_history`，這次修法若與前一次 fail 共用同一個 `premise`、卡在同一關（同一個測試 / 同一個 verify 項）→ 前提本身是頭號嫌疑。先把前提寫成一句、找一個「前提錯就會不同」的觀察（看失敗分佈、印中間值、單獨跑那段），跑完附輸出，再進選單；此時選單的 retry / adjust+retry 只能建立在驗過的前提上。驗出前提錯 → 原因在別處，通常回上層 Phase。
    headless 時 → B 類（task fail 用 `execute-plan/fail`、verify / review fail 用 `verify-done/fail`）：不 retry，五個選項寫進留言後結束本輪（`headless-mode`）。
 3. `AskUserQuestion` 提選項：
    - **retry** — 同樣作法再跑（適暫態 / 偶發）
@@ -177,11 +178,12 @@ state:
 
 ## §Memory hook 點
 
-只有兩個 phase 動 memory，其他不主動 hook：
+只有三個 phase 動 memory，其他不主動 hook：
 
 | Phase | 動作 |
 |---|---|
 | brainstorm 0a | **讀** memory：user 偏好 / 領域背景 / 過去關鍵決策 |
+| finish-branch | **收** 教訓：本 branch 有 fail 或 user 糾正過 → 候選先判能否做成機制 → user 勾選 → 開 issue 或寫 memory（`finish-branch` §教訓收集） |
 | retro | **補** memory：期間（user 選）git log + PR + TaskList 分析模式 → 產 proposal → user review → 寫入 |
 
 ## §跨流程 skill 載入

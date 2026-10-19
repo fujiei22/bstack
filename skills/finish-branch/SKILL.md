@@ -18,6 +18,7 @@ Phase 7：把 feature branch 收尾、開 PR。git workflow 細則（commit / br
 1. **讀 hand-off state** 取 `commits`、`tier`、`spec_path`、`plan_path`、`review_summary_path`。
 2. **clean check**：working tree clean、無未追蹤檔、最後 commit 過 verify（見 §Clean check）。
 3. **rebase main**：`git fetch origin && git rebase origin/main`，衝突 → 走 §Conflict 流程。
+3.5 **§教訓收集**（開 PR 前做，headless 的候選要進 PR body）：有訊號才問，沒訊號一行帶過；T0 跳過。
 4. **push**：`git push -u origin <branch>`；rebase 過要 `--force-with-lease`，**禁裸 `--force`**（見 §Push）。
 5. **開 PR**：用 `gh pr create`，套 §PR title 規範 + §PR body 模板。
 6. **印 PR URL**。**T3 → 交棒 pr-explain**；T0-T2 → 到此為止、等 user merge（PR body 已含動機 / 改動 / 測試，pr-explain 對這個量體是純成本）。**禁順手 `gh pr merge`**（除非 session 級明授權；見 §Squash merge）。
@@ -118,6 +119,7 @@ headless 時在測試節之後**新增**「## headless 自動決策」表（phas
 ## 測試 / Test
 
 - [x] verify-done 全綠（test / lint / build / type-check；e2e: <pass | smoke（文字節點豁免，未跑整套）| skipped>）
+- 安全依據（T2+，來源 `state.verify_results.safety_facts`）：<事實>（<L1-L5 | unproven>，<證據>）
 - [x] review 過（reviewer: <列>）
 - [x] security-audit 過（若 tier T2 涉敏感 / T3 程式碼 diff；純文件 diff 跳過時寫 skipped + 理由）
 - [ ] 上 staging 驗 / 手動跑過 e2e（若 UI）
@@ -183,6 +185,20 @@ branch 名 `hotfix/<short>`、title prefix `hotfix:`、PR body 加「## Hotfix j
 ### Bug track
 PR title 用 `fix:` prefix；PR body 額外加「## Bug reproduce」section（症狀 / 重現步驟 / root cause）
 
+## §教訓收集
+
+每個任務都會走到這裡，所以教訓在這裡收，不靠 user 記得跑 `retro`。
+
+**訊號**（任一成立才往下；都沒有 → 印「教訓收集：無訊號，略過」，不問）：
+- `state.fail_history` 非空
+- 本 branch 期間 user 糾正過做法：否定你的方案、要你重做、指出你判斷錯
+
+**每個訊號產一則候選**，先比對 memory index（`MEMORY.md`）：已有同一條就略過，或改提「更新那一條」。接著由高往低判層級，停在第一個做得到的：架構（刪掉會犯錯的路）> 檢查（hook / 契約腳本，錯誤訊息寫該怎麼改）> 測試 > 文字（memory）。
+
+**全部候選合成一個 `AskUserQuestion`**（multiSelect，一個候選一個選項）：判到前三層的選項寫「開 issue：<要防的錯>」，判到文字的寫「寫 memory：<一句>」，user 勾的才做，不勾就不做。開 issue 用 `gh issue create`，內文附證據與建議層級；寫 memory 依 `devwork/hosts.md` §Memory 路徑與 CLAUDE.md「auto memory」格式，並更新 `MEMORY.md`。
+
+headless 時 → A 類 `finish-branch/lesson`：不開 issue、不寫 memory，候選全列進 PR body「## 候選教訓」段（候選 / 層級 / 證據三欄），由人決定（`headless-mode`）。
+
 ## §hand-off state
 
 ```yaml
@@ -191,6 +207,7 @@ state:
   pr_url: <URL>
   pr_number: <int>
   pr_state: open
+  lessons: [...]              # §教訓收集；每筆 {lesson, level: 架構 | 檢查 | 測試 | 文字, action: issue | memory | 略過, ref: <issue URL / memory 檔名>}
   current_phase: finish-branch-done
 ```
 
@@ -203,5 +220,6 @@ state:
 | 「rebase conflict 我先試 resolve」 | 不自作主張；走 §Conflict 流程 |
 | 「force push 比 force-with-lease 簡單」 | 禁裸 force；可能覆 remote 別人推的；feature branch 才能用 `--force-with-lease`、main 永遠禁 |
 | 「PR 開好順手 `gh pr merge`」 | **禁**；merge 由 user 觸發、past PR 授權不延續；session 級明授權才能 auto；headless 時連 session 級授權都不成立 |
+| 「這次有 fail 但不值得記」「沒訊號也問一下」 | 有訊號就產候選讓 user 勾；沒訊號不問，不製造打擾（§教訓收集） |
 | 「skip pre-commit hook」 | 禁；hook 失敗 = 真問題、修了再 commit |
 | 「merge 完就結束、docs 留在 work 沒差」 | 沒搬 archive 的話 `work/` 會變成死活不分的雜物堆；見 §Merge 後：docs 歸檔 |

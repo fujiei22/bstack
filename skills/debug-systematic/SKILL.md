@@ -60,6 +60,8 @@ Min repro 失敗 → 仍要 simplify 直到能；別跳直接 fix。
 
 **只**修這 bug：找 root cause（不是 symptom）、最小 fix、不動 unrelated code。**不**順便重構 / 加 feature / 改命名；「順便」改動拆獨立 commit / task。
 
+**兩次 fix 都沒過同一個測試 → 停手驗前提**。兩次 fix 背後通常共用一句沒寫出來的假設（例：「hang 是因為 `process` 沒處理空陣列」）。寫下這句，做一個「假設錯就會不同」的觀察（例：傳非空陣列也 hang 嗎？），附輸出。假設被推翻 → 回 Step 3 重找 min repro；成立 → 往下問一層「為什麼」，前兩次可能只修到結果、沒修到原因。
+
 ## §Step 5: 寫測試證明 + 防回歸
 
 **先**寫測試（依 tdd-cycle），針對 bug 行為：
@@ -126,5 +128,6 @@ state:
 | 「重現不出來、先 fix 看看 / 當 bug 不存在」 | 不能修；先重現、不出升 incident-investigate |
 | 「跳 min repro 直接看 root cause」 | min repro 才能避 false root cause |
 | 「順便 refactor 一下」 | 禁；拆獨立 commit |
+| 「第三種寫法應該就會過了」 | 前兩次共用的假設沒驗過；先寫下來驗它（§Step 4） |
 | 「fix 完不用寫測試、太累」 | 必寫；沒測 = 下次回歸發現不了 |
 | 「測試寫一下就好不必看它 fail」 | 必看 fail；沒看過 fail 證明不了測對的東西 |
