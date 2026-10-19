@@ -178,11 +178,12 @@ state:
 
 ## §Memory hook 點
 
-只有兩個 phase 動 memory，其他不主動 hook：
+只有三個 phase 動 memory，其他不主動 hook：
 
 | Phase | 動作 |
 |---|---|
 | brainstorm 0a | **讀** memory：user 偏好 / 領域背景 / 過去關鍵決策 |
+| finish-branch | **收** 教訓：本 branch 有 fail 或 user 糾正過 → 候選先判能否做成機制 → user 勾選 → 開 issue 或寫 memory（`finish-branch` §教訓收集） |
 | retro | **補** memory：期間（user 選）git log + PR + TaskList 分析模式 → 產 proposal → user review → 寫入 |
 
 ## §跨流程 skill 載入

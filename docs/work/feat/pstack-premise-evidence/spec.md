@@ -14,6 +14,7 @@
 - 同一前提連敗兩次後，流程文字明確要求先寫下並驗證前提，才可再修
 - verify-done 在 T2+ 產出「安全依據」並標證據等級；T3 至少一條到「實跑」，到不了就在 PR body 標 unproven
 - retro 每個 proposal 先判「能否做成機制」，能的話推薦開 issue 而不是寫 memory
+- finish-branch 在每個任務收尾時自動收教訓：有 fail 或 user 糾正才問，候選先判能否做成機制；user 不必記得跑 retro
 - `node scripts/plugin-contract.mjs` 全綠；`pwsh scripts/build-references.ps1 -Check` exit 0
 
 ## 範圍 / Scope
@@ -47,11 +48,13 @@
 | 1 | 1 | `skills/devwork/rules.md`、`skills/dev-workflow/SKILL.md`、`skills/debug-systematic/SKILL.md` | 加「同前提連敗兩次 → 先寫下並驗前提」；fail_history 加 premise | grep「前提」三檔皆命中；契約全綠 |
 | 2 | 2 | `skills/verify-done/SKILL.md`、`skills/finish-branch/SKILL.md` | 加 §安全依據（L1-L5）、state 欄位、PR 模板一行 | grep `safety_facts` 兩檔命中；契約 P10b 仍綠 |
 | 3 | 3 | `skills/retro/SKILL.md` | memory hook 前先判能否做成機制，能則推薦開 issue | grep「機制」命中 §Memory hook 段 |
+| 5 | 5 | `skills/finish-branch/SKILL.md`、`skills/headless-mode/SKILL.md`、`skills/dev-workflow/SKILL.md` | 加 §教訓收集（施工中追加：user 指出自己不跑 retro，教訓得在必經的收尾點收） | grep `finish-branch/lesson` 兩檔命中；契約 P19 綠 |
 | 4 | 4 | 產出檔 | 跑 build-references 重產、跑契約 | `build-references.ps1 -Check` exit 0 且契約全綠 |
 
 ## 施工紀錄
 - 四項對齊檢查：N/A（無前端檔改動）
-- 1-4 列依序完成，每列一個 commit；無執行偏差
+- 1-4 列依序完成，每列一個 commit
+- 偏差：PR 開出後 user 指出不跑 retro，第 3 列對他無效；追加第 5 列，把教訓收集放進每個任務必經的 finish-branch
 - verify：`node scripts/plugin-contract.mjs` ALL PASS；`build-references.ps1 -Check` exit 0
 - review：純文件 diff，跳內建 code-review；spec 自檢四條 Success criteria 皆達成
 - 安全依據：契約腳本守的既有字面（P10b verify-done yaml e2e 行、P19 headless 分流）未被改動，契約實跑全綠（L4）
