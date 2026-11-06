@@ -70,7 +70,8 @@ export function render(name, md, version = pluginVersion()) {
   const { head, body } = frontmatter(strip(md));
   const tl = tools(head);
   const write = tl.some((t) => /^(Write|Edit|NotebookEdit)$/.test(t));
-  const servers = [...new Set(tl.map((t) => (t.match(/^mcp__(.+?)__/) || [])[1]).filter(Boolean))];
+  // mcp__plugin_bstack_<server>__ 是 Claude Code 對 plugin 自帶 MCP 的命名，與 mcp__<server>__ 同一個 server，範本只出一份
+  const servers = [...new Set(tl.map((t) => (t.match(/^mcp__(?:plugin_bstack_)?(.+?)__/) || [])[1]).filter(Boolean))];
   const missing = servers.filter((s) => !MCP_TEMPLATES[s]); if (missing.length) throw new Error(`${name}: 缺 MCP 範本 [${missing}]，先在 MCP_TEMPLATES 加`);
   const mk = field(head, 'model') || 'sonnet'; if (!MODEL[mk]) throw new Error(`${name}: 未知 model "${mk}"，先在 MODEL 加對照`);
   if (body.includes("'''")) throw new Error(`${name}: 本文含 ''' 無法用 literal string`);

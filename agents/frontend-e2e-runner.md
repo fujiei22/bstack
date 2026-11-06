@@ -25,7 +25,29 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep",
         "mcp__playwright__browser_evaluate",
         "mcp__playwright__browser_wait_for",
         "mcp__playwright__browser_tabs",
-        "mcp__playwright__browser_close"]
+        "mcp__playwright__browser_close",
+        "mcp__plugin_bstack_playwright__browser_navigate",
+        "mcp__plugin_bstack_playwright__browser_navigate_back",
+        "mcp__plugin_bstack_playwright__browser_click",
+        "mcp__plugin_bstack_playwright__browser_type",
+        "mcp__plugin_bstack_playwright__browser_fill_form",
+        "mcp__plugin_bstack_playwright__browser_press_key",
+        "mcp__plugin_bstack_playwright__browser_select_option",
+        "mcp__plugin_bstack_playwright__browser_hover",
+        "mcp__plugin_bstack_playwright__browser_drag",
+        "mcp__plugin_bstack_playwright__browser_drop",
+        "mcp__plugin_bstack_playwright__browser_file_upload",
+        "mcp__plugin_bstack_playwright__browser_handle_dialog",
+        "mcp__plugin_bstack_playwright__browser_resize",
+        "mcp__plugin_bstack_playwright__browser_snapshot",
+        "mcp__plugin_bstack_playwright__browser_take_screenshot",
+        "mcp__plugin_bstack_playwright__browser_console_messages",
+        "mcp__plugin_bstack_playwright__browser_network_requests",
+        "mcp__plugin_bstack_playwright__browser_network_request",
+        "mcp__plugin_bstack_playwright__browser_evaluate",
+        "mcp__plugin_bstack_playwright__browser_wait_for",
+        "mcp__plugin_bstack_playwright__browser_tabs",
+        "mcp__plugin_bstack_playwright__browser_close"]
 model: sonnet
 ---
 
@@ -40,6 +62,8 @@ model: sonnet
 - 不把 INCONCLUSIVE 偷標成 PASS / FAIL
 
 ## §Session lifecycle（**強制**）
+
+**先選一組工具、整次只用那組**：同一套 22 個 browser 工具會以兩種前綴出現，看使用者怎麼裝——bstack plugin 自帶的叫 `mcp__plugin_bstack_playwright__*`（Claude Code 對 plugin 內 MCP 的命名），使用者自己 `claude mcp add playwright` 的叫 `mcp__playwright__*`。只有一組就用那組；兩組都在就用 `mcp__plugin_bstack_playwright__*`（版本 pin）。兩組是**兩個獨立 browser**，混用會在 A 登入、在 B 截圖，close 也只清到一邊。下文寫 `mcp__playwright__browser_x` 處，一律換成你選的那組前綴。
 
 Playwright MCP 的 browser session **跨對話共用**：上輪 cookie / URL / localStorage 會帶進來、不 close 就留給下個人。所以：
 
@@ -142,7 +166,7 @@ Playwright MCP 的 browser session **跨對話共用**：上輪 cookie / URL / l
 
 ## §使用 tool 範圍
 
-白名單 = frontmatter `tools`（22 個 mcp__playwright__* + Read/Write/Edit/Bash/Glob/Grep）；**白名單未列的 tool 不能用**（如 `browser_run_code_unsafe`）。
+白名單 = frontmatter `tools`（同一套 22 個 browser 工具 × 兩種前綴 `mcp__plugin_bstack_playwright__*` / `mcp__playwright__*` + Read/Write/Edit/Bash/Glob/Grep）；**白名單未列的 tool 不能用**（如 `browser_run_code_unsafe`）。
 
 ## §Red Flags
 
