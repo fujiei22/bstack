@@ -9,7 +9,7 @@
     2. 清舊副本   呼叫 extras.ps1 -Migrate（舊 setup.ps1 留在 ~/.claude/ 的 skill / hook / CLAUDE.md，搬進備份目錄不刪）
     3. 裝 plugin  問層級：[u] 使用者層級 / [p] 目前專案 / [t] 只印試用指令 / [s] 跳過；
                   marketplace 來源問 [g] GitHub fujiei22/bstack（推薦）/ [l] 本 clone 路徑；
-                  bstack 依賴的兩個第三方 mod（prismantis、filetree）隨 install 自動帶裝；再逐一補裝一次，
+                  bstack 依賴的第三方 mod（prismantis）隨 install 自動帶裝；再逐一補裝一次，
                   讓已裝舊版、更新後缺依賴而 failed to load 的人重跑本腳本就能修好
     4. 個人偏好   呼叫 extras.ps1 選單（statusLine / permissions / env / mcp 逐項選層級，可全跳）
     5. 驗證       claude plugin list 應列出 bstack@bstack；提醒重開 Claude Code 後打 /devwork
@@ -44,7 +44,7 @@ $ProjectRoot = (Get-Location).Path
 try { $top = git rev-parse --show-toplevel 2>$null; if ($LASTEXITCODE -eq 0 -and $top) { $ProjectRoot = $top -replace '/', [IO.Path]::DirectorySeparatorChar } } catch {}
 $GithubRepo = 'fujiei22/bstack'
 # bstack 的 dependencies（.claude-plugin/plugin.json），收錄在 bstack marketplace、鎖 commit
-$Mods = @('prismantis@bstack', 'filetree@bstack')
+$Mods = @('prismantis@bstack')
 $DryRun = [bool]$WhatIfPreference
 # 子行程與印給使用者抄的指令都用「正在跑本腳本的那個 PowerShell」：Windows PowerShell 5.1 → powershell、pwsh 7 → pwsh，
 # 沒裝 pwsh 7 的機器也能一路跑完、照抄提示也跑得起來
