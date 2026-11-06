@@ -49,7 +49,13 @@ bstack 是一套給 coding agent 的開發流程：30 個 skill、6 個 agent、
   claude plugin install prismantis@bstack
   ```
 
-- **從 1.10.0–1.12.0 升上來**：1.13.0 起 bstack 不再依賴 filetree、marketplace 也不再收錄它。已帶裝的 `filetree@bstack` 不會自動移除；不要了就跑 `claude plugin prune`，還想用就改從原作者的 marketplace（`data-goblin/claude-code-filetree`）裝。
+- **從 1.10.0–1.12.0 升上來**：1.13.0 起 bstack 不再依賴 filetree、marketplace 也不再收錄它。已裝的 `filetree@bstack` 不會自動移除，會顯示 `failed to load`；手動補裝過或跑過 `scripts/install.ps1` 的，`claude plugin prune` 清不掉，要直接移除：
+
+  ```
+  claude plugin uninstall filetree@bstack
+  ```
+
+  還想用就改從原作者的 marketplace（`data-goblin/claude-code-filetree`）裝。
 
 - 個人偏好（statusLine、唯讀權限白名單、Agent Teams 開關）可選裝；playwright MCP 隨 plugin 自帶，mysql MCP 含帳密、腳本會印指令範本讓你填：
 
