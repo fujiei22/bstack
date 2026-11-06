@@ -81,7 +81,13 @@ pwsh -File scripts/install.ps1
 
 prismantis 的 `diagramHints` 預設開、每次提示多約 630 token，不要就在 `/plugin` 關掉。
 
-**filetree 已移除（1.13.0）**：1.10.0–1.12.0 也帶裝 `filetree@bstack`（側邊檔案樹），1.13.0 起不再依賴、marketplace 也不收錄。已裝的那份不會自動移除：不要了跑 `claude plugin prune`；還想用就改從原作者的 marketplace（`data-goblin/claude-code-filetree`）裝。
+**filetree 已移除（1.13.0）**：1.10.0–1.12.0 也帶裝 `filetree@bstack`（側邊檔案樹），1.13.0 起不再依賴、marketplace 也不收錄。已裝的那份不會自動移除，更新後顯示 `failed to load: Plugin filetree not found in marketplace bstack`。手動補裝過或跑過 `scripts/install.ps1` 的，它不算自動帶裝，`claude plugin prune` 會回「Nothing to prune」（實測），要直接移除：
+
+```
+claude plugin uninstall filetree@bstack
+```
+
+還想用就改從原作者的 marketplace（`data-goblin/claude-code-filetree`）裝。
 
 **A2. 使用者層級**：不放範本、直接跑上面兩行。Claude Code 會把 plugin 快取在 `~/.claude/plugins/`、在它自己的 settings 記一筆 `enabledPlugins`。這是 Claude Code 的登記機制，`/plugin uninstall bstack@bstack` 可反悔，**不會覆蓋你任何既有設定**。代價：hook 會在你所有專案生效。
 
