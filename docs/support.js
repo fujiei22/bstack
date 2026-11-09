@@ -21,6 +21,24 @@
   ));
 
   // src/parse.ts
+  // bstack patch（2026-11-09，契約 P23 守）：<x-dc> 內可用 <template data-dc-inert>…</template> 包住畫面樣板。
+  // 直接放在 <x-dc> 內時，瀏覽器解析 HTML 會把未填值的 SVG 佔位符（transform="{{ … }}"）當真圖形建立而報 console error；
+  // <template> 內容是惰性的。<helmet> 要留在外面：裡面的 script 必須在解析時就執行。
+  // DOM 路徑（dc.innerHTML）與原始碼路徑（parseDcText）都先經這個函式，行為一致；沒有標記時原樣回傳（向後相容）。
+  // 開頭標籤必須一字不差寫成 <template data-dc-inert>（多空格或多屬性都認不得、整頁會空白）；標記內不得再有 <template>（第一個 </template> 就當它的結尾）。本檔由 dc-runtime 產生，重新產生會蓋掉這段，P23 紅了就補回。
+  function inlineInertTemplates(html) {
+    // 原始碼寫 <template data-dc-inert>；DOM 序列化（dc.innerHTML）會變成 data-dc-inert=""，兩種都認
+    const OPEN = /<template data-dc-inert(?:="")?>/;
+    let out = "", rest = html, m;
+    while ((m = OPEN.exec(rest))) {
+      const body = rest.slice(m.index + m[0].length);
+      const end = body.indexOf("</template>");
+      if (end < 0) return html;
+      out += rest.slice(0, m.index) + body.slice(0, end);
+      rest = body.slice(end + "</template>".length);
+    }
+    return out + rest;
+  }
   function parseDcDocument(doc) {
     const dc = doc.querySelector("x-dc");
     if (!dc) return null;
@@ -29,7 +47,7 @@
       scriptEl?.getAttribute("data-props") ?? null
     );
     return {
-      template: dc.innerHTML,
+      template: inlineInertTemplates(dc.innerHTML),
       js: scriptEl ? scriptEl.textContent || "" : "",
       props,
       preview
@@ -40,7 +58,7 @@
     if (!openMatch) return null;
     const close = src.lastIndexOf("</x-dc>");
     if (close === -1 || close < openMatch.index) return null;
-    const template = src.slice(openMatch.index + openMatch[0].length, close);
+    const template = inlineInertTemplates(src.slice(openMatch.index + openMatch[0].length, close));
     const doc = new DOMParser().parseFromString(src, "text/html");
     const scriptEl = doc.querySelector("script[data-dc-script]");
     const { props, preview } = parseDataProps(

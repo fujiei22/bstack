@@ -14,7 +14,7 @@
  *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 / 表頭 / 錨點、Codex 工具名兩表一致、build-references 內嵌
  *   P17 install-codex.ps1 -WhatIf 冒煙（假 CODEX_HOME、不寫檔）
  *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
- *   P20 多資料庫結構   P21 方案草圖結構   P22 路線級退回結構（皆 2026-11-09 瘦身為只守結構）
+ *   P20 多資料庫結構   P21 方案草圖結構   P22 路線級退回結構（皆 2026-11-09 瘦身為只守結構）   P23 docs 站樣板包 <template>
  *
  * **只守結構**（2026-11-09 user 定）：壞了會機械性出錯、可確定性判斷的才放進來——manifest / 版本 / 檔案存在 / 名稱與計數一致、
  * 產生器 --check、判定器 fixture、執行腳本驗輸出、表格固定欄位值、hand-off 欄位名與 enum、frontmatter 白 / 黑名單、跨檔 id 或 § 標題錨點存在、
@@ -22,7 +22,7 @@
  * 要原樣貼進 prompt 的模板固定句、安全不變式（禁止 AI 做危險動作的清單：禁用的 DB CLI、算寫的語句、merge 永不自動、不帶 --fix；
  * 用逐值清單比對，不只守標題）。測法：「改名或刪掉它，有沒有另一個檔的機械步驟會讀不到或對不上？」有 → 結構，留；
  * 只是 AI 讀到的意思變了 → 語意，不放（同字在別處會假綠、改寫措辭會誤報），交給審查：程式碼 diff 由 code-review 看；純文件（skill / 規則文本）依 request-review §副檔名分流 不跑 code-review，只靠 T2 主 agent 自檢、T3 對齊 subagent 與 review-plan——沒有機械語意檢查，是 user 2026-11-09 接受的取捨。
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22 P23：P7 先算是因為 P4 要用 agentFiles 掃描；
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
  * 在 pwsh 看 exit code 用 $LASTEXITCODE）：
@@ -807,6 +807,34 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、§Codex revi
   if (!gate.includes('review/route-level')) bad.push('分流表 review-plan/gate 列沒指向 review/route-level（無 critical 時 gate 會 A 類自動 accept）');
   check('P22 路線級退回結構：reject_to_route_sketch / triggered_route_sketch 產消兩端與路由、headless review/route-level=B 且 gate 列互指',
     bad.length === 0, bad.join('；'));
+}
+
+// P23：docs 站樣板包在 <template> 裡（2026-11-09）。直接放在 <x-dc> 內，瀏覽器解析 HTML 時會把未填值的 SVG 佔位符
+//      （transform="{{ … }}"）當真圖形建立而報 console error（flow.html 34 筆）；<template> 內容是惰性的、不報錯。
+//      support.js 是 dc-runtime 產生的檔（檔頭 GENERATED、原始碼不在本 repo），重新產生會蓋掉下面兩處修改，這裡紅了就補回。
+{
+  const bad = [];
+  const flow = rd('docs/flow.html');
+  const dcInner = (flow.match(/<x-dc(?:\s[^>]*)?>([\s\S]*?)<\/x-dc>/) || ['', ''])[1];
+  if (!dcInner) bad.push('docs/flow.html 找不到 <x-dc>');
+  const OPEN = '<template data-dc-inert>';
+  const iOpen = dcInner.indexOf(OPEN), iHelmetEnd = dcInner.indexOf('</helmet>');
+  if (iOpen < 0) bad.push('docs/flow.html 的 <x-dc> 內沒有 <template data-dc-inert>');
+  else {
+    if (iHelmetEnd < 0 || iHelmetEnd > iOpen) bad.push('<helmet> 要在 <template data-dc-inert> 之前（裡面的 script 必須解析時就執行）');
+    const inner = dcInner.slice(iOpen + OPEN.length);
+    const iClose = inner.lastIndexOf('</template>');
+    if (iClose < 0 || inner.slice(iClose + '</template>'.length).trim() !== '') bad.push('<template data-dc-inert> 要包到 </x-dc> 前為止');
+    if (/<template[\s>]/.test(inner.slice(0, iClose))) bad.push('<template data-dc-inert> 內不得再有 <template>（runtime 以第一個 </template> 當結尾）');
+  }
+  const sup = rd('docs/support.js');
+  const pdd = (sup.match(/function parseDcDocument\(doc\) \{[\s\S]*?\r?\n  \}/) || [''])[0];
+  const pdt = (sup.match(/function parseDcText\(src\) \{[\s\S]*?\r?\n  \}/) || [''])[0];
+  if (!/function inlineInertTemplates\(/.test(sup)) bad.push('support.js 缺 inlineInertTemplates()');
+  if (!/inlineInertTemplates\(dc\.innerHTML\)/.test(pdd)) bad.push('support.js parseDcDocument 沒經 inlineInertTemplates');
+  if (!/inlineInertTemplates\(src\.slice/.test(pdt)) bad.push('support.js parseDcText 沒經 inlineInertTemplates');
+  check('P23 docs 站樣板包 <template data-dc-inert>：flow.html <helmet> 在外、畫面樣板在內、內無巢狀 template；support.js 兩條讀取路徑都經 inlineInertTemplates',
+    bad.length === 0, bad.join('；') + '（後果：flow 頁回到 34 筆 console error、或 support.js 讀不到樣板整頁空白；改處：docs/flow.html、docs/support.js）');
 }
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
