@@ -14,7 +14,7 @@ description: |
 **載入後立即動作**：
 
 0. **先分流**：state 已有 `tier=T2` 且 `spec_path` 存在、且是 execute-plan / dispatch-parallel / verify-done 退回來補清單 → 直跳 §補施工清單入口，**不跑 Phase 0**。其餘往下。
-1. 進 Phase 0 五子步驟（0a → 0b → 0b′ → 0c → 0d），不跳過。
+1. 進 Phase 0 子步驟（0a → 0b → §方案草圖 → 0b′ → 0c → 0d），不跳過；方案草圖依其條件可記理由後略過。
 2. 0b′／0c／0d 的判定**合併成一個 `AskUserQuestion` 一次確認**（見 §Phase 0c/0d 合併確認）；**禁文字 token NLP 判斷**。
 3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
 3.5 **`design.size=大改` 且第 3 題選了「出三版」** → 此時 branch 已建立、spec 已落檔，**載入 `design-direction`** 走三方向流程；選定後**回寫本檔的「設計方向」段落**（`direction_decided` / `user_choice_quote` / 資產清單），再進第 4 步交棒。
@@ -42,6 +42,24 @@ description: |
 3. 注意既有 pattern / 命名慣例（後續實作對齊）、既有 lint / test / build script（後續 verify 要跑什麼）；既有問題只在**直接影響本 task** 時列入 spec，無關 refactor 不主動納入。
 4. **Track 預判為 Bug 時額外收集**：症狀原文、錯誤訊息 / stack trace、重現步驟、最近一次正常的時間點或 commit，寫進 `state.bug_context` 交給 `debug-systematic` 的 Triage——不在這裡收，Triage 第一步就得回頭再問一次。
 5. **T3 視角判定**：依 rules.md §Tier 機制「視角依改動面向」，從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design。命中幾個派幾個，寫 `state.review_perspectives`。以 0d 定案為準；定案不是 T3、或 Track=Bug → 清掉這欄。
+
+## §方案草圖
+
+**目的**：路線在進流程前定，不在 review 後才改向。改向的代價是整套 spec / plan / review 重來（2026-11-09 PR #103：三次改向，丟掉 18 個 commit 與一輪 T3）。
+
+**觸發**（0b 之後）：有 **≥2 條可行做法**，且在「使用者要做的事 / 長期維護成本 / 對外介面」任一面差異明顯 → 產草圖。
+
+**跳過**：只有一條明顯做法時跳過，例如 bug fix、typo、照既有 pattern 加一項。user 已指定做法時，只有在找不到明顯更便宜的替代（使用者步驟或維護成本少一截）才跳過；有就照樣列出來給 user 比。state 寫 `route_sketch: {skipped: <一句理由>}`，不問。
+
+**做法**：
+1. 列 2–3 條路線，一張表：做法（一句）/ 使用者要做什麼 / 長期維護成本 / 主要風險 / 估計 Tier。**必含一條「最小做法」**（只改規則 / 文件、用現成工具、或不做），讓「要不要背這份維護」在開工前就被問到。不做深入調查，草圖幾分鐘內完成。
+2. 決定路線的關鍵事實不確定（體積、相容性、某工具支不支援）→ 先查一次再放進表；查不到就標「未查證」，不把猜測寫成事實。表裡的數字依 rules.md §白話優先 的底線寫指標與出處。
+3. `AskUserQuestion` 選一條（推薦放第一並附理由；「都不對」由平台附的 `Other` 承接，不另列）。
+4. 選定後 state 寫 `route_sketch: {chosen, rejected: [...]}`；spec 落檔時寫進「## 方案草圖」段。選定的路線決定**範圍**；Tier 仍由 0d 依其規則判（含 File-type 硬規則自動升級），草圖裡的「估計 Tier」只供比較路線。
+
+headless 時 → B 類 `brainstorm/route-sketch`：路線是高成本決定，留言列路線表、結束本輪等人選（`headless-mode`）。
+
+**本階段只問不寫檔**（仍在主分支，同 0b′）。
 
 ## §Phase 0b′ — UI 面判定
 
@@ -136,6 +154,9 @@ T0 / T1 / T2 / T3。Heuristic：
 **包含**：...
 **排除**（明寫避免 scope creep）：...
 
+## 方案草圖
+<!-- §方案草圖 跑過才寫：選定路線 + 被放棄的路線各一行（做法 / 放棄理由）；略過時寫一句理由 -->
+
 ## 影響檔案 / Codebase impact
 | 檔 / 模組 | 改動類型 | 風險 |
 |---|---|---|
@@ -204,6 +225,7 @@ state:
   spec_path: docs/work/<branch-name>/spec.md
   plan_path: <docs/work/<branch-name>/plan.md | null>   # T1 / T2 為 null；T3 由 write-plan 填
   review_perspectives: [Eng, DX, Design]                 # T3 才有；0b 第 5 點依改動面向判
+  route_sketch: {chosen: <路線>, rejected: [...]} | {skipped: <理由>}   # §方案草圖
   codebase_impact:
     files: [...]
     modules: [...]

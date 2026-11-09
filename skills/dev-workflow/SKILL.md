@@ -19,12 +19,14 @@ description: |
 
 ## §Phase 0 入口分流
 
-brainstorm 內建；結尾產出 `{Track, Tier, spec, codebase-impact, design}` 五元組 feed 後續 Phase。
+brainstorm 內建；結尾產出 `{Track, Tier, spec, codebase-impact, design, route_sketch}` 六元組 feed 後續 Phase。
 
 ```
 0a 對話釐清    ← paraphrase + 讀 memory（user 偏好 / 領域 / 過去決策）
    ↓
 0b 看 codebase ← Read / Grep 影響檔；DB 關鍵詞 → 載 db-access
+   ↓
+方案草圖       ← ≥2 條做法且成本差異明顯 → 路線表、user 選一條；只有一條明顯做法 → 記理由略過
    ↓
 0b′ UI 面判定  ← 比對前端副檔名，命中才載 design-language；產出 design.* 六欄
    ↓
