@@ -38,7 +38,7 @@ description: |
 **目的**：估改動範圍、發現潛在連動。估到能評 tier 即可，不需 100% 看完。
 
 1. `Glob` / `Grep` 列出可能改動的檔（檔名 + 模組 + 大概行數）。
-2. **若 prompt / 0a 敘述含 DB 關鍵詞**（DB / SQL / mysql / schema / table / 表 / 欄位 / migration / SELECT / INSERT / UPDATE / DELETE / DDL）→ **載入 `db-access` skill**、依其指示查 schema。
+2. **若 prompt / 0a 敘述含 DB 關鍵詞**（DB / SQL / mysql / mariadb / postgres / postgresql / sqlite / sql server / mssql / oracle / schema / table / 表 / 欄位 / migration / SELECT / INSERT / UPDATE / DELETE / DDL）→ **載入 `db-access` skill**、依其指示查 schema。
 3. 注意既有 pattern / 命名慣例（後續實作對齊）、既有 lint / test / build script（後續 verify 要跑什麼）；既有問題只在**直接影響本 task** 時列入 spec，無關 refactor 不主動納入。
 4. **Track 預判為 Bug 時額外收集**：症狀原文、錯誤訊息 / stack trace、重現步驟、最近一次正常的時間點或 commit，寫進 `state.bug_context` 交給 `debug-systematic` 的 Triage——不在這裡收，Triage 第一步就得回頭再問一次。
 5. **T3 視角判定**：依 rules.md §Tier 機制「視角依改動面向」，從 `codebase_impact` 判命中哪些面向——機械可驗（regex / 資料檔 / 契約 / 測試）→ Eng（下限）；有人要讀（規則 / prompt / 文案 / README）→ DX；跨模組兩端契約或對外介面（UI / API / 流程圖 / hand-off state）→ Design。命中幾個派幾個，寫 `state.review_perspectives`。以 0d 定案為準；定案不是 T3、或 Track=Bug → 清掉這欄。

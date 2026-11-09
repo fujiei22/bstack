@@ -31,7 +31,7 @@ bstack 不附 DB MCP，DB 查詢工具是使用者自己裝的，名稱不固定
    - mysql MCP 的 `mcp__mysql__mysql_query`
    - DBHub 的 `mcp__<server>__execute_sql`
    - PostgreSQL 類的 `mcp__<server>__query`
-2. 有多個候選 → 選與 §使用契約 第 0 步方言相符的那個；仍無法判斷 → 問 user（`AskUserQuestion`）。
+2. 有多個候選 → 選與 §使用契約 第 0 步方言相符的那個；仍無法判斷 → 問 user（`AskUserQuestion`）；headless 時當不在，走 `db-access/tool-missing`。
 3. 看不出是不是 DB 查詢工具（例如只有通用的檔案或 HTTP 工具）→ 當不在，走 §工具不在。**不得**拿非 DB 工具湊。
 
 ## 模式
