@@ -1,4 +1,4 @@
-# brainstorm 加方案草圖、選項數字標來源、互動指令另開視窗
+# brainstorm 加方案草圖、數字寫指標與出處、互動指令另開視窗
 > Track: Dev | Tier: T2 | 建立: 2026-11-09
 
 ## 動機 / Why
@@ -16,7 +16,7 @@
   - 觸發條件：有 ≥2 條可行做法，且在「使用者要做的事 / 長期維護成本 / 對外介面」任一面差異明顯。
   - 產出：2–3 條路線的表格，欄位是「做法、使用者要做什麼、長期維護成本、主要風險、估計 Tier」，用 `AskUserQuestion` 選一條。
   - 選定路線與被放棄的路線寫進 spec「## 方案草圖」。
-  - 只有一條明顯做法時跳過（bug fix、typo、照既有 pattern 加一項、user 已指定做法），state 記一句跳過理由。
+  - 只有一條明顯做法時跳過（bug fix、typo、照既有 pattern 加一項；user 已指定做法時，只有找不到明顯更便宜的替代才跳過），state 記一句跳過理由。
   - 決定路線的關鍵事實不確定 → 先查一次再問，不把猜測放進選項。
   - headless：B 類 `brainstorm/route-sketch`，留言列路線表、等人選（code-review 後由 A 改 B）。
   - 路線表必含一條「最小做法」；user 已指定做法但有明顯更便宜的替代時，仍要列出來（審查後加）。
@@ -57,9 +57,9 @@
 ## 施工清單
 | # | group | 檔（可多個） | 做什麼 | 怎麼驗 |
 |---|---|---|---|---|
-| 1 | 1 | `scripts/plugin-contract.mjs` | 新增 P21：brainstorm 有 `## §方案草圖`、觸發與跳過條件、`brainstorm/route-sketch`、spec 模板有 `## 方案草圖`；headless 分流表該列類別為 `A`；rules.md §決策點選單 含「實測 / 文件 / 推估」；rules.md 有 `§交給 user 跑的指令` 且含「另開」與 `!` 前綴說明 | `node scripts/plugin-contract.mjs` → P21 FAIL（紅） |
+| 1 | 1 | `scripts/plugin-contract.mjs` | 新增 P21：brainstorm 有 `## §方案草圖`、觸發與跳過條件、`brainstorm/route-sketch`、spec 模板有 `## 方案草圖`；headless 分流表該列類別為 `A`（後改 `B`）；rules.md §決策點選單 含「實測 / 文件 / 推估」（審查後改為守 §白話優先 的「量的是什麼指標」）；rules.md 有 `§交給 user 跑的指令` 且含「另開」與 `!` 前綴說明 | `node scripts/plugin-contract.mjs` → P21 FAIL（紅） |
 | 2 | 2 | `skills/brainstorm/SKILL.md`、`skills/headless-mode/SKILL.md`、`skills/dev-workflow/SKILL.md` | 加 §方案草圖、spec 模板段、使用契約步驟、state 欄位 `route_sketch`；分流表一列；流程圖加一格 | P21 brainstorm / headless 項綠、P19 綠 |
-| 3 | 3 | `skills/devwork/rules.md` | §決策點選單 數字標來源；新增 §交給 user 跑的指令 | P21 全綠、既有 rules.md 契約（P6 等）綠 |
+| 3 | 3 | `skills/devwork/rules.md` | §決策點選單 數字標來源（審查後改為 §白話優先 底線寫指標與出處）；新增 §交給 user 跑的指令 | P21 全綠、既有 rules.md 契約（P6 等）綠 |
 | 4 | 4 | `docs/js/references-data.js`、三處版本號 | 重產 references、升 1.15.0 | `build-references -Check` 綠、契約 ALL PASS、`gen-codex-agents --check` 綠 |
 | 5 | 5 | （實測） | `claude -p --plugin-dir .` 丟一個有兩條明顯路線的需求，看 brainstorm 是否產草圖；丟一個 typo 修正，看是否跳過 | 輸出摘要寫進施工紀錄 |
 
