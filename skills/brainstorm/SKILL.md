@@ -13,7 +13,7 @@ description: |
 
 **載入後立即動作**：
 
-0. **先分流**：state 已有 `tier=T2` 且 `spec_path` 存在、且是 execute-plan / dispatch-parallel / verify-done 退回來補清單 → 直跳 §補施工清單入口，**不跑 Phase 0**。其餘往下。
+0. **先分流**：state 已有 `tier=T2` 且 `spec_path` 存在、且是 execute-plan / dispatch-parallel / verify-done 退回來補清單 → 直跳 §補施工清單入口，**不跑 Phase 0**。從 review 退回（`review_user_action: reject_to_route_sketch` 或 `triggered_route_sketch`）→ 直跳 §方案草圖 的「從 review 退回」，不重跑 0a / 0b、不另開 branch。其餘往下。
 1. 進 Phase 0 子步驟（0a → 0b → §方案草圖 → 0b′ → 0c → 0d），不跳過；方案草圖依其條件可記理由後略過。
 2. 0b′／0c／0d 的判定**合併成一個 `AskUserQuestion` 一次確認**（見 §Phase 0c/0d 合併確認）；**禁文字 token NLP 判斷**。
 3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
@@ -61,7 +61,11 @@ headless 時 → B 類 `brainstorm/route-sketch`：路線是高成本決定，�
 
 **從 review 退回**（review-plan 或 receive-review 的路線級 finding 選了退回）：
 - 忽略上面的跳過條件，必產草圖；原路線列為 rejected，放棄理由就是那幾條路線級 finding（原本是 `{skipped}` 的改寫成 `{chosen, rejected}`）。
-- 沿用目前 branch，不另開；spec 依新路線改寫，原路線摘要移到「## 方案草圖」的放棄理由；舊 plan.md / review.md 刪掉重寫（git 歷史保留）。
+- 沿用目前 branch，不另開；spec 依新路線改寫，原路線摘要移到「## 方案草圖」的放棄理由。
+- 舊路線的文件與程式碼要刪或還原，屬 rules.md §Auto-fix 危險類（檔案刪除），一次 `AskUserQuestion` 問處置：
+  1. 從 main 重開新 branch 做新路線，舊 branch 留著參考（推薦；已有實作 commit 時尤其如此）
+  2. 在本 branch `git revert` 舊路線的實作 commit、刪舊 plan.md / review.md（git 歷史保留）
+- 重選後重判 Tier（照 0d）：仍是 T3 → 重寫 plan、重跑 review-plan；降為 T2 → plan.md 只刪不重寫，改在 spec 寫 `## 施工清單`。
 - branch 名若只描述舊路線，在 finish-branch 前問 user 要不要 `git branch -m` 改名。
 
 **本階段只問不寫檔**（仍在主分支，同 0b′；從 review 退回時已在 feature branch，照上一段處理）。

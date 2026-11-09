@@ -118,7 +118,7 @@ dev-workflow 產出文件**全落** `docs/work/<branch-name>/`；不再用 `docs
 ### §Tier 機制
 | Tier | 量體 | brainstorm | plan | TDD | review | security | pr-explain |
 |---|---|---|---|---|---|---|---|
-| **T0** | 1 行 / typo / 設定 | 跳 | 跳 | 跳 | 跳 | 跳 | 跳 |
+| **T0** | 1 行 / typo / 設定 | 只到 0d 判定 + 合併確認，不寫 spec | 跳 | 跳 | 跳 | 跳 | 跳 |
 | **T1** | ≤2 檔 / 單模組小改 | 對話釐清 | 跳 | 1-2 關鍵測試 | self | 跳 | 跳 |
 | **T2** | 3-10 檔 / 單模組 feature | 完整 | 施工清單（spec 內、≤8 列；不寫 plan.md、不跑 review-plan） | 紅綠循環 | 內建 `/code-review medium`（Codex：reviewer subagent，見 hosts.md §程式碼審查）+ 主 agent 對 spec 自檢；純文件 diff 跳 code-review、自檢照做 | 涉認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII 才 audit | 跳（PR body 已含 why / what / test） |
 | **T3** | >10 檔 / 跨模組 / 架構 / DB schema | 完整 | plan.md + review-plan（視角依改動面向 1-3） | 紅綠、80% 目標 | 內建 `/code-review high`（Codex：reviewer subagent，見 hosts.md §程式碼審查）+ 1 個 spec / 架構對齊 subagent（附語言 idiom）；純文件 diff 跳 code-review、對齊 subagent 照派 | audit + checklist + db-reviewer；純文件 diff（request-review 判 `code_review_applicable=false`）且無 File-type 硬規則命中 → 跳 audit 與 checklist | 用 |

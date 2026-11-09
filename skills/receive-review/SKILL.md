@@ -10,7 +10,7 @@ description: |
 ## 使用契約（強制）
 
 1. **讀 hand-off state** 取 `review_summary_path`、`tier`、`critical_count`、`major_count`。
-2. **掃 finding 分類**：依 rules.md §Auto-fix 表分「不危險類」與「危險類」。
+2. **掃 finding 分類**：**先判路線級 finding**（判準同 `review-plan` §User gate，含加總情況；有 → 走 §特殊狀況 的路線級選單，這批 finding 不進 auto-fix）；其餘依 rules.md §Auto-fix 表分「不危險類」與「危險類」。
 3. **不危險類** → 主 agent 直接 fix、commit、把 diff 給 user 看。
 4. **危險類** → `AskUserQuestion` 問 user 該不該修、怎麼修。headless 時 → B 類 `receive-review/danger-fix`（`headless-mode`）。
 5. **T3 全程**：即使「不危險類」也要 user 看 diff 才 commit（不強制 prompt、但顯式）。headless 時直接 commit（仍是一顆 commit），不落 diff 檔，PR body 列 fix commit 的 sha（PR 本身就有 diff）。

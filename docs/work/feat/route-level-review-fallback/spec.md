@@ -64,3 +64,11 @@ PR #105 的外部審查列了三個後續問題，user 決定直接修：
   - headless key 改名 `review/route-level`，並在 `review-plan/gate` 列寫明優先序；
   - brainstorm 加「從 review 退回」重入規則（必產草圖、沿用 branch、舊 plan / review 重寫、branch 改名問 user）與「不做」的處理；
   - receive-review 清單斷行修正；P22 加強（hand-off enum、下一 phase、gate 優先序、重入規則）。
+- 外部審查（session-team worker，唯讀）：需修改後 merge。修改全收：
+  - 判準補「加總也算」，reviewer prompt 要求標 `[路線級]`；
+  - receive-review 第 2 步改為先判路線級、再分 auto-fix；headless 優先於 safe-fix；
+  - brainstorm 第 0 步加重入分流；「從 review 退回」補舊實作的處置（AskUserQuestion：從 main 重開 / revert）與 Tier 降為 T2 時 plan.md 只刪不重寫；
+  - 順手修 rules.md §Tier 表 T0 的 brainstorm 欄（改為「只到 0d 判定 + 合併確認，不寫 spec」）。
+- 路線級實測：把 #103 第二輪路線（設定小工具）當時的 spec 與三視角 review 原文（`git show 31789c6` / `fb69420`）放進獨立目錄，用本 branch 的 plugin 副本跑 review-plan §User gate。
+  - 判出**選單 B**，推薦「退回 §方案草圖 重選路線」，列出四條路線級 finding，並指出啟動器方案等於換掉 spec 的核心設計。
+  - **限度**：「加總也算」的例子引用的正是 #103 這個形狀，測試與例子高度重疊。能證明規則會被讀懂並套用，不能證明形狀不同的案例也判得出來；仍是 N=1。
