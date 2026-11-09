@@ -932,14 +932,20 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   const step2 = (dw.match(/^2\. \*\*判斷 `\/devwork` 後面的文字\*\*[\s\S]*?(?=^3\. )/m) || [''])[0];
   for (const w of ['一律', '入口不判 Tier']) if (!step2.includes(w)) bad.push(`devwork 第 2 步缺「${w}」`);
   const rp = rd('skills/review-plan/SKILL.md');
-  for (const w of ['路線級 finding', '退回 brainstorm §方案草圖', 'review-plan/route-level']) if (!rp.includes(w)) bad.push(`review-plan 缺「${w}」`);
+  for (const w of ['路線級 finding', '退回 brainstorm §方案草圖', 'review/route-level', '選單 B', '依選項內容執行', 'reject_to_route_sketch']) if (!rp.includes(w)) bad.push(`review-plan 缺「${w}」`);
+  if (!/review_user_action: <[^>]*reject_to_route_sketch/.test(rp)) bad.push('review-plan hand-off review_user_action 缺 reject_to_route_sketch');
   const rr = rd('skills/receive-review/SKILL.md');
-  for (const w of ['路線級 finding', '§方案草圖']) if (!rr.includes(w)) bad.push(`receive-review 缺「${w}」`);
+  for (const w of ['路線級 finding', '§方案草圖', 'review/route-level', 'triggered_route_sketch: bool']) if (!rr.includes(w)) bad.push(`receive-review 缺「${w}」`);
+  if (!/下一 phase\*\*：`triggered_route_sketch`/.test(rr)) bad.push('receive-review 下一 phase 沒處理 triggered_route_sketch');
   const sk = (rd('skills/brainstorm/SKILL.md').split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
-  if (!sk.includes('為什麼值得背這份維護')) bad.push('brainstorm §方案草圖 缺「為什麼值得背這份維護」');
-  const row = rd('skills/headless-mode/SKILL.md').split('\n').find((l) => l.startsWith('| `review-plan/route-level`')) || '';
-  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 review-plan/route-level 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
-  check('P22 devwork 入口不判 Tier、review-plan / receive-review 路線級 finding 退回 §方案草圖、headless review-plan/route-level=B、草圖非最小推薦附理由',
+  for (const w of ['為什麼值得背這份維護', '**從 review 退回**', '忽略上面的跳過條件', '不自己決定不做']) if (!sk.includes(w)) bad.push(`brainstorm §方案草圖 缺「${w}」`);
+  const hmLines = rd('skills/headless-mode/SKILL.md').split('\n');
+  const row = hmLines.find((l) => l.startsWith('| `review/route-level`')) || '';
+  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 review/route-level 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
+  // 優先序要寫在 headless 讀的表裡，不能只寫在 review-plan 的散文（無 critical 時 gate 會 A 類自動 accept）
+  const gate = hmLines.find((l) => l.startsWith('| `review-plan/gate`')) || '';
+  if (!gate.includes('review/route-level')) bad.push('headless review-plan/gate 列沒寫「有路線級 finding 改走 review/route-level」');
+  check('P22 devwork 入口不判 Tier、review-plan / receive-review 路線級 finding 退回 §方案草圖、headless review/route-level=B 且優先於 gate、草圖非最小推薦附理由',
     bad.length === 0, bad.join('；'));
 }
 

@@ -44,7 +44,7 @@ PR #105 的外部審查列了三個後續問題，user 決定直接修：
 ## 施工清單
 | # | group | 檔（可多個） | 做什麼 | 怎麼驗 |
 |---|---|---|---|---|
-| 1 | 1 | `scripts/plugin-contract.mjs` | 新增 P22：devwork 第 2 步含「一律」「入口不判 Tier」；review-plan 有「路線級 finding」判準與退回 §方案草圖的推薦；receive-review 有路線級處置；brainstorm §方案草圖 含「為什麼值得背這份維護」；headless 分流表有 `review-plan/route-level`（B） | `node scripts/plugin-contract.mjs` → P22 FAIL（紅） |
+| 1 | 1 | `scripts/plugin-contract.mjs` | 新增 P22：devwork 第 2 步含「一律」「入口不判 Tier」；review-plan 有「路線級 finding」判準與退回 §方案草圖的推薦；receive-review 有路線級處置；brainstorm §方案草圖 含「為什麼值得背這份維護」；headless 分流表有 `review/route-level`（B，code-review 後由 review-plan/route-level 改名） | `node scripts/plugin-contract.mjs` → P22 FAIL（紅） |
 | 2 | 2 | `skills/devwork/SKILL.md`、`skills/brainstorm/SKILL.md` | 入口不判 T0；非最小推薦附理由 | P22 對應項綠 |
 | 3 | 3 | `skills/review-plan/SKILL.md`、`skills/receive-review/SKILL.md`、`skills/headless-mode/SKILL.md` | 路線級 finding 判準、gate 推薦、headless 分流 | P22 全綠、P19 綠 |
 | 4 | 4 | references 重產、三處版本號 | 升 1.16.0 | 契約 ALL PASS、`build-references -Check`、`gen-codex-agents --check` 綠 |
@@ -58,3 +58,9 @@ PR #105 的外部審查列了三個後續問題，user 決定直接修：
   - 「README 補括號」這次依序載入 dev-workflow → brainstorm（→ db-access），在 0d 判 T0，並與 branch、內容問題一起停下等確認；沒改任何檔。
   - 對照 PR #105 實測時，同一需求是入口直接判 T0 並改檔。
   - 它另外發現括號少了 MariaDB，與 db-access 不一致，屬額外收穫，不在本 PR 範圍。
+- code-review medium 9 項全收（一顆 fix commit）：
+  - receive-review 路線級加專屬選單、`triggered_route_sketch` 與下一 phase 路由；
+  - review-plan 拆成選單 A / B、依選項內容執行；
+  - headless key 改名 `review/route-level`，並在 `review-plan/gate` 列寫明優先序；
+  - brainstorm 加「從 review 退回」重入規則（必產草圖、沿用 branch、舊 plan / review 重寫、branch 改名問 user）與「不做」的處理；
+  - receive-review 清單斷行修正；P22 加強（hand-off enum、下一 phase、gate 優先序、重入規則）。

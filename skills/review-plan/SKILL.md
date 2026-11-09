@@ -103,9 +103,9 @@ prompt 結尾固定附這一句（`headless-mode` §子 agent 約束，互動模
 
 **先判有沒有路線級 finding**：問題不在 plan 怎麼寫，而在「這條路本身」。也就是維護負擔、使用者要做的步驟、對外介面或安全模型，在這條路上無解，或代價明顯高於 §方案草圖 當時的估計。例：要求使用者輸入的密碼會出現在命令列、每次升版每個專案都要重做、某個 host 根本不支援。
 
-有路線級 finding → 選單照下面列，但**推薦改為選項 5**，題目寫出是哪幾條 finding 讓 user 判斷是否真到路線級。只在原路線上修 plan，等於把高成本決定延後到施工後才爆（2026-11-09 PR #103：三視角 review 挖出路線級問題，卻先被當成 plan 修正項，之後仍改向）。headless 時 → B 類 `review-plan/route-level`（`headless-mode`）。
+有路線級 finding → 用下面的**選單 B**（推薦放第一），題目寫出是哪幾條 finding 讓 user 判斷是否真到路線級；沒有 → 用選單 A。只在原路線上修 plan，等於把高成本決定延後到施工後才爆（2026-11-09 PR #103：三視角 review 挖出路線級問題，卻先被當成 plan 修正項，之後仍改向）。headless 時 → B 類 `review/route-level`（`headless-mode`；優先於 `review-plan/gate`）。
 
-整合完畢，`AskUserQuestion`：
+整合完畢，`AskUserQuestion`（選單 A，沒有路線級 finding）：
 
 ```
 問：Plan review 完成。下一步？
@@ -118,12 +118,27 @@ prompt 結尾固定附這一句（`headless-mode` §子 agent 約束，互動模
      — review 揭示 plan 結構性問題
   4. 退回 brainstorm 重釐清需求
      — review 揭示需求理解就錯
-  5. 退回 brainstorm §方案草圖 重選路線（有路線級 finding 時推薦，搬到第一個）
-     — 需求沒錯，是這條路的代價不划算；把 finding 帶回草圖，與最小做法重新比較
 ```
 
-選 1 → 主 agent 改 plan、commit、`AskUserQuestion` 再確認改完的版本 OK → 進 execute-plan；選 2 → 直接進 execute-plan，state 記錄 user override
-選 3 → 退 write-plan、state 加 `review_findings`；選 4 → 退 brainstorm、state reset 部份欄位；選 5 → 退 brainstorm §方案草圖，路線級 finding 寫進 `route_sketch.rejected` 的放棄理由，重新比較後走完 Phase 0
+選單 B（有路線級 finding）：
+
+```
+問：Plan review 抓到路線級問題：<列 finding>。下一步？
+選項：
+  1. 退回 brainstorm §方案草圖 重選路線（推薦）
+     — 需求沒錯，是這條路的代價不划算；把 finding 帶回草圖，與最小做法重新比較
+  2. 修 plan 後進 execute-plan
+     — 你判斷這些問題在原路線上修得掉
+  3. 退回 brainstorm 重釐清需求
+     — review 揭示需求理解就錯
+```
+
+**依選項內容執行，不依編號**（兩份選單編號不同）：
+- 修 plan → 主 agent 改 plan、commit、`AskUserQuestion` 再確認改完的版本 OK → 進 execute-plan
+- 直接進 execute-plan → state 記錄 user override
+- 退回 write-plan → state 加 `review_findings`
+- 退回 brainstorm 重釐清 → state reset 部份欄位
+- 退回 §方案草圖 → `review_user_action: reject_to_route_sketch`，路線級 finding 交給 brainstorm §方案草圖「從 review 退回」處理
 
 ## §hand-off state
 
