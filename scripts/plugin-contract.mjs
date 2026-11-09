@@ -15,8 +15,9 @@
  *   P17 install-codex.ps1 -WhatIf 冒煙（假 CODEX_HOME、不寫檔）
  *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
  *   P20 規則支援多種資料庫、認使用者自裝的 DB 工具
+ *   P21 brainstorm 方案草圖、選項數字標來源、互動指令另開視窗
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21：P7 先算是因為 P4 要用 agentFiles 掃描；
  * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -893,6 +894,30 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   if (rd('docs/js/data.js').includes('mcp__mysql 唯讀')) bad.push('docs/js/data.js 規則卡仍寫 mcp__mysql 唯讀');
 
   check('P20 規則支援多種資料庫：rules §DB 操作不綁單一工具、db-access 五方言庫名 / TOP / FETCH FIRST / 工具不在、headless 兩列類別、brainstorm 關鍵詞、hosts 指向、db-reviewer 無白名單 + 禁寫檔 + 未查 + 方言、讀的界線白名單、庫名比對基準、security-audit 不貼原文、install.md 唯讀提醒',
+    bad.length === 0, bad.join('；'));
+}
+
+// P21：brainstorm 方案草圖、選項數字標來源、互動指令另開視窗（2026-11-09，PR #103 的三個流程教訓）。
+// 守：brainstorm 有 §方案草圖（觸發 / 跳過條件、headless id、spec 模板段）；分流表該列是 A；
+// rules.md §決策點選單 有數字來源三分類；rules.md 有 §交給 user 跑的指令（另開視窗、! 前綴）。
+{
+  const bad = [];
+  const bs = rd('skills/brainstorm/SKILL.md');
+  const sk = (bs.split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
+  if (!sk) bad.push('brainstorm 缺 ## §方案草圖');
+  for (const w of ['≥2', '跳過', 'brainstorm/route-sketch', 'route_sketch', '長期維護成本']) if (!sk.includes(w)) bad.push(`§方案草圖缺「${w}」`);
+  if (!/^## 方案草圖$/m.test(bs)) bad.push('brainstorm spec 模板缺「## 方案草圖」段');
+  const hm = rd('skills/headless-mode/SKILL.md');
+  const row = hm.split('\n').find((l) => l.startsWith('| `brainstorm/route-sketch`')) || '';
+  if ((row.split('|')[3] || '').trim() !== 'A') bad.push(`headless 分流表 brainstorm/route-sketch 類別應為 A，實際「${(row.split('|')[3] || '').trim()}」`);
+  const rules = rd('skills/devwork/rules.md');
+  const pick = (head) => { const i = rules.indexOf(head); if (i < 0) return ''; const r = rules.slice(i + head.length); const j = r.search(/\n#{2,3} /); return j < 0 ? r : r.slice(0, j); };
+  const menu = pick('### §決策點選單');
+  for (const w of ['實測', '文件', '推估']) if (!menu.includes(w)) bad.push(`rules.md §決策點選單 缺數字來源「${w}」`);
+  const cmd = pick('### §交給 user 跑的指令');
+  if (!cmd) bad.push('rules.md 缺 ### §交給 user 跑的指令');
+  for (const w of ['另開', '`!`', '密碼']) if (cmd && !cmd.includes(w)) bad.push(`§交給 user 跑的指令 缺「${w}」`);
+  check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=A、rules §決策點選單 數字標來源、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
     bad.length === 0, bad.join('；'));
 }
 
