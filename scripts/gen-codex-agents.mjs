@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * agents/<name>.md → codex/agents/<name>.toml（Codex custom agent）。改 md 後重跑；--check 只比對不寫檔。
- * 全部從 frontmatter 推導、不另維護清單：tools 含 Write / Edit / NotebookEdit → workspace-write，否則 read-only；
+ * 全部從 frontmatter 推導、不另維護清單：有 tools → 含 Write / Edit / NotebookEdit 才 workspace-write；
+ * 沒 tools（繼承全部工具）→ disallowedTools 把三個寫檔工具都禁掉才 read-only，否則 workspace-write；
  * tools 內 mcp__<server>__ 前綴 → 需要的 MCP server，對照 MCP_TEMPLATES（缺對照 exit 1）；model 對照 MODEL（缺 exit 1）。
  * developer_instructions 用 TOML literal string '''…'''（不處理跳脫，Windows 路徑 / regex 安全）；本文含 ''' 就 exit 1。
  * 產物檔頭帶 plugin 版本戳（讀 .codex-plugin/plugin.json）：版本升了 --check 就紅，逼人重產、安裝腳本才會複製新版。
@@ -15,7 +16,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MODEL = { sonnet: 'gpt-5.6-terra', opus: 'gpt-5.6-sol', haiku: 'gpt-5.6-luna' };
 // server 名必須與 agent 的 mcp__<server>__ 一致；整段註解輸出，使用者取消註解並填自己的 command
 const MCP_TEMPLATES = {
-  mysql: ['# [mcp_servers.mysql]', '# command = "npx"', '# args = ["-y", "<你的 mysql MCP 套件>"]', '# # 工具名必須是 mcp__mysql__mysql_query；server 名恰為 mysql 才對得上 agent 的 tools'],
+  // DB 查詢工具不在這裡：db-reviewer 不設 tools 白名單、繼承使用者自己裝的 DB MCP（2026-11-09），不需要範本
   playwright: ['# [mcp_servers.playwright]', '# command = "npx"', '# args = ["-y", "@playwright/mcp@0.0.68"]', '# # 版本 pin 到 2026-09-09 實測；server 名恰為 playwright'],
 };
 const strip = (t) => t.replace(/^﻿/, '').replace(/\r\n/g, '\n');
@@ -39,22 +40,24 @@ function description(h) {
   return single;
 }
 /**
- * tools：三種寫法都認——JSON 陣列 `tools: ["Read", "Grep"]`、逗號 `tools: Read, Grep`、YAML 清單（`- Read` 逐行）。
- * 有 `tools:` 這個 key 卻解析不到任何名字 → throw：靜默變 read-only 又沒 MCP 範本比直接失敗糟。
+ * tools / disallowedTools：三種寫法都認——JSON 陣列 `tools: ["Read", "Grep"]`、逗號 `tools: Read, Grep`、YAML 清單（`- Read` 逐行）。
+ * 有這個 key 卻解析不到任何名字 → throw：靜默推導錯 sandbox 比直接失敗糟。
+ * @param {string} h frontmatter
+ * @param {string} key 'tools' 或 'disallowedTools'
  */
-function tools(h) {
-  const arr = h.match(/^tools:[ \t]*(\[[\s\S]*?\])/m);
+function tools(h, key = 'tools') {
+  const arr = h.match(new RegExp(`^${key}:[ \\t]*(\\[[\\s\\S]*?\\])`, 'm'));
   let names = [];
   if (arr) names = [...arr[1].matchAll(/"([^"]+)"|'([^']+)'/g)].map((x) => x[1] || x[2]);
   else {
-    const line = field(h, 'tools');
+    const line = field(h, key);
     if (line) names = line.split(',').map((s) => s.trim()).filter(Boolean);
     else {
-      const list = h.match(/^tools:[ \t]*\n((?:[ \t]*-[ \t]*.+\n?)+)/m);
+      const list = h.match(new RegExp(`^${key}:[ \\t]*\\n((?:[ \\t]*-[ \\t]*.+\\n?)+)`, 'm'));
       if (list) names = list[1].split('\n').map((l) => l.replace(/^[ \t]*-[ \t]*/, '').trim()).filter(Boolean);
     }
   }
-  if (/^tools:/m.test(h) && !names.length) throw new Error('tools: 有這個 key 卻解析不到任何工具名（認 JSON 陣列 / 逗號 / YAML 清單）');
+  if (new RegExp(`^${key}:`, 'm').test(h) && !names.length) throw new Error(`${key}: 有這個 key 卻解析不到任何工具名（認 JSON 陣列 / 逗號 / YAML 清單）`);
   return names;
 }
 const q = (s) => JSON.stringify(s);
@@ -63,13 +66,15 @@ function pluginVersion() { try { return JSON.parse(readFileSync(join(REPO, '.cod
 }
 /**
  * 一個 agent md → TOML 字串（純函式，契約 P15 直接 import 測）。
- * 推導：tools 含 Write / Edit / NotebookEdit → workspace-write；mcp__<server>__ 前綴（server 名到下一個 __ 為止，可含底線）→ MCP 範本註解。
+ * 推導：有 tools → 含 Write / Edit / NotebookEdit 才 workspace-write；沒 tools → disallowedTools 禁光三個寫檔工具才 read-only；mcp__<server>__ 前綴（server 名到下一個 __ 為止，可含底線）→ MCP 範本註解。
  * throw 的三種情況：缺 MCP 範本、未知 model、本文含 '''。
  */
 export function render(name, md, version = pluginVersion()) {
   const { head, body } = frontmatter(strip(md));
   const tl = tools(head);
-  const write = tl.some((t) => /^(Write|Edit|NotebookEdit)$/.test(t));
+  const WRITERS = ['Write', 'Edit', 'NotebookEdit'];
+  // 沒 tools 白名單 = 繼承全部工具（含寫檔），只有黑名單把三個寫檔工具都禁掉才算唯讀
+  const write = /^tools:/m.test(head) ? tl.some((t) => WRITERS.includes(t)) : !WRITERS.every((t) => tools(head, 'disallowedTools').includes(t));
   // mcp__plugin_bstack_<server>__ 是 Claude Code 對 plugin 自帶 MCP 的命名，與 mcp__<server>__ 同一個 server，範本只出一份
   const servers = [...new Set(tl.map((t) => (t.match(/^mcp__(?:plugin_bstack_)?(.+?)__/) || [])[1]).filter(Boolean))];
   const missing = servers.filter((s) => !MCP_TEMPLATES[s]); if (missing.length) throw new Error(`${name}: 缺 MCP 範本 [${missing}]，先在 MCP_TEMPLATES 加`);

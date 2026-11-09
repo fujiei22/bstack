@@ -111,7 +111,7 @@ bstack 是一套給 coding agent 的開發流程：30 個 skill、6 個 agent、
 - **incident-investigate** — 線上 incident 找根因，多假設平行驗
 - **design-language** / **design-direction** — 動前端前先抄該區既有設計語言；新頁或改版先出三個方向讓你選
 - **frontend-test** — Playwright e2e
-- **db-access** — DB 唯讀、量限、PII 要 mask
+- **db-access** — DB 只查不寫、多方言、量限、PII 要 mask
 - **cmd-guard** / **safety-guard** / **lock-files** — 危險指令二次確認、輸出前掃 PII / 密鑰、標檔禁改
 - **context-snapshot** / **context-resume** / **headless-mode** — 換 session 時存 / 讀進度；無人環境（`claude -p` / `codex exec` 排程）的決策點分流：採推薦或留言到 issue 問人
 

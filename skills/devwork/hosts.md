@@ -35,7 +35,7 @@
 ## §MCP 工具
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |
 |---|---|---|---|
-| `mcp__<server>__<tool>`（例 DB 查詢、`mcp__playwright__browser_*`） | `.mcp.json` / `claude mcp add`，工具名同格式 | `codex mcp add <server> -- <cmd>`，工具名同格式；playwright 的 **server 名必須與 skill / agent 寫的一致**；DB 查詢工具是使用者自己裝的、名稱不限（怎麼認見 `db-access`），只有 db-reviewer 的白名單限 `mcp__mysql__mysql_query` | DB 查詢工具 → 照 `db-access` §工具不在；其他 → **回報「MCP 工具 X 不在」並停在需要它的步驟**，不靜默略過（rules.md §事實核實 的儲存端就靠它） |
+| `mcp__<server>__<tool>`（例 DB 查詢、`mcp__playwright__browser_*`） | `.mcp.json` / `claude mcp add`，工具名同格式 | `codex mcp add <server> -- <cmd>`，工具名同格式；playwright 的 **server 名必須與 skill / agent 寫的一致**；DB 查詢工具是使用者自己裝的、名稱不限（怎麼認見 `db-access`；db-reviewer 不設工具白名單、繼承 session 的 MCP，不受名稱限制） | DB 查詢工具 → 照 `db-access` §工具不在；其他 → **回報「MCP 工具 X 不在」並停在需要它的步驟**，不靜默略過（rules.md §事實核實 的儲存端就靠它） |
 
 ## §Memory 路徑
 | 抽象動作 | Claude Code | Codex | 工具不在清單時 |

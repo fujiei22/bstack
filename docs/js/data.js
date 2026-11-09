@@ -79,7 +79,7 @@ var FLOW_DATA = {
     MemRead:      { phase: 'phase0', type: 'policy',  shape: 'rect',    label: '§Memory hook（讀）\nuser 偏好 / 領域 / 過去決策' },
     P0b:          { phase: 'phase0', type: 'default', shape: 'rect',    label: 'Phase 0b：看 codebase\nRead / Grep 影響檔 + 列 dep' },
     DBKW:         { phase: 'phase0', type: 'default', shape: 'diamond', label: '含 DB / SQL / schema /\nmigration 等關鍵詞？' },
-    LoadDB:       { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：db-access\n（DB MCP 唯讀規範）' },
+    LoadDB:       { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：db-access\n（DB 存取規範）' },
     P0c:          { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'Phase 0c：Track 判定\nAskUserQuestion: Bug / Dev' },
     P0d:          { phase: 'phase0', type: 'gate',    shape: 'diamond', label: 'Phase 0d：Tier 判定\nAskUserQuestion: T0 / T1 / T2 / T3' },
     LoadDLang:    { phase: 'phase0', type: 'skill',   shape: 'rect',    label: '載入 skill：design-language\n0b′ 比對命中前端副檔名才載（比對在 brainstorm）' },
