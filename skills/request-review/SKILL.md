@@ -23,7 +23,7 @@ description: |
 | diff 內容 | `code_review_applicable` | 為什麼 |
 |---|---|---|
 | 含任一程式碼副檔名：`.js .mjs .cjs .ts .tsx .jsx .py .go .rs .sql .java .cs .cpp .c .h .rb .php .kt .swift .sh .ps1` | `true` | 有可執行邏輯，finder 找得到 bug / 重複 / 可簡化處 |
-| 只有純文件：`.md .txt .json .yml .yaml .toml .csv .html .css`、prompt、文案、資料檔 | `false`（跳 code review） | 8 個 finder 對純文字找不到「會壞的情境」，只燒 token；一致性靠契約腳本（如本 repo 的 `plugin-contract.mjs`）與 T3 review-plan |
+| 只有純文件：`.md .txt .json .yml .yaml .toml .csv .html .css`、prompt、文案、資料檔 | `false`（跳 code review） | 8 個 finder 對純文字找不到「會壞的情境」，只燒 token。契約腳本（如本 repo 的 `plugin-contract.mjs`）只守結構；純文件的語意只由 T2 主 agent 自檢、T3 對齊 subagent 與 review-plan 看——skill / 規則文本改動沒有機械語意檢查，是已接受的取捨 |
 | 混合（例：改 skill 文本順手改一支 `.mjs` 契約） | `true` | 有程式碼就跑；finder 會自己忽略純文字 hunk |
 | 命中 rules.md §File-type 硬規則 的 CI / CD、Infra、DB migration 類（`.github/workflows/*.yml`、`docker-compose.yml`、`Dockerfile`、`*.tf`、`migrations/*.sql`） | `true`，**不看副檔名** | 硬規則寫「套 review」、Tier 也為此升到 T2+；hook 只做二次確認，內容 review 就是這裡 |
 | 純文件 + **產出器重產的檔**（例本 repo 的 `docs/js/references-data.js`，由 `build-references.ps1` 從 markdown 內嵌產生） | `false` | 那是 markdown 的鏡像不是邏輯；判 `true` 會讓 finder 吃 200 KB 字串 churn |

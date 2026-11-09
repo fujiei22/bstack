@@ -80,3 +80,13 @@ PR #105 / #106 的實際問題都是 code-review 與外部審查員抓到的，�
   - P9b：施工清單標題；
   - P21：route-sketch 類別。
 - 列 5：write-skill 落地 checklist 補「只守結構」一段；升 1.16.1。
+- 第一輪審查：code-review medium 10 項，外部審查員（沿用前幾個 PR 的同一位）。修正如下：
+  - **補回誤刪的結構**：偵測環境變數三處一致、`finish-branch/merge` 類別=永不、Tier 表 review / security 欄與 request-review 檔位一致、`/devwork` 與 `$bstack:devwork` 入口名、finish-branch / design-direction 路由、execute-plan 施工紀錄端。
+  - **改寫**：Codex 工具名改成 rules.md 與 hosts.md 兩表逐值比對；P10b 的 enum 只看 hand-off state 區塊。
+  - **判準**補三類：介面名、hand-off 路由、模板固定句，並加上「改名後有沒有機械步驟斷」的測法。
+  - 清死碼與過時註解。
+- user 問「有沒有串通審查員」後，改用新方法：每個 PR 換全新審查員，派工只給 branch 名、不附摘要，複審看完整 diff。新審查員 `bstack-68-review-slim` 的結論是需修改後 merge，修正全收：
+  - request-review §副檔名分流 純文件列的理由句改成如實：契約只守結構，純文件語意只靠 T2 自檢 / T3 對齊；user 2026-11-09 接受這個缺口。
+  - 判準新增「安全不變式」：禁用 DB CLI 三處同組、算寫語句三處都列，逐值比對。
+  - P9b 補回 brainstorm spec gate 的路由。
+- **偏離「只刪不增」**：新增 P16 codexTools、P19 envNames / hostsOrder / mergeNever、P9c Tier 欄比對、P9d 路由、P20 安全不變式。原因都是審查指出這些是被刪掉、或原本就沒守的結構；舊版是字串存在檢查，新版改成逐值或欄位比對。

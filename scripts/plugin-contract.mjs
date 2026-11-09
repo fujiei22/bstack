@@ -19,7 +19,8 @@
  * **只守結構**（2026-11-09 user 定）：壞了會機械性出錯、可確定性判斷的才放進來——manifest / 版本 / 檔案存在 / 名稱與計數一致、
  * 產生器 --check、判定器 fixture、執行腳本驗輸出、表格固定欄位值、hand-off 欄位名與 enum、frontmatter 白 / 黑名單、跨檔 id 或 § 標題錨點存在、
  * 多處清單逐值相等、介面名（環境變數 / 標記字串 / 腳本檔名 / 入口指令名）兩端一致、hand-off 路由（下一 phase 指向的 skill）、
- * 要原樣貼進 prompt 的模板固定句。測法：「改名或刪掉它，有沒有另一個檔的機械步驟會讀不到或對不上？」有 → 結構，留；
+ * 要原樣貼進 prompt 的模板固定句、安全不變式（禁止 AI 做危險動作的清單：禁用的 DB CLI、算寫的語句、merge 永不自動、不帶 --fix；
+ * 用逐值清單比對，不只守標題）。測法：「改名或刪掉它，有沒有另一個檔的機械步驟會讀不到或對不上？」有 → 結構，留；
  * 只是 AI 讀到的意思變了 → 語意，不放（同字在別處會假綠、改寫措辭會誤報），交給 code-review / 審查。
  * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22：P7 先算是因為 P4 要用 agentFiles 掃描；
  *
@@ -399,8 +400,9 @@ const rulesMd = rd('skills/devwork/rules.md');
 const tierT2 = (rulesMd.match(/^\| \*\*T2\*\*.*$/m) || [''])[0];
 const tierT3 = (rulesMd.match(/^\| \*\*T3\*\*.*$/m) || [''])[0];
 const bsMd = rd('skills/brainstorm/SKILL.md'), exMd = rd('skills/execute-plan/SKILL.md');
-check('P9b brainstorm 範本有裸標題「## 施工清單」「## 施工紀錄」；execute-plan 精確比對施工清單、寫入施工紀錄、hand-off 允許 plan_path null',
-  /^## 施工清單$/m.test(bsMd) && /^## 施工紀錄$/m.test(bsMd) && /恰為\*{0,2} `## 施工清單`/.test(exMd) && /`## 施工紀錄`/.test(exMd) && /plan_path.*null/.test(exMd),
+check('P9b brainstorm 範本有裸標題「## 施工清單」「## 施工紀錄」、spec gate 路由到 execute-plan / write-plan / debug-systematic；execute-plan 精確比對施工清單、寫入施工紀錄、hand-off 允許 plan_path null',
+  /^## 施工清單$/m.test(bsMd) && /^## 施工紀錄$/m.test(bsMd) && /恰為\*{0,2} `## 施工清單`/.test(exMd) && /`## 施工紀錄`/.test(exMd) && /plan_path.*null/.test(exMd) &&
+    /進 execute-plan（T1 \/ T2）／ write-plan（T3）／ debug-systematic（Bug）/.test(bsMd),   // spec gate 的下一 phase 路由
   `brainstorm 標題=${/^## 施工清單$/m.test(bsMd)} 紀錄=${/^## 施工紀錄$/m.test(bsMd)} execute-plan 精確比對=${/恰為\*{0,2} \`## 施工清單\`/.test(exMd)} null=${/plan_path.*null/.test(exMd)}` +
     `（後果：兩端標題對不上 T2 就讀不到施工清單；改處：brainstorm「§spec 文件結構」、execute-plan「§使用契約」第 1 步）`);
 const rrMd = rd('skills/request-review/SKILL.md'), dwMd = rd('skills/dev-workflow/SKILL.md');
@@ -747,13 +749,28 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、§Codex revi
   if (cls('db-access/tool-missing') !== 'A / B') bad.push(`分流表 db-access/tool-missing 類別應為「A / B」，實際「${cls('db-access/tool-missing')}」`);
   if (cls('db-access/db-mismatch') !== 'B') bad.push(`分流表 db-access/db-mismatch 類別應為「B」，實際「${cls('db-access/db-mismatch')}」`);
   const da = rd('skills/db-access/SKILL.md');
+  // 安全不變式（逐值）：禁用的 DB CLI 在 rules.md / db-access / db-reviewer 三處同一組；rules.md 列為「算寫」的語句都要在 db-access §讀的界線 與 db-reviewer 出現
+  const CLI = ['`mysql`', '`psql`', '`sqlcmd`', '`sqlite3`', '`sqlplus`'];
+  const rulesDb = (rd('skills/devwork/rules.md').match(/^### §DB 操作[\s\S]*?(?=^### )/m) || [''])[0];
+  const drBody = rd('agents/db-reviewer.md');
+  const lineOf = (txt, re) => (txt.split('\n').find((l) => re.test(l)) || '');
+  for (const [name, line] of [['rules.md §DB 操作', lineOf(rulesDb, /禁 bash/)], ['db-access', lineOf(da, /禁 bash/)], ['db-reviewer', lineOf(drBody, /bash `mysql`/)]])
+    for (const c of CLI) if (!line.includes(c)) bad.push(`${name} 禁用 DB CLI 清單缺 ${c}`);
+  const WRITES = ['EXPLAIN ANALYZE', 'WITH … DML', 'SELECT … INTO', 'FOR UPDATE', 'CALL'];
+  const readBound = (da.match(/^## §讀的界線[\s\S]*?(?=^## )/m) || [''])[0];
+  const rulesRead = lineOf(rulesDb, /^- \*\*讀\*\*/), drRead = lineOf(drBody, /只跑純查詢/);
+  for (const w of WRITES) {
+    if (!rulesRead.includes(w)) bad.push(`rules.md §DB 操作「讀」缺算寫語句 ${w}`);
+    if (!drRead.includes(w)) bad.push(`db-reviewer 只跑純查詢 缺算寫語句 ${w}`);
+    if (!readBound.includes(w.replace('WITH … DML', 'WITH …').replace('SELECT … INTO', 'SELECT … INTO'))) bad.push(`db-access §讀的界線 缺算寫語句 ${w}`);
+  }
   for (const h of ['## §工具不在', '## §讀的界線']) if (!new RegExp(`^${h}$`, 'm').test(da)) bad.push(`db-access 缺標題「${h}」（rules.md / hosts.md 以 § 引用）`);
   const drHead = frontmatter(rd('agents/db-reviewer.md'));
   if (/^tools:/m.test(drHead)) bad.push('db-reviewer 不得有 tools 白名單（會擋掉使用者自裝的 DB MCP）');
   const dis = (drHead.match(/^disallowedTools:.*$/m) || [''])[0];
   for (const t of ['Write', 'Edit', 'NotebookEdit']) if (!dis.includes(`"${t}"`)) bad.push(`db-reviewer disallowedTools 缺 ${t}`);
   if (!/^sandbox_mode = "read-only"$/m.test(rd('codex/agents/db-reviewer.toml'))) bad.push('codex/agents/db-reviewer.toml 不是 read-only');
-  check('P20 多資料庫結構：headless db-access 兩列類別、db-access §工具不在 / §讀的界線 標題、db-reviewer 無 tools + disallowedTools 三項 + Codex read-only',
+  check('P20 多資料庫結構：headless db-access 兩列類別、db-access 兩個標題、db-reviewer 無 tools + disallowedTools 三項 + Codex read-only；安全不變式：禁用 DB CLI 三處同組、算寫語句三處都列',
     bad.length === 0, bad.join('；'));
 }
 
