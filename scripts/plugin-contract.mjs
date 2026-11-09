@@ -14,8 +14,9 @@
  *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 + devwork / rules.md 接線 + build-references 內嵌
  *   P17 install-codex.ps1 -WhatIf 冒煙（假 CODEX_HOME、不寫檔）
  *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
+ *   P20 規則支援多種資料庫、認使用者自裝的 DB 工具
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20：P7 先算是因為 P4 要用 agentFiles 掃描；
  * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -820,6 +821,57 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   check(`P19 headless-mode 九節 + 契約字樣 + merge 永不；rules.md 三節 / hosts.md 三節指向（Host 判定列在 subagent 列之後）；含 AskUserQuestion 的 ${needWire.length} 個 skill 各有分流；skill 引用的 decision_id 都在 §分流表（${tableIds.size} 列）；${DISPATCHERS.length} 個派工 skill 含約束句字面；dev-workflow 跨流程表有列；finish-branch §Squash merge headless 行 ≥3；.gitignore 有 docs/snapshots/；回覆 parser ${FIX19.length} 個 fixture + ${THROWS19.length} 個 throw + CLI 冒煙`,
     Object.values(p19).every(Boolean),
     `${Object.entries(p19).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead19.join(', ')}] 缺分流=[${missPhase.join(', ')}] 壞 id=[${badIds.slice(0, 6).join(', ')}] 缺約束句=[${missDispatch.join(', ')}] parser=[${fixBad.slice(0, 3).join(' | ')}]（後果：無人模式跑到沒分流的決策點就白跑一輪、subagent 自己去 issue 留言、或回覆永遠讀不到；改處：skills/headless-mode/SKILL.md、skills/devwork/{rules,hosts}.md、缺分流 / 缺約束句的 skill、scripts/headless-reply.mjs）`);
+}
+
+// P20：規則支援多種資料庫、認使用者自己裝的 DB 查詢工具（2026-11-09 user 定案：bstack 不附 DB MCP、不附安裝工具、不推薦）。
+// 守：rules.md 不再把 mcp__mysql__mysql_query 寫成唯一讀取工具；db-access 多方言 + 首查比對庫名 + 工具不在；
+// headless 兩列的類別欄；brainstorm 關鍵詞；db-reviewer 工具不在照做靜態審查；security-audit 派 db-reviewer 前主 agent 先抽樣。
+{
+  const bad = [];
+  /** 取 markdown 某標題到下一個同級以上標題之間的內容；找不到回空字串（讓下面的斷言 fail-closed）。 */
+  const sect = (txt, head) => {
+    const i = txt.indexOf(head); if (i < 0) return '';
+    const level = head.match(/^#+/)[0].length;
+    const rest = txt.slice(i + head.length);
+    const j = rest.search(new RegExp(`\\n#{1,${level}} `));
+    return j < 0 ? rest : rest.slice(0, j);
+  };
+  const rules = rd('skills/devwork/rules.md');
+  const dbOps = sect(rules, '### §DB 操作');
+  if (!dbOps) bad.push('rules.md 找不到 §DB 操作');
+  if (/\*\*讀\*\*\s*`mcp__mysql__mysql_query`[；;]/.test(dbOps)) bad.push('rules.md §DB 操作仍把 mcp__mysql__mysql_query 寫成唯一讀取工具');
+  for (const w of ['工具清單', 'sqlcmd', 'sqlplus', 'sqlite3', '§工具不在']) if (!dbOps.includes(w)) bad.push(`rules.md §DB 操作缺「${w}」`);
+  if (!sect(rules, '### §事實核實').includes('儲存端工具不在')) bad.push('rules.md §事實核實缺「儲存端工具不在」');
+
+  const da = rd('skills/db-access/SKILL.md');
+  for (const w of ['## §工具不在', 'TOP', 'FETCH FIRST', 'DATABASE()', 'current_database()', 'DB_NAME()', 'PRAGMA database_list', "sys_context('USERENV'", '唯讀帳號', '儲存端未驗', 'db-access/db-mismatch'])
+    if (!da.includes(w)) bad.push(`db-access 缺「${w}」`);
+  if (/bstackdb|DBHUB_DSN|db_dsn/.test(da)) bad.push('db-access 殘留內建版說法（bstackdb / DBHUB_DSN / db_dsn）');
+
+  // 類別欄是表格第 3 欄（| id | 情境 | 類 | 處置 |）；只用 includes 會在處置欄提到 A 類時假綠
+  const hm = rd('skills/headless-mode/SKILL.md');
+  const cls = (id) => ((hm.split('\n').find((l) => l.startsWith(`| \`${id}\``)) || '').split('|')[3] || '').trim();
+  if (cls('db-access/tool-missing') !== 'A / B') bad.push(`headless 分流表 db-access/tool-missing 類別應為「A / B」，實際「${cls('db-access/tool-missing')}」`);
+  if (cls('db-access/db-mismatch') !== 'B') bad.push(`headless 分流表 db-access/db-mismatch 類別應為「B」，實際「${cls('db-access/db-mismatch')}」`);
+
+  const kw = rd('skills/brainstorm/SKILL.md').split('\n').find((l) => l.includes('DB 關鍵詞')) || '';
+  for (const w of ['postgres', 'sqlite', 'oracle', 'mssql', 'mariadb']) if (!kw.includes(w)) bad.push(`brainstorm DB 關鍵詞缺 ${w}`);
+
+  const hosts = rd('skills/devwork/hosts.md');
+  const mcpRow = sect(hosts, '## §MCP 工具');
+  if (!mcpRow.includes('db-access` §工具不在')) bad.push('hosts.md §MCP 工具 沒把 DB 工具不在指向 db-access §工具不在');
+
+  const dr = rd('agents/db-reviewer.md');
+  for (const w of ['未查', '方言', 'CREATE INDEX CONCURRENTLY']) if (!dr.includes(w)) bad.push(`db-reviewer 缺「${w}」`);
+  const sa = sect(rd('skills/security-audit/SKILL.md'), '## §Dispatch');
+  if (!/db-reviewer[\s\S]*抽樣/.test(sa)) bad.push('security-audit §Dispatch 沒寫派 db-reviewer 前主 agent 先抽樣');
+
+  const inst = rd('docs/install.md');
+  if (!/其他資料庫[^\n]*唯讀/.test(inst)) bad.push('install.md 沒有「其他資料庫自己裝、帳號唯讀」那句');
+  if (rd('docs/js/data.js').includes('mcp__mysql 唯讀')) bad.push('docs/js/data.js 規則卡仍寫 mcp__mysql 唯讀');
+
+  check('P20 規則支援多種資料庫：rules §DB 操作不綁單一工具、db-access 五方言庫名 / TOP / FETCH FIRST / 工具不在、headless 兩列類別、brainstorm 關鍵詞、hosts 指向、db-reviewer 未查 + 方言、security-audit 先抽樣、install.md 唯讀提醒',
+    bad.length === 0, bad.join('；'));
 }
 
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAIL`);
