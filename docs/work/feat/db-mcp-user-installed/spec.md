@@ -89,3 +89,12 @@
 | 8 | 8 | （實測） | `claude -p` 在 PostgreSQL 專案情境下，用自裝 DB MCP 查庫名；沒有 DB 工具時走 §工具不在 | 輸出摘要寫進施工紀錄 |
 
 ## 施工紀錄
+### 2026-11-09
+- 列 1-7：照清單完成，每列一個 commit；`plugin-contract` ALL PASS、`gen-codex-agents --check` PASS、`build-references -Check` PASS。
+- 列 6 smoke：`static-serve` 加 Playwright 開 `flow.html`，新字串「（DB MCP 唯讀規範）」顯示，console error 34 筆，與 main 既有數相同（`{{ }}` SVG 屬性，非本次造成）。
+- 列 5 偏差：版本升級讓 `codex/agents/*.toml` 的版本字串過期，重產後 `--check` 綠（併在升版 commit）。
+- 列 8 實測（`claude -p --plugin-dir . --mcp-config <暫存> --strict-mcp-config`，不動使用者設定）：
+  - **有自裝工具**：server 名刻意取 `pgdb`（DBHub 1.5.1、唯讀 TOML、本機 PostgreSQL `bstack_dbhub_test`）。
+    - 模型載入 db-access 後讀 `db/schema.sql` 判方言，呼叫 `mcp__pgdb__execute_sql` 查 `current_database()` 與表數，回 `bstack_dbhub_test` / 1 張表。
+    - 結論附「確認庫名、用唯讀帳號」提醒。
+  - **沒有任何 DB 工具**（空 mcp-config、允許 Bash）：模型只用 Bash 跑 `ls` / `head`，沒跑 `psql`，也沒拿 db-reviewer 的 mysql 工具湊。它列出 §工具不在 的三個選項，推薦「自己裝、唯讀帳號、重開 session」。
