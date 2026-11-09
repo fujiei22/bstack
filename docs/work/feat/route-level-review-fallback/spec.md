@@ -51,3 +51,10 @@ PR #105 的外部審查列了三個後續問題，user 決定直接修：
 | 5 | 5 | （實測） | `claude -p --plugin-dir .`（唯讀工具、獨立 clone）丟「README 補括號」，確認有進 brainstorm 並經 0d 判 T0 | 輸出摘要寫進施工紀錄 |
 
 ## 施工紀錄
+### 2026-11-09
+- 列 1–4 各一個 commit；`plugin-contract` ALL PASS（含 P19、新 P22）、`build-references -Check` PASS、`gen-codex-agents --check` PASS。
+- review-plan 的 hand-off `review_user_action` 加 `reject_to_route_sketch`（清單外的小補充，配合選項 5）。
+- 列 5 實測：用本 branch 的 plugin 副本（`git archive HEAD`）加獨立 clone，執行 `claude -p` 並禁用寫檔與 shell。
+  - 「README 補括號」這次依序載入 dev-workflow → brainstorm（→ db-access），在 0d 判 T0，並與 branch、內容問題一起停下等確認；沒改任何檔。
+  - 對照 PR #105 實測時，同一需求是入口直接判 T0 並改檔。
+  - 它另外發現括號少了 MariaDB，與 db-access 不一致，屬額外收穫，不在本 PR 範圍。
