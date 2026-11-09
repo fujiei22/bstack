@@ -942,7 +942,7 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   if (!(rrStep2.indexOf('先判路線級') >= 0 && rrStep2.indexOf('先判路線級') < rrStep2.indexOf('§Auto-fix'))) bad.push('receive-review 第 2 步沒有在 §Auto-fix 分類前先判路線級');
   if (!/下一 phase\*\*：`triggered_route_sketch`/.test(rr)) bad.push('receive-review 下一 phase 沒處理 triggered_route_sketch');
   const sk = (rd('skills/brainstorm/SKILL.md').split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
-  for (const w of ['為什麼值得背這份維護', '**從 review 退回**', '忽略上面的跳過條件', '不自己決定不做', '從 main 重開新 branch', '只刪不重寫']) if (!sk.includes(w)) bad.push(`brainstorm §方案草圖 缺「${w}」`);
+  for (const w of ['為什麼值得背這份維護', '**從 review 退回**', '忽略上面的跳過條件', '不自己決定不做', '從 main 重開新 branch', '只刪不重寫', '**先定 branch，再寫 spec**', '接 0b′ → 0c → 0d']) if (!sk.includes(w)) bad.push(`brainstorm §方案草圖 缺「${w}」`);
   const hmLines = rd('skills/headless-mode/SKILL.md').split('\n');
   const row = hmLines.find((l) => l.startsWith('| `review/route-level`')) || '';
   if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 review/route-level 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
@@ -951,7 +951,7 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   if (!gate.includes('review/route-level')) bad.push('headless review-plan/gate 列沒寫「有路線級 finding 改走 review/route-level」');
   if (!row.includes('receive-review/safe-fix')) bad.push('headless review/route-level 沒寫優先於 receive-review/safe-fix');
   const bsStep0 = (rd('skills/brainstorm/SKILL.md').match(/^0\. \*\*先分流\*\*.*$/m) || [''])[0];
-  if (!bsStep0.includes('reject_to_route_sketch') || !bsStep0.includes('不另開 branch')) bad.push('brainstorm 第 0 步缺從 review 退回的分流');
+  if (!bsStep0.includes('reject_to_route_sketch') || !bsStep0.includes('branch 依該段的處置選單決定')) bad.push('brainstorm 第 0 步缺從 review 退回的分流（branch 依處置選單）');
   check('P22 devwork 入口不判 Tier、review-plan / receive-review 路線級 finding 退回 §方案草圖、headless review/route-level=B 且優先於 gate、草圖非最小推薦附理由',
     bad.length === 0, bad.join('；'));
 }
