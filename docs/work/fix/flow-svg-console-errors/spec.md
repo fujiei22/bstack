@@ -58,3 +58,16 @@
 | 4 | 4 | `docs/flow.html` | `<x-dc>` 內容包進 `<template>` | P23 綠；flow console 0 error；截圖與基準一致；點節點、切主題正常 |
 
 ## 施工紀錄
+### 2026-11-09
+- 列 1：契約 P23 先紅（三項都缺）。
+- 列 2 基準（改動前，桌機 1280×720）：
+  - flow.html console error 34 筆；
+  - index.html 本身 0 筆，但內嵌的 `flow.html?embed=1` 帶出同樣 34 筆；
+  - 截圖 `before-flow-desktop.png`。
+- 列 3：`support.js` 加 `unwrapTemplate()`；`parseDcDocument` 讀 `:scope > template`，`parseDcText` 剝外層。index 未包外層時照常顯示、自身 0 錯，向後相容確認。
+- 列 4：`flow.html` 的 `<x-dc>` 內容包進 `<template>`，P23 綠、契約 ALL PASS。驗收結果：
+  - **flow 桌機**：console 0 筆；截圖 `after-flow-desktop.png` 與 before 的 sha256 完全相同（`946d5d85…`）。
+  - **互動**：點第一個節點，開出詳情面板（「user 輸入 /devwork + 要做的事」）；主題 dark → light 切換成功（`after-flow-interact.png`）；之後 console 仍 0 筆。
+  - **index**：含內嵌 flow，console 0 筆（原本 34 筆隨 flow 一起消失）。
+  - **flow 手機 390×844**：console 0 筆，版面正常（`after-flow-mobile.png`）。
+- 設計對齊四項：全部 N/A。依據：只加了不渲染的 `<template>` 外層，沒有樣式或結構上的視覺變化；截圖 hash 相同是直接證據。

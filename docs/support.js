@@ -21,15 +21,23 @@
   ));
 
   // src/parse.ts
+  // bstack patch（2026-11-09，契約 P23 守）：樣板可包在 <x-dc><template>…</template></x-dc> 裡。直接放在 <x-dc> 內時，
+  // 瀏覽器解析 HTML 會把未填值的 SVG 佔位符（transform="{{ … }}"）當真圖形建立而報 console error；<template> 內容是惰性的。
+  // 沒有 <template> 外層時照舊讀 <x-dc> 本身（向後相容）。本檔由 dc-runtime 產生，重新產生會蓋掉這段，P23 紅了就補回。
+  function unwrapTemplate(html) {
+    const m = /^\s*<template>([\s\S]*)<\/template>\s*$/.exec(html);
+    return m ? m[1] : html;
+  }
   function parseDcDocument(doc) {
     const dc = doc.querySelector("x-dc");
     if (!dc) return null;
+    const tplEl = dc.querySelector(":scope > template");
     const scriptEl = doc.querySelector("script[data-dc-script]");
     const { props, preview } = parseDataProps(
       scriptEl?.getAttribute("data-props") ?? null
     );
     return {
-      template: dc.innerHTML,
+      template: tplEl ? tplEl.innerHTML : dc.innerHTML,
       js: scriptEl ? scriptEl.textContent || "" : "",
       props,
       preview
@@ -40,7 +48,7 @@
     if (!openMatch) return null;
     const close = src.lastIndexOf("</x-dc>");
     if (close === -1 || close < openMatch.index) return null;
-    const template = src.slice(openMatch.index + openMatch[0].length, close);
+    const template = unwrapTemplate(src.slice(openMatch.index + openMatch[0].length, close));
     const doc = new DOMParser().parseFromString(src, "text/html");
     const scriptEl = doc.querySelector("script[data-dc-script]");
     const { props, preview } = parseDataProps(
