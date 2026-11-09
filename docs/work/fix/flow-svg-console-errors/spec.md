@@ -87,3 +87,4 @@
   - flow 桌機 console 0 筆；dagre 在 11 ms 開始載入，早於 domInteractive 41 ms，與 main 相同屬於解析期。
   - 截圖 `after2-flow-desktop.png` 與 before 版面一致；像素差 3,874 點，全在側欄文字反鋸齒（bbox 17,182–229,351），推測是字型載入時機不同，非版面差異。
   - 從首頁點「打開流程圖」（內嵌 overlay），流程圖正常顯示，console 0 筆。
+  - 手機 390×844：點節點開詳情面板、切換主題都正常，console 0 筆（截圖 `after2-flow-mobile.png`）。
