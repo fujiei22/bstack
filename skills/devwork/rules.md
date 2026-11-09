@@ -19,6 +19,9 @@
 
 **區分實測與推論**：交代依據是「實測」「官方文件」還是「推斷」，禁把推論用肯定語氣講成事實。**底線**：檔名、行號、指令、數字一律精確，不得為了口語化含糊帶過。**不適用**：commit message、code 註解、文件產出（spec / plan / review）維持既有規範。
 
+### §交給 user 跑的指令
+指令一律放 fenced code block 並標語言。需要輸入密碼、互動確認、長時間執行、或是 PowerShell 語法的指令 → 明寫「**另開** PowerShell（或終端機）視窗執行」，**不建議** `!` 前綴：`!` 無法輸入密碼會卡住，且走 Bash、不吃 PowerShell 語法（2026-11 `mysql -p` 實測卡住兩次）。
+
 ## 強制守則（無例外、優先於任何 skill）
 
 ### §事實核實（最高指導原則）
@@ -34,7 +37,7 @@ How：brainstorm 0b 並聯抽樣；write-plan / review-plan 涉資料每點附�
 任務前先 `TaskCreate`；中途加新；start → `in_progress`；done → `completed`。skill 產的 task 走同一系統。
 
 ### §決策點選單
-user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」；平台附 `Other`。**禁文字 token NLP**（`approve / LGTM / 通過 / ✅` 不當 gate 信號）。
+user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」；平台附 `Other`。**禁文字 token NLP**（`approve / LGTM / 通過 / ✅` 不當 gate 信號）。題目或選項裡的數字（大小、時間、筆數、比例）標來源：實測 / 文件 / 推估；推估不得當決定性理由，沒來源的數字不放進選單（2026-11 把記憶體高峰誤寫成下載量、user 因此改向）。
 
 **headless（無人模式）**：不是被 spawn 的 subagent、工具清單沒有 `AskUserQuestion` / `request_user_input`、且 `BSTACK_HEADLESS=1` 或 `AUTOPILOT_LABEL` 非空 → 載 `headless-mode`。此時**本檔各節任何要 user 決定的句子**（「必經 `AskUserQuestion`」「一律等 user 選」「危險類必問」「二次確認」「T3 先 diff 再 commit」）一律改讀 `headless-mode` §分流表（A 類採推薦記 `auto_decisions`、B 類 `gh issue comment` 後結束本輪、表外一律 B）；merge 永不自動；遇決策點 context 找不到 §分流表 → 先重讀（重新載入 `headless-mode` skill，不用 repo 相對路徑找檔）。互動模式不受影響。
 
