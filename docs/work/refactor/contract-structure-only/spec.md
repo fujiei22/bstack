@@ -90,3 +90,4 @@ PR #105 / #106 的實際問題都是 code-review 與外部審查員抓到的，�
   - 判準新增「安全不變式」：禁用 DB CLI 三處同組、算寫語句三處都列，逐值比對。
   - P9b 補回 brainstorm spec gate 的路由。
 - **偏離「只刪不增」**：新增 P16 codexTools、P19 envNames / hostsOrder / mergeNever、P9c Tier 欄比對、P9d 路由、P20 安全不變式。原因都是審查指出這些是被刪掉、或原本就沒守的結構；舊版是字串存在檢查，新版改成逐值或欄位比對。
+- 第二輪新審查員：值得 merge；其非必要建議全收：db-access §讀的界線 禁止清單 20 項整份逐項守（補上瘦身時掉的 INTO OUTFILE 等）、刪無作用的 replace、契約檔頭與 write-skill 的「語意交給 code-review」改成與 request-review 一致。變異測試擴充到 24 處。

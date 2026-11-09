@@ -21,7 +21,7 @@
  * 多處清單逐值相等、介面名（環境變數 / 標記字串 / 腳本檔名 / 入口指令名）兩端一致、hand-off 路由（下一 phase 指向的 skill）、
  * 要原樣貼進 prompt 的模板固定句、安全不變式（禁止 AI 做危險動作的清單：禁用的 DB CLI、算寫的語句、merge 永不自動、不帶 --fix；
  * 用逐值清單比對，不只守標題）。測法：「改名或刪掉它，有沒有另一個檔的機械步驟會讀不到或對不上？」有 → 結構，留；
- * 只是 AI 讀到的意思變了 → 語意，不放（同字在別處會假綠、改寫措辭會誤報），交給 code-review / 審查。
+ * 只是 AI 讀到的意思變了 → 語意，不放（同字在別處會假綠、改寫措辭會誤報），交給審查：程式碼 diff 由 code-review 看；純文件（skill / 規則文本）依 request-review §副檔名分流 不跑 code-review，只靠 T2 主 agent 自檢、T3 對齊 subagent 與 review-plan——沒有機械語意檢查，是 user 2026-11-09 接受的取捨。
  * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22：P7 先算是因為 P4 要用 agentFiles 掃描；
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -762,15 +762,18 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、§Codex revi
   for (const w of WRITES) {
     if (!rulesRead.includes(w)) bad.push(`rules.md §DB 操作「讀」缺算寫語句 ${w}`);
     if (!drRead.includes(w)) bad.push(`db-reviewer 只跑純查詢 缺算寫語句 ${w}`);
-    if (!readBound.includes(w.replace('WITH … DML', 'WITH …').replace('SELECT … INTO', 'SELECT … INTO'))) bad.push(`db-access §讀的界線 缺算寫語句 ${w}`);
   }
+  // db-access §讀的界線 的「禁」清單是完整白名單的真相（rules.md 只列摘要），整份當安全不變式逐項守
+  const DA_BANS = ['`EXPLAIN ANALYZE`', '`WITH … INSERT / UPDATE / DELETE`', '`SELECT … INTO 新表`', '`SELECT … INTO OUTFILE`', '`SELECT … FOR UPDATE`', '`CALL`', '`EXEC`', '`COPY`', '`xp_cmdshell`',
+    '`nextval`', '`setval`', '`pg_terminate_backend`', '`pg_sleep`', '`SLEEP`', '`GET_LOCK`', '`lo_*`', '`DBMS_*`', '`journal_mode`', '`writable_schema`', '`user_version`'];
+  for (const b of DA_BANS) if (!readBound.includes(b)) bad.push(`db-access §讀的界線 禁止清單缺 ${b}`);
   for (const h of ['## §工具不在', '## §讀的界線']) if (!new RegExp(`^${h}$`, 'm').test(da)) bad.push(`db-access 缺標題「${h}」（rules.md / hosts.md 以 § 引用）`);
   const drHead = frontmatter(rd('agents/db-reviewer.md'));
   if (/^tools:/m.test(drHead)) bad.push('db-reviewer 不得有 tools 白名單（會擋掉使用者自裝的 DB MCP）');
   const dis = (drHead.match(/^disallowedTools:.*$/m) || [''])[0];
   for (const t of ['Write', 'Edit', 'NotebookEdit']) if (!dis.includes(`"${t}"`)) bad.push(`db-reviewer disallowedTools 缺 ${t}`);
   if (!/^sandbox_mode = "read-only"$/m.test(rd('codex/agents/db-reviewer.toml'))) bad.push('codex/agents/db-reviewer.toml 不是 read-only');
-  check('P20 多資料庫結構：headless db-access 兩列類別、db-access 兩個標題、db-reviewer 無 tools + disallowedTools 三項 + Codex read-only；安全不變式：禁用 DB CLI 三處同組、算寫語句三處都列',
+  check('P20 多資料庫結構：headless db-access 兩列類別、db-access 兩個標題、db-reviewer 無 tools + disallowedTools 三項 + Codex read-only；安全不變式：禁用 DB CLI 三處同組、算寫語句 rules.md / db-reviewer 都列、db-access §讀的界線 禁止清單 20 項逐項在',
     bad.length === 0, bad.join('；'));
 }
 
