@@ -63,3 +63,11 @@
 | 5 | 5 | （實測） | `claude -p --plugin-dir .` 丟一個有兩條明顯路線的需求，看 brainstorm 是否產草圖；丟一個 typo 修正，看是否跳過 | 輸出摘要寫進施工紀錄 |
 
 ## 施工紀錄
+### 2026-11-09
+- 列 1–4：每列一個 commit；`plugin-contract` ALL PASS（含新 P21、既有 P19 分流表）、`build-references -Check` PASS、`gen-codex-agents --check` PASS。
+- 列 5 實測（`claude -p --plugin-dir .`，只開 Skill / Read / Glob / Grep）：
+  - **多路線需求**（「PR 開好後通知 Slack」）：brainstorm 產出三條路線表，欄位為使用者要做什麼 / 長期維護 / 主要風險 / 估計 Tier。推薦「Slack 官方 GitHub app、bstack 不改」，沒查證的訊息格式標「沒查證」，並在判 Track / Tier 之前停下等選。
+  - **單一明顯做法**（README 補一個括號）：沒有產草圖，直接判 T0 處理。
+    - 偏差：這次它在 devwork 層就判 T0、沒進 brainstorm，所以「跳過」是間接觀察到的。
+    - 它在 `-p` 下改了 README.md（使用者層權限放行 Edit），屬測試產物，已 `git checkout` 還原。
+  - 另一個假 typo（`teh` 不存在）：AI 查無此字後停下，未進 brainstorm，不列入判定。
