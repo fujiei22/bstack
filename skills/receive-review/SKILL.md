@@ -10,7 +10,7 @@ description: |
 ## 使用契約（強制）
 
 1. **讀 hand-off state** 取 `review_summary_path`、`tier`、`critical_count`、`major_count`。
-2. **掃 finding 分類**：依 rules.md §Auto-fix 表分「不危險類」與「危險類」。
+2. **掃 finding 分類**：**先判路線級 finding**（判準同 `review-plan` §User gate，含加總情況；有 → 走 §特殊狀況 的路線級選單，這批 finding 不進 auto-fix）；其餘依 rules.md §Auto-fix 表分「不危險類」與「危險類」。
 3. **不危險類** → 主 agent 直接 fix、commit、把 diff 給 user 看。
 4. **危險類** → `AskUserQuestion` 問 user 該不該修、怎麼修。headless 時 → B 類 `receive-review/danger-fix`（`headless-mode`）。
 5. **T3 全程**：即使「不危險類」也要 user 看 diff 才 commit（不強制 prompt、但顯式）。headless 時直接 commit（仍是一顆 commit），不落 diff 檔，PR body 列 fix commit 的 sha（PR 本身就有 diff）。
@@ -57,7 +57,12 @@ description: |
 
 - **Review 全綠 / 0 finding**：`review_summary_path` 標「無 finding，跳 receive-review、直接進下 phase」，短路、不啟動 fix 循環
 - 多 reviewer 衝突 → `AskUserQuestion` 把所有視角列給 user 決定；headless 時 → B 類
-
+- **路線級 finding**（判準同 `review-plan` §User gate：問題在這條路本身，例如維護負擔、使用者步驟、對外介面、安全模型無解或代價明顯過高）→ 不自動修、不列 TODO，`AskUserQuestion`：
+  1. 退回 brainstorm §方案草圖 重選路線（推薦）——`state.review_resolved.triggered_route_sketch = true`
+  2. 照 reviewer 建議在原路線修——走 §危險處置 選項 1
+  3. 接受現況、列 known issue 進 PR——走 §危險處置 選項 3
+  4. 退回 execute-plan 重做相關 task——走 §危險處置 選項 4
+  headless 時 → B 類 `review/route-level`（`headless-mode`）。
 - **Reviewer 給的 fix 自己錯** → 主 agent 不照搬；提出修正後的 fix、`AskUserQuestion` 給 user 看（headless 時 → B 類）：
   ```
   Reviewer 建議：<原建議>
@@ -74,11 +79,12 @@ state:
     user_decided: [...]
     deferred_to_todo: [...]
     triggered_rollback: bool
+    triggered_route_sketch: bool   # 路線級 finding 選了退回 §方案草圖
   review_summary_path: docs/work/<branch-name>/_temp/<task-slug>.md  # 已更新
   current_phase: receive-review-done
 ```
 
-**下一 phase**：`triggered_rollback` → 退 execute-plan；否則 → security-audit（依 tier 條件）/ 否則 → finish-branch
+**下一 phase**：`triggered_route_sketch` → 退 brainstorm §方案草圖（重入規則見該節「從 review 退回」）；`triggered_rollback` → 退 execute-plan；否則 → security-audit（依 tier 條件）/ 否則 → finish-branch
 
 ## §Red Flags
 

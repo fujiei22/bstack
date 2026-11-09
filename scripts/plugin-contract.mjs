@@ -16,8 +16,9 @@
  *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
  *   P20 規則支援多種資料庫、認使用者自裝的 DB 工具
  *   P21 brainstorm 方案草圖、選項數字標來源、互動指令另開視窗
+ *   P22 路線級 finding 退回方案草圖、devwork 入口不判 Tier、非最小推薦附理由
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22：P7 先算是因為 P4 要用 agentFiles 掃描；
  * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -921,6 +922,37 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   if (!cmd) bad.push('rules.md 缺 ### §交給 user 跑的指令');
   for (const w of ['另開', '`!`', '密碼', '本條優先']) if (cmd && !cmd.includes(w)) bad.push(`§交給 user 跑的指令 缺「${w}」`);
   check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=B、rules 數字寫指標 + 出處、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
+    bad.length === 0, bad.join('；'));
+}
+
+// P22：路線級 finding 退回 §方案草圖、devwork 入口不自判 Tier、非最小推薦附理由（2026-11-09，PR #105 外部審查的三個後續）。
+{
+  const bad = [];
+  const dw = rd('skills/devwork/SKILL.md');
+  const step2 = (dw.match(/^2\. \*\*判斷 `\/devwork` 後面的文字\*\*[\s\S]*?(?=^3\. )/m) || [''])[0];
+  for (const w of ['一律', '入口不判 Tier']) if (!step2.includes(w)) bad.push(`devwork 第 2 步缺「${w}」`);
+  const rp = rd('skills/review-plan/SKILL.md');
+  for (const w of ['路線級 finding', '退回 brainstorm §方案草圖', 'review/route-level', '選單 B', '依選項內容執行', 'reject_to_route_sketch']) if (!rp.includes(w)) bad.push(`review-plan 缺「${w}」`);
+  if (!rp.includes('**加總也算**') || !rp.includes('`[路線級]`')) bad.push('review-plan 判準缺「加總也算」或 reviewer prompt 缺 [路線級] 標記');
+  if (!/review_user_action: <[^>]*reject_to_route_sketch/.test(rp)) bad.push('review-plan hand-off review_user_action 缺 reject_to_route_sketch');
+  const rr = rd('skills/receive-review/SKILL.md');
+  for (const w of ['路線級 finding', '§方案草圖', 'review/route-level', 'triggered_route_sketch: bool']) if (!rr.includes(w)) bad.push(`receive-review 缺「${w}」`);
+  // 路線級要在 auto-fix 分類之前判，否則像「密碼上命令列」會先被當不危險類自動修掉
+  const rrStep2 = (rr.match(/^2\. \*\*掃 finding 分類\*\*.*$/m) || [''])[0];
+  if (!(rrStep2.indexOf('先判路線級') >= 0 && rrStep2.indexOf('先判路線級') < rrStep2.indexOf('§Auto-fix'))) bad.push('receive-review 第 2 步沒有在 §Auto-fix 分類前先判路線級');
+  if (!/下一 phase\*\*：`triggered_route_sketch`/.test(rr)) bad.push('receive-review 下一 phase 沒處理 triggered_route_sketch');
+  const sk = (rd('skills/brainstorm/SKILL.md').split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
+  for (const w of ['為什麼值得背這份維護', '**從 review 退回**', '忽略上面的跳過條件', '不自己決定不做', '從 main 重開新 branch', '只刪不重寫', '**先定 branch，再寫 spec**', '接 0b′ → 0c → 0d', '4. 寫 spec（Tier、設計方向、施工清單都用第 3 步的結果）']) if (!sk.includes(w)) bad.push(`brainstorm §方案草圖 缺「${w}」`);
+  const hmLines = rd('skills/headless-mode/SKILL.md').split('\n');
+  const row = hmLines.find((l) => l.startsWith('| `review/route-level`')) || '';
+  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 review/route-level 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
+  // 優先序要寫在 headless 讀的表裡，不能只寫在 review-plan 的散文（無 critical 時 gate 會 A 類自動 accept）
+  const gate = hmLines.find((l) => l.startsWith('| `review-plan/gate`')) || '';
+  if (!gate.includes('review/route-level')) bad.push('headless review-plan/gate 列沒寫「有路線級 finding 改走 review/route-level」');
+  if (!row.includes('receive-review/safe-fix')) bad.push('headless review/route-level 沒寫優先於 receive-review/safe-fix');
+  const bsStep0 = (rd('skills/brainstorm/SKILL.md').match(/^0\. \*\*先分流\*\*.*$/m) || [''])[0];
+  if (!bsStep0.includes('reject_to_route_sketch') || !bsStep0.includes('branch 依該段的處置選單決定') || !bsStep0.includes('0b 只補新路線的影響檔')) bad.push('brainstorm 第 0 步缺從 review 退回的分流（branch 依處置選單）');
+  check('P22 devwork 入口不判 Tier、review-plan / receive-review 路線級 finding 退回 §方案草圖、headless review/route-level=B 且優先於 gate、草圖非最小推薦附理由',
     bad.length === 0, bad.join('；'));
 }
 
