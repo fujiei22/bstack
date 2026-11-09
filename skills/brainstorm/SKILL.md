@@ -13,7 +13,7 @@ description: |
 
 **載入後立即動作**：
 
-0. **先分流**：state 已有 `tier=T2` 且 `spec_path` 存在、且是 execute-plan / dispatch-parallel / verify-done 退回來補清單 → 直跳 §補施工清單入口，**不跑 Phase 0**。從 review 退回（`review_user_action: reject_to_route_sketch` 或 `triggered_route_sketch`）→ 直跳 §方案草圖 的「從 review 退回」，不重跑 0a / 0b；branch 依該段的處置選單決定。其餘往下。
+0. **先分流**：state 已有 `tier=T2` 且 `spec_path` 存在、且是 execute-plan / dispatch-parallel / verify-done 退回來補清單 → 直跳 §補施工清單入口，**不跑 Phase 0**。從 review 退回（`review_user_action: reject_to_route_sketch` 或 `triggered_route_sketch`）→ 直跳 §方案草圖 的「從 review 退回」，不重跑 0a，0b 只補新路線的影響檔（`codebase_impact` 要換成新路線的，0d 靠它判 Tier）；branch 依該段的處置選單決定。其餘往下。
 1. 進 Phase 0 子步驟（0a → 0b → §方案草圖 → 0b′ → 0c → 0d），不跳過；方案草圖依其條件可記理由後略過。
 2. 0b′／0c／0d 的判定**合併成一個 `AskUserQuestion` 一次確認**（見 §Phase 0c/0d 合併確認）；**禁文字 token NLP 判斷**。
 3. 完成後 spec 落檔 `docs/work/<branch-name>/spec.md`、commit。
@@ -63,10 +63,10 @@ headless 時 → B 類 `brainstorm/route-sketch`：路線是高成本決定，�
 依序：
 1. 忽略上面的跳過條件，必產草圖；原路線列為 rejected，放棄理由就是那幾條路線級 finding（原本是 `{skipped}` 的改寫成 `{chosen, rejected}`）。user 選定新路線。
 2. **先定 branch，再寫 spec**。舊路線的文件與程式碼要刪或還原，屬 rules.md §Auto-fix 危險類（檔案刪除），一次 `AskUserQuestion` 問處置：
-   1. 從 main 重開新 branch 做新路線，舊 branch 留著參考（推薦；已有實作 commit 時尤其如此）→ 新 spec 寫在 `docs/work/<新 branch>/`
+   1. 從 main 重開新 branch 做新路線，舊 branch 留著參考（推薦；已有實作 commit 時尤其如此）→ 新 spec 寫在 `docs/work/<新 branch>/`；舊 branch 的施工文件不經 finish-branch，依 rules.md §Docs 落檔 移到 `docs/paused/` 或 `docs/archive/`，在新 branch 的 finish-branch 時問 user
    2. 留在本 branch：`git revert` 舊路線的實作 commit、刪舊 plan.md / review.md（git 歷史保留）→ 就地改寫 spec；branch 名若只描述舊路線，在 finish-branch 前問 user 要不要 `git branch -m` 改名
-3. 寫 spec：原路線摘要放進「## 方案草圖」的放棄理由。
-4. 接 0b′ → 0c → 0d 合併確認（新路線可能碰到前端或改變量體）：仍是 T3 → 重寫 plan、重跑 review-plan；降為 T2 → 不寫 plan.md，改在 spec 寫 `## 施工清單`（選 2 時舊 plan.md 只刪不重寫）。
+3. 接 0b′ → 0c → 0d 合併確認（新路線可能碰到前端或改變量體）。
+4. 寫 spec（Tier、設計方向、施工清單都用第 3 步的結果）：原路線摘要放進「## 方案草圖」的放棄理由。仍是 T3 → 重寫 plan、重跑 review-plan；降為 T2 → 不寫 plan.md，改在 spec 寫 `## 施工清單`（選 2 時舊 plan.md 只刪不重寫）。
 
 **本階段只問不寫檔**（仍在主分支，同 0b′；從 review 退回時已在 feature branch，照上一段處理）。
 
