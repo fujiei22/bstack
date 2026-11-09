@@ -41,7 +41,7 @@ Agent:
     你不是 headless 主流程：禁 gh issue comment / git push / 寫 snapshot / 印 [bstack headless] 行；要問 user 的問題回報給派工你的 agent，由它決定。
     依 agent「§檢查焦點」做，回結構化 finding（critical / major / minor / nit + PASS）。**不寫 fix code、不問 user**。
 ```
-涉 DB schema / migration 改動：**另外**派 `db-reviewer`（兩 agent 可同 message 平行 spawn），prompt 同樣附上面那句「你不是 headless 主流程」約束。
+涉 DB schema / migration 改動：**另外**派 `db-reviewer`（兩 agent 可同 message 平行 spawn），prompt 同樣附上面那句「你不是 headless 主流程」約束。db-reviewer 只能直接查 `mcp__mysql__mysql_query`；用的是其他 DB 查詢工具時，主 agent 派工前先自己抽樣（涉表的 `COUNT(*)`、相關欄位結構，依 `db-access`），結果貼進 db-reviewer 的 prompt；沒有任何 DB 查詢工具就照派，reviewer 會標「未查」。
 
 ## §Critical-finding 流程
 任一 Critical finding → `AskUserQuestion`（多個 Critical 一個一個跑，**不**批次成單一問題；headless 時 → 每個 critical 一則 B 類留言 `security-audit/critical`，見 `headless-mode`）：
