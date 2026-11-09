@@ -905,7 +905,7 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   const bs = rd('skills/brainstorm/SKILL.md');
   const sk = (bs.split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
   if (!sk) bad.push('brainstorm 缺 ## §方案草圖');
-  for (const w of ['**觸發**', '**跳過**', 'route_sketch: {skipped', 'route_sketch: {chosen, rejected', 'brainstorm/route-sketch', '長期維護成本', 'Tier 仍由 0d']) if (!sk.includes(w)) bad.push(`§方案草圖缺「${w}」`);
+  for (const w of ['**觸發**', '**跳過**', 'route_sketch: {skipped', 'route_sketch: {chosen, rejected', 'brainstorm/route-sketch', '長期維護成本', 'Tier 仍由 0d', '必含一條「最小做法」', '明顯更便宜的替代']) if (!sk.includes(w)) bad.push(`§方案草圖缺「${w}」`);
   if (!/^## 方案草圖$/m.test(bs)) bad.push('brainstorm spec 模板缺「## 方案草圖」段');
   const hm = rd('skills/headless-mode/SKILL.md');
   const row = hm.split('\n').find((l) => l.startsWith('| `brainstorm/route-sketch`')) || '';
@@ -914,11 +914,13 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   const rules = rd('skills/devwork/rules.md');
   const pick = (head) => { const i = rules.indexOf(head); if (i < 0) return ''; const r = rules.slice(i + head.length); const j = r.search(/\n#{2,3} /); return j < 0 ? r : r.slice(0, j); };
   const menu = pick('### §決策點選單');
-  for (const w of ['實測 / 文件 / 推估', '推估不得當決定性理由', '沒來源的數字不放進選單']) if (!menu.includes(w)) bad.push(`rules.md §決策點選單 缺「${w}」`);
+  // 事故是「量的是什麼」寫錯（記憶體高峰被說成下載量），所以守「指標 + 出處」，不是只守有沒有來源
+  if (!pick('### §白話優先').includes('量的是什麼指標')) bad.push('rules.md §白話優先 底線缺「量的是什麼指標」');
+  if (!menu.includes('§白話優先')) bad.push('rules.md §決策點選單 沒指回 §白話優先 的數字底線');
   const cmd = pick('### §交給 user 跑的指令');
   if (!cmd) bad.push('rules.md 缺 ### §交給 user 跑的指令');
-  for (const w of ['另開', '`!`', '密碼']) if (cmd && !cmd.includes(w)) bad.push(`§交給 user 跑的指令 缺「${w}」`);
-  check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=B、rules §決策點選單 數字標來源、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
+  for (const w of ['另開', '`!`', '密碼', '本條優先']) if (cmd && !cmd.includes(w)) bad.push(`§交給 user 跑的指令 缺「${w}」`);
+  check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=B、rules 數字寫指標 + 出處、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
     bad.length === 0, bad.join('；'));
 }
 

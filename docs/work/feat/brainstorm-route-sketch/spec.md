@@ -18,8 +18,9 @@
   - 選定路線與被放棄的路線寫進 spec「## 方案草圖」。
   - 只有一條明顯做法時跳過（bug fix、typo、照既有 pattern 加一項、user 已指定做法），state 記一句跳過理由。
   - 決定路線的關鍵事實不確定 → 先查一次再問，不把猜測放進選項。
-  - headless：A 類 `brainstorm/route-sketch`，採推薦；被放棄的路線列進 spec §待釐清 與進度留言，讓人能喊停。
-- **rules.md §決策點選單**：題目或選項裡的數字（大小、時間、筆數、比例）要標來源（實測 / 文件 / 推估）。推估不得當決定性理由；沒有來源的數字不放進選單。
+  - headless：B 類 `brainstorm/route-sketch`，留言列路線表、等人選（code-review 後由 A 改 B）。
+  - 路線表必含一條「最小做法」；user 已指定做法但有明顯更便宜的替代時，仍要列出來（審查後加）。
+- **rules.md §白話優先 底線**：數字寫出量的是什麼指標加出處；§決策點選單 指回這條（審查後改：原「標來源」對不準事故）。
 - **rules.md 新增「§交給 user 跑的指令」**：
   - 指令一律放 fenced code block 並標語言。
   - 需要輸入密碼、互動確認、長時間執行，或是 PowerShell 語法的指令，明寫「另開 PowerShell（或終端機）視窗執行」。
@@ -72,3 +73,15 @@
     - 它在 `-p` 下改了 README.md（使用者層權限放行 Edit），屬測試產物，已 `git checkout` 還原。
   - 另一個假 typo（`teh` 不存在）：AI 查無此字後停下，未進 brainstorm，不列入判定。
 - code-review medium 8 項全收（一顆 fix commit）。偏差：headless `brainstorm/route-sketch` 由 A 改 B，路線是高成本決定，無人時不自己選。user 2026-11-09 表示沒用過 headless-mode，是否整個移除另議（排 PR 4）。
+- 外部審查（session-team worker，唯讀）結論「需修改後 merge」。三項修改全收：
+  1. 數字規則改成「寫出量的是什麼指標 + 出處」，併進 §白話優先 底線；§決策點選單 改為指回該處。
+  2. 路線表必含「最小做法」；user 指定做法但有明顯更便宜的替代時仍要列。
+  3. spec 的 headless 改 B；`!` 規則補「需輸入密碼的指令一律另開視窗，本條優先」。
+- #103 原始需求重跑（審查建議的驗證）。前兩次被汙染：
+  - worktree 共用專案記憶；
+  - `--plugin-dir` 指向主 repo，讀到 docs/archive；
+  - 新版 plugin 的契約腳本與 db-access 本身就寫著定案。
+- 第三次改用 #103 之前的 plugin（`git archive 668dae8`）只換上新版 brainstorm，加上獨立 clone 的專案目錄，沒有洩漏。結果：
+  - 列出三條路線（內建 DBHub / 每種 DB 各一個 MCP / 最小做法：不內建、只擴充範本）。最小做法接近最後定案的方向。
+  - 自己標出兩個未查證疑點：連線字串可能全機共用、Codex 不一定支援表單。兩點都是當初 review 才挖出的問題。
+  - **推薦仍是內建 DBHub**，與當初相同：草圖讓最小做法在開工前被看見，但不會自動改變推薦。
