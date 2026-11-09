@@ -98,3 +98,7 @@
     - 模型載入 db-access 後讀 `db/schema.sql` 判方言，呼叫 `mcp__pgdb__execute_sql` 查 `current_database()` 與表數，回 `bstack_dbhub_test` / 1 張表。
     - 結論附「確認庫名、用唯讀帳號」提醒。
   - **沒有任何 DB 工具**（空 mcp-config、允許 Bash）：模型只用 Bash 跑 `ls` / `head`，沒跑 `psql`，也沒拿 db-reviewer 的 mysql 工具湊。它列出 §工具不在 的三個選項，推薦「自己裝、唯讀帳號、重開 session」。
+- review 後偏差（user 2026-11-09 選定）：db-reviewer 改**黑名單**（`disallowedTools` 禁寫檔、不設 `tools`），繼承使用者自裝的 DB MCP；取代原目標「白名單維持 `mcp__mysql__mysql_query` + 主 agent 預抽樣」。
+  - 實測：`claude -p --plugin-dir .` 派 `bstack:db-reviewer`，subagent 工具清單沒有 Write / Edit / NotebookEdit，用 `mcp__pgdb__execute_sql` 查到 items 150 筆。
+  - Codex 端由產生器推成 `sandbox_mode = "read-only"`。
+- code-review medium 10 項、security audit 3 Major 加數項 Minor 全收，一顆 fix commit；契約 ALL PASS。
