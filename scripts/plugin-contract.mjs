@@ -905,19 +905,20 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   const bs = rd('skills/brainstorm/SKILL.md');
   const sk = (bs.split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
   if (!sk) bad.push('brainstorm 缺 ## §方案草圖');
-  for (const w of ['≥2', '跳過', 'brainstorm/route-sketch', 'route_sketch', '長期維護成本']) if (!sk.includes(w)) bad.push(`§方案草圖缺「${w}」`);
+  for (const w of ['**觸發**', '**跳過**', 'route_sketch: {skipped', 'route_sketch: {chosen, rejected', 'brainstorm/route-sketch', '長期維護成本', 'Tier 仍由 0d']) if (!sk.includes(w)) bad.push(`§方案草圖缺「${w}」`);
   if (!/^## 方案草圖$/m.test(bs)) bad.push('brainstorm spec 模板缺「## 方案草圖」段');
   const hm = rd('skills/headless-mode/SKILL.md');
   const row = hm.split('\n').find((l) => l.startsWith('| `brainstorm/route-sketch`')) || '';
-  if ((row.split('|')[3] || '').trim() !== 'A') bad.push(`headless 分流表 brainstorm/route-sketch 類別應為 A，實際「${(row.split('|')[3] || '').trim()}」`);
+  // 路線是高成本決定：無人時不自己選（2026-11-09 code-review）
+  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 brainstorm/route-sketch 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
   const rules = rd('skills/devwork/rules.md');
   const pick = (head) => { const i = rules.indexOf(head); if (i < 0) return ''; const r = rules.slice(i + head.length); const j = r.search(/\n#{2,3} /); return j < 0 ? r : r.slice(0, j); };
   const menu = pick('### §決策點選單');
-  for (const w of ['實測', '文件', '推估']) if (!menu.includes(w)) bad.push(`rules.md §決策點選單 缺數字來源「${w}」`);
+  for (const w of ['實測 / 文件 / 推估', '推估不得當決定性理由', '沒來源的數字不放進選單']) if (!menu.includes(w)) bad.push(`rules.md §決策點選單 缺「${w}」`);
   const cmd = pick('### §交給 user 跑的指令');
   if (!cmd) bad.push('rules.md 缺 ### §交給 user 跑的指令');
   for (const w of ['另開', '`!`', '密碼']) if (cmd && !cmd.includes(w)) bad.push(`§交給 user 跑的指令 缺「${w}」`);
-  check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=A、rules §決策點選單 數字標來源、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
+  check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=B、rules §決策點選單 數字標來源、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
     bad.length === 0, bad.join('；'));
 }
 

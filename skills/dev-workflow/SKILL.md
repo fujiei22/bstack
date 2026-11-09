@@ -19,7 +19,7 @@ description: |
 
 ## §Phase 0 入口分流
 
-brainstorm 內建；結尾產出 `{Track, Tier, spec, codebase-impact, design}` 五元組 feed 後續 Phase。
+brainstorm 內建；結尾產出 `{Track, Tier, spec, codebase-impact, design, route_sketch}` 六元組 feed 後續 Phase。
 
 ```
 0a 對話釐清    ← paraphrase + 讀 memory（user 偏好 / 領域 / 過去決策）

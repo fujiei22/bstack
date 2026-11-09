@@ -71,3 +71,4 @@
     - 偏差：這次它在 devwork 層就判 T0、沒進 brainstorm，所以「跳過」是間接觀察到的。
     - 它在 `-p` 下改了 README.md（使用者層權限放行 Edit），屬測試產物，已 `git checkout` 還原。
   - 另一個假 typo（`teh` 不存在）：AI 查無此字後停下，未進 brainstorm，不列入判定。
+- code-review medium 8 項全收（一顆 fix commit）。偏差：headless `brainstorm/route-sketch` 由 A 改 B，路線是高成本決定，無人時不自己選。user 2026-11-09 表示沒用過 headless-mode，是否整個移除另議（排 PR 4）。

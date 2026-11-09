@@ -54,10 +54,10 @@ description: |
 **做法**：
 1. 列 2–3 條路線，一張表：做法（一句）/ 使用者要做什麼 / 長期維護成本 / 主要風險 / 估計 Tier。不做深入調查，草圖幾分鐘內完成。
 2. 決定路線的關鍵事實不確定（體積、相容性、某工具支不支援）→ 先查一次再放進表；查不到就標「未查證」，不把猜測寫成事實。表裡的數字依 rules.md §決策點選單 標來源。
-3. `AskUserQuestion` 選一條（推薦放第一並附理由），也提供「都不對，我說明」。
-4. 選定後 state 寫 `route_sketch: {chosen, rejected: [...]}`；spec 落檔時寫進「## 方案草圖」段。選定的路線決定 0d 的 Tier。
+3. `AskUserQuestion` 選一條（推薦放第一並附理由；「都不對」由平台附的 `Other` 承接，不另列）。
+4. 選定後 state 寫 `route_sketch: {chosen, rejected: [...]}`；spec 落檔時寫進「## 方案草圖」段。選定的路線決定**範圍**；Tier 仍由 0d 依其規則判（含 File-type 硬規則自動升級），草圖裡的「估計 Tier」只供比較路線。
 
-headless 時 → A 類 `brainstorm/route-sketch`：採推薦；被放棄的路線列進 spec §待釐清，隨 spec gate 的進度留言讓人喊停（`headless-mode`）。
+headless 時 → B 類 `brainstorm/route-sketch`：路線是高成本決定，留言列路線表、結束本輪等人選（`headless-mode`）。
 
 **本階段只問不寫檔**（仍在主分支，同 0b′）。
 
