@@ -8,21 +8,18 @@
  *   P4 無 ~/.claude 安裝路徑字樣（白名單行跳過，且白名單行數有上限）
  *   P5 全域 sync 路徑已移除、範本合法   P6 rules.md 單一真相
  *   P7 agents frontmatter 與 README 計數   P8 README / index.html skill 計數 == 磁碟
- *   P9 T2 lane 精簡（施工清單 / code-review 內建 / pr-explain 限 T3）   P10 verify-done 文字節點豁免判定器
+  *   P9 T2 lane 兩端握手（施工清單標題、code-review 呼叫字面）   P10 verify-done 文字節點豁免判定器
  *   P11 design-language 延遲載入、副檔名清單七處一致   P12 security-audit 純文件 T3 跳的六處同步
  *   P13 Codex manifest / marketplace / hooks.json 兩組 / 版本三處   P14 skill / agent 無 Claude 專屬字面 + hosts.md 反向白名單
  *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 + devwork / rules.md 接線 + build-references 內嵌
  *   P17 install-codex.ps1 -WhatIf 冒煙（假 CODEX_HOME、不寫檔）
  *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
- *   P20 規則支援多種資料庫、認使用者自裝的 DB 工具
- *   P21 brainstorm 方案草圖、選項數字標來源、互動指令另開視窗
- *   P22 路線級 finding 退回方案草圖、devwork 入口不判 Tier、非最小推薦附理由
+ *   P20 多資料庫結構   P21 方案草圖結構   P22 路線級退回結構（皆 2026-11-09 瘦身為只守結構）
  *
  * **只守結構**（2026-11-09 user 定）：壞了會機械性出錯、可確定性判斷的才放進來——manifest / 版本 / 檔案存在 / 名稱與計數一致、
  * 產生器 --check、判定器 fixture、執行腳本驗輸出、表格固定欄位值、hand-off 欄位名與 enum、frontmatter 白 / 黑名單、跨檔 id 或 § 標題錨點存在、
  * 多處清單逐值相等。「某句規則文字還在不在」不放：同字在別處會假綠、改寫措辭會誤報，語意交給 code-review / 審查。
  * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22：P7 先算是因為 P4 要用 agentFiles 掃描；
- * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
  * 在 pwsh 看 exit code 用 $LASTEXITCODE）：
@@ -634,8 +631,7 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、hosts.md 指
   const HEADS19 = ['使用契約（強制）', '§偵測', '§分流表', '§問人格式', '§讀回覆', '§本輪結束協定', '§子 agent 約束', '§hand-off state', '§Red Flags'];
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\（）]/g, '\\$&');
   const missHead19 = HEADS19.filter((n) => !new RegExp(`^##[ \\t]+${esc(n)}[ \\t]*$`, 'm').test(hm));
-  const rulesDP = section(rules16, /^### §決策點選單[^\n]*\n/m), rulesTeam = section(rules16, /^### §協作模式判定[^\n]*\n/m), rulesTrace = section(rules16, /^### §Trace 標籤[^\n]*\n/m);
-  const hostsHost = section(hostsMd, /^## §Host 判定[^\n]*\n/m), hostsDP = section(hostsMd, /^## §決策點[^\n]*\n/m), hostsSub = section(hostsMd, /^## §派 subagent[^\n]*\n/m);
+  const hostsHost = section(hostsMd, /^## §Host 判定[^\n]*\n/m);
   const hostRows = hostsHost.split('\n'), iSub = hostRows.findIndex((l) => /被 spawn 的 subagent/.test(l)), iHl = hostRows.findIndex((l) => /headless-mode/.test(l));
   // 分流清單推導：含 AskUserQuestion 的 skill 都要有分流；白名單 = 只由 user 顯式呼叫、headless 不會走到的
   const ONLY_EXPLICIT = new Set(['retro', 'lock-files']);
@@ -656,7 +652,6 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、hosts.md 指
   const DISPATCHERS = ['dispatch-parallel', 'review-plan', 'request-review', 'security-audit', 'incident-investigate', 'frontend-test', 'pr-explain', 'design-direction'];
   const missDispatch = DISPATCHERS.filter((s) => !/你不是 headless 主流程/.test(skillText[s] || ''));
   const dwf = skillText['dev-workflow'] || '';
-  const squash = section(skillText['finish-branch'] || '', /^## §Squash merge[^\n]*\n/m);
   const gi = rdOr('.gitignore');
   // parser fixture：直接 import 純函式；留言物件只給 parser 真的會讀的欄位（id / body / createdAt / authorAssociation）
   const fixBad = [];
@@ -709,141 +704,71 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、hosts.md 指
   }
   const p19 = {
     skillHeads: missHead19.length === 0,
-    skillBody: ['BSTACK_HEADLESS', 'BSTACK_ISSUE', 'AUTOPILOT_LABEL', '<!-- bstack-ask:', '[bstack headless]', 'headless-reply.mjs', '表外一律 B'].every((s) => hm.includes(s)) && hm.split('\n').some((l) => /merge/.test(l) && /永不/.test(l)),
-    rules: /headless-mode/.test(rulesDP) && /BSTACK_HEADLESS/.test(rulesDP) && /重讀|重新載入/.test(rulesDP) && /headless/.test(rulesTeam) && /bstack headless/.test(rulesTrace),
-    hosts: /BSTACK_HEADLESS/.test(hostsHost) && iHl > iSub && iSub >= 0 && /headless-mode/.test(hostsDP) && /headless/.test(hostsSub),
+    // 介面名：環境變數、parser 找提問用的標記、結束行、腳本檔名（改名兩端就斷）
+    skillBody: ['BSTACK_HEADLESS', 'BSTACK_ISSUE', 'AUTOPILOT_LABEL', '<!-- bstack-ask:', '[bstack headless]', 'headless-reply.mjs'].every((s) => hm.includes(s)),
+    // 判定表列序：subagent 列要先於 headless 列，否則被派的 subagent 會誤判自己是 headless 主流程
+    hostsOrder: iHl > iSub && iSub >= 0,
     phases: missPhase.length === 0 && needWire.length >= 19,
     decisionIds: badIds.length === 0 && tableIds.size >= 20,
     dispatchers: missDispatch.length === 0,
     crossTable: /^\| `headless-mode` \|/m.test(dwf),
-    noMerge: squash.split('\n').filter((l) => /headless/.test(l)).length >= 3,
     gitignore: /^docs\/snapshots\/$/m.test(gi),
     parser: fixBad.length === 0,
   };
-  check(`P19 headless-mode 九節 + 契約字樣 + merge 永不；rules.md 三節 / hosts.md 三節指向（Host 判定列在 subagent 列之後）；含 AskUserQuestion 的 ${needWire.length} 個 skill 各有分流；skill 引用的 decision_id 都在 §分流表（${tableIds.size} 列）；${DISPATCHERS.length} 個派工 skill 含約束句字面；dev-workflow 跨流程表有列；finish-branch §Squash merge headless 行 ≥3；.gitignore 有 docs/snapshots/；回覆 parser ${FIX19.length} 個 fixture + ${THROWS19.length} 個 throw + CLI 冒煙`,
+  check(`P19 headless-mode 九節 + 介面名；hosts.md §Host 判定 subagent 列先於 headless 列；含 AskUserQuestion 的 ${needWire.length} 個 skill 各有分流；skill 引用的 decision_id 都在 §分流表（${tableIds.size} 列）；${DISPATCHERS.length} 個派工 skill 含約束句字面；dev-workflow 跨流程表有列；.gitignore 有 docs/snapshots/；回覆 parser ${FIX19.length} 個 fixture + ${THROWS19.length} 個 throw + CLI 冒煙`,
     Object.values(p19).every(Boolean),
     `${Object.entries(p19).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead19.join(', ')}] 缺分流=[${missPhase.join(', ')}] 壞 id=[${badIds.slice(0, 6).join(', ')}] 缺約束句=[${missDispatch.join(', ')}] parser=[${fixBad.slice(0, 3).join(' | ')}]（後果：無人模式跑到沒分流的決策點就白跑一輪、subagent 自己去 issue 留言、或回覆永遠讀不到；改處：skills/headless-mode/SKILL.md、skills/devwork/{rules,hosts}.md、缺分流 / 缺約束句的 skill、scripts/headless-reply.mjs）`);
 }
 
-// P20：規則支援多種資料庫、認使用者自己裝的 DB 查詢工具（2026-11-09 user 定案：bstack 不附 DB MCP、不附安裝工具、不推薦）。
-// 守：rules.md 不再把 mcp__mysql__mysql_query 寫成唯一讀取工具；db-access 多方言 + 首查比對庫名 + 工具不在；
-// headless 兩列的類別欄；brainstorm 關鍵詞；db-reviewer 工具不在照做靜態審查；security-audit 派 db-reviewer 前主 agent 先抽樣。
+// P20–P22（2026-11-09 瘦身：措辭交 code-review，只留結構）
+// P20：多資料庫。headless 兩列類別；db-reviewer 不設 tools 白名單、靠 disallowedTools 禁寫檔、Codex TOML read-only；
+//      db-access 被 rules.md / hosts.md 以 § 引用的兩個標題要存在。
 {
   const bad = [];
-  /** 取 markdown 某標題到下一個同級以上標題之間的內容；找不到回空字串（讓下面的斷言 fail-closed）。 */
-  const sect = (txt, head) => {
-    const i = txt.indexOf(head); if (i < 0) return '';
-    const level = head.match(/^#+/)[0].length;
-    const rest = txt.slice(i + head.length);
-    // 跳過 ``` 圍起來的區塊：程式碼裡的 `# 註解` 不是標題
-    let fence = false, out = '';
-    for (const line of rest.split('\n')) {
-      if (/^\s*```/.test(line)) fence = !fence;
-      else if (!fence && new RegExp(`^#{1,${level}} `).test(line)) break;
-      out += line + '\n';
-    }
-    return out;
-  };
-  const rules = rd('skills/devwork/rules.md');
-  const dbOps = sect(rules, '### §DB 操作');
-  if (!dbOps) bad.push('rules.md 找不到 §DB 操作');
-  if (/\*\*讀\*\*\s*`mcp__mysql__mysql_query`[；;]/.test(dbOps)) bad.push('rules.md §DB 操作仍把 mcp__mysql__mysql_query 寫成唯一讀取工具');
-  for (const w of ['工具清單', 'sqlcmd', 'sqlplus', 'sqlite3', '§工具不在', 'EXPLAIN ANALYZE', 'FOR UPDATE', '§讀的界線']) if (!dbOps.includes(w)) bad.push(`rules.md §DB 操作缺「${w}」`);
-  if (!sect(rules, '### §事實核實').includes('儲存端工具不在')) bad.push('rules.md §事實核實缺「儲存端工具不在」');
-
+  const hmL = rd('skills/headless-mode/SKILL.md').split('\n');
+  const cls = (id) => ((hmL.find((l) => l.startsWith(`| \`${id}\``)) || '').split('|')[3] || '').trim();
+  if (cls('db-access/tool-missing') !== 'A / B') bad.push(`分流表 db-access/tool-missing 類別應為「A / B」，實際「${cls('db-access/tool-missing')}」`);
+  if (cls('db-access/db-mismatch') !== 'B') bad.push(`分流表 db-access/db-mismatch 類別應為「B」，實際「${cls('db-access/db-mismatch')}」`);
   const da = rd('skills/db-access/SKILL.md');
-  for (const w of ['## §工具不在', 'TOP', 'FETCH FIRST', 'DATABASE()', 'current_database()', 'DB_NAME()', 'PRAGMA database_list', "sys_context('USERENV'", '唯讀帳號', '儲存端未驗', 'db-access/db-mismatch', '## §讀的界線', 'EXPLAIN ANALYZE', 'FOR UPDATE', 'INTO OUTFILE', 'EXPLAIN QUERY PLAN', '比對基準', '不列此選項', '-- Oracle'])
-    if (!da.includes(w)) bad.push(`db-access 缺「${w}」`);
-  if (/bstackdb|DBHUB_DSN|db_dsn/.test(da)) bad.push('db-access 殘留內建版說法（bstackdb / DBHUB_DSN / db_dsn）');
-
-  // 類別欄是表格第 3 欄（| id | 情境 | 類 | 處置 |）；只用 includes 會在處置欄提到 A 類時假綠
-  const hm = rd('skills/headless-mode/SKILL.md');
-  const cls = (id) => ((hm.split('\n').find((l) => l.startsWith(`| \`${id}\``)) || '').split('|')[3] || '').trim();
-  const tmRow = hm.split('\n').find((l) => l.startsWith('| `db-access/tool-missing`')) || '';
-  if (!/預設 B/.test(tmRow) || !/Tier 還沒判/.test(tmRow)) bad.push('headless db-access/tool-missing 處置欄應寫預設 B、Tier 未判一律 B');
-  if (cls('db-access/tool-missing') !== 'A / B') bad.push(`headless 分流表 db-access/tool-missing 類別應為「A / B」，實際「${cls('db-access/tool-missing')}」`);
-  if (cls('db-access/db-mismatch') !== 'B') bad.push(`headless 分流表 db-access/db-mismatch 類別應為「B」，實際「${cls('db-access/db-mismatch')}」`);
-
-  const kw = rd('skills/brainstorm/SKILL.md').split('\n').find((l) => l.includes('DB 關鍵詞')) || '';
-  for (const w of ['postgres', 'sqlite', 'oracle', 'mssql', 'mariadb']) if (!kw.includes(w)) bad.push(`brainstorm DB 關鍵詞缺 ${w}`);
-
-  const hosts = rd('skills/devwork/hosts.md');
-  const mcpRow = sect(hosts, '## §MCP 工具');
-  if (!mcpRow.includes('db-access` §工具不在')) bad.push('hosts.md §MCP 工具 沒把 DB 工具不在指向 db-access §工具不在');
-
-  // db-reviewer 要繼承使用者自裝的 DB MCP（名稱不固定）→ 不得有 tools 白名單；靠 disallowedTools 禁寫檔
-  const dr = rd('agents/db-reviewer.md'); const drHead = frontmatter(dr);
-  for (const w of ['未查', '方言', 'CREATE INDEX CONCURRENTLY', 'EXPLAIN ANALYZE', 'FETCH FIRST']) if (!dr.includes(w)) bad.push(`db-reviewer 缺「${w}」`);
+  for (const h of ['## §工具不在', '## §讀的界線']) if (!new RegExp(`^${h}$`, 'm').test(da)) bad.push(`db-access 缺標題「${h}」（rules.md / hosts.md 以 § 引用）`);
+  const drHead = frontmatter(rd('agents/db-reviewer.md'));
   if (/^tools:/m.test(drHead)) bad.push('db-reviewer 不得有 tools 白名單（會擋掉使用者自裝的 DB MCP）');
   const dis = (drHead.match(/^disallowedTools:.*$/m) || [''])[0];
   for (const t of ['Write', 'Edit', 'NotebookEdit']) if (!dis.includes(`"${t}"`)) bad.push(`db-reviewer disallowedTools 缺 ${t}`);
   if (!/^sandbox_mode = "read-only"$/m.test(rd('codex/agents/db-reviewer.toml'))) bad.push('codex/agents/db-reviewer.toml 不是 read-only');
-  const sa = sect(rd('skills/security-audit/SKILL.md'), '## §Dispatch');
-  if (!/db-reviewer 繼承/.test(sa)) bad.push('security-audit §Dispatch 沒寫 db-reviewer 繼承 DB 查詢工具、自己抽樣');
-
-  const inst = rd('docs/install.md');
-  if (!/其他資料庫[^\n]*唯讀/.test(inst)) bad.push('install.md 沒有「其他資料庫自己裝、帳號唯讀」那句');
-  if (rd('docs/js/data.js').includes('mcp__mysql 唯讀')) bad.push('docs/js/data.js 規則卡仍寫 mcp__mysql 唯讀');
-
-  check('P20 規則支援多種資料庫：rules §DB 操作不綁單一工具、db-access 五方言庫名 / TOP / FETCH FIRST / 工具不在、headless 兩列類別、brainstorm 關鍵詞、hosts 指向、db-reviewer 無白名單 + 禁寫檔 + 未查 + 方言、讀的界線白名單、庫名比對基準、security-audit 不貼原文、install.md 唯讀提醒',
+  check('P20 多資料庫結構：headless db-access 兩列類別、db-access §工具不在 / §讀的界線 標題、db-reviewer 無 tools + disallowedTools 三項 + Codex read-only',
     bad.length === 0, bad.join('；'));
 }
 
-// P21：brainstorm 方案草圖、選項數字標來源、互動指令另開視窗（2026-11-09，PR #103 的三個流程教訓）。
-// 守：brainstorm 有 §方案草圖（觸發 / 跳過條件、headless id、spec 模板段）；分流表該列是 A；
-// rules.md §決策點選單 有數字來源三分類；rules.md 有 §交給 user 跑的指令（另開視窗、! 前綴）。
+// P21：方案草圖。headless route-sketch 類別；brainstorm §方案草圖 標題與 spec 模板段；hand-off route_sketch 兩種形狀。
 {
   const bad = [];
   const bs = rd('skills/brainstorm/SKILL.md');
-  const sk = (bs.split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
-  if (!sk) bad.push('brainstorm 缺 ## §方案草圖');
-  for (const w of ['**觸發**', '**跳過**', 'route_sketch: {skipped', 'route_sketch: {chosen, rejected', 'brainstorm/route-sketch', '長期維護成本', 'Tier 仍由 0d', '必含一條「最小做法」', '明顯更便宜的替代']) if (!sk.includes(w)) bad.push(`§方案草圖缺「${w}」`);
+  if (!/^## §方案草圖$/m.test(bs)) bad.push('brainstorm 缺標題「## §方案草圖」');
   if (!/^## 方案草圖$/m.test(bs)) bad.push('brainstorm spec 模板缺「## 方案草圖」段');
-  const hm = rd('skills/headless-mode/SKILL.md');
-  const row = hm.split('\n').find((l) => l.startsWith('| `brainstorm/route-sketch`')) || '';
-  // 路線是高成本決定：無人時不自己選（2026-11-09 code-review）
-  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 brainstorm/route-sketch 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
-  const rules = rd('skills/devwork/rules.md');
-  const pick = (head) => { const i = rules.indexOf(head); if (i < 0) return ''; const r = rules.slice(i + head.length); const j = r.search(/\n#{2,3} /); return j < 0 ? r : r.slice(0, j); };
-  const menu = pick('### §決策點選單');
-  // 事故是「量的是什麼」寫錯（記憶體高峰被說成下載量），所以守「指標 + 出處」，不是只守有沒有來源
-  if (!pick('### §白話優先').includes('量的是什麼指標')) bad.push('rules.md §白話優先 底線缺「量的是什麼指標」');
-  if (!menu.includes('§白話優先')) bad.push('rules.md §決策點選單 沒指回 §白話優先 的數字底線');
-  const cmd = pick('### §交給 user 跑的指令');
-  if (!cmd) bad.push('rules.md 缺 ### §交給 user 跑的指令');
-  for (const w of ['另開', '`!`', '密碼', '本條優先']) if (cmd && !cmd.includes(w)) bad.push(`§交給 user 跑的指令 缺「${w}」`);
-  check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=B、rules 數字寫指標 + 出處、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
+  for (const w of ['route_sketch: {skipped', 'route_sketch: {chosen, rejected']) if (!bs.includes(w)) bad.push(`brainstorm hand-off 缺 route_sketch 形狀「${w}」`);
+  const row = rd('skills/headless-mode/SKILL.md').split('\n').find((l) => l.startsWith('| `brainstorm/route-sketch`')) || '';
+  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`分流表 brainstorm/route-sketch 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
+  check('P21 方案草圖結構：brainstorm §方案草圖 標題、spec 模板段、route_sketch 兩種形狀；headless route-sketch=B',
     bad.length === 0, bad.join('；'));
 }
 
-// P22：路線級 finding 退回 §方案草圖、devwork 入口不自判 Tier、非最小推薦附理由（2026-11-09，PR #105 外部審查的三個後續）。
+// P22：路線級退回。hand-off 兩端：review-plan 產 reject_to_route_sketch、receive-review 產 triggered_route_sketch 並有下一 phase 路由，
+//      brainstorm 第 0 步消費兩者；headless review/route-level 類別、gate 列互指。
 {
   const bad = [];
-  const dw = rd('skills/devwork/SKILL.md');
-  const step2 = (dw.match(/^2\. \*\*判斷 `\/devwork` 後面的文字\*\*[\s\S]*?(?=^3\. )/m) || [''])[0];
-  for (const w of ['一律', '入口不判 Tier']) if (!step2.includes(w)) bad.push(`devwork 第 2 步缺「${w}」`);
-  const rp = rd('skills/review-plan/SKILL.md');
-  for (const w of ['路線級 finding', '退回 brainstorm §方案草圖', 'review/route-level', '選單 B', '依選項內容執行', 'reject_to_route_sketch']) if (!rp.includes(w)) bad.push(`review-plan 缺「${w}」`);
-  if (!rp.includes('**加總也算**') || !rp.includes('`[路線級]`')) bad.push('review-plan 判準缺「加總也算」或 reviewer prompt 缺 [路線級] 標記');
+  const rp = rd('skills/review-plan/SKILL.md'), rr = rd('skills/receive-review/SKILL.md');
   if (!/review_user_action: <[^>]*reject_to_route_sketch/.test(rp)) bad.push('review-plan hand-off review_user_action 缺 reject_to_route_sketch');
-  const rr = rd('skills/receive-review/SKILL.md');
-  for (const w of ['路線級 finding', '§方案草圖', 'review/route-level', 'triggered_route_sketch: bool']) if (!rr.includes(w)) bad.push(`receive-review 缺「${w}」`);
-  // 路線級要在 auto-fix 分類之前判，否則像「密碼上命令列」會先被當不危險類自動修掉
-  const rrStep2 = (rr.match(/^2\. \*\*掃 finding 分類\*\*.*$/m) || [''])[0];
-  if (!(rrStep2.indexOf('先判路線級') >= 0 && rrStep2.indexOf('先判路線級') < rrStep2.indexOf('§Auto-fix'))) bad.push('receive-review 第 2 步沒有在 §Auto-fix 分類前先判路線級');
-  if (!/下一 phase\*\*：`triggered_route_sketch`/.test(rr)) bad.push('receive-review 下一 phase 沒處理 triggered_route_sketch');
-  const sk = (rd('skills/brainstorm/SKILL.md').split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
-  for (const w of ['為什麼值得背這份維護', '**從 review 退回**', '忽略上面的跳過條件', '不自己決定不做', '從 main 重開新 branch', '只刪不重寫', '**先定 branch，再寫 spec**', '接 0b′ → 0c → 0d', '4. 寫 spec（Tier、設計方向、施工清單都用第 3 步的結果）']) if (!sk.includes(w)) bad.push(`brainstorm §方案草圖 缺「${w}」`);
-  const hmLines = rd('skills/headless-mode/SKILL.md').split('\n');
-  const row = hmLines.find((l) => l.startsWith('| `review/route-level`')) || '';
-  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 review/route-level 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
-  // 優先序要寫在 headless 讀的表裡，不能只寫在 review-plan 的散文（無 critical 時 gate 會 A 類自動 accept）
-  const gate = hmLines.find((l) => l.startsWith('| `review-plan/gate`')) || '';
-  if (!gate.includes('review/route-level')) bad.push('headless review-plan/gate 列沒寫「有路線級 finding 改走 review/route-level」');
-  if (!row.includes('receive-review/safe-fix')) bad.push('headless review/route-level 沒寫優先於 receive-review/safe-fix');
+  if (!rr.includes('triggered_route_sketch: bool')) bad.push('receive-review hand-off 缺 triggered_route_sketch: bool');
+  if (!/下一 phase\*\*：`triggered_route_sketch`/.test(rr)) bad.push('receive-review 下一 phase 沒路由 triggered_route_sketch');
   const bsStep0 = (rd('skills/brainstorm/SKILL.md').match(/^0\. \*\*先分流\*\*.*$/m) || [''])[0];
-  if (!bsStep0.includes('reject_to_route_sketch') || !bsStep0.includes('branch 依該段的處置選單決定') || !bsStep0.includes('0b 只補新路線的影響檔')) bad.push('brainstorm 第 0 步缺從 review 退回的分流（branch 依處置選單）');
-  check('P22 devwork 入口不判 Tier、review-plan / receive-review 路線級 finding 退回 §方案草圖、headless review/route-level=B 且優先於 gate、草圖非最小推薦附理由',
+  for (const id of ['reject_to_route_sketch', 'triggered_route_sketch']) if (!bsStep0.includes(id)) bad.push(`brainstorm 第 0 步沒消費 ${id}`);
+  const hmL = rd('skills/headless-mode/SKILL.md').split('\n');
+  const row = hmL.find((l) => l.startsWith('| `review/route-level`')) || '';
+  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`分流表 review/route-level 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
+  const gate = hmL.find((l) => l.startsWith('| `review-plan/gate`')) || '';
+  if (!gate.includes('review/route-level')) bad.push('分流表 review-plan/gate 列沒指向 review/route-level（無 critical 時 gate 會 A 類自動 accept）');
+  check('P22 路線級退回結構：reject_to_route_sketch / triggered_route_sketch 產消兩端與路由、headless review/route-level=B 且 gate 列互指',
     bad.length === 0, bad.join('；'));
 }
 
