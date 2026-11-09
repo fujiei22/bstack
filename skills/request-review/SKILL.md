@@ -159,6 +159,7 @@ state:
   review_summary_path: docs/work/<branch-name>/_temp/<task-slug>.md  # 暫存
   reviewers_used: [...]                 # 例 [code-review:medium, spec-self-check]；Codex 例 [codex-reviewer, spec-self-check]
   code_review_level: <medium|high|null> # null = 跳
+  code_review_applicable: <bool>        # §副檔名分流 的結果；security-audit 第 2 步讀它判 T3 純文件跳
   code_review_skipped_reason: <純文件 diff：.md .json | null>
   critical_count: <N>
   major_count: <N>
