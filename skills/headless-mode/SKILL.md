@@ -45,6 +45,7 @@ description: |
 | decision_id | 決策點 | 類別 | headless 行為 |
 |---|---|---|---|
 | `brainstorm/0a-ambiguous` | 0a 複述不準 / 抓不到 success criteria | B | 留言列可能的解讀當選項 + 推薦；人要另寫做法就選 `0` |
+| `brainstorm/route-sketch` | §方案草圖 選路線 | A | 採推薦；被放棄的路線列進 spec §待釐清，隨 spec gate 進度留言讓人喊停 |
 | `brainstorm/0cd-confirm` | 0c/0d 合併確認（Track / Tier / UI） | A | 採推薦；每題一筆 `auto_decisions` |
 | `brainstorm/0cd-design-size` | 合併確認第 3 題 `size=大改` | B | 三方向 vs 一版是設計決策 |
 | `branch/name` | guard 擋在主分支（`main / master / production / prod / release`） | A | `<type>/<short-desc>`，type 依 Track（Bug→fix、Dev→feat） |
