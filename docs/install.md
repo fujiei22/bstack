@@ -201,7 +201,7 @@ $bstack:devwork 要做的事
 
 ### MCP（mysql / playwright）
 
-流程裡兩個 skill 靠 MCP：`db-access` 用 `mcp__mysql__mysql_query`（rules.md §DB 操作 的唯讀查詢），`frontend-test` 用 `mcp__playwright__browser_*`（e2e）。工具名的格式兩個 host 一樣：`mcp__<server 名>__<工具>`，所以 **server 名必須恰為 `mysql` 與 `playwright`**，取別的名字 skill 就找不到工具。例外：Claude Code 對 plugin 自帶的 MCP 會加前綴，bstack 帶的 playwright 實際叫 `mcp__plugin_bstack_playwright__*`（實測 2026-11-06）；`frontend-e2e-runner` 兩種前綴都列進白名單，自己加的或 plugin 帶的哪一份都認得。
+流程裡兩個 skill 靠 MCP：`db-access` 用你自己裝的 DB 查詢工具（rules.md §DB 操作 的唯讀查詢；名稱不限，AI 依工具名與描述認，例 `mcp__mysql__mysql_query`），`frontend-test` 用 `mcp__playwright__browser_*`（e2e）。工具名的格式兩個 host 一樣：`mcp__<server 名>__<工具>`；playwright 的 **server 名必須恰為 `playwright`**，取別的名字 skill 就找不到工具。DB 只有一處限名：審查用的 `db-reviewer` 白名單只有 `mcp__mysql__mysql_query`，用其他 DB 時由主 agent 先查好再交給它。例外：Claude Code 對 plugin 自帶的 MCP 會加前綴，bstack 帶的 playwright 實際叫 `mcp__plugin_bstack_playwright__*`（實測 2026-11-06）；`frontend-e2e-runner` 兩種前綴都列進白名單，自己加的或 plugin 帶的哪一份都認得。
 
 **playwright 隨 plugin 自帶**：repo 根目錄的 `.mcp.json` 宣告了 `playwright`（stdio、`@playwright/mcp` 版本 pin），Claude Code 與 Codex 裝 plugin 就一起帶進來（Codex 實測 `codex mcp list` 會列出、來源是 plugin，config.toml 不用寫）。不想要就在 `/plugins`（Codex）或 `/plugin`（Claude Code）裡關掉那個 server；Codex 也可寫 `[plugins."bstack@bstack".mcp_servers.playwright] enabled = false`。你的 `config.toml` 若本來就有 `[mcp_servers.playwright]`，實測**config 那份優先**（`codex mcp list` 只列一份、參數是 config 的），plugin 帶的被遮蔽——想用 plugin 的版本就把 config 那段拿掉。舊版由 `extras.ps1` 裝在使用者 / 專案層的 playwright 會跟 plugin 那份同名並存，用 `extras.ps1 -Uninstall` 拆掉舊的。
 
@@ -215,6 +215,8 @@ codex mcp add mysql --env MYSQL_HOST=127.0.0.1 --env MYSQL_PORT=3306 --env MYSQL
 
 codex mcp list        # playwright（plugin 帶）與 mysql 都要是 enabled
 ```
+
+**其他資料庫**（PostgreSQL / SQL Server / SQLite / Oracle / MariaDB）：bstack 不附也不指定 DB MCP，自己裝任一個能對資料庫下 SQL 的 MCP 就好，**連線帳號一定要唯讀**——有些 MCP 本身不擋寫入，AI 雖然規定不試跑寫入，帳號唯讀才是可靠的防線。沒裝 DB 工具也能用 bstack，AI 需要查資料時會停下來問你要不要只驗程式碼。
 
 已經在 `~/.codex/config.toml` 裡但 `enabled = false` 的，把那行改成 `true`（或刪掉那行）就好，不用重 add。`codex/agents/*.toml` 裡也有同一組範本（註解掉的 `[mcp_servers.*]`），那是給你想把 MCP 綁在單一 agent 上時用的，一般不用碰。
 
