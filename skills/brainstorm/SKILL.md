@@ -63,7 +63,7 @@ headless 時 → B 類 `brainstorm/route-sketch`：路線是高成本決定，�
 依序：
 1. 忽略上面的跳過條件，必產草圖；原路線列為 rejected，放棄理由就是那幾條路線級 finding（原本是 `{skipped}` 的改寫成 `{chosen, rejected}`）。user 選定新路線。
 2. **先定 branch，再寫 spec**。舊路線的文件與程式碼要刪或還原，屬 rules.md §Auto-fix 危險類（檔案刪除），一次 `AskUserQuestion` 問處置：
-   1. 從 main 重開新 branch 做新路線，舊 branch 留著參考（推薦；已有實作 commit 時尤其如此）→ 新 spec 寫在 `docs/work/<新 branch>/`；舊 branch 的施工文件不經 finish-branch，依 rules.md §Docs 落檔 移到 `docs/paused/` 或 `docs/archive/`，在新 branch 的 finish-branch 時問 user
+   1. 從 main 重開新 branch 做新路線，舊 branch 留著參考（推薦；已有實作 commit 時尤其如此）→ 新 spec 寫在 `docs/work/<新 branch>/`；舊 branch 的施工文件不經 finish-branch：在新 branch 的 finish-branch 時問 user，同意就用 `git show <舊 branch>:docs/work/<舊 branch>/<檔>` 取出、放進 `docs/archive/<年>/<主題>/`（放棄的路線不會解凍，不放 paused）
    2. 留在本 branch：`git revert` 舊路線的實作 commit、刪舊 plan.md / review.md（git 歷史保留）→ 就地改寫 spec；branch 名若只描述舊路線，在 finish-branch 前問 user 要不要 `git branch -m` 改名
 3. 接 0b′ → 0c → 0d 合併確認（新路線可能碰到前端或改變量體）。
 4. 寫 spec（Tier、設計方向、施工清單都用第 3 步的結果）：原路線摘要放進「## 方案草圖」的放棄理由。仍是 T3 → 重寫 plan、重跑 review-plan；降為 T2 → 不寫 plan.md，改在 spec 寫 `## 施工清單`（選 2 時舊 plan.md 只刪不重寫）。

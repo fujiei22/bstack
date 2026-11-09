@@ -86,3 +86,4 @@ PR #105 的外部審查列了三個後續問題，user 決定直接修：
   - 處置選項 1 補舊 branch 施工文件的歸檔方式。
   - 審查員問消融實測有沒有載入 brainstorm（該 skill 也寫著 #103）：查 stream-json，那次只載入 `bstack:review-plan`，沒有例子洩漏。
 - 列後續（不在本 PR）：邊界反例（幾條碰到使用者步驟、但每條都便宜的 finding，應判 A）；三份輸入各重跑 3 次看穩定性。
+- 第四輪外部審查：值得 merge；照其非必要建議把舊 branch 文件的「移到」改為「git show 取出、放進 archive」。
