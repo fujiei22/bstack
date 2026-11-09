@@ -8,17 +8,19 @@
  *   P4 無 ~/.claude 安裝路徑字樣（白名單行跳過，且白名單行數有上限）
  *   P5 全域 sync 路徑已移除、範本合法   P6 rules.md 單一真相
  *   P7 agents frontmatter 與 README 計數   P8 README / index.html skill 計數 == 磁碟
-  *   P9 T2 lane 兩端握手（施工清單標題、code-review 呼叫字面）   P10 verify-done 文字節點豁免判定器
- *   P11 design-language 延遲載入、副檔名清單七處一致   P12 security-audit 純文件 T3 跳的六處同步
+ *   P9 T2 lane 兩端握手（施工清單標題、code-review 呼叫字面）   P10 verify-done 文字節點豁免判定器
+ *   P11 design-language 延遲載入、副檔名清單七處一致   P12 code_review_applicable 等 hand-off 欄位兩端一致
  *   P13 Codex manifest / marketplace / hooks.json 兩組 / 版本三處   P14 skill / agent 無 Claude 專屬字面 + hosts.md 反向白名單
- *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 + devwork / rules.md 接線 + build-references 內嵌
+ *   P15 agents → codex/agents/*.toml 產生器 --check + render()   P16 hosts.md 八節 / 表頭 / 錨點、Codex 工具名兩表一致、build-references 內嵌
  *   P17 install-codex.ps1 -WhatIf 冒煙（假 CODEX_HOME、不寫檔）
  *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
  *   P20 多資料庫結構   P21 方案草圖結構   P22 路線級退回結構（皆 2026-11-09 瘦身為只守結構）
  *
  * **只守結構**（2026-11-09 user 定）：壞了會機械性出錯、可確定性判斷的才放進來——manifest / 版本 / 檔案存在 / 名稱與計數一致、
  * 產生器 --check、判定器 fixture、執行腳本驗輸出、表格固定欄位值、hand-off 欄位名與 enum、frontmatter 白 / 黑名單、跨檔 id 或 § 標題錨點存在、
- * 多處清單逐值相等。「某句規則文字還在不在」不放：同字在別處會假綠、改寫措辭會誤報，語意交給 code-review / 審查。
+ * 多處清單逐值相等、介面名（環境變數 / 標記字串 / 腳本檔名 / 入口指令名）兩端一致、hand-off 路由（下一 phase 指向的 skill）、
+ * 要原樣貼進 prompt 的模板固定句。測法：「改名或刪掉它，有沒有另一個檔的機械步驟會讀不到或對不上？」有 → 結構，留；
+ * 只是 AI 讀到的意思變了 → 語意，不放（同字在別處會假綠、改寫措辭會誤報），交給 code-review / 審查。
  * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22：P7 先算是因為 P4 要用 agentFiles 掃描；
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -397,23 +399,30 @@ const rulesMd = rd('skills/devwork/rules.md');
 const tierT2 = (rulesMd.match(/^\| \*\*T2\*\*.*$/m) || [''])[0];
 const tierT3 = (rulesMd.match(/^\| \*\*T3\*\*.*$/m) || [''])[0];
 const bsMd = rd('skills/brainstorm/SKILL.md'), exMd = rd('skills/execute-plan/SKILL.md');
-check('P9b brainstorm 範本有裸標題「## 施工清單」「## 施工紀錄」；execute-plan 精確比對同一標題、hand-off 允許 plan_path null',
-  /^## 施工清單$/m.test(bsMd) && /^## 施工紀錄$/m.test(bsMd) && /恰為\*{0,2} `## 施工清單`/.test(exMd) && /plan_path.*null/.test(exMd),
+check('P9b brainstorm 範本有裸標題「## 施工清單」「## 施工紀錄」；execute-plan 精確比對施工清單、寫入施工紀錄、hand-off 允許 plan_path null',
+  /^## 施工清單$/m.test(bsMd) && /^## 施工紀錄$/m.test(bsMd) && /恰為\*{0,2} `## 施工清單`/.test(exMd) && /`## 施工紀錄`/.test(exMd) && /plan_path.*null/.test(exMd),
   `brainstorm 標題=${/^## 施工清單$/m.test(bsMd)} 紀錄=${/^## 施工紀錄$/m.test(bsMd)} execute-plan 精確比對=${/恰為\*{0,2} \`## 施工清單\`/.test(exMd)} null=${/plan_path.*null/.test(exMd)}` +
     `（後果：兩端標題對不上 T2 就讀不到施工清單；改處：brainstorm「§spec 文件結構」、execute-plan「§使用契約」第 1 步）`);
 const rrMd = rd('skills/request-review/SKILL.md'), dwMd = rd('skills/dev-workflow/SKILL.md');
-check('P9c request-review：§副檔名分流 錨點（rules.md 引用）、Skill("code-review") medium / high 呼叫字面、args 不帶 --fix / --comment、不自動派 lang-reviewer',
+// rules.md §Tier 表 review 欄是 lane 的唯一真相：T2 / T3 寫的 code-review 檔位要與 request-review 實際呼叫的 args 一致
+const tierCol = (row, i) => (row.split('|').map((c) => c.trim())[i]) || '';   // 欄序：'' Tier 量體 brainstorm plan TDD review security pr-explain
+check('P9c request-review：§副檔名分流 錨點、Skill("code-review") medium / high 呼叫字面且與 rules.md §Tier 表 review 欄檔位一致、args 不帶 --fix / --comment；T3 security 欄固定值',
   /§副檔名分流/.test(rrMd) && /Skill\("code-review", args="medium"\)/.test(rrMd) && /Skill\("code-review", args="high"\)/.test(rrMd) &&
-    !/args="[^"]*--(fix|comment)/.test(rrMd) && !/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd),
+    !/args="[^"]*--(fix|comment)/.test(rrMd) && /code-review medium/.test(tierCol(tierT2, 6)) && /code-review high/.test(tierCol(tierT3, 6)) &&
+    /audit \+ checklist \+ db-reviewer/.test(tierCol(tierT3, 7)),
   `副檔名分流段=${/§副檔名分流/.test(rrMd)} Skill medium=${/Skill\("code-review", args="medium"\)/.test(rrMd)} high=${/Skill\("code-review", args="high"\)/.test(rrMd)} ` +
-    `args 帶 --fix/--comment=${/args="[^"]*--(fix|comment)/.test(rrMd)} 自動派 lang-reviewer=${/subagent_type\s*[:=]\s*`?lang-reviewer/.test(rrMd)}` +
+    `args 帶 --fix/--comment=${/args="[^"]*--(fix|comment)/.test(rrMd)} Tier 表 T2 review=「${tierCol(tierT2, 6).slice(0, 40)}」 T3 review=「${tierCol(tierT3, 6).slice(0, 40)}」 T3 security=「${tierCol(tierT3, 7).slice(0, 40)}」` +
     `（後果：帶 --fix 會直接改檔、繞過 receive-review；改處：request-review「§使用契約」「§副檔名分流」）`);
-const fbMd = rd('skills/finish-branch/SKILL.md');
+const fbMd = rd('skills/finish-branch/SKILL.md'), ddMd = rd('skills/design-direction/SKILL.md');
+// hand-off 路由：下一 phase 指向的 skill 要存在，路由句改掉流程就斷在這
+check('P9d hand-off 路由：finish-branch T3 → pr-explain、design-direction T2 → 回 brainstorm；指向的 skill 存在',
+  /下一 phase\*\*：T3 → `pr-explain`/.test(fbMd) && exists('skills/pr-explain/SKILL.md') && /T2 → 回 `brainstorm`/.test(ddMd),
+  `finish-branch→pr-explain=${/下一 phase\*\*：T3 → `pr-explain`/.test(fbMd)} design-direction→brainstorm=${/T2 → 回 `brainstorm`/.test(ddMd)}（後果：T3 開完 PR 不交 pr-explain、T2 定案後沒人回寫施工清單；改處：finish-branch「§hand-off state」下一 phase、design-direction 下游）`);
 
 // ── P10 verify-done 文字節點豁免（2026-09-04）────────────────────────────────
 // T3 前端改動只動文字節點 / data-* 時不派 frontend-e2e-runner，改主 agent smoke；判定器是 scripts/text-only-diff.mjs。
 // P10a 直接 import 判定器對 fixture 執行（code-review 抓到第一版行級比對被四種改法繞過，字樣 grep 守不住判定邏輯）；
-// P10b 守三個文字落點（verify-done / dev-workflow 跨流程表 / 流程圖 UIQ label）任一處沒寫到，Claude 就照舊派整套 e2e。
+// P10b 守 hand-off `e2e` enum 兩端（verify-done 產、finish-branch PR 模板讀）與判定器 / smoke 伺服器的檔名引用。
 const { skeleton: tdSkeleton, judgeFiles: tdJudge } = await import('./text-only-diff.mjs');
 const H = (attrs = '') => `<!doctype html><html><head><script>var k="t";</script><style>.a{color:red}</style></head><body>\n<p class="x"${attrs}>hello</p>\n<p class="y" data-n="1">two</p>\n</body></html>`;
 const fx = [
@@ -434,11 +443,11 @@ check('P10a text-only-diff.mjs 判定器對 9 個 fixture 全對、空集合與�
   `錯的 fixture=[${fxBad.join(' | ')}] 空集合 fail-closed=${emptyOk} 新增檔 fail-closed=${newFileOk}（後果：豁免判錯 → T3 少跑整套 e2e；改處：scripts/text-only-diff.mjs skeleton / judgeFiles）`);
 const vdMd = rd('skills/verify-done/SKILL.md');
 const vdE2e = (vdMd.match(/^## §UI \/ browser e2e[\s\S]*?(?=^## )/m) || [''])[0];
-const fbTpl = rd('skills/finish-branch/SKILL.md');
+const vdState = (vdMd.match(/## §hand-off state[\s\S]*?```[\s\S]*?```/) || [''])[0];
 check('P10b verify-done hand-off `e2e: pass | fail | skipped | smoke` 與 finish-branch PR 模板 e2e 欄兩端一致；§UI / browser e2e 引用的 text-only-diff.mjs / static-serve.mjs 存在',
-  /e2e: pass \| fail \| skipped \| smoke/.test(vdMd) && /e2e: <pass \| smoke/.test(fbTpl) &&
+  /e2e: pass \| fail \| skipped \| smoke/.test(vdState) && /e2e: <pass \| smoke/.test(fbMd) &&
     /text-only-diff\.mjs/.test(vdE2e) && /static-serve\.mjs/.test(vdE2e) && exists('scripts/text-only-diff.mjs') && exists('scripts/static-serve.mjs'),
-  `verify-done enum=${/e2e: pass \| fail \| skipped \| smoke/.test(vdMd)} finish-branch 模板=${/e2e: <pass \| smoke/.test(fbTpl)} 引用判定器=${/text-only-diff\.mjs/.test(vdE2e)} 引用 static-serve=${/static-serve\.mjs/.test(vdE2e)} ` +
+  `verify-done enum=${/e2e: pass \| fail \| skipped \| smoke/.test(vdState)} finish-branch 模板=${/e2e: <pass \| smoke/.test(fbMd)} 引用判定器=${/text-only-diff\.mjs/.test(vdE2e)} 引用 static-serve=${/static-serve\.mjs/.test(vdE2e)} ` +
     `檔案存在=${exists('scripts/text-only-diff.mjs')}/${exists('scripts/static-serve.mjs')}（後果：smoke-only 的 PR 在 PR body 被寫成全綠、或引用到不存在的腳本；改處：verify-done「§hand-off state」「§UI / browser e2e」、finish-branch「§PR body 模板」）`);
 
 // ── P11 design-language 延遲載入（2026-09-07）────────────────────────────────
@@ -465,10 +474,8 @@ check('P11 副檔名清單七處逐值相等（判定用：brainstorm 0b′ / de
     `（改法：design-language §前端副檔名 是唯一真相，改它之後同步其餘六處；後果：brainstorm 對某副檔名判不命中、不載 design-language，前端改動漏掉設計對齊）`);
 
 // ── P12 security-audit 純文件 T3 跳（2026-09-07，lane 改變）──────────────────
-// T3 security 欄從「必跑」改「程式碼 diff 必跑、純文件 diff 且無 File-type 硬規則命中跳」。
-// 判定沿用 request-review 產出的 code_review_applicable，不另發明副檔名表；File-type 例外是因為
-// .github/workflows/*.yml、docker-compose.yml、.npmrc 在 request-review 表裡歸純文件、卻是安全面最該看的檔。
-// 六處文字任一處留「T3 必跑」，Claude 在那一步就照舊 spawn security-auditor，所以反向掃全 repo（不含 docs/archive）。
+// 判定沿用 request-review 產出的 code_review_applicable：只守 hand-off 欄位兩端（產、讀）與 security-audit 的 state 欄位；
+// 各處「純文件跳」的敘述是語意，2026-11-09 瘦身後交 code-review。
 const saMd = rd('skills/security-audit/SKILL.md'), saAgent = rd('agents/security-auditor.md');
 const saStep2 = (saMd.match(/^2\. \*\*判定要不要跑\*\*[\s\S]*?(?=^3\. )/m) || [''])[0];
 const saState = (saMd.match(/## §hand-off state[\s\S]*?```[\s\S]*?```/) || [''])[0];
@@ -481,7 +488,7 @@ check('P12 hand-off 欄位兩端一致：request-review 產 code_review_applicab
 // ── P18 T2 security-audit 觸發面向：rules.md 定義、其餘對齊（2026-09-10，Codex 外部 review 第 1 項）──
 // 曾四處三種集合（rules.md 2 項、dev-workflow / security-audit 描述 3 項、security-audit 本文 7 項、agent 6 項）。
 // 真相留在 rules.md §Tier 表 T2 security 欄（L122 明定表是唯一真相）；security-audit 本文與兩個 description 要帶完整集合
-// （執行端與載入判斷都用得到），dev-workflow 路徑圖只引用不重列；全 repo 不得殘留舊的短集合。
+// （執行端與載入判斷都用得到）。只守四處逐字相同；舊短集合殘留掃描已刪（2026-11-09 瘦身，屬措辭）。
 const SEVEN = '認證 / 授權 / 資料層 / API 邊界 / payment / 上傳 / PII';
 const t2Sec = (tierT2.split('|').map((s) => s.trim())[7]) || '';
 const saStep2b = (saMd.match(/^2\. \*\*判定要不要跑\*\*[\s\S]*?(?=^3\. )/m) || [''])[0].replace(/\*/g, '');
@@ -494,7 +501,7 @@ const p18 = {
 check('P18 T2 security-audit 七項面向在 rules.md T2 security 欄、security-audit 第 2 步與描述、security-auditor 描述四處逐字相同',
   Object.values(p18).every(Boolean),
   `${Object.entries(p18).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；T2 security 欄=「${t2Sec}」` +
-    `（後果：主 agent 照 rules.md 跳掉 security-audit 本文明明要求的稽核；改處：rules.md §Tier 表 T2 security 欄、security-audit 第 2 步 + description、agents/security-auditor.md description、dev-workflow 第 6 行）`);
+    `（後果：主 agent 照 rules.md 跳掉 security-audit 本文明明要求的稽核；改處：rules.md §Tier 表 T2 security 欄、security-audit 第 2 步 + description、agents/security-auditor.md description）`);
 
 // ── P13-P16 Codex 支援（2026-09-09，feat/codex-install）──────────────────────
 // 同一個 repo 同時是 Claude Code plugin 與 Codex plugin：兩份 manifest、一份 skills/、hosts.md 對照表、agents → TOML 產生器。
@@ -569,8 +576,12 @@ check('P15 gen-codex-agents.mjs --check 綠（codex/agents/*.toml 與 agents/*.m
   genChk.status === 0 && p15Render,
   `--check=${genChk.status} ${(genChk.stdout || genChk.stderr || '').trim().split('\n').slice(-2).join(' / ')} render=${p15Render}${renderErr ? ` err=${renderErr}` : ''}（後果：改了 agents/*.md 沒重產，Codex 端 spawn 到舊 prompt；或 Write 權限的 agent 被產成 read-only 動不了檔；改處：node scripts/gen-codex-agents.mjs 重產、或 render() 的推導）`);
 
-// P16：hosts.md 八節標題（行首錨定）+ 第一行護欄 + devwork / rules.md 接線 + build-references 內嵌 hosts.md（docs 站要看得到對照表）
-const dw16 = exists('skills/devwork/SKILL.md') ? lf(rd('skills/devwork/SKILL.md')) : '', rules16 = lf(rd('skills/devwork/rules.md'));
+// P16：hosts.md 八節標題（行首錨定）+ 四欄表頭 + devwork 讀 hosts.md 與兩 host 入口名 + rules.md 濃縮表與 hosts.md 的 Codex 工具名逐值相等 + build-references 內嵌 hosts.md
+const dw16 = exists('skills/devwork/SKILL.md') ? lf(rd('skills/devwork/SKILL.md')) : '';
+// 同一個抽象動詞，rules.md 濃縮表與 hosts.md 的 Codex 欄第一個反引號工具名要相同（Codex 上照哪張表都找得到同一個工具）
+const codexTool = (text, verb) => { const row = text.split('\n').find((l) => l.startsWith(`| ${verb}`)) || ''; return ((row.split(/(?<!\\)\|/)[3] || '').match(/`([^`]+)`/) || ['', ''])[1]; };
+const VERBS16 = ['`AskUserQuestion`', '`TaskCreate`', '`Agent`', '內建 `code-review`'];   // 列開頭（第一欄）
+const codexDiff = VERBS16.map((v) => [v, codexTool(rulesMd, v), codexTool(hostsMd, v)]).filter(([, a, b]) => !a || a !== b);
 const HEADS16 = ['Host 判定', '決策點', '任務追蹤', '派 subagent', '程式碼審查', 'MCP 工具', 'Memory 路徑', '停用 plugin'];
 const missHead = HEADS16.filter((n) => !new RegExp(`^##[ \\t]+§${n}[ \\t]*$`, 'm').test(hostsMd));
 // 四欄節的表頭固定（P14 白名單吃第一欄、hosts.md 自述第一欄是契約鍵）；§Host 判定 / §停用 plugin 兩節各有自己的表頭
@@ -582,12 +593,13 @@ const p16 = {
   heads: missHead.length === 0,
   headers: missHeader.length === 0,
   reviewerPrompt: /^## §Codex reviewer prompt$/m.test(rr16) && /§Codex reviewer prompt/.test(hostsMd),   // hosts.md 指向它，改名就斷鏈
-  devwork: /hosts\.md/.test(dw16),
+  devwork: /hosts\.md/.test(dw16) && /\/devwork/.test(description(frontmatter(dw16))) && /\$bstack:devwork/.test(dw16),
+  codexTools: codexDiff.length === 0,
   buildRefs: exists('scripts/build-references.ps1') && /hosts\.md/.test(rd('scripts/build-references.ps1')),
 };
-check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、hosts.md 指向的 §Codex reviewer prompt 存在、devwork 讀 hosts.md、build-references 內嵌 hosts.md',
+check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、§Codex reviewer prompt 錨點、devwork 讀 hosts.md 且描述含 /devwork、內文含 $bstack:devwork、rules.md 與 hosts.md 的 Codex 工具名一致、build-references 內嵌 hosts.md',
   Object.values(p16).every(Boolean),
-  `${Object.entries(p16).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead.join(', ')}] 缺表頭=[${missHeader.join(', ')}]（後果：P14 白名單抽不到第一欄、Codex 上 devwork 不知道 AskUserQuestion 對應什麼、hosts.md 指向的 reviewer prompt 斷鏈、docs 站沒有對照表；改處：skills/devwork/hosts.md / SKILL.md / rules.md、skills/request-review/SKILL.md、scripts/build-references.ps1 $map）`);
+  `${Object.entries(p16).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead.join(', ')}] 缺表頭=[${missHeader.join(', ')}] Codex 工具名不一致=[${codexDiff.map(([v, a, b]) => `${v}: rules=${a} hosts=${b}`).join('; ')}]（後果：P14 白名單抽不到第一欄、Codex 上 devwork 不知道 AskUserQuestion 對應什麼、hosts.md 指向的 reviewer prompt 斷鏈、docs 站沒有對照表；改處：skills/devwork/hosts.md / SKILL.md / rules.md 濃縮表、skills/request-review/SKILL.md、scripts/build-references.ps1 $map）`);
 
 // P17：install-codex.ps1 的 -WhatIf 冒煙（review M4：這支是唯一沒契約覆蓋的可執行檔）。真跑安裝留給人；這裡只驗「-WhatIf 什麼都不動、且六步訊息都在」。
 // 安裝腳本 Windows PowerShell 5.1 / pwsh 7 都支援：win32 先找 pwsh、沒有就用內建的 powershell.exe；兩個都沒有才紅（Windows 使用者就是靠它裝）；其他平台沒 pwsh 只標 skipped
@@ -631,7 +643,8 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、hosts.md 指
   const HEADS19 = ['使用契約（強制）', '§偵測', '§分流表', '§問人格式', '§讀回覆', '§本輪結束協定', '§子 agent 約束', '§hand-off state', '§Red Flags'];
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\（）]/g, '\\$&');
   const missHead19 = HEADS19.filter((n) => !new RegExp(`^##[ \\t]+${esc(n)}[ \\t]*$`, 'm').test(hm));
-  const hostsHost = section(hostsMd, /^## §Host 判定[^\n]*\n/m);
+  const hostsHost = section(hostsMd, /^## §Host 判定[^\n]*\n/m), rulesDP = section(rulesMd, /^### §決策點選單[^\n]*\n/m);
+  const hmCls = (id) => ((hm.split('\n').find((l) => l.startsWith(`| \`${id}\``)) || '').split('|')[3] || '').trim();
   const hostRows = hostsHost.split('\n'), iSub = hostRows.findIndex((l) => /被 spawn 的 subagent/.test(l)), iHl = hostRows.findIndex((l) => /headless-mode/.test(l));
   // 分流清單推導：含 AskUserQuestion 的 skill 都要有分流；白名單 = 只由 user 顯式呼叫、headless 不會走到的
   const ONLY_EXPLICIT = new Set(['retro', 'lock-files']);
@@ -708,6 +721,10 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、hosts.md 指
     skillBody: ['BSTACK_HEADLESS', 'BSTACK_ISSUE', 'AUTOPILOT_LABEL', '<!-- bstack-ask:', '[bstack headless]', 'headless-reply.mjs'].every((s) => hm.includes(s)),
     // 判定表列序：subagent 列要先於 headless 列，否則被派的 subagent 會誤判自己是 headless 主流程
     hostsOrder: iHl > iSub && iSub >= 0,
+    // 偵測用的環境變數名：headless-mode 定義、rules.md §決策點選單 與 hosts.md §Host 判定 實際拿來判斷，三處要一致
+    envNames: ['BSTACK_HEADLESS', 'AUTOPILOT_LABEL'].every((v) => rulesDP.includes(v) && hostsHost.includes(v)),
+    // merge 永不自動：分流表類別欄的固定值
+    mergeNever: hmCls('finish-branch/merge') === '永不',
     phases: missPhase.length === 0 && needWire.length >= 19,
     decisionIds: badIds.length === 0 && tableIds.size >= 20,
     dispatchers: missDispatch.length === 0,
@@ -715,7 +732,7 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、hosts.md 指
     gitignore: /^docs\/snapshots\/$/m.test(gi),
     parser: fixBad.length === 0,
   };
-  check(`P19 headless-mode 九節 + 介面名；hosts.md §Host 判定 subagent 列先於 headless 列；含 AskUserQuestion 的 ${needWire.length} 個 skill 各有分流；skill 引用的 decision_id 都在 §分流表（${tableIds.size} 列）；${DISPATCHERS.length} 個派工 skill 含約束句字面；dev-workflow 跨流程表有列；.gitignore 有 docs/snapshots/；回覆 parser ${FIX19.length} 個 fixture + ${THROWS19.length} 個 throw + CLI 冒煙`,
+  check(`P19 headless-mode 九節 + 介面名；偵測環境變數在 rules.md / hosts.md 一致；finish-branch/merge 類別=永不；hosts.md §Host 判定 subagent 列先於 headless 列；含 AskUserQuestion 的 ${needWire.length} 個 skill 各有分流；skill 引用的 decision_id 都在 §分流表（${tableIds.size} 列）；${DISPATCHERS.length} 個派工 skill 含約束句字面；dev-workflow 跨流程表有列；.gitignore 有 docs/snapshots/；回覆 parser ${FIX19.length} 個 fixture + ${THROWS19.length} 個 throw + CLI 冒煙`,
     Object.values(p19).every(Boolean),
     `${Object.entries(p19).filter(([, v]) => !v).map(([k]) => k).join(', ')} 不過；缺節=[${missHead19.join(', ')}] 缺分流=[${missPhase.join(', ')}] 壞 id=[${badIds.slice(0, 6).join(', ')}] 缺約束句=[${missDispatch.join(', ')}] parser=[${fixBad.slice(0, 3).join(' | ')}]（後果：無人模式跑到沒分流的決策點就白跑一輪、subagent 自己去 issue 留言、或回覆永遠讀不到；改處：skills/headless-mode/SKILL.md、skills/devwork/{rules,hosts}.md、缺分流 / 缺約束句的 skill、scripts/headless-reply.mjs）`);
 }

@@ -106,7 +106,7 @@ state:
 
 ### §新 skill 落地 checklist（漏一處契約就紅）
 
-改 skill 後要加契約時，**只守結構**：表格欄位值、hand-off 欄位名與 enum、跨檔 id 或 `§` 標題錨點、多處清單逐值相等、檔案存在。「某句規則文字還在不在」不加，語意交給 code-review（判準見 `scripts/plugin-contract.mjs` 檔頭）。
+改 skill 後要加契約時，**只守結構**：表格欄位值、hand-off 欄位名與 enum、hand-off 路由（下一 phase 指向的 skill）、跨檔 id 或 `§` 標題錨點、介面名（環境變數 / 標記字串 / 腳本檔名 / 入口指令名）兩端一致、多處清單逐值相等、要原樣貼進 prompt 的模板固定句、檔案存在。測法：「改名或刪掉它，有沒有另一個檔的機械步驟會讀不到或對不上？」有 → 加契約；只是 AI 讀到的意思變了 → 不加，語意交給 code-review（判準見 `scripts/plugin-contract.mjs` 檔頭）。
 
 1. `skills/<name>/SKILL.md`（name == 目錄名；描述寫「載入：」不寫「觸發：」）→ plugin-contract P3a / P3c
 2. `docs/js/app.js` NODE_DOCS 加 `Load<X>: {p:'skills/<name>', n:'<name>', k:'skill'}` → docs-site-contract C6a / C18
