@@ -58,6 +58,7 @@ description: |
 - **Review 全綠 / 0 finding**：`review_summary_path` 標「無 finding，跳 receive-review、直接進下 phase」，短路、不啟動 fix 循環
 - 多 reviewer 衝突 → `AskUserQuestion` 把所有視角列給 user 決定；headless 時 → B 類
 
+- **路線級 finding**（判準同 `review-plan` §User gate：問題在這條路本身，例如維護負擔、使用者步驟、對外介面、安全模型無解或代價明顯過高）→ 不自動修、不列 TODO；`AskUserQuestion`，推薦「退回 brainstorm §方案草圖 重選路線」，其餘選項照 §危險處置。headless 時 → B 類 `review-plan/route-level`。
 - **Reviewer 給的 fix 自己錯** → 主 agent 不照搬；提出修正後的 fix、`AskUserQuestion` 給 user 看（headless 時 → B 類）：
   ```
   Reviewer 建議：<原建議>

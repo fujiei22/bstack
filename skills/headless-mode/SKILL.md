@@ -50,6 +50,7 @@ description: |
 | `brainstorm/0cd-design-size` | 合併確認第 3 題 `size=大改` | B | 三方向 vs 一版是設計決策 |
 | `branch/name` | guard 擋在主分支（`main / master / production / prod / release`） | A | `<type>/<short-desc>`，type 依 Track（Bug→fix、Dev→feat） |
 | `brainstorm/spec-gate` | spec gate | A | 選「spec 正確」；spec §待釐清 寫「headless 自動採用」子清單；接著留一則 `<!-- bstack-progress -->` 進度留言（spec 摘要 + 清單），**不等回覆、不結束本輪**，每個 issue 只發一次 |
+| `review-plan/route-level` | review-plan / receive-review 抓到路線級 finding | B | 留言列路線級 finding 與「退回 §方案草圖 重選」推薦；不自己決定繼續或改向 |
 | `review-plan/gate` | review-plan user gate | A / B | 無 critical → accept，留下的 major 數寫進 reason；有 critical → B |
 | `dispatch-parallel/mode` | 跑法 | A | 依判定實據選 subagent 平行或串行；**不列 Agent Teams** |
 | `design-language/confirm-map` | 首次偵測 / remapped 後的地圖確認 | A | 採 AI 判定的區塊與 exact values，記 `auto_decisions`；終止條件（重畫過仍落在所有區塊外）→ B |
