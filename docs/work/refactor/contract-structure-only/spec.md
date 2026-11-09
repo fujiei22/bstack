@@ -67,3 +67,16 @@ PR #105 / #106 的實際問題都是 code-review 與外部審查員抓到的，�
 | 5 | 5 | `skills/write-skill/SKILL.md`、版本號、references | 同步規則一句、升 1.16.1 | ALL PASS、`build-references -Check`、`gen-codex-agents --check` 綠 |
 
 ## 施工紀錄
+### 2026-11-09
+- 列 1–3：`plugin-contract.mjs` 962 → 778 行（−184）。每列一個 commit，ALL PASS、`--selftest` PASS。
+  - 偏差：P9c 的拆分在列 1 一起做。
+- **新結構檢查抓到真問題**：P12 改守 hand-off 欄位兩端後，發現 request-review §hand-off state 沒列 `code_review_applicable`，但 security-audit 第 2 步要讀它。舊檢查只確認這個字出現在 request-review 某處，所以一直沒發現。已補欄位，屬範圍外的必要修正。
+- 列 4 變異測試（`scratchpad/mutate.py`，每次用乾淨副本、各改壞一處）：9 處全部轉紅。
+  - P20 ×3：分流表類別、db-access 標題、db-reviewer 加回 tools；
+  - P22：enum；
+  - P11：副檔名清單；
+  - P13：版本，另帶出 P15；
+  - P12：hand-off 欄位；
+  - P9b：施工清單標題；
+  - P21：route-sketch 類別。
+- 列 5：write-skill 落地 checklist 補「只守結構」一段；升 1.16.1。
