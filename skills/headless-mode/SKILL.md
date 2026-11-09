@@ -69,6 +69,8 @@ description: |
 | `security-audit/critical` | critical finding gate | B | **一次只問嚴重度最高的一個**，其餘記 `state.pending_criticals[]`；answered 後下一輪再問下一個 |
 | `safety-guard/secret` | 不可自動類（secret / key / 密碼） | blocked | **不留言、不 push**、`blocked_reason: secret`，原值不得出現在任何輸出 |
 | `debug-systematic/ask` | 症狀 / 重現步驟不清 | B | 留言 |
+| `db-access/tool-missing` | 沒有 DB 查詢工具 / 呼叫失敗 / 認不出哪個是 | A / B | **預設 B**（留言請人在跑者機器裝好 DB MCP，或確認只驗 codebase；rules.md §事實核實）。只有任務明確不需要任何資料庫內容的結論（例：純文案、純樣式）才 A：採推薦（headless 時 db-access 選單推薦為選項 2）——只驗 codebase、spec / 報告標「儲存端未驗（沒有 DB 查詢工具）」，PR body 註明。Tier 還沒判（brainstorm 0b）、或涉 schema / migration / 廢棄判斷 → 一律 B |
+| `db-access/db-mismatch` | 連到的庫名與本專案對不上 | B | 留言列連到的庫名與專案，請人確認或改 DB MCP 設定 |
 | `incident-investigate/gate` | 階段間 gate | A / B | 進下一階段 → A；Conclude 的處置選擇 → B |
 | `frontend-test/preview-url` | 沒有 preview URL | B | 選項：1. 給 URL（第二行寫 URL）2. 跳過 e2e、PR body 標「未 e2e」 |
 | `frontend-test/fail` | 8b-8d FAIL / INCONCLUSIVE 處置 | B | 留言 |

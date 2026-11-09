@@ -23,9 +23,10 @@
 
 ### §事實核實（最高指導原則）
 判斷資料模型 / 欄位用途 / schema / 廢棄 / 任何規劃前，**並行**驗 **儲存實際內容** + **codebase 使用點**、雙 source、缺一不可。單 source 推測常踩（名稱誤導、量少誤判廢、結構誤猜）。
-- **儲存**：抽樣實資料（`SELECT * LIMIT N` / API GET / 讀檔）— 別只看 schema / 註解；「量少」≠「廢」；看關聯（外鍵 / parent_id / cascade）；**禁憑欄位名 / 表名假設語意**
+- **儲存**：抽樣實資料（`SELECT * LIMIT N` / API GET / 讀檔；輸出依 §PII 安全底線 mask）— 別只看 schema / 註解；「量少」≠「廢」；看關聯（外鍵 / parent_id / cascade）；**禁憑欄位名 / 表名假設語意**
 - **Codebase**：grep 模型 / 表名全用法（含 test）；找寫入 / 讀取 / UI / 對外介面 / cascade / event / hook；確認「沒資料」是「未上線 / 沒人填 / 真死」哪種
 - **下結論**：兩 source 都查才定論；MCP 抽樣 + Explore agent 都快、**沒理由跳**；規劃 / spec / plan / migration 前必跑；跨多表大改每結論在 spec / plan 附「樣本 + 使用點」雙引用
+- **儲存端工具不在**（沒有 DB 查詢工具 / 連不上）→ 依 `db-access` §工具不在；標「儲存端未驗」的結論**不得**用於廢棄 / 刪除 / migration / schema 判斷
 
 How：brainstorm 0b 並聯抽樣；write-plan / review-plan 涉資料每點附雙引用；db-reviewer / lang-reviewer 以此退件。
 
@@ -45,7 +46,7 @@ user 決策走 `AskUserQuestion`：推薦選項放第一 + 標「（推薦）」
 | `TaskCreate` / `TaskUpdate` / `TaskList` | 同名工具 | `update_plan` |
 | `Agent` + `subagent_type` | 同名工具、`bstack:<name>` | `spawn_agent` + `wait_agent`，agent 名取自 `~/.codex/agents/<name>.toml` |
 | 內建 `code-review` | `Skill("code-review", args="medium\|high")` | 無內建；`spawn_agent` 一個唯讀 reviewer（見 hosts.md §程式碼審查） |
-| `mcp__<server>__<tool>` | `.mcp.json` / `claude mcp add` | `codex mcp add`，server 名須與 skill 寫的一致 |
+| `mcp__<server>__<tool>` | `.mcp.json` / `claude mcp add` | `codex mcp add`；playwright 的 server 名須與 skill 寫的一致，DB 查詢工具不限名稱（見 hosts.md §MCP 工具） |
 
 ### §Branch safety
 plugin 的 `hooks/guard.mjs`（PreToolUse，branch-safety 段）自動擋；命中 `main / master / production / prod / release` → block。處置：§決策點選單取 branch 名 → `git checkout -b <name>` → retry。hook 只攔寫檔工具——Claude Code 的 Write / Edit / NotebookEdit、Codex 的 `apply_patch`（見 `hooks/hooks.json` 的 matcher；Codex 把 Write / Edit 當 apply_patch 的別名）；`git checkout / merge / push` 不經 hook，靠 finish-branch 的流程守則。Codex 的 apply_patch 路徑相對 session cwd，hook 一律視為 repo 內（下面的「repo 外放行」豁免只對絕對路徑成立）。
@@ -69,9 +70,10 @@ plugin 的 `hooks/guard.mjs`（file-type 段，**不看 repo scope**，repo 外�
 PII（email / phone / 身分證 / 信用卡 / 地址 / id_number）原值**禁落**對話 / log / commit；輸出 mask 或 aggregate；WHERE 可原值（不落輸出）。DB / API / file / log 全套。
 
 ### §DB 操作
-- **讀** `mcp__mysql__mysql_query`；禁 bash mysql / psql、禁手寫 SQL 貼對話讓 user 跑
-- **寫** MCP 唯讀禁試跑；產 SQL 交 user 執行
-- **量限** 預設 `LIMIT 100`；重 query 先 `EXPLAIN`；**PII** SELECT mask、WHERE 可原值
+- **讀** 用工具清單裡的資料庫查詢工具（使用者自己裝的 DB MCP，例 `mcp__mysql__mysql_query`；怎麼認見 `db-access`）；看不出是不是 DB 查詢工具就當不在。只跑純查詢：`EXPLAIN ANALYZE`、`WITH … DML`、`SELECT … INTO`、`FOR UPDATE`、`CALL` / `EXEC` 都算寫（完整白名單見 `db-access` §讀的界線）。禁 bash `mysql` / `psql` / `sqlcmd` / `sqlite3` / `sqlplus`、禁手寫 SQL 貼對話讓 user 跑
+- **工具不在**（沒裝或連不上）→ 照 `db-access` §工具不在；**不得**因此卡住與 DB 無關的任務
+- **寫** 一律禁試跑（使用者自裝的 MCP 是否強制唯讀 bstack 不保證）；產 SQL 交 user 執行
+- **量限** 查詢自己限筆數（語法依方言，見 `db-access`）；重 query 先看執行計畫；**PII** SELECT mask、WHERE 可原值
 - **觸發** DB 詞 / brainstorm 0b / write-plan / execute-plan / review 需查 schema → 直接用 MCP；細則 → `db-access`
 
 ### §設計語言對齊
