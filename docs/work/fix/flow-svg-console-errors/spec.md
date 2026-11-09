@@ -25,9 +25,9 @@
 - `index.html` 不受影響：error 數不增加，畫面相同。
 - flow 頁桌機版截圖與修改前一致（目視加互動：點節點、切換主題）。
 - **契約新增一段檢查**：
-  - `docs/flow.html` 的 `<x-dc>` 第一層是 `<template>`；
-  - `support.js` 的 `parseDcDocument` 讀 `:scope > template`；
-  - `parseDcText` 會剝掉 `<template>` 外層。
+  - `docs/flow.html` 的 `<helmet>` 留在外面，畫面樣板包進 `<template data-dc-inert>`，包到 `</x-dc>` 為止，內部沒有巢狀 `<template>`；
+  - `support.js` 的 `parseDcDocument` 與 `parseDcText` 兩條讀取路徑都經過 `inlineInertTemplates()`。
+  - （第二版定案；第一版「整個 `<x-dc>` 包 `<template>`」的寫法見施工紀錄。）
 - 不升版（只動 docs 站與契約，plugin 行為不變）。
 
 ## 範圍 / Scope
@@ -52,10 +52,10 @@
 ## 施工清單
 | # | group | 檔（可多個） | 做什麼 | 怎麼驗 |
 |---|---|---|---|---|
-| 1 | 1 | `scripts/plugin-contract.mjs` | 新增 P23：flow.html `<x-dc>` 第一層是 `<template>`；support.js parseDcDocument 讀 `:scope > template`、parseDcText 剝外層 | `node scripts/plugin-contract.mjs` → P23 FAIL（紅） |
+| 1 | 1 | `scripts/plugin-contract.mjs` | 新增 P23：flow.html `<helmet>` 在 `<template data-dc-inert>` 之前、標記包到 `</x-dc>`、內無巢狀 template；support.js 兩條讀取路徑都經 `inlineInertTemplates` | `node scripts/plugin-contract.mjs` → P23 FAIL（紅） |
 | 2 | 2 | （基準） | 改動前 flow / index 的 console error 數、桌機與手機截圖 | 數字與截圖路徑記進施工紀錄 |
-| 3 | 3 | `docs/support.js` | 兩處讀樣板支援 `<template>` 外層（向後相容） | index（無外層）照常顯示、console 不增加 |
-| 4 | 4 | `docs/flow.html` | `<x-dc>` 內容包進 `<template>` | P23 綠；flow console 0 error；截圖與基準一致；點節點、切主題正常 |
+| 3 | 3 | `docs/support.js` | 新增 `inlineInertTemplates()`，兩條讀取路徑共用（無標記時原樣回傳、向後相容） | index（無外層）照常顯示、console 不增加 |
+| 4 | 4 | `docs/flow.html` | `<helmet>` 之後的畫面樣板包進 `<template data-dc-inert>` | P23 綠；flow console 0 error；截圖與基準一致；點節點、切主題正常 |
 
 ## 施工紀錄
 ### 2026-11-09
