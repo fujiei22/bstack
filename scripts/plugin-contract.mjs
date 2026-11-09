@@ -16,8 +16,9 @@
  *   P18 T2 security-audit 七項面向（既有，索引補記）   P19 headless-mode 接線 + 回覆 parser fixture
  *   P20 規則支援多種資料庫、認使用者自裝的 DB 工具
  *   P21 brainstorm 方案草圖、選項數字標來源、互動指令另開視窗
+ *   P22 路線級 finding 退回方案草圖、devwork 入口不判 Tier、非最小推薦附理由
  *
- * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21：P7 先算是因為 P4 要用 agentFiles 掃描；
+ * code 內段落順序是 P1 P2 P3 P7 P4 P5 P6 P8 P9 P10 P11 P12 P18 P13-P17 P19 P20 P21 P22：P7 先算是因為 P4 要用 agentFiles 掃描；
  * P9 之後的殘留掃描（雙視角 / T3 必跑）都吃 P4 的 scanTargets，不各自再列一份檔案清單。
  *
  * 跑法（**必須用 Bash，不要用 PowerShell**——$? 在 PowerShell 是布林、grep 不存在；
@@ -921,6 +922,24 @@ check('P16 hosts.md 八節標題行首錨定 + 第一行護欄 + 兩 host 工具
   if (!cmd) bad.push('rules.md 缺 ### §交給 user 跑的指令');
   for (const w of ['另開', '`!`', '密碼', '本條優先']) if (cmd && !cmd.includes(w)) bad.push(`§交給 user 跑的指令 缺「${w}」`);
   check('P21 brainstorm §方案草圖（觸發 / 跳過 / route_sketch / spec 段）、headless route-sketch=B、rules 數字寫指標 + 出處、§交給 user 跑的指令（另開視窗、! 前綴、密碼）',
+    bad.length === 0, bad.join('；'));
+}
+
+// P22：路線級 finding 退回 §方案草圖、devwork 入口不自判 Tier、非最小推薦附理由（2026-11-09，PR #105 外部審查的三個後續）。
+{
+  const bad = [];
+  const dw = rd('skills/devwork/SKILL.md');
+  const step2 = (dw.match(/^2\. \*\*判斷 `\/devwork` 後面的文字\*\*[\s\S]*?(?=^3\. )/m) || [''])[0];
+  for (const w of ['一律', '入口不判 Tier']) if (!step2.includes(w)) bad.push(`devwork 第 2 步缺「${w}」`);
+  const rp = rd('skills/review-plan/SKILL.md');
+  for (const w of ['路線級 finding', '退回 brainstorm §方案草圖', 'review-plan/route-level']) if (!rp.includes(w)) bad.push(`review-plan 缺「${w}」`);
+  const rr = rd('skills/receive-review/SKILL.md');
+  for (const w of ['路線級 finding', '§方案草圖']) if (!rr.includes(w)) bad.push(`receive-review 缺「${w}」`);
+  const sk = (rd('skills/brainstorm/SKILL.md').split(/\n## /).find((x) => x.startsWith('§方案草圖')) || '');
+  if (!sk.includes('為什麼值得背這份維護')) bad.push('brainstorm §方案草圖 缺「為什麼值得背這份維護」');
+  const row = rd('skills/headless-mode/SKILL.md').split('\n').find((l) => l.startsWith('| `review-plan/route-level`')) || '';
+  if ((row.split('|')[3] || '').trim() !== 'B') bad.push(`headless 分流表 review-plan/route-level 類別應為 B，實際「${(row.split('|')[3] || '').trim()}」`);
+  check('P22 devwork 入口不判 Tier、review-plan / receive-review 路線級 finding 退回 §方案草圖、headless review-plan/route-level=B、草圖非最小推薦附理由',
     bad.length === 0, bad.join('；'));
 }
 
