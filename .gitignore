@@ -21,3 +21,9 @@ scripts/test-reports/
 
 # context-snapshot 的暫存進度（headless-mode 靠它跨輪接續；local-only、不入 repo）
 docs/snapshots/
+
+# 施工文件（spec / plan / review / 截圖 / 歸檔）只給作者自己看，不入 repo；docs/ 由 GitHub Pages 公開發布
+docs/work/
+docs/archive/
+docs/plans/
+docs/test-reports/
