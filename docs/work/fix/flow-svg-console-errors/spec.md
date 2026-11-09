@@ -71,3 +71,19 @@
   - **index**：含內嵌 flow，console 0 筆（原本 34 筆隨 flow 一起消失）。
   - **flow 手機 390×844**：console 0 筆，版面正常（`after-flow-mobile.png`）。
 - 設計對齊四項：全部 N/A。依據：只加了不渲染的 `<template>` 外層，沒有樣式或結構上的視覺變化；截圖 hash 相同是直接證據。
+- code-review medium 8 項，修正如下：
+  - **Major，第一版造成的回歸**：第一版把整個 `<x-dc>` 包進 `<template>`，`<helmet>` 裡要在解析時執行的 script（unhandledrejection 監聽、跨頁滑入動畫、dagre / data.js 等函式庫載入）被延後到 runtime 啟動後才跑。
+    - 實測：dagre 在 509 ms 才開始載入，晚於 domInteractive。
+    - 原驗收沒測到這點。
+  - **改法**：`<helmet>` 留在外面，只包畫面樣板，標記改成 `<template data-dc-inert>`。
+    - `support.js` 兩條讀取路徑共用 `inlineInertTemplates()`，解掉兩路判斷不一致的 2 項 finding。
+    - 中途踩到 DOM 序列化會把 `data-dc-inert` 寫成 `data-dc-inert=""`，第一條路徑沒剝掉、整頁空白；已改成兩種寫法都認，並重測。
+  - **契約 P23**：`<x-dc>` 允許帶屬性；`<helmet>` 必須在標記之前；標記內禁止巢狀 `<template>`，因為 runtime 以第一個 `</template>` 當結尾。
+  - 刪掉與 before 重複的 `after-flow-desktop.png`。
+  - **不改**：
+    - index.html 也包同樣標記：index 量測無錯，列後續；
+    - 改 dc-runtime 上游：原始碼不在本 repo，user 已選路線 1。
+- 重測（第二版）：
+  - flow 桌機 console 0 筆；dagre 在 11 ms 開始載入，早於 domInteractive 41 ms，與 main 相同屬於解析期。
+  - 截圖 `after2-flow-desktop.png` 與 before 版面一致；像素差 3,874 點，全在側欄文字反鋸齒（bbox 17,182–229,351），推測是字型載入時機不同，非版面差異。
+  - 從首頁點「打開流程圖」（內嵌 overlay），流程圖正常顯示，console 0 筆。

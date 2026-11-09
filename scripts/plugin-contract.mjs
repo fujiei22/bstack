@@ -815,14 +815,25 @@ check('P16 hosts.md 八節標題行首錨定 + 四欄表頭固定、§Codex revi
 {
   const bad = [];
   const flow = rd('docs/flow.html');
-  const dcInner = (flow.match(/<x-dc>([\s\S]*?)<\/x-dc>/) || ['', ''])[1].trim();
-  if (!/^<template>[\s\S]*<\/template>$/.test(dcInner)) bad.push('docs/flow.html 的 <x-dc> 第一層不是 <template>');
+  const dcInner = (flow.match(/<x-dc(?:\s[^>]*)?>([\s\S]*?)<\/x-dc>/) || ['', ''])[1];
+  if (!dcInner) bad.push('docs/flow.html 找不到 <x-dc>');
+  const OPEN = '<template data-dc-inert>';
+  const iOpen = dcInner.indexOf(OPEN), iHelmetEnd = dcInner.indexOf('</helmet>');
+  if (iOpen < 0) bad.push('docs/flow.html 的 <x-dc> 內沒有 <template data-dc-inert>');
+  else {
+    if (iHelmetEnd < 0 || iHelmetEnd > iOpen) bad.push('<helmet> 要在 <template data-dc-inert> 之前（裡面的 script 必須解析時就執行）');
+    const inner = dcInner.slice(iOpen + OPEN.length);
+    const iClose = inner.lastIndexOf('</template>');
+    if (iClose < 0 || inner.slice(iClose + '</template>'.length).trim() !== '') bad.push('<template data-dc-inert> 要包到 </x-dc> 前為止');
+    if (/<template[\s>]/.test(inner.slice(0, iClose))) bad.push('<template data-dc-inert> 內不得再有 <template>（runtime 以第一個 </template> 當結尾）');
+  }
   const sup = rd('docs/support.js');
   const pdd = (sup.match(/function parseDcDocument\(doc\) \{[\s\S]*?\r?\n  \}/) || [''])[0];
   const pdt = (sup.match(/function parseDcText\(src\) \{[\s\S]*?\r?\n  \}/) || [''])[0];
-  if (!/:scope > template/.test(pdd)) bad.push('support.js parseDcDocument 沒讀 :scope > template');
-  if (!/unwrapTemplate\(/.test(pdt) || !/function unwrapTemplate\(/.test(sup)) bad.push('support.js parseDcText 沒剝 <template> 外層（unwrapTemplate）');
-  check('P23 docs 站樣板包 <template>：flow.html <x-dc> 第一層是 <template>；support.js parseDcDocument / parseDcText 兩處都讀得到 <template> 內容',
+  if (!/function inlineInertTemplates\(/.test(sup)) bad.push('support.js 缺 inlineInertTemplates()');
+  if (!/inlineInertTemplates\(dc\.innerHTML\)/.test(pdd)) bad.push('support.js parseDcDocument 沒經 inlineInertTemplates');
+  if (!/inlineInertTemplates\(src\.slice/.test(pdt)) bad.push('support.js parseDcText 沒經 inlineInertTemplates');
+  check('P23 docs 站樣板包 <template data-dc-inert>：flow.html <helmet> 在外、畫面樣板在內、內無巢狀 template；support.js 兩條讀取路徑都經 inlineInertTemplates',
     bad.length === 0, bad.join('；') + '（後果：flow 頁回到 34 筆 console error、或 support.js 讀不到樣板整頁空白；改處：docs/flow.html、docs/support.js）');
 }
 
