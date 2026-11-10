@@ -102,15 +102,17 @@ check('P1b marketplace.json 必填齊且 source 指向 ./',
 // 依賴不在本 marketplace 會裝不起來，條目沒人依賴就是死條目。
 // 2026-11-10 user 決定第三方 mod 跟著上游正式版、不鎖 commit（原本鎖 sha，每次升版要手改 ref / sha / version）：
 // - 不得寫 sha、條目 version：寫了就卡在舊版（條目 version 只在上游 plugin.json 沒寫 version 時才生效，留著只會誤導）
-// - ref 只能寫會移動的 branch（例 prismantis 的 release，上游打 tag 時自動移過去）；寫 tag（v1.2.3）等於鎖版。
-//   不寫 ref 會跟上游 default branch，發版之間未發布的 commit 也會被裝到、版本號卻是舊的
+// - ref 必填，且只能寫會移動的 branch（例 prismantis 的 release，上游打 tag 時自動移過去）：
+//   不寫 ref 會跟上游 default branch，發版之間未發布的 commit 也會被裝到、版本號卻是舊的；
+//   寫 tag（v1.2.3、v1.2.3-rc1、name--v1.2.3）或 40 位 commit hash 等於鎖版
 // - 只收 git-subdir / url，url 必須是完整 https：owner/repo 簡寫（含 github 來源）會走 SSH，
 //   沒設 GitHub host key 的機器裝不起來（2026-11-10 實測 Host key verification failed）；git-subdir 必須寫 path
 const extras = (market.plugins || []).slice(1);
 const pinned = extras.every((p) => typeof p.name === 'string' && ['git-subdir', 'url'].includes(p.source?.source)
   && /^https:\/\//.test(p.source.url || '')
   && (p.source.source !== 'git-subdir' || (typeof p.source.path === 'string' && p.source.path.length > 0))
-  && (!('ref' in p.source) || (typeof p.source.ref === 'string' && !/^v?\d+(\.\d+)*$/.test(p.source.ref)))
+  && typeof p.source.ref === 'string' && p.source.ref.length > 0
+  && !/^v?\d/.test(p.source.ref) && !p.source.ref.includes('--') && !/^[0-9a-f]{40}$/.test(p.source.ref)
   && !('sha' in p.source) && !('version' in p));
 const deps = Array.isArray(plugin.dependencies) ? plugin.dependencies : [];
 const sameSet = deps.length === extras.length && deps.every((d) => typeof d === 'string' && extras.some((p) => p.name === d));

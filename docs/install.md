@@ -68,7 +68,7 @@ pwsh -File scripts/install.ps1
 
 **第三方 mod（只在 Claude Code）**：bstack 的 `.claude-plugin/plugin.json` 宣告 `dependencies: ["prismantis"]`，裝 bstack 就同層級帶裝並啟用 `prismantis@bstack`（回覆彩色渲染），範本與 `scripts/install.ps1` 不用另外處理。它收錄在 bstack 的 marketplace，來源**不鎖版**：指向原作者 repo 的 `plugin/` 目錄、`release` branch（`git-subdir`，原作者每次發版自動把 `release` 移到新版；不寫 `sha` / `version`），所以只會拿到正式版，bstack 這邊不用改任何東西（契約 P1c 守：每個依賴都要有條目、且不鎖版）。
 
-要拿新版有兩種做法：自己跑 `claude plugin update prismantis@bstack`；或到 `/plugin` → Marketplaces → bstack → Enable auto-update（非官方 marketplace 預設**不**自動更新）。代價：mod 是以你的權限執行的程式碼，開了自動更新之後新版不經 bstack 讀過原始碼就會在你的機器上執行。大版本跳升時外觀會變（例：0.18 → 0.45 多了聊天泡泡樣式、預設開的 `issueHint`，每 10 則提示約多 35 token），都能在 `/plugin` 調回。
+要拿新版有兩種做法：自己跑 `claude plugin update prismantis@bstack`；或到 `/plugin` → Marketplaces → bstack → Enable auto-update（非官方 marketplace 預設**不**自動更新）。代價：mod 是以你的權限執行的程式碼，之後每個新版都不經 bstack 讀過原始碼；開自動更新等於連何時裝也交出去。大版本跳升時外觀會變（例：0.18 → 0.45 多了聊天泡泡樣式、預設開的 `issueHint`，每 10 則提示約多 35 token），都能在 `/plugin` 調回。
 
 依賴的實測行為（Claude Code 2.1.296）：
 - **舊版升上來會壞一次**：已裝 1.9.0 以前的人更新到 1.10.0 後，bstack 顯示 `failed to load: Dependency "prismantis@bstack" is not installed`，branch-safety hook 一起失效；重跑 `claude plugin install bstack@bstack` 也不補依賴。修法是補裝（或重跑 `scripts/install.ps1`，它會逐一補裝）：
