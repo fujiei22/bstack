@@ -98,15 +98,21 @@ check('P1b marketplace.json 必填齊且 source 指向 ./',
     Array.isArray(market.plugins) && market.plugins.length >= 1 &&
     market.plugins[0].name === 'bstack' && market.plugins[0].source === './',
   `期望 name=bstack、owner.name、plugins[0]={name:bstack, source:'./'}，實際 ${market.__err || JSON.stringify(market)}（後果：/plugin install bstack@bstack 找不到）`);
-// P1c：bstack 依賴的第三方 mod（2026-10-14，feat/bundle-mods）。第三方程式碼以使用者權限執行，來源一律鎖 commit；
-// dependencies 與 marketplace 第三方條目一一對應——依賴不在本 marketplace 會裝不起來，條目沒人依賴就是死條目
+// P1c：bstack 依賴的第三方 mod（2026-10-14，feat/bundle-mods）。dependencies 與 marketplace 第三方條目一一對應——
+// 依賴不在本 marketplace 會裝不起來，條目沒人依賴就是死條目。
+// 2026-11-10 user 決定第三方 mod 跟著上游最新版、不鎖 commit（原本鎖 sha，每次升版要手改 ref / sha / version）：
+// 來源必須是遠端 git（github / git-subdir），且不得寫 sha、ref、條目 version——寫了任何一個就會卡在舊版，
+// 條目 version 只在上游 plugin.json 沒寫 version 時才生效，留著只會誤導讀者。
+// git-subdir 的 url 必須寫完整 https：寫 owner/repo 簡寫會走 SSH，沒設 GitHub host key 的機器裝不起來（2026-11-10 實測 Host key verification failed）
 const extras = (market.plugins || []).slice(1);
-const pinned = extras.every((p) => typeof p.name === 'string' && p.source?.source === 'github' && /^[0-9a-f]{40}$/.test(p.source?.sha || ''));
+const pinned = extras.every((p) => typeof p.name === 'string' && ['github', 'git-subdir'].includes(p.source?.source)
+  && (p.source.source !== 'git-subdir' || /^https:\/\//.test(p.source.url || ''))
+  && !('sha' in p.source) && !('ref' in p.source) && !('version' in p));
 const deps = Array.isArray(plugin.dependencies) ? plugin.dependencies : [];
 const sameSet = deps.length === extras.length && deps.every((d) => typeof d === 'string' && extras.some((p) => p.name === d));
-check('P1c marketplace 第三方 plugin 來源鎖 commit、與 plugin.json dependencies 一一對應',
+check('P1c marketplace 第三方 plugin 來源跟上游最新版（不鎖 sha / ref / version）、與 plugin.json dependencies 一一對應',
   pinned && sameSet,
-  `第三方條目 ${JSON.stringify(extras.map((p) => [p.name, p.source?.sha]))}、dependencies=${JSON.stringify(plugin.dependencies)}（後果：沒鎖 sha 等於讓上游任意更新在使用者機器上執行；依賴不在本 marketplace 會讓 /plugin install bstack@bstack 失敗）`);
+  `第三方條目 ${JSON.stringify(extras.map((p) => [p.name, p.source?.sha]))}、dependencies=${JSON.stringify(plugin.dependencies)}（後果：鎖了 sha / ref / version 就收不到上游新版；依賴不在本 marketplace 會讓 /plugin install bstack@bstack 失敗）`);
 
 // ── P2 hooks ────────────────────────────────────────────────────────────────
 const hooks = parseJson('hooks/hooks.json');

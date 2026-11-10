@@ -66,7 +66,7 @@ pwsh -File scripts/install.ps1
 
 `bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。clone 這個專案的隊友是否會被自動安裝 plugin，官方文件沒明說，所以範本與這兩行都留著。
 
-**第三方 mod（只在 Claude Code）**：bstack 的 `.claude-plugin/plugin.json` 宣告 `dependencies: ["prismantis"]`，裝 bstack 就同層級帶裝並啟用 `prismantis@bstack`（回覆彩色渲染），範本與 `scripts/install.ps1` 不用另外處理。它收錄在 bstack 的 marketplace、來源**鎖定 commit**，不會像 bstack 本體那樣跟著上游變動；要升版得改 `.claude-plugin/marketplace.json` 的 `ref` / `sha`（契約 P1c 守：每個依賴都要有鎖 sha 的條目）。mod 是以你的權限執行的程式碼，鎖版前已讀過原始碼：它不連網路。
+**第三方 mod（只在 Claude Code）**：bstack 的 `.claude-plugin/plugin.json` 宣告 `dependencies: ["prismantis"]`，裝 bstack 就同層級帶裝並啟用 `prismantis@bstack`（回覆彩色渲染），範本與 `scripts/install.ps1` 不用另外處理。它收錄在 bstack 的 marketplace，來源**不鎖版**：直接指向原作者 repo 的 `plugin/` 目錄（`git-subdir`、不寫 `ref` / `sha` / `version`），原作者每發一版（改 `plugin.json` 的 `version`），`claude plugin update prismantis@bstack` 或 marketplace 自動更新就會拉到最新版，bstack 這邊不用改任何東西（契約 P1c 守：每個依賴都要有條目、且不鎖版）。代價：mod 是以你的權限執行的程式碼，之後的新版不會先經 bstack 讀過原始碼；不放心就在 `/plugin` 關掉 bstack marketplace 的自動更新，自己決定何時 update。
 
 依賴的實測行為（Claude Code 2.1.296）：
 - **舊版升上來會壞一次**：已裝 1.9.0 以前的人更新到 1.10.0 後，bstack 顯示 `failed to load: Dependency "prismantis@bstack" is not installed`，branch-safety hook 一起失效；重跑 `claude plugin install bstack@bstack` 也不補依賴。修法是補裝（或重跑 `scripts/install.ps1`，它會逐一補裝）：

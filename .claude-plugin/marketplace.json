@@ -1,7 +1,7 @@
 {
   "name": "bstack",
   "owner": { "name": "Tommy Sian" },
-  "metadata": { "description": "bstack 自己的 marketplace（Claude Code 與 Codex 共用）：bstack 本體，加上 bstack 在 Claude Code 依賴的第三方 mod（prismantis，鎖定 commit）" },
+  "metadata": { "description": "bstack 自己的 marketplace（Claude Code 與 Codex 共用）：bstack 本體，加上 bstack 在 Claude Code 依賴的第三方 mod（prismantis，跟著上游最新版）" },
   "plugins": [
     {
       "name": "bstack",
@@ -12,9 +12,8 @@
     },
     {
       "name": "prismantis",
-      "source": { "source": "github", "repo": "NahumLitvin/prismantis", "ref": "v0.18.3", "sha": "2553620fecbe4d81730c9a222349ec0a5687f673" },
+      "source": { "source": "git-subdir", "url": "https://github.com/NahumLitvin/prismantis.git", "path": "plugin" },
       "description": "Claude Code mod（第三方，MIT）：回覆的表格、標題、程式碼、Mermaid 圖彩色渲染",
-      "version": "0.18.3",
       "category": "appearance"
     }
   ]
