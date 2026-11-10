@@ -12,7 +12,7 @@
     },
     {
       "name": "prismantis",
-      "source": { "source": "git-subdir", "url": "https://github.com/NahumLitvin/prismantis.git", "path": "plugin" },
+      "source": { "source": "git-subdir", "url": "https://github.com/NahumLitvin/prismantis.git", "path": "plugin", "ref": "release" },
       "description": "Claude Code mod（第三方，MIT）：回覆的表格、標題、程式碼、Mermaid 圖彩色渲染",
       "category": "appearance"
     }

@@ -66,7 +66,9 @@ pwsh -File scripts/install.ps1
 
 `bstack@bstack` 不是打錯：前面是 plugin 名、後面是 marketplace 名，剛好一樣。clone 這個專案的隊友是否會被自動安裝 plugin，官方文件沒明說，所以範本與這兩行都留著。
 
-**第三方 mod（只在 Claude Code）**：bstack 的 `.claude-plugin/plugin.json` 宣告 `dependencies: ["prismantis"]`，裝 bstack 就同層級帶裝並啟用 `prismantis@bstack`（回覆彩色渲染），範本與 `scripts/install.ps1` 不用另外處理。它收錄在 bstack 的 marketplace，來源**不鎖版**：直接指向原作者 repo 的 `plugin/` 目錄（`git-subdir`、不寫 `ref` / `sha` / `version`），原作者每發一版（改 `plugin.json` 的 `version`），`claude plugin update prismantis@bstack` 或 marketplace 自動更新就會拉到最新版，bstack 這邊不用改任何東西（契約 P1c 守：每個依賴都要有條目、且不鎖版）。代價：mod 是以你的權限執行的程式碼，之後的新版不會先經 bstack 讀過原始碼；不放心就在 `/plugin` 關掉 bstack marketplace 的自動更新，自己決定何時 update。
+**第三方 mod（只在 Claude Code）**：bstack 的 `.claude-plugin/plugin.json` 宣告 `dependencies: ["prismantis"]`，裝 bstack 就同層級帶裝並啟用 `prismantis@bstack`（回覆彩色渲染），範本與 `scripts/install.ps1` 不用另外處理。它收錄在 bstack 的 marketplace，來源**不鎖版**：指向原作者 repo 的 `plugin/` 目錄、`release` branch（`git-subdir`，原作者每次發版自動把 `release` 移到新版；不寫 `sha` / `version`），所以只會拿到正式版，bstack 這邊不用改任何東西（契約 P1c 守：每個依賴都要有條目、且不鎖版）。
+
+要拿新版有兩種做法：自己跑 `claude plugin update prismantis@bstack`；或到 `/plugin` → Marketplaces → bstack → Enable auto-update（非官方 marketplace 預設**不**自動更新）。代價：mod 是以你的權限執行的程式碼，開了自動更新之後新版不經 bstack 讀過原始碼就會在你的機器上執行。大版本跳升時外觀會變（例：0.18 → 0.45 多了聊天泡泡樣式、預設開的 `issueHint`，每 10 則提示約多 35 token），都能在 `/plugin` 調回。
 
 依賴的實測行為（Claude Code 2.1.296）：
 - **舊版升上來會壞一次**：已裝 1.9.0 以前的人更新到 1.10.0 後，bstack 顯示 `failed to load: Dependency "prismantis@bstack" is not installed`，branch-safety hook 一起失效；重跑 `claude plugin install bstack@bstack` 也不補依賴。修法是補裝（或重跑 `scripts/install.ps1`，它會逐一補裝）：
@@ -75,6 +77,7 @@ pwsh -File scripts/install.ps1
   claude plugin install prismantis@bstack
   ```
 
+- **從鎖版條目升上來**（2026-11-10 實測，Claude Code 2.1.321，隔離的 plugin 快取）：先裝舊的鎖 sha 條目（0.18.3），換成現在的條目後 `claude plugin marketplace update bstack` → `claude plugin update prismantis@bstack`，印 `updated from 0.18.3 to 0.45.3`，裝到的 commit 等於上游 `release` branch。
 - **不能單獨停用**：`claude plugin disable prismantis@bstack` 會被拒（still required by bstack）。不想要它的畫面就調設定（`/plugin`），或整個停用 bstack。
 - **移除 bstack 不會順便移除 mod**：會印「auto-installed dependencies no longer needed」，再跑 `claude plugin prune` 才清掉。
 - 已經從原作者 marketplace 裝過同一個 mod 的人，`@bstack` 版會重複載入，把原作者那份 `claude plugin uninstall` 掉。

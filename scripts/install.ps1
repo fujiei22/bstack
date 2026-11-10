@@ -43,7 +43,7 @@ $Extras = Join-Path $PSScriptRoot 'extras.ps1'
 $ProjectRoot = (Get-Location).Path
 try { $top = git rev-parse --show-toplevel 2>$null; if ($LASTEXITCODE -eq 0 -and $top) { $ProjectRoot = $top -replace '/', [IO.Path]::DirectorySeparatorChar } } catch {}
 $GithubRepo = 'fujiei22/bstack'
-# bstack 的 dependencies（.claude-plugin/plugin.json），收錄在 bstack marketplace、鎖 commit
+# bstack 的 dependencies（.claude-plugin/plugin.json），收錄在 bstack marketplace、跟上游正式版（不鎖 commit）
 $Mods = @('prismantis@bstack')
 $DryRun = [bool]$WhatIfPreference
 # 子行程與印給使用者抄的指令都用「正在跑本腳本的那個 PowerShell」：Windows PowerShell 5.1 → powershell、pwsh 7 → pwsh，
